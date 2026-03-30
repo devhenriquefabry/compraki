@@ -1,0 +1,173 @@
+form {
+
+    background-color: white;
+    padding: 35px;
+    color: black;
+    height: calc(100vh - 150px) !important;
+    overflow: scroll;
+    padding-bottom: 50px;
+
+    .image-container{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-direction: row;
+        flex-wrap: nowrap !important;
+        width: 100%;
+        padding: 0;
+        .banner{
+            width: 49%;
+            border: 2px dashed var(--cor-principal);
+            border-radius: 5px;
+        }
+
+        .image-list-container{
+            opacity: 50%;
+            width: 49%; 
+            background-color: white;
+            border: 2px solid #909090;
+            border-radius: 5px;
+            position: relative;
+            padding: 0;
+
+            input{
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                z-index: 9999;
+                opacity: 0;
+            }
+
+            ion-icon{
+                font-size: 40px;
+                position: absolute;
+                left: calc(50% - 20px);
+                top:  calc(50% - 20px);
+                color: #909090;
+            }
+
+            img{
+                width: 100%;
+                opacity: 0;
+            }
+        }
+
+    }
+
+    .section-container {
+        display: flex;
+        justify-content: center;
+        align-items: start;
+        flex-direction: column;
+        width: 100%;
+        padding: 10px 0;
+
+        ion-icon {
+            color: var(--cor-principal);
+        }
+
+        border-left: 2px solid rgba(128, 128, 128, 0.232);
+
+        .title {
+            font-weight: bolder;
+            display: flex;
+            justify-content: start;
+            align-items: center;
+            flex-direction: row;
+            width: 100% !important;
+            position: relative;
+            margin-bottom: 5px;
+
+
+
+            ion-icon {
+                margin-right: 7px;
+                font-size: 10px;
+                position: absolute;
+                left: -8.5px;
+                border: 4px solid white;
+                background-color: white;
+                border-radius: 50%;
+            }
+
+            span {
+            font-family: "Poppins", sans-serif !important;
+                margin-left: 17px;
+            }
+
+        }
+
+        .subtitle-container {
+            padding-left: 10px;
+            display: flex;
+            justify-content: start;
+            align-items: center;
+
+            .ponto-verde-subtitle {
+                color: gray !important;
+                opacity: 50%;
+                font-size: 6px;
+                margin-right: 5px;
+            }
+
+            .subtitle {
+                color: #424242;
+                font-weight: bolder;
+                font-family: "Poppins", sans-serif !important;
+                list-style: none;
+                list-style-position: left;
+                font-size: 12px;
+                margin: 5px 0;
+
+            }
+
+
+
+
+        }
+    }
+
+    .input-container {
+        padding-left: 10px;
+        display: flex;
+        justify-content: start;
+        align-items: center;
+        direction: row;
+        flex-wrap: nowrap !important;
+        width: 100%;
+
+        input {
+            background-color: white;
+            width: 100%;
+            border: 1px solid #424242;
+            height: 35px;
+            padding-left: 5px;
+            font-size: 15px;
+            border-radius: 5px;
+            font-weight: 700;
+            letter-spacing: .3px;
+
+        }
+    }
+
+
+}
+
+ion-select, ion-list, ion-item, ion-select-option{
+    
+    --background : white !important;
+    background-color: white;
+    padding: 0;
+    color: var(--cor-secundaria) !important;
+}
+
+/* Isso afetará todos os action-sheets com o modo Material Design (md) */
+.action-sheet-button {
+  --background: #f4f4f4; /* Cor de fundo clara desejada */
+  --color: #333;         /* Cor do texto para dar contraste */
+}
+
+/* Opcional: efeito ao pressionar o botão */
+.action-sheet-button.activated {
+  --background: #e0e0e0;
+}

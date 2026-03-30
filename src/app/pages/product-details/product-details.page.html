@@ -1,0 +1,53 @@
+<ion-content [fullscreen]="true">
+  <app-custom-header backButton="Voltar" titlePage="Detalhes do Produto"></app-custom-header>
+  <app-mini-header></app-mini-header>
+
+  <div *ngIf="product$ | async as p" class="product-container">
+    <div class="img-container"><img src="{{p.photoURL}}">
+    </div>
+    <div class="data-container">
+      <span class="name">{{p.name}}</span>
+      <span class="price">R$ {{p.price}}<sup>,{{getFloating(p.price)}}</sup>
+
+        <span *ngIf="p.priceDiscounted" class="price-discounted">R$
+          {{p.priceDiscounted}}<span>,{{getFloating(p.priceDiscounted)}}</span></span>
+      </span>
+      <span class="payment-method">
+        <span class="payment" *ngIf="p.paymentMethod === 'PIX'">
+          <span>A vista no Pix</span>
+          <img src="/assets/imagens/pix.png" alt="">
+        </span>
+        <span class="payment cartao" *ngIf="p.paymentMethod === 'CARTÃO'">
+          <span>À vista no Cartão de Débito ou Crédito</span>
+          <img src="/assets/imagens/cartao.png" alt="">
+        </span>
+      </span>
+      <span class="shipping">{{p.shipping}}</span>
+      <span class="rating">
+        <ion-icon name="star"></ion-icon>
+        <ion-icon name="star"></ion-icon>
+        <ion-icon name="star"></ion-icon>
+        <ion-icon name="star"></ion-icon>
+        <ion-icon name="star"></ion-icon>
+        {{p.rating}} avaliações ></span>
+
+    </div>
+  </div>
+  <div class="erro" *ngIf="!(product$ | async)">
+    Nenhum produto passado!
+  </div>
+
+
+  <div class="perfil-vendedor">
+
+    <div class="container-seller">
+      <img class="img-vendedor" src="/assets/imagens/foto-henrique.jpeg" alt="">
+      <div class="data-seller">
+        <span class="title-vendedor">Loja do Henrique</span>
+        <span><ion-icon name="ribbon-outline"></ion-icon> Verificado</span>
+      </div>
+    </div>
+    <ion-button class="acess-profile-seller">VER PERFIL DO VENDEDOR</ion-button>
+  </div>
+  <ion-button class="add-to-card poppins" size="full">ADICIONAR AO CARRINHO</ion-button>
+</ion-content>

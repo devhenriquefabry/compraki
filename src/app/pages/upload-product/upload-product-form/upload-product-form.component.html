@@ -1,0 +1,157 @@
+<form action="" [formGroup]="submitProductForm">
+  <img src="assets/imagens/add-product-header-banner.png" alt="">
+
+  <div class="section-container">
+    <div class="title poppins">
+      <ion-icon class="ponto-verde-title" name="ellipse"></ion-icon>
+      <span>Fotos do Produto</span>
+    </div>
+    <div class="image-container">
+      <img class="banner" src="assets/imagens/add-photo-button.png" alt="">
+
+      <div class="image-list-container">
+        <input type="file" name="" id="">
+        <ion-icon name="add"></ion-icon>
+        <img src="assets/imagens/add-photo-button.png" alt="">
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-container">
+    <div class="title poppins">
+      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
+      <span>Informações do Produto</span>
+    </div>
+    <div class="subtitle-container">
+      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
+      <span class="subtitle">Titulo do Produto</span>
+    </div>
+    <div class="input-container">
+      <input formControlName="name">
+    </div>
+
+    <div class="subtitle-container">
+      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
+      <span class="subtitle">Categoria</span>
+    </div>
+   
+    <hr>
+
+    <ion-list >
+      <ion-item>
+        <ion-select mode="md"  aria-label="Fruit" interface="action-sheet" placeholder="Estado do Produto" formControlName="isUsed">
+          <ion-select-option value="novo" style="background: white;">NOVO</ion-select-option>
+          <ion-select-option value="usado">USADO</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-list>
+
+    <span>Eletronicos, Computadores, Notebooks...</span>
+    <span class="subtitle">Condição do Produto</span>
+    <ion-list mode="md">
+      <ion-item mode="md">
+        <ion-select mode="md" aria-label="Fruit" interface="action-sheet" placeholder="Estado do Produto"
+          formControlName="isUsed">
+          <ion-select-option class="action-sheet-button" value="novo">NOVO</ion-select-option>
+          <ion-select-option value="usado">USADO</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <div class="section-container">
+    <div class="title">
+      <ion-icon class="ponto-verde-title" name="ellipse"></ion-icon>
+      <span>Preço e Estoque</span>
+
+    </div>
+    <div class="subtitle-container">
+
+      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
+      <span class="subtitle">Preço</span>
+    </div>
+    <div class="data-container">
+      <input mode="md" fill="outline" labelPlacement="stacked" value="" type="number" formControlName="price">
+      <div slot="label">Preço <ion-text color="danger">(Obrigatório)</ion-text></div>
+
+    </div>
+  </div>
+
+  <div class="section-container">
+    <div class="title">
+      <ion-icon class="ponto-verde-title" name="ellipse"></ion-icon>
+      <span>Descrição do Produto</span>
+    </div>
+    <ion-textarea mode="md" fill="outline" type="text" class="description" labelPlacement="stacked" value=""
+      formControlName="description">
+      <div slot="label">Descrição <ion-text color="danger">(Obrigatório)</ion-text></div>
+    </ion-textarea>
+  </div>
+  <br>
+  <br>
+  <br>
+  <br>
+  <h1>ESTILO ANTIGO ABAIXO</h1>
+</form>
+<!-- codigo antigo abaixo -->
+
+<!-- <span>
+    Insira os dados do produto abaixo:
+  </span>
+
+  <div class="image-input-container">
+    <img src="assets/imagens/imagem-placeholder.png" alt="">
+    <input #fileInput type="file" accept="image/*">
+  </div>
+
+  <input mode="md" fill="outline" labelPlacement="floating" color="danger" formControlName="name">
+    <div slot="label">Nome do Produto <ion-text color="danger">(Obrigatório)</ion-text></div>
+  
+
+  <div class="data-container">
+    <input mode="md" fill="outline" labelPlacement="stacked" value="" type="number" formControlName="price">
+      <div slot="label">Preço <ion-text color="danger">(Obrigatório)</ion-text></div>
+    
+    <input mode="md" fill="outline" labelPlacement="stacked" value="" type="number"
+      formControlName="priceDiscounted">
+      <div slot="label">Preço com Desconto <ion-text color="danger"></ion-text></div>
+    
+  </div>
+
+  <ion-list mode="md">
+    <ion-item mode="md">
+      <ion-select mode="md" aria-label="Fruit" interface="action-sheet" placeholder="Estado do Produto"
+        formControlName="isUsed">
+        <ion-select-option value="novo">NOVO</ion-select-option>
+        <ion-select-option value="usado">USADO</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </ion-list>
+
+
+  <ion-list mode="md">
+    <ion-item mode="md">
+      <ion-select mode="md" aria-label="Fruit" interface="action-sheet" placeholder="Pagamento Aceito"
+        formControlName="paymentMethod">
+        <ion-select-option value="pix">PIX</ion-select-option>
+        <ion-select-option value="cartao">CARTÃO</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </ion-list>
+  <ion-textarea mode="md" fill="outline" type="text" class="description" labelPlacement="stacked" value=""
+    formControlName="description">
+    <div slot="label">Descrição <ion-text color="danger">(Obrigatório)</ion-text></div>
+  </ion-textarea>
+  <ion-checkbox labelPlacement="end" mode="md" helperText="É necessário aceitar os Termos antes de continuar"
+    errorText="Você deve aceitar os Termos de Uso antes de continuar" formControlName="terms">
+    Aceito os Termos de Uso
+  </ion-checkbox>
+
+  <br />
+
+
+  <ion-button [disabled]="!isFormValid" size="full" class="submit" type="submit">
+    Enviar
+  </ion-button> -->

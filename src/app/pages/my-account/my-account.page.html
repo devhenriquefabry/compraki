@@ -1,0 +1,30 @@
+<ion-content [fullscreen]="true">
+  <app-custom-header backButton="Voltar" titlePage="MINHA CONTA"></app-custom-header>
+
+  <h1><ion-icon name="person"></ion-icon>  Página de Minha Conta </h1>
+  <img src="{{familiaSantos[0].profile_image_url}}" alt=""> <br>
+  Usuario : {{familiaSantos[0].name}} <br>
+  Na Familia tem {{familiaSantos.length}} membros
+  <br>
+    <br>
+      <br>
+        <br>
+          <br>
+
+            notificação: <br>
+            {{pocoF5UsadoDoiVendido.header}} <br>
+            {{pocoF5UsadoDoiVendido.body}} <br>
+            produto: <br>
+            {{pocoF5UsadoDoiVendido.product.name}} <br>
+            {{pocoF5UsadoDoiVendido.product.price}} <br>
+            Já foi usado :
+            @if (pocoF5UsadoDoiVendido.product.isUsed) {
+              <ion-badge color="danger" >Sim, Já foi USADO sim.</ion-badge>
+            }
+
+            @if (!pocoF5UsadoDoiVendido.product.isUsed) {
+              <ion-badge color="success">Não, Tá novinho em folha!</ion-badge>
+            }
+
+
+          </ion-content>

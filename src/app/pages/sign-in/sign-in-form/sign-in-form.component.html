@@ -1,0 +1,64 @@
+
+
+ <app-loading-spinner-overlay *ngIf="firebaseProducts.carregando"></app-loading-spinner-overlay>
+
+<div class="containerLogin">
+  <img class="logoCompraki" src="assets/imagens/logoCompraki.png" alt="logoCompraki">
+  <form class="formuLogin" [formGroup]="signInForm">
+    <h2>CRIAR CONTA</h2>
+
+    <div class="input-container">
+      <ion-icon name="person"></ion-icon>
+
+      <ion-input formControlName="name" inputmode="nome" label="Nome completo" label-placement="floating" mode="md" fill="outline"
+        placeholder="Seu nome aqui">
+      </ion-input>
+
+    </div>
+
+    <div class="input-container">
+      <ion-icon name="mail"></ion-icon>
+
+      <ion-input formControlName="email" inputmode="email" label="Digite seu e-mail" label-placement="floating" mode="md" fill="outline"
+        placeholder="Seu e-mail aqui">
+      </ion-input>
+
+    </div>
+
+    <div class="input-container">
+      <ion-icon name="document-text"></ion-icon>
+
+      <ion-input inputmode="numeric" label="Digite o seu CPF" label-placement="floating" mode="md" fill="outline"
+        placeholder="Seu CPF aqui">
+      </ion-input>
+
+    </div>
+
+    <div class="input-container">
+      <ion-icon name="lock-closed"></ion-icon>
+
+      <ion-input formControlName="password" inputmode="text" label="Digite sua senha" label-placement="floating" mode="md" fill="outline"
+        placeholder="Sua senha aqui">
+      </ion-input>
+
+    </div>
+
+    <div class="input-container">
+      <ion-icon name="lock-closed"></ion-icon>
+
+      <ion-input formControlName="repeatPassword" inputmode="text" label="Confirmar senha" label-placement="floating" mode="md" fill="outline"
+        placeholder="Confirme sua senha aqui">
+      </ion-input>
+
+    </div>
+
+    <ion-button class="submitButton" type="submit" *ngIf="formularioValido" (click)="callSignInFunction()">CADASTRAR</ion-button>
+    <ion-button  disabled class="submitButton" type="submit" *ngIf="!formularioValido">CADASTRAR</ion-button>
+    <ion-button  class="submitButtonGoogle" type="submit" (click)="callSignInGoogleFunction()"><img class="imgGoogle" src="assets/imagens/google.png" alt="">LOGIN COM GOOGLE</ion-button>
+
+    <ion-label class="textos">Ao seu cadastrar, você concorda com nossos <span class="text-green">Termos de Uso e Privacidade</span></ion-label>
+    <hr>
+
+    <ion-label class="textos" [routerLink]="['/login']" routerLinkActive="router-link-active" >Já possui uma conta? <span class="text-green">ENTRAR</span></ion-label>
+  </form>
+</div>  

@@ -1,0 +1,43 @@
+
+
+<ion-content [fullscreen]="true">
+  <app-custom-header titlePage="Home"></app-custom-header>
+  <app-mini-header></app-mini-header>
+
+  <p>O usuario logado é : {{usuario?.email}}</p>
+  <ion-button color="danger" size="full" (click)="logout()">LOGOUT</ion-button>
+
+  <div class="product-list">
+
+
+@for (produto of (products$ | async); track produto.id) {
+  <app-product-card [item]="produto" (click)="sendProductToDetailPage(produto)"></app-product-card>
+}
+
+  </div>
+
+
+
+  <ion-button [routerLink]="['/upload-product']" routerLinkActive="router-link-active" >Formulário de Cadastro de Produto</ion-button>
+  <br>
+  <ion-button [routerLink]="['/forgot-password']" routerLinkActive="router-link-active" >Esqueci minha Senha</ion-button>
+  <br>  
+  <ion-button [routerLink]="['/login']" routerLinkActive="router-link-active" >Login</ion-button>
+  <br>
+  <ion-button [routerLink]="['/sign-in']" routerLinkActive="router-link-active" >Cadastre-se</ion-button>
+  <br>
+  <ion-button [routerLink]="['/notifications']" disabled routerLinkActive="router-link-active" >Notifications</ion-button>
+  <br>
+  <br>
+  <ion-button [routerLink]="['/product-details']"  routerLinkActive="router-link-active" >Detalhes do Produto</ion-button>
+  <br>
+  <ion-button [routerLink]="['/my-account']" routerLinkActive="router-link-active" >Minha Conta</ion-button>
+  <br>
+
+
+
+
+
+
+
+</ion-content>

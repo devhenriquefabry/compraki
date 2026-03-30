@@ -1,0 +1,23 @@
+<div class="container" >
+  <img class="imgProduct"
+    src={{item.photoURL}}
+    alt="">
+
+    <div class="data-container">
+      <span class="titleProduct">{{item.name}}</span>
+      <div class="prices">
+        <span class="priceProduct">R${{item.price}}</span>
+        <span class="priceDiscounted">R${{item.priceDiscounted}}</span>
+      </div>
+      <div class="bottom-container">
+        <span class="sold-count">{{item.soldCount}} vendidos...</span>
+        <span class="shipping">@if (item.shipping == 'Frete Grátis') {
+          <ion-icon name="flash"></ion-icon>
+        } {{item.shipping}}</span>
+      </div>
+
+    </div>
+
+    <ion-button class="enviar">SALVAR NO FIREBASE</ion-button>
+
+  </div>

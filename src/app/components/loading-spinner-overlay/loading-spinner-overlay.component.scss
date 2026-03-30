@@ -1,0 +1,29 @@
+.container {
+    width: 100vw !important;
+    height: 100vh !important;
+    position: fixed;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 30px;
+        background-color: #0000004a;
+
+    .spinner-container{
+        width: 40vw;
+        height: 40vw;
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 15px;
+        background-color: #383838;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        ion-spinner{
+            --color: var(--cor-principal);
+            width: 50vw !important;
+        }
+    }
+}

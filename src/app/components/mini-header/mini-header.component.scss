@@ -1,0 +1,38 @@
+.container {
+    height: 60px;
+    background-color: var(--cor-secundaria);
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    position: relative;
+    padding: 0 10px;
+
+    font-weight: bolder;
+    font-size: 24px;
+
+    ion-icon {}
+
+    ion-icon:first-of-type {
+        opacity: 50%;
+        color: white !important;
+    }
+
+
+        img {
+            height: 90%;
+        }
+
+    .last-icons {
+
+        ion-icon {
+            opacity: 1;
+            margin: 4px;
+            color: var(--cor-principal) !important;
+        }
+    }
+
+
+}

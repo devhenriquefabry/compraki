@@ -1,0 +1,92 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background-color:white;
+    height: 200px;
+    padding: 5px 15px;
+    max-width: calc(45vw - 10px);
+    border: 2px solid var(--cor-principal);
+    overflow: hidden;
+
+    img{
+        height: 47%;
+        width: auto;
+        order: 1;
+    }
+
+}
+
+.data-container{
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+    height: 47% !important;
+    order: 2;
+    color: var(--cor-principal) !important;
+    font-size: 8px;
+    width: 100%;
+}
+
+.titleProduct {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--cor-secundaria);
+    width: 100%;
+    height: 33.3%;
+}
+
+.prices {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-direction: row;
+    height: 33.3%;
+    width: 100%;
+}
+
+.priceProduct {
+    display: flex;
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.priceDiscounted {
+    display: flex;
+    font-size: 10px;
+    color: #00000050;
+    text-decoration: line-through;
+    margin: 0 10px;
+}
+
+.bottom-container{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+    width: 100%;
+    height: 33.3%;
+
+    .sold-count{
+        color: black;
+        font-size: 10px;
+    }
+
+
+    .shipping{
+        color: var(--cor-principal);
+        font-size: 13px;
+        ion-icon{
+            color: var(--cor-principal);
+        }
+    }
+
+
+}
+
+    .enviar{
+        order: 3;
+        --background: var(--cor-principal);
+    }

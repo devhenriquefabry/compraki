@@ -1,0 +1,16 @@
+ion-content{
+    --background: black;
+}
+
+.product-list{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+
+    app-product-card{
+        padding: 10px;
+    }
+}

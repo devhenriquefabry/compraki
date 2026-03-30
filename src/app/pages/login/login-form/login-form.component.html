@@ -1,0 +1,34 @@
+@if (isLoading) {
+  <app-loading-spinner-overlay></app-loading-spinner-overlay>
+}
+ <app-loading-spinner-overlay *ngIf="firebaseProducts.carregando"></app-loading-spinner-overlay>
+<div class="containerLogin">
+  <img class="logoCompraki" src="assets/imagens/logoCompraki.png" alt="logoCompraki">
+  <form class="formuLogin"  [formGroup]="loginForm">
+    <h2>FAZER LOGIN</h2>
+
+    <div class="input-container">
+      <ion-icon name="person"></ion-icon>
+
+      <ion-input formControlName="email" inputmode="email" label="Digite seu e-mail" label-placement="floating" mode="md" fill="outline"
+        placeholder="Seu e-mail aqui">
+      </ion-input>
+
+    </div>
+    <div class="input-container">
+      <ion-icon name="lock-closed"></ion-icon>
+
+      <ion-input formControlName="password" inputmode="email" label="Digite sua senha" label-placement="floating" mode="md" fill="outline"
+        placeholder="Sua senha aqui">
+      </ion-input>
+
+    </div>
+
+    <ion-button class="submitButton" (click)="login()" >ENTRAR</ion-button>
+    <ion-label class="textos" [routerLink]="['/forgot-password']" routerLinkActive="router-link-active" >Esqueceu sua senha?</ion-label>
+    <hr>
+
+      <ion-label class="textos">Ainda não tem uma conta?</ion-label>
+      <ion-button fill="outline" class="signInButton" [routerLink]="['/sign-in']" routerLinkActive="router-link-active" >CADASTRE-SE</ion-button>
+    </form>
+  </div>

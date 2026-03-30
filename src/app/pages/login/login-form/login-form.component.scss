@@ -1,0 +1,106 @@
+.logoCompraki {
+    width: 300px;
+    padding: 20px;
+}
+
+.containerLogin {
+    background-color: #1b1b1b;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+
+}
+
+
+
+.formuLogin {
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background-color: #182E3C;
+    width: 90%;
+    min-height: 60%;
+    border-radius: 20px;
+    padding: 0 35px;
+    position: relative;
+}
+
+h2 {
+    position: absolute;
+    top: 20px;
+}
+
+.camposForm {
+    background-color: transparent;
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    height: 10%;
+    padding: 10px;
+    border-radius: 10px;
+    border-color: rgba(240, 248, 255, 0.596);
+    border-width: 2px;
+
+}
+
+
+
+
+.input-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row !important;
+    width: 100%;
+    position: relative;
+
+    ion-icon {
+        display: flex;
+
+        position: absolute;
+        left: 15px;
+    }
+}
+
+ion-input {
+    --border-width: 3px;
+    --highlight-border-width: 5px;
+    --border-color: #ffffff52 !important;
+    --highlight-color: var(--cor-principal);
+    --padding-start: 50px !important;
+    text-align: start;
+    margin: 10px 0;
+}
+
+ion-button {
+    width: 100%;
+    --border-radius: 5px !important;
+}
+
+ion-icon {
+    color: var(--cor-principal);
+}
+
+hr{
+    width: 100%;
+    height: 1px;
+    background-color: #ffffff;
+}
+
+
+.submitButton{
+        --background: var(--cor-principal) ;
+}
+
+
+.signInButton{
+    --border-radius: 5px;
+    --color: var(--cor-principal);
+    --border-color: var(--cor-principal);
+}

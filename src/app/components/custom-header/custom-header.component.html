@@ -1,0 +1,6 @@
+<div class="container">
+  <div *ngIf="backButton" [routerLink]="['/']" routerLinkActive="router-link-active"  class="backbutton">
+    < {{backButton}}
+  </div>
+  <span *ngIf="titlePage" class="content">{{titlePage}}</span>
+</div>

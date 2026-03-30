@@ -1,0 +1,7 @@
+{
+  "name": "compraki",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
