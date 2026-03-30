@@ -104,10 +104,11 @@ hr{
 
 .submitButtonGoogle{
     margin-top: 5px;
-    display: flex;
+    display: flex ;
+    opacity: 1;
     flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: center; 
     align-items: center;
     width: 100%;
     
