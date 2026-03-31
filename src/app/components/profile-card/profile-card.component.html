@@ -1,0 +1,17 @@
+<div class="profile-card">
+  <div class="avatar-container">
+    <img [src]="usuario?.photoURL || 'https://i.pravatar.cc/150?img=11'" referrerpolicy="no-referrer" alt="Avatar">
+  </div>
+  
+  <h2>{{ usuario?.displayName || 'Usuário Não Logado' }}</h2>
+  <p>{{ usuario?.email || 'Faça login para continuar' }}</p>
+  
+  <ion-button fill="outline" shape="round" color="secondary" class="btn-perfil">
+    Ver perfil público
+  </ion-button>
+  
+  <ion-text color="warning" class="mini-alert">
+    <ion-icon name="warning"></ion-icon>
+    <span>Não sei pq devia ter esse botão mas coloquei mesmo assim 😅</span>
+  </ion-text>
+</div>

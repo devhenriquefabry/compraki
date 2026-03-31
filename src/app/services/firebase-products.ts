@@ -57,7 +57,10 @@ export class FirebaseProducts {
 
       return onSnapshot(productCol,
         (snapshot) => {
-          const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+          const products = snapshot.docs.map(d => {
+            const data = d.data() as any;
+            return { ...data, id: d.id } as Product;
+          });
           subscriber.next(products);
         },
         (err) => subscriber.error(err)

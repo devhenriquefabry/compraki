@@ -1,0 +1,23 @@
+<div class="section-title">Seu Pedido</div>
+
+@if (produto) {
+<ion-card class="checkout-card">
+  <div class="order-content">
+    <div class="img-container">
+      <img [src]="produto.photoURL?.[0] || 'https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg'" alt="Produto">
+    </div>
+    <div class="order-details">
+      <h3>{{ produto.name }}</h3>
+      <div class="price-qty">
+        <span class="price-green">{{ (produto.priceDiscounted || produto.price) | currency:'BRL':'R$ ':'1.2-2' }}</span>
+        <span class="qty"> &bull; Qtd: 1</span>
+      </div>
+    </div>
+    <div class="order-total">
+      {{ (produto.priceDiscounted || produto.price) | currency:'BRL':'R$ ':'1.2-2' }}
+    </div>
+  </div>
+</ion-card>
+} @else {
+  <p style="color: #888; text-align: center; margin-top: 20px;">Nenhum produto selecionado para checkout.</p>
+}

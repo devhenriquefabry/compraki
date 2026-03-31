@@ -1,173 +1,246 @@
-form {
+.upload-container {
+  background: white;
+  padding-bottom: 50px;
 
-    background-color: white;
-    padding: 35px;
-    color: black;
-    height: calc(100vh - 150px) !important;
-    overflow: scroll;
-    padding-bottom: 50px;
+  /* BRANDING */
+  .form-logo-top {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0 0 10px 20px;
+    
+    img {
+      width: 60px;
+      filter: grayscale(100%);
+      opacity: 0.15;
+    }
+  }
 
-    .image-container{
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-direction: row;
-        flex-wrap: nowrap !important;
-        width: 100%;
-        padding: 0;
-        .banner{
-            width: 49%;
-            border: 2px dashed var(--cor-principal);
-            border-radius: 5px;
-        }
+  /* BANNER REAL */
+  .announce-banner-real {
+    margin: 0 15px 20px;
+    
+    img {
+      width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      display: block;
+    }
+  }
 
-        .image-list-container{
-            opacity: 50%;
-            width: 49%; 
-            background-color: white;
-            border: 2px solid #909090;
-            border-radius: 5px;
-            position: relative;
-            padding: 0;
+  form {
+    padding: 0 15px;
 
-            input{
-                width: 100%;
-                height: 100%;
-                position: absolute;
-                z-index: 9999;
-                opacity: 0;
-            }
+    /* SECTION TITLES */
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 25px 0 15px;
+      
+      .dot {
+        width: 8px; height: 8px;
+        background: var(--cor-principal);
+        border-radius: 50%;
+      }
 
-            ion-icon{
-                font-size: 40px;
-                position: absolute;
-                left: calc(50% - 20px);
-                top:  calc(50% - 20px);
-                color: #909090;
-            }
-
-            img{
-                width: 100%;
-                opacity: 0;
-            }
-        }
-
+      span {
+        font-size: 16px;
+        font-weight: 800;
+        color: #1e2d3e;
+      }
     }
 
-    .section-container {
+    /* PHOTOS GRID */
+    .photos-grid {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      &::-webkit-scrollbar { display: none; }
+
+      .add-photo-box {
+        min-width: 100px;
+        height: 100px;
+        border: 2px dashed var(--cor-principal);
+        border-radius: 12px;
         display: flex;
-        justify-content: center;
-        align-items: start;
         flex-direction: column;
-        width: 100%;
-        padding: 10px 0;
+        align-items: center;
+        justify-content: center;
+        background: #fcfcfc;
+        cursor: pointer;
 
-        ion-icon {
-            color: var(--cor-principal);
+        ion-icon { font-size: 24px; color: var(--cor-principal); }
+        span { font-size: 10px; font-weight: 700; color: var(--cor-principal); margin-top: 5px; }
+        small { font-size: 9px; color: #999; }
+      }
+
+      .photo-item {
+        min-width: 100px;
+        height: 100px;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        img { width: 100%; height: 100%; object-fit: cover; }
+        .remove-photo {
+          position: absolute; top: 5px; right: 5px;
+          background: rgba(0,0,0,0.5); border-radius: 50%;
+          width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+          ion-icon { color: white; font-size: 14px; }
         }
+      }
 
-        border-left: 2px solid rgba(128, 128, 128, 0.232);
-
-        .title {
-            font-weight: bolder;
-            display: flex;
-            justify-content: start;
-            align-items: center;
-            flex-direction: row;
-            width: 100% !important;
-            position: relative;
-            margin-bottom: 5px;
-
-
-
-            ion-icon {
-                margin-right: 7px;
-                font-size: 10px;
-                position: absolute;
-                left: -8.5px;
-                border: 4px solid white;
-                background-color: white;
-                border-radius: 50%;
-            }
-
-            span {
-            font-family: "Poppins", sans-serif !important;
-                margin-left: 17px;
-            }
-
-        }
-
-        .subtitle-container {
-            padding-left: 10px;
-            display: flex;
-            justify-content: start;
-            align-items: center;
-
-            .ponto-verde-subtitle {
-                color: gray !important;
-                opacity: 50%;
-                font-size: 6px;
-                margin-right: 5px;
-            }
-
-            .subtitle {
-                color: #424242;
-                font-weight: bolder;
-                font-family: "Poppins", sans-serif !important;
-                list-style: none;
-                list-style-position: left;
-                font-size: 12px;
-                margin: 5px 0;
-
-            }
-
-
-
-
-        }
+      .photo-placeholder {
+        min-width: 100px; height: 100px;
+        border: 1px solid #eee; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        ion-icon { color: #eee; font-size: 30px; }
+      }
     }
 
-    .input-container {
-        padding-left: 10px;
+    /* FORM GROUPS */
+    .form-group {
+      margin-bottom: 15px;
+      
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        color: #999;
+        margin-bottom: 8px;
+        margin-left: 5px;
+      }
+
+      .input-wrapper {
+        background: #f9f9f9;
+        border-radius: 12px;
+        padding: 12px 15px;
         display: flex;
-        justify-content: start;
         align-items: center;
-        direction: row;
-        flex-wrap: nowrap !important;
-        width: 100%;
+        border: 1px solid #f0f0f0;
 
         input {
-            background-color: white;
-            width: 100%;
-            border: 1px solid #424242;
-            height: 35px;
-            padding-left: 5px;
-            font-size: 15px;
-            border-radius: 5px;
-            font-weight: 700;
-            letter-spacing: .3px;
-
+          border: none; background: transparent; outline: none;
+          font-size: 14px; font-weight: 600; color: #333; width: 100%;
+          &::placeholder { color: #bbb; font-weight: normal; }
         }
+        
+        &.price-input {
+            .prefix { font-weight: 800; color: var(--cor-principal); margin-right: 5px; font-size: 14px; }
+            input { color: var(--cor-principal); font-size: 16px; font-weight: 900; }
+        }
+
+        &.stock-input {
+            input { text-align: center; font-weight: 800; }
+            .suffix { font-size: 11px; color: #999; margin-left: auto; }
+        }
+      }
+
+      .category-breadcrumb {
+        background: #fcfcfc;
+        border: 1px solid #f0f0f0;
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        ion-icon { color: var(--cor-principal); font-size: 20px; }
+        span { font-size: 13px; color: #666; flex: 1; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+        .btn-change {
+          background: #f0f0f0; border: none; padding: 5px 10px;
+          border-radius: 6px; font-size: 10px; font-weight: 800; color: var(--cor-secundaria);
+        }
+      }
+
+      .condition-pills {
+        display: flex;
+        gap: 10px;
+
+        button {
+          flex: 1;
+          padding: 10px;
+          border-radius: 10px;
+          border: 1px solid #eee;
+          background: white;
+          color: #666;
+          font-size: 13px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          transition: all 0.2s ease;
+
+          &.active {
+            border-color: var(--cor-principal);
+            background: #f7faf5;
+            color: var(--cor-principal);
+            box-shadow: 0 4px 10px rgba(121, 157, 80, 0.1);
+          }
+        }
+      }
+
+      textarea {
+        width: 100%;
+        border: 1px solid #f0f0f0;
+        background: #f9f9f9;
+        border-radius: 15px;
+        padding: 15px;
+        font-family: inherit;
+        font-size: 14px;
+        outline: none;
+        resize: none;
+        color: #333;
+        &::placeholder { color: #bbb; }
+      }
     }
 
+    .row { display: flex; gap: 10px; }
+    .col { flex: 1; }
 
-}
+    .toggle-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fcfcfc;
+      padding: 15px;
+      border-radius: 15px;
+      border: 1px solid #f0f0f0;
+      margin: 10px 0;
 
-ion-select, ion-list, ion-item, ion-select-option{
-    
-    --background : white !important;
-    background-color: white;
-    padding: 0;
-    color: var(--cor-secundaria) !important;
-}
+      .toggle-text {
+        label { display: block; font-size: 13px; font-weight: 800; color: #333; }
+        p { margin: 2px 0 0; font-size: 11px; color: #999; }
+      }
+    }
 
-/* Isso afetará todos os action-sheets com o modo Material Design (md) */
-.action-sheet-button {
-  --background: #f4f4f4; /* Cor de fundo clara desejada */
-  --color: #333;         /* Cor do texto para dar contraste */
-}
+    .btn-publish {
+      width: 100%;
+      background: linear-gradient(to right, #799d50, #96c93d);
+      color: white;
+      border: none;
+      padding: 18px;
+      border-radius: 15px;
+      font-size: 16px;
+      font-weight: 800;
+      margin-top: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(121, 157, 80, 0.3);
+      
+      &:disabled { opacity: 0.6; }
+    }
 
-/* Opcional: efeito ao pressionar o botão */
-.action-sheet-button.activated {
-  --background: #e0e0e0;
+    .footer-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 15px;
+        span { font-size: 11px; color: #999; font-weight: 600; }
+    }
+  }
 }

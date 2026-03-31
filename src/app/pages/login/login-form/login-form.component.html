@@ -25,6 +25,12 @@
     </div>
 
     <ion-button class="submitButton" (click)="login()" >ENTRAR</ion-button>
+    
+    <!-- Botão de Login com Google padronizado com a tela de Cadastro -->
+    <ion-button class="submitButtonGoogle" type="button" (click)="loginWithGoogle()">
+      <img class="imgGoogle" src="assets/imagens/google.png" alt="">ENTRAR COM GOOGLE
+    </ion-button>
+
     <ion-label class="textos" [routerLink]="['/forgot-password']" routerLinkActive="router-link-active" >Esqueceu sua senha?</ion-label>
     <hr>
 

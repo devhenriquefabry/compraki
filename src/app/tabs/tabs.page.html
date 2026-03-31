@@ -1,19 +1,34 @@
 <ion-tabs>
 
-  <ion-tab-bar slot="bottom">
-    <ion-tab-button tab="home" href="">
-      <ion-icon aria-hidden="true" name="home"></ion-icon>
-      <ion-label>Home</ion-label>
+  <ion-tab-bar slot="bottom" class="custom-tab-bar" translucent="true">
+    <ion-tab-button tab="home" href="/tabs/home">
+      <div class="icon-wrapper">
+        <ion-icon aria-hidden="true" name="home"></ion-icon>
+      </div>
     </ion-tab-button>
 
-    <ion-tab-button tab="tab2" href="/tabs/tab2">
-      <ion-icon aria-hidden="true" name="ellipse"></ion-icon>
-      <ion-label>Tab 2</ion-label>
+    <ion-tab-button tab="favorites" href="/tabs/notifications">
+      <div class="icon-wrapper">
+        <ion-icon aria-hidden="true" name="heart"></ion-icon>
+      </div>
+    </ion-tab-button>
+
+    <ion-tab-button tab="upload-product" href="/tabs/upload-product" class="center-button">
+      <div class="center-icon-wrapper">
+        <ion-icon aria-hidden="true" name="add"></ion-icon>
+      </div>
+    </ion-tab-button>
+
+    <ion-tab-button tab="messages" href="/tabs/notifications">
+      <div class="icon-wrapper">
+        <ion-icon aria-hidden="true" name="chatbubble"></ion-icon>
+      </div>
     </ion-tab-button>
 
     <ion-tab-button tab="my-account" href="/tabs/my-account">
-      <ion-icon aria-hidden="true" name="square"></ion-icon>
-      <ion-label>Minha Conta</ion-label>
+      <div class="icon-wrapper">
+        <ion-icon aria-hidden="true" name="person"></ion-icon>
+      </div>
     </ion-tab-button>
   </ion-tab-bar>
 

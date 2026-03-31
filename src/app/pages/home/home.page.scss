@@ -1,16 +1,194 @@
-ion-content{
-    --background: black;
+/* AVISO DE DESENVOLVIMENTO (ESTILO CONTRATO) */
+.secret-notice {
+  background: #fdfdfd;
+  margin: 15px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #799d50;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+
+  .brand-watermark {
+    display: block;
+    margin-bottom: 25px;
+
+    .notice-logo {
+      display: block;
+      width: 150px;
+      filter: grayscale(100%);
+      opacity: 0.15;
+      margin-bottom: 2px;
+      pointer-events: none;
+    }
+
+    .devmode-text {
+      display: block;
+      font-size: 10px;
+      text-transform: lowercase;
+      color: #333;
+      letter-spacing: 3px;
+      font-weight: 800;
+      opacity: 0.6;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      width: 150px;
+      padding-top: 5px;
+      text-align: left;
+    }
+  }
+
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 11px;
+    font-weight: 800;
+    color: #333;
+    letter-spacing: 2.2px;
+    opacity: 0.8;
+  }
+
+  p {
+    margin: 0 0 15px;
+    font-size: 12px;
+    color: #777;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .contract-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 10px;
+
+    .link-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      .label {
+        font-size: 10px;
+        color: #999;
+        text-transform: uppercase;
+      }
+
+      a {
+        text-decoration: none;
+        color: #1e2d3e;
+        font-weight: 700;
+        font-size: 12px;
+        border-bottom: 1px solid #799d50;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        ion-icon {
+            font-size: 14px;
+            opacity: 0.6;
+        }
+      }
+    }
+  }
+
+  .project-duration {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .label {
+      font-size: 8.5px;
+      font-weight: 800;
+      color: #999;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .time {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e2d3e;
+      border-bottom: 1px solid var(--cor-principal);
+      padding-bottom: 1px;
+    }
+  }
 }
 
-.product-list{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
+.custom-bg {
+  --background: #f8f9fa !important;
+  --ion-background-color: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  --color: #333 !important;
+}
 
-    app-product-card{
-        padding: 10px;
+ion-header, ion-toolbar {
+  --background: #f8f9fa !important;
+  --color: #333 !important;
+}
+
+.content-wrapper {
+    padding: 0 20px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* ===== LISTA DE OPÇÕES (MENU) ===== */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 15px 100px;
+  max-width: 500px;
+  margin: 0 auto;
+
+  .section-title {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: #999;
+    margin: 25px 0 10px 5px;
+    letter-spacing: 1px;
+  }
+
+  .menu-item {
+    --background: #ffffff;
+    --border-radius: 12px;
+    --padding-start: 20px;
+    --inner-padding-end: 20px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    margin: 0;
+    
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
+
+    &::part(native) {
+      border-radius: 12px;
     }
+
+    .icon-green {
+      color: #799d50; 
+      font-size: 26px;
+      margin-right: 16px;
+    }
+
+    h2 {
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 2px;
+    }
+
+    p {
+      font-size: 12px;
+      color: #888;
+      margin: 0;
+    }
+  }
 }

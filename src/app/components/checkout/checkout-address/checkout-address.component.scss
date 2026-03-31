@@ -1,0 +1,62 @@
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 20px 0 10px 0;
+}
+
+.checkout-card {
+  margin: 0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  padding: 15px;
+}
+
+.address-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .location-icon {
+    font-size: 28px;
+    color: #799d50;
+  }
+}
+
+.address-text {
+  flex: 1;
+  
+  p {
+    margin: 0;
+  }
+  
+  .street {
+    font-weight: 500;
+    font-size: 15px;
+    color: #333;
+    margin-bottom: 2px;
+  }
+  
+  .city {
+    font-size: 14px;
+    color: #666;
+  }
+}
+
+.btn-alterar {
+  background: #eaf1e7;
+  color: #5d8c3f;
+  border: 1px solid #d4dfce;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+}

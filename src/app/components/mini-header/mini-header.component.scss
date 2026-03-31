@@ -1,5 +1,5 @@
 .container {
-    height: 60px;
+    height: 45px;
     background-color: var(--cor-secundaria);
 
     display: flex;
@@ -11,10 +11,6 @@
     padding: 0 10px;
 
     font-weight: bolder;
-    font-size: 24px;
-
-    ion-icon {}
-
     ion-icon:first-of-type {
         opacity: 50%;
         color: white !important;
@@ -26,13 +22,19 @@
         }
 
     .last-icons {
-
         ion-icon {
             opacity: 1;
             margin: 4px;
             color: var(--cor-principal) !important;
         }
     }
+}
 
-
+.container.light {
+    background-color: transparent !important;
+    
+    ion-icon:first-of-type {
+        opacity: 1;
+        color: var(--ion-color-medium) !important;
+    }
 }

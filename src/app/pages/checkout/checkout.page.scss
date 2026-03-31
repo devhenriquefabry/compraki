@@ -1,0 +1,16 @@
+ion-content.custom-bg {
+  --background: #f8f9fa !important;
+  --ion-background-color: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  --color: #333 !important;
+}
+
+ion-header {
+  background-color: #f8f9fa !important;
+}
+
+.checkout-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 20px;
+}

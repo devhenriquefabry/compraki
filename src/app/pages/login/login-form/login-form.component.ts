@@ -46,7 +46,10 @@ export class LoginFormComponent  implements OnInit {
        })
 
       }
-    
+    }
   }
+
+  loginWithGoogle() {
+    this.firebaseProducts.signInWithGoogle();
   }
 }

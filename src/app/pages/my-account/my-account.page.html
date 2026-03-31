@@ -1,30 +1,88 @@
-<ion-content [fullscreen]="true">
-  <app-custom-header backButton="Voltar" titlePage="MINHA CONTA"></app-custom-header>
+<ion-header class="ion-no-border">
+  <ion-toolbar style="--background: #f8f9fa;">
+    <app-mini-header theme="light" backUrl="/home"></app-mini-header>
+  </ion-toolbar>
+</ion-header>
 
-  <h1><ion-icon name="person"></ion-icon>  Página de Minha Conta </h1>
-  <img src="{{familiaSantos[0].profile_image_url}}" alt=""> <br>
-  Usuario : {{familiaSantos[0].name}} <br>
-  Na Familia tem {{familiaSantos.length}} membros
-  <br>
-    <br>
-      <br>
-        <br>
-          <br>
+<ion-content class="ion-padding custom-bg">
+  
+  <h1 class="page-title">Minha Conta</h1>
 
-            notificação: <br>
-            {{pocoF5UsadoDoiVendido.header}} <br>
-            {{pocoF5UsadoDoiVendido.body}} <br>
-            produto: <br>
-            {{pocoF5UsadoDoiVendido.product.name}} <br>
-            {{pocoF5UsadoDoiVendido.product.price}} <br>
-            Já foi usado :
-            @if (pocoF5UsadoDoiVendido.product.isUsed) {
-              <ion-badge color="danger" >Sim, Já foi USADO sim.</ion-badge>
-            }
+  <app-profile-card [usuario]="usuario"></app-profile-card>
 
-            @if (!pocoF5UsadoDoiVendido.product.isUsed) {
-              <ion-badge color="success">Não, Tá novinho em folha!</ion-badge>
-            }
+  <!-- Lista de Opções (Menus) -->
+  <div class="menu-list">
+    
+    <ion-item lines="none" class="menu-item" button>
+      <ion-icon name="bag-handle" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Minhas Compras</h2>
+        <p>Acompanhe seus pedidos</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
 
+    <ion-item lines="none" class="menu-item" button>
+      <ion-icon name="megaphone" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Meus Anúncios</h2>
+        <p>Gerencie seus produtos à venda</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
 
-          </ion-content>
+    <ion-item lines="none" class="menu-item" button>
+      <ion-icon name="heart" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Favoritos</h2>
+        <p>Lista de itens favoritos</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button>
+      <ion-icon name="location" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Meu Endereço</h2>
+        <p>Gerencie seu endereço de entrega</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button>
+      <ion-icon name="card" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Pagamentos</h2>
+        <p>Gerencie seus cartões e formas de pagamento</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item">
+      <ion-icon name="notifications" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Notificações</h2>
+        <p>Personalize suas notificações</p>
+      </ion-label>
+      <ion-toggle slot="end" color="success" checked="true"></ion-toggle>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button>
+      <ion-icon name="help-circle" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Ajuda</h2>
+        <p>Central de ajudas e suporte</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button (click)="logout()">
+      <ion-icon name="power" slot="start" color="danger"></ion-icon>
+      <ion-label color="danger">
+        <h2>Sair</h2>
+      </ion-label>
+    </ion-item>
+
+  </div>
+
+</ion-content>

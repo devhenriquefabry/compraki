@@ -18,10 +18,7 @@ const routes: Routes = [
     path: 'notifications',
     loadChildren: () => import('./pages/notifications/notifications.module').then( m => m.NotificationsPageModule)
   },
-  {
-    path: 'my-account',
-    loadChildren: () => import('./pages/my-account/my-account.module').then( m => m.MyAccountPageModule)
-  },
+
   {
     path: 'product-details',
     loadChildren: () => import('./pages/product-details/product-details.module').then( m => m.ProductDetailsPageModule)
@@ -45,7 +42,15 @@ const routes: Routes = [
   {
     path: 'upload-product',
     loadChildren: () => import('./pages/upload-product/upload-product.module').then( m => m.UploadProductPageModule)
+  },
+  {
+    path: 'checkout',
+    loadChildren: () => import('./pages/checkout/checkout.module').then( m => m.CheckoutPageModule)
+  },  {
+    path: 'edit-product',
+    loadChildren: () => import('./pages/edit-product/edit-product.module').then( m => m.EditProductPageModule)
   }
+
 ];
 @NgModule({
   imports: [

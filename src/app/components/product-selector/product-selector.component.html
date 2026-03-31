@@ -1,0 +1,21 @@
+<div class="selection-state">
+  <div class="select-container">
+    <ion-icon name="hand-pointing-up-outline" class="select-hint-icon"></ion-icon>
+    <h3>Selecionar Produto</h3>
+    <p>Escolha um item da lista abaixo para prosseguir:</p>
+    
+    <ion-item lines="none" class="custom-select-item">
+      <ion-select label="Selecionar Produto" label-placement="floating" interface="action-sheet" 
+                  placeholder="Toque para escolher" 
+                  (ionChange)="onProductSelect($event)">
+        <ion-select-option *ngFor="let prod of allProducts$ | async" [value]="prod.id">
+          {{prod.name}} - R${{prod.price}}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-button fill="clear" color="medium" routerLink="/home" class="btn-cancel">
+      Voltar para a Home
+    </ion-button>
+  </div>
+</div>

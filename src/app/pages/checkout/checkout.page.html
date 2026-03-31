@@ -1,0 +1,16 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar style="--background: #f8f9fa;">
+    <app-mini-header theme="light" backUrl="/home"></app-mini-header>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  
+  <div class="checkout-container">
+    <app-checkout-order-summary [produto]="product"></app-checkout-order-summary>
+    <app-checkout-address></app-checkout-address>
+    <app-checkout-payment></app-checkout-payment>
+    <app-checkout-totals [produto]="product"></app-checkout-totals>
+  </div>
+
+</ion-content>
