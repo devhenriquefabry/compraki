@@ -1,0 +1,215 @@
+<app-loading-spinner-overlay *ngIf="isLoading"></app-loading-spinner-overlay>
+<div class="upload-container">
+  <!-- LOGO BRANDING -->
+  <div class="form-logo-top">
+    <img src="assets/imagens/logo-devmode-notice.png" alt="Compraki Devmode">
+  </div>
+
+  <!-- BANNER TOPO REAL -->
+  <div class="announce-banner-real">
+    <img src="assets/imagens/banner-anunciar.png" alt="Anunciar Produto">
+  </div>
+
+  <form action="" [formGroup]="editProductForm">
+    <!-- SEÇÃO FOTOS -->
+    <div class="section-title">
+      <div class="dot"></div>
+      <span>Fotos do Produto</span>
+      <button type="button" class="btn-reorder-trigger" *ngIf="selectedPhotos.length > 1" (click)="openReorderModal()">
+        <ion-icon name="swap-horizontal-outline"></ion-icon>
+        Selecionar Ordem
+      </button>
+    </div>
+    
+    <div class="photos-grid">
+      <div class="add-photo-box" (click)="fileInput.click()">
+        <ion-icon name="camera-outline"></ion-icon>
+        <span>+ Adicionar Fotos</span>
+        <small>Arquivos novos</small>
+        <input #fileInput type="file" multiple (change)="onFileSelected($event)" style="display: none;">
+      </div>
+
+      <div class="photo-item" *ngFor="let photo of selectedPhotos; let i = index">
+        <img [src]="photo" alt="Preview" draggable="false" (click)="openPreview(photo)">
+        <div class="photo-order-badge">{{ i + 1 }}</div>
+        <div class="remove-photo" (click)="removePhoto(i)">
+          <ion-icon name="close"></ion-icon>
+        </div>
+      </div>
+
+      <div class="photo-placeholder" *ngIf="selectedPhotos.length < 5" (click)="fileInput.click()" style="cursor: pointer;">
+        <ion-icon name="add"></ion-icon>
+      </div>
+    </div>
+
+    <!-- SEÇÃO INFORMAÇÕES -->
+    <div class="section-title">
+      <div class="dot"></div>
+      <span>Informações do Produto</span>
+    </div>
+
+    <div class="form-group">
+      <label>Título do Produto</label>
+      <div class="input-wrapper">
+        <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM">
+        <ion-icon name="checkmark" color="success" *ngIf="editProductForm.get('name')?.valid"></ion-icon>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Categoria principal</label>
+      <div class="category-chips">
+        <button type="button" 
+                *ngFor="let cat of (categories$ | async)" 
+                class="cat-chip"
+                [class.active]="editProductForm.get('categoryIds')?.value?.[0] === cat.id"
+                (click)="selectCategory(cat.id)">
+          <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
+          <span>{{ cat.name }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group" *ngIf="availableSubcategories.length > 0">
+      <label>Subcategoria</label>
+      <div class="subcategory-chips">
+        <button type="button" 
+                *ngFor="let sub of availableSubcategories" 
+                class="sub-chip"
+                [class.active]="editProductForm.get('subcategoryIds')?.value?.includes(sub.id)"
+                (click)="toggleSubcategory(sub.id)">
+          {{ sub.name }}
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Condição do Produto</label>
+      <div class="condition-pills scrollable">
+        <button type="button" 
+                [class.active]="editProductForm.get('condition')?.value === 'novo'"
+                (click)="editProductForm.patchValue({condition: 'novo'})">
+          Novo
+        </button>
+        <button type="button"
+                [class.active]="editProductForm.get('condition')?.value === 'usado-como-novo'"
+                (click)="editProductForm.patchValue({condition: 'usado-como-novo'})">
+          Como Novo
+        </button>
+        <button type="button"
+                [class.active]="editProductForm.get('condition')?.value === 'usado-bom'"
+                (click)="editProductForm.patchValue({condition: 'usado-bom'})">
+          Bom estado
+        </button>
+        <button type="button"
+                [class.active]="editProductForm.get('condition')?.value === 'usado-aceitavel'"
+                (click)="editProductForm.patchValue({condition: 'usado-aceitavel'})">
+          Aceitável
+        </button>
+      </div>
+    </div>
+
+    <!-- SEÇÃO PREÇO E ESTOQUE -->
+    <div class="section-title">
+      <div class="dot"></div>
+      <span>Preço e Estoque</span>
+    </div>
+
+    <div class="row">
+      <div class="form-group col">
+        <label>Preço</label>
+        <div class="input-wrapper price-input">
+          <span class="prefix">R$</span>
+          <input type="number" formControlName="price" placeholder="0,00">
+        </div>
+      </div>
+      <div class="form-group col">
+        <label>Estoque</label>
+        <div class="input-wrapper stock-input">
+          <input type="number" formControlName="stock" placeholder="1">
+          <span class="suffix">unidades</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="toggle-group">
+      <div class="toggle-text">
+        <label>Aceitar Ofertas?</label>
+        <p>Permitir que compradores façam propostas</p>
+      </div>
+      <ion-toggle color="success" formControlName="acceptOffers"></ion-toggle>
+    </div>
+
+    <!-- SEÇÃO DESCRIÇÃO -->
+    <div class="section-title">
+      <div class="dot"></div>
+      <span>Descrição do Produto</span>
+    </div>
+
+    <div class="form-group">
+      <textarea formControlName="description" rows="6" placeholder="Descreva seu produto em detalhes..."></textarea>
+    </div>
+
+    <div class="spacer-bottom"></div>
+  </form>
+
+  <div class="fixed-bottom-actions">
+    <button type="submit" class="btn-publish" (click)="submit()" [disabled]="!editProductForm.valid">
+      <ion-icon name="save-outline"></ion-icon>
+      SALVAR ALTERAÇÕES
+    </button>
+    <button type="button" class="btn-back" (click)="onCancel()">
+      <ion-icon name="arrow-back-outline"></ion-icon>
+      VOLTAR
+    </button>
+  </div>
+
+  <app-feedback-modal
+    [visible]="showFeedback"
+    [type]="feedbackType"
+    [title]="feedbackTitle"
+    [message]="feedbackMessage"
+    (closed)="onFeedbackClosed()">
+  </app-feedback-modal>
+  <!-- MODAL DE REORDENAÇÃO (INSTAGRAM STYLE) -->
+  <div class="reorder-modal-overlay" *ngIf="isReorderModalOpen">
+    <div class="reorder-modal-content">
+      <div class="reorder-header">
+        <h3>Definir Ordem das Fotos</h3>
+        <p>Toque nas fotos na ordem desejada para reorganizar</p>
+      </div>
+
+      <div class="reorder-grid">
+        <div class="reorder-item" 
+             *ngFor="let photo of selectedPhotos; let i = index" 
+             (click)="toggleReorder(i)"
+             [class.selected]="getReorderNumber(i)">
+          <img [src]="photo" alt="Preview">
+          <div class="reorder-badge" *ngIf="getReorderNumber(i)">
+            {{ getReorderNumber(i) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="reorder-footer">
+        <button type="button" class="btn-cancel-reorder" (click)="closeReorderModal()">CANCELAR</button>
+        <button type="button" 
+                class="btn-confirm-reorder" 
+                [disabled]="reorderIndices.length !== selectedPhotos.length"
+                (click)="confirmReorder()">
+          CONFIRMAR ({{ reorderIndices.length }}/{{ selectedPhotos.length }})
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISUALIZADOR DE IMAGEM FULL SCREEN -->
+  <div class="image-viewer-overlay" *ngIf="previewImage" (click)="$event.stopPropagation()">
+    <div class="viewer-backdrop"></div>
+    <img [src]="previewImage" alt="Visualizar" class="viewer-image">
+    <button class="viewer-close-btn" (click)="closePreview()">
+      <ion-icon name="close-circle"></ion-icon>
+      Fechar
+    </button>
+  </div>
+</div>

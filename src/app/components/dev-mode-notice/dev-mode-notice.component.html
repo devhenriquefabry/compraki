@@ -1,0 +1,30 @@
+<div class="secret-notice">
+  <div class="brand-watermark">
+    <img src="/assets/imagens/logoCompraki.png" class="notice-logo" alt="Compraki">
+    <span class="devmode-text">devmode</span>
+  </div>
+  <h4>PROTOCOLO DE DESENVOLVIMENTO</h4>
+  <p>Este ambiente opera sob condições experimentais. Certas funcionalidades podem apresentar instabilidade ou
+    comportamento não documentado. Prossiga com cautela e limite-se ao ambiente de testes autorizado.</p>
+  <div class="contract-links">
+    <div class="link-group">
+      <span class="label">Programação do Sistema:</span>
+      <a href="https://www.instagram.com/henrique_santous/" target="_blank">
+        Henrique Santos
+        <ion-icon name="open-outline"></ion-icon>
+      </a>
+    </div>
+    <div class="link-group">
+      <span class="label">Coordenação de Projeto:</span>
+      <a href="https://www.instagram.com/thayruan__/" target="_blank">
+        Thay Ruan
+        <ion-icon name="open-outline"></ion-icon>
+      </a>
+    </div>
+
+    <div class="project-duration" *ngIf="showSecretNotice">
+      <span class="label">Tempo de Operação:</span>
+      <span class="time">{{ projectDuration }}</span>
+    </div>
+  </div>
+</div>

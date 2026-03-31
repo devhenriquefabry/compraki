@@ -1,0 +1,118 @@
+.secret-notice {
+  background: #fdfdfd;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #799d50;
+  border-radius: 12px;
+  position: relative;
+  z-index: 10;
+  margin: 5px 15px 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  overflow: hidden;
+
+  .brand-watermark {
+    display: block;
+    margin-bottom: 25px;
+
+    .notice-logo {
+      display: block;
+      width: 150px;
+      filter: grayscale(100%);
+      opacity: 0.15;
+      margin-bottom: 2px;
+      pointer-events: none;
+    }
+
+    .devmode-text {
+      display: block;
+      font-size: 10px;
+      text-transform: lowercase;
+      color: #333;
+      letter-spacing: 3px;
+      font-weight: 800;
+      opacity: 0.6;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      width: 150px;
+      padding-top: 5px;
+      text-align: left;
+    }
+  }
+
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 11px;
+    font-weight: 800;
+    color: #333;
+    letter-spacing: 2.2px;
+    opacity: 0.8;
+  }
+
+  p {
+    margin: 0 0 15px;
+    font-size: 12px;
+    color: #777;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .contract-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 10px;
+
+    .link-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      .label {
+        font-size: 10px;
+        color: #999;
+        text-transform: uppercase;
+      }
+
+      a {
+        text-decoration: none;
+        color: #1e2d3e;
+        font-weight: 700;
+        font-size: 12px;
+        border-bottom: 1px solid #799d50;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        ion-icon {
+            font-size: 14px;
+            opacity: 0.6;
+        }
+      }
+    }
+  }
+
+  .project-duration {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .label {
+      font-size: 8.5px;
+      font-weight: 800;
+      color: #999;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .time {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e2d3e;
+      border-bottom: 1px solid #799d50;
+      padding-bottom: 1px;
+    }
+  }
+}

@@ -1,157 +1,213 @@
-<form action="" [formGroup]="submitProductForm">
-  <img src="assets/imagens/add-product-header-banner.png" alt="">
+<app-loading-spinner-overlay *ngIf="isLoading"></app-loading-spinner-overlay>
+<div class="upload-container">
+  <!-- LOGO BRANDING -->
+  <div class="form-logo-top">
+    <img src="assets/imagens/logo-devmode-notice.png" alt="Compraki Devmode">
+  </div>
 
-  <div class="section-container">
-    <div class="title poppins">
-      <ion-icon class="ponto-verde-title" name="ellipse"></ion-icon>
+  <!-- BANNER TOPO REAL -->
+  <div class="announce-banner-real">
+    <img src="assets/imagens/banner-anunciar.png" alt="Anunciar Produto">
+  </div>
+
+  <form action="" [formGroup]="submitProductForm">
+    <!-- SEÇÃO FOTOS -->
+    <div class="section-title">
+      <div class="dot"></div>
       <span>Fotos do Produto</span>
+      <button type="button" class="btn-reorder-trigger" *ngIf="selectedPhotos.length > 1" (click)="openReorderModal()">
+        <ion-icon name="swap-horizontal-outline"></ion-icon>
+        Selecionar Ordem
+      </button>
     </div>
-    <div class="image-container">
-      <img class="banner" src="assets/imagens/add-photo-button.png" alt="">
+    
+    <div class="photos-grid">
+      <div class="add-photo-box" (click)="fileInput.click()">
+        <ion-icon name="camera-outline"></ion-icon>
+        <span>+ Adicionar Fotos</span>
+        <small>Até 6 fotos</small>
+        <input #fileInput type="file" multiple (change)="onFileSelected($event)" style="display: none;">
+      </div>
 
-      <div class="image-list-container">
-        <input type="file" name="" id="">
+      <div class="photo-item" *ngFor="let photo of selectedPhotos; let i = index">
+        <img [src]="photo" alt="Preview" draggable="false" (click)="openPreview(photo)">
+        <div class="photo-order-badge">{{ i + 1 }}</div>
+        <div class="remove-photo" (click)="removePhoto(i)">
+          <ion-icon name="close"></ion-icon>
+        </div>
+      </div>
+
+      <!-- Placeholder slots para manter o grid bonito -->
+      <div class="photo-placeholder" *ngIf="selectedPhotos.length < 5" (click)="fileInput.click()" style="cursor: pointer;">
         <ion-icon name="add"></ion-icon>
-        <img src="assets/imagens/add-photo-button.png" alt="">
-
       </div>
     </div>
 
-  </div>
-
-  <div class="section-container">
-    <div class="title poppins">
-      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
+    <!-- SEÇÃO INFORMAÇÕES -->
+    <div class="section-title">
+      <div class="dot"></div>
       <span>Informações do Produto</span>
     </div>
-    <div class="subtitle-container">
-      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
-      <span class="subtitle">Titulo do Produto</span>
+
+    <div class="form-group">
+      <label>Título do Produto</label>
+      <div class="input-wrapper">
+        <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM">
+        <ion-icon name="checkmark" color="success" *ngIf="submitProductForm.get('name')?.valid"></ion-icon>
+      </div>
     </div>
-    <div class="input-container">
-      <input formControlName="name">
+
+    <div class="form-group">
+      <label>Categoria principal</label>
+      <div class="category-chips">
+        <button type="button" 
+                *ngFor="let cat of (categories$ | async)" 
+                class="cat-chip"
+                [class.active]="submitProductForm.get('categoryIds')?.value?.[0] === cat.id"
+                (click)="selectCategory(cat.id)">
+          <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
+          <span>{{ cat.name }}</span>
+        </button>
+      </div>
     </div>
 
-    <div class="subtitle-container">
-      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
-      <span class="subtitle">Categoria</span>
+    <div class="form-group" *ngIf="availableSubcategories.length > 0">
+      <label>Subcategoria</label>
+      <div class="subcategory-chips">
+        <button type="button" 
+                *ngFor="let sub of availableSubcategories" 
+                class="sub-chip"
+                [class.active]="submitProductForm.get('subcategoryIds')?.value?.includes(sub.id)"
+                (click)="toggleSubcategory(sub.id)">
+          {{ sub.name }}
+        </button>
+      </div>
     </div>
-   
-    <hr>
 
-    <ion-list >
-      <ion-item>
-        <ion-select mode="md"  aria-label="Fruit" interface="action-sheet" placeholder="Estado do Produto" formControlName="isUsed">
-          <ion-select-option value="novo" style="background: white;">NOVO</ion-select-option>
-          <ion-select-option value="usado">USADO</ion-select-option>
-        </ion-select>
-      </ion-item>
-    </ion-list>
+    <div class="form-group">
+      <label>Condição do Produto</label>
+      <div class="condition-pills scrollable">
+        <button type="button" 
+                [class.active]="submitProductForm.get('condition')?.value === 'novo'"
+                (click)="submitProductForm.patchValue({condition: 'novo'})">
+          Novo
+        </button>
+        <button type="button"
+                [class.active]="submitProductForm.get('condition')?.value === 'usado-como-novo'"
+                (click)="submitProductForm.patchValue({condition: 'usado-como-novo'})">
+          Como Novo
+        </button>
+        <button type="button"
+                [class.active]="submitProductForm.get('condition')?.value === 'usado-bom'"
+                (click)="submitProductForm.patchValue({condition: 'usado-bom'})">
+          Bom estado
+        </button>
+        <button type="button"
+                [class.active]="submitProductForm.get('condition')?.value === 'usado-aceitavel'"
+                (click)="submitProductForm.patchValue({condition: 'usado-aceitavel'})">
+          Aceitável
+        </button>
+      </div>
+    </div>
 
-    <span>Eletronicos, Computadores, Notebooks...</span>
-    <span class="subtitle">Condição do Produto</span>
-    <ion-list mode="md">
-      <ion-item mode="md">
-        <ion-select mode="md" aria-label="Fruit" interface="action-sheet" placeholder="Estado do Produto"
-          formControlName="isUsed">
-          <ion-select-option class="action-sheet-button" value="novo">NOVO</ion-select-option>
-          <ion-select-option value="usado">USADO</ion-select-option>
-        </ion-select>
-      </ion-item>
-    </ion-list>
-  </div>
-
-  <div class="section-container">
-    <div class="title">
-      <ion-icon class="ponto-verde-title" name="ellipse"></ion-icon>
+    <!-- SEÇÃO PREÇO E ESTOQUE -->
+    <div class="section-title">
+      <div class="dot"></div>
       <span>Preço e Estoque</span>
-
     </div>
-    <div class="subtitle-container">
 
-      <ion-icon class="ponto-verde-subtitle" name="ellipse"></ion-icon>
-      <span class="subtitle">Preço</span>
+    <div class="row">
+      <div class="form-group col">
+        <label>Preço</label>
+        <div class="input-wrapper price-input">
+          <span class="prefix">R$</span>
+          <input type="number" formControlName="price" placeholder="0,00">
+        </div>
+      </div>
+      <div class="form-group col">
+        <label>Estoque</label>
+        <div class="input-wrapper stock-input">
+          <input type="number" formControlName="stock" placeholder="1">
+          <span class="suffix">unidades</span>
+        </div>
+      </div>
     </div>
-    <div class="data-container">
-      <input mode="md" fill="outline" labelPlacement="stacked" value="" type="number" formControlName="price">
-      <div slot="label">Preço <ion-text color="danger">(Obrigatório)</ion-text></div>
 
+    <div class="toggle-group">
+      <div class="toggle-text">
+        <label>Aceitar Ofertas?</label>
+        <p>Permitir que compradores façam propostas</p>
+      </div>
+      <ion-toggle color="success" formControlName="acceptOffers"></ion-toggle>
     </div>
-  </div>
 
-  <div class="section-container">
-    <div class="title">
-      <ion-icon class="ponto-verde-title" name="ellipse"></ion-icon>
+    <!-- SEÇÃO DESCRIÇÃO -->
+    <div class="section-title">
+      <div class="dot"></div>
       <span>Descrição do Produto</span>
     </div>
-    <ion-textarea mode="md" fill="outline" type="text" class="description" labelPlacement="stacked" value=""
-      formControlName="description">
-      <div slot="label">Descrição <ion-text color="danger">(Obrigatório)</ion-text></div>
-    </ion-textarea>
-  </div>
-  <br>
-  <br>
-  <br>
-  <br>
-  <h1>ESTILO ANTIGO ABAIXO</h1>
-</form>
-<!-- codigo antigo abaixo -->
 
-<!-- <span>
-    Insira os dados do produto abaixo:
-  </span>
+    <div class="form-group">
+      <textarea formControlName="description" rows="6" placeholder="Descreva seu produto em detalhes..."></textarea>
+    </div>
 
-  <div class="image-input-container">
-    <img src="assets/imagens/imagem-placeholder.png" alt="">
-    <input #fileInput type="file" accept="image/*">
+    <div class="spacer-bottom"></div>
+  </form>
+
+  <div class="fixed-bottom-actions">
+    <button type="submit" class="btn-publish" (click)="submit()" [disabled]="!submitProductForm.valid">
+      <ion-icon name="pricetag-outline"></ion-icon>
+      PUBLICAR PRODUTO
+    </button>
   </div>
 
-  <input mode="md" fill="outline" labelPlacement="floating" color="danger" formControlName="name">
-    <div slot="label">Nome do Produto <ion-text color="danger">(Obrigatório)</ion-text></div>
-  
 
-  <div class="data-container">
-    <input mode="md" fill="outline" labelPlacement="stacked" value="" type="number" formControlName="price">
-      <div slot="label">Preço <ion-text color="danger">(Obrigatório)</ion-text></div>
-    
-    <input mode="md" fill="outline" labelPlacement="stacked" value="" type="number"
-      formControlName="priceDiscounted">
-      <div slot="label">Preço com Desconto <ion-text color="danger"></ion-text></div>
-    
+  <app-feedback-modal
+    [visible]="showFeedback"
+    [type]="feedbackType"
+    [title]="feedbackTitle"
+    [message]="feedbackMessage"
+    (closed)="onFeedbackClosed()">
+  </app-feedback-modal>
+  <!-- MODAL DE REORDENAÇÃO (INSTAGRAM STYLE) -->
+  <div class="reorder-modal-overlay" *ngIf="isReorderModalOpen">
+    <div class="reorder-modal-content">
+      <div class="reorder-header">
+        <h3>Definir Ordem das Fotos</h3>
+        <p>Toque nas fotos na ordem desejada para reorganizar</p>
+      </div>
+
+      <div class="reorder-grid">
+        <div class="reorder-item" 
+             *ngFor="let photo of selectedPhotos; let i = index" 
+             (click)="toggleReorder(i)"
+             [class.selected]="getReorderNumber(i)">
+          <img [src]="photo" alt="Preview">
+          <div class="reorder-badge" *ngIf="getReorderNumber(i)">
+            {{ getReorderNumber(i) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="reorder-footer">
+        <button type="button" class="btn-cancel-reorder" (click)="closeReorderModal()">CANCELAR</button>
+        <button type="button" 
+                class="btn-confirm-reorder" 
+                [disabled]="reorderIndices.length !== selectedPhotos.length"
+                (click)="confirmReorder()">
+          CONFIRMAR ({{ reorderIndices.length }}/{{ selectedPhotos.length }})
+        </button>
+      </div>
+    </div>
   </div>
 
-  <ion-list mode="md">
-    <ion-item mode="md">
-      <ion-select mode="md" aria-label="Fruit" interface="action-sheet" placeholder="Estado do Produto"
-        formControlName="isUsed">
-        <ion-select-option value="novo">NOVO</ion-select-option>
-        <ion-select-option value="usado">USADO</ion-select-option>
-      </ion-select>
-    </ion-item>
-  </ion-list>
-
-
-  <ion-list mode="md">
-    <ion-item mode="md">
-      <ion-select mode="md" aria-label="Fruit" interface="action-sheet" placeholder="Pagamento Aceito"
-        formControlName="paymentMethod">
-        <ion-select-option value="pix">PIX</ion-select-option>
-        <ion-select-option value="cartao">CARTÃO</ion-select-option>
-      </ion-select>
-    </ion-item>
-  </ion-list>
-  <ion-textarea mode="md" fill="outline" type="text" class="description" labelPlacement="stacked" value=""
-    formControlName="description">
-    <div slot="label">Descrição <ion-text color="danger">(Obrigatório)</ion-text></div>
-  </ion-textarea>
-  <ion-checkbox labelPlacement="end" mode="md" helperText="É necessário aceitar os Termos antes de continuar"
-    errorText="Você deve aceitar os Termos de Uso antes de continuar" formControlName="terms">
-    Aceito os Termos de Uso
-  </ion-checkbox>
-
-  <br />
-
-
-  <ion-button [disabled]="!isFormValid" size="full" class="submit" type="submit">
-    Enviar
-  </ion-button> -->
+  <!-- VISUALIZADOR DE IMAGEM FULL SCREEN -->
+  <div class="image-viewer-overlay" *ngIf="previewImage" (click)="$event.stopPropagation()">
+    <div class="viewer-backdrop"></div>
+    <img [src]="previewImage" alt="Visualizar" class="viewer-image">
+    <button class="viewer-close-btn" (click)="closePreview()">
+      <ion-icon name="close-circle"></ion-icon>
+      Fechar
+    </button>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+<div class="section-title">Resumo de Valores</div>
+
+@if (produto) {
+<ion-card class="checkout-card">
+  <div class="totals-content">
+    
+    <div class="total-row">
+      <span>Subtotal:</span>
+      <span class="value default-color">{{ subtotal | currency:'BRL':'R$ ':'1.2-2' }}</span>
+    </div>
+    
+    <div class="total-row">
+      <span>Frete:</span>
+      <span class="value green-color">{{ produto.shipping || 'Grátis' }}</span>
+    </div>
+    
+    @if (discount > 0) {
+    <div class="total-row">
+      <span>Desconto:</span>
+      <span class="value red-color">- {{ discount | currency:'BRL':'R$ ':'1.2-2' }}</span>
+    </div>
+    }
+    
+    <div class="total-separator"></div>
+    
+    <div class="total-row final">
+      <span>Total:</span>
+      <span class="value green-color bold">{{ total | currency:'BRL':'R$ ':'1.2-2' }}</span>
+    </div>
+
+    <button class="btn-finalizar">FINALIZAR COMPRA</button>
+    
+    <div class="secure-checkout">
+      <ion-icon name="lock-closed"></ion-icon>
+      Compra 100% segura
+    </div>
+
+  </div>
+</ion-card>
+} @else {
+  <p style="color: #888; text-align: center; margin-top: 20px;">Nenhum produto renderizado no carrinho.</p>
+}

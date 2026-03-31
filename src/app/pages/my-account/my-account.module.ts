@@ -10,6 +10,8 @@ import { MyAccountPageRoutingModule } from './my-account-routing.module';
 
 import { MyAccountPage } from './my-account.page';
 import { CustomHeaderComponent } from 'src/app/components/custom-header/custom-header.component';
+import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
+import { ProfileCardComponent } from 'src/app/components/profile-card/profile-card.component';
 
 @NgModule({
   imports: [
@@ -18,6 +20,8 @@ import { CustomHeaderComponent } from 'src/app/components/custom-header/custom-h
     NgIf,
     IonicModule,
     CustomHeaderComponent,
+    MiniHeaderComponent,
+    ProfileCardComponent,
     MyAccountPageRoutingModule
   ],
   declarations: [MyAccountPage]

@@ -1,0 +1,108 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar style="--background: #f8f9fa;">
+    <app-mini-header theme="light" [showBackButton]="true" backUrl="/tabs/home"></app-mini-header>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="header-section">
+    <h1>Categorias</h1>
+    <p>Gerencie as tags para classificação de produtos</p>
+    <div class="swipe-hint">
+       <ion-icon name="swap-horizontal-outline"></ion-icon>
+       <span>Arraste os itens para ver opções</span>
+    </div>
+  </div>
+
+  <ion-list mode="ios" class="category-list">
+    <div *ngFor="let cat of (categories$ | async); trackBy: trackCategory" class="category-group">
+      <ion-item-sliding #slidingItem>
+        <ion-item lines="none" class="category-item">
+          <ion-icon [name]="cat.icon" slot="start" class="category-icon"></ion-icon>
+          <ion-label>
+            <h2 class="category-title">{{ cat.name || 'Nova Categoria' }}</h2>
+            <span class="sub-count">{{ cat.subcategories.length || 0 }} subcategorias</span>
+          </ion-label>
+          <ion-buttons slot="end">
+             <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+          </ion-buttons>
+        </ion-item>
+        
+        <ion-item-options side="end">
+          <ion-item-option color="success" (click)="addSubcategory(cat); slidingItem.close()" class="option-btn">
+            <ion-icon name="add-circle" slot="top"></ion-icon>
+            Sub
+          </ion-item-option>
+          <ion-item-option color="primary" (click)="editCategory(cat, slidingItem)" class="option-btn">
+            <ion-icon name="create" slot="top"></ion-icon>
+            Editar
+          </ion-item-option>
+          <ion-item-option color="danger" (click)="deleteCategory(cat.id, slidingItem)" class="option-btn">
+            <ion-icon name="trash" slot="top"></ion-icon>
+            Excluir
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+
+      <div class="sub-list">
+        <div *ngFor="let sub of cat.subcategories; trackBy: trackSubcategory" class="sub-item">
+          <span (click)="editSubcategory(cat, sub)">{{ sub.name }}</span>
+          <ion-button fill="clear" size="small" color="medium" (click)="deleteSubcategory(cat, sub.id)">
+            <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+        <div class="add-sub-chip" (click)="addSubcategory(cat)">
+          <ion-icon name="add-outline"></ion-icon>
+          <span>Novo</span>
+        </div>
+      </div>
+    </div>
+  </ion-list>
+
+  <!-- Modal/Form para adicionar -->
+  <ion-modal [isOpen]="showAddCategory" (didDismiss)="showAddCategory = false" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85]">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-title>Nova Categoria</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="showAddCategory = false">Fechar</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <form [formGroup]="categoryForm" (ngSubmit)="addCategory()">
+          <ion-item fill="outline" class="custom-input">
+            <ion-label position="stacked">Nome da Categoria</ion-label>
+            <ion-input formControlName="name" placeholder="Ex: Eletrônicos"></ion-input>
+          </ion-item>
+
+          <div class="icon-label-group">
+            <label>Ícone da Categoria</label>
+            <ion-searchbar placeholder="Buscar ícone..." (ionInput)="filterIcons($event)" mode="ios" class="mini-search"></ion-searchbar>
+            
+            <div class="grid-icon-selector">
+              <div class="icon-circle" 
+                   *ngFor="let icon of filteredIcons" 
+                   [class.active]="categoryForm.get('icon')?.value === icon"
+                   (click)="categoryForm.patchValue({icon: icon})">
+                <ion-icon [name]="icon"></ion-icon>
+              </div>
+            </div>
+          </div>
+
+          <ion-button expand="block" type="submit" [disabled]="!categoryForm.valid" class="main-button">
+            Criar Categoria
+          </ion-button>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>
+
+<app-action-footer 
+  label="Nova Categoria" 
+  icon="add-circle-outline" 
+  hint="Organize seus produtos com novas tags"
+  (clicked)="showAddCategory = true">
+</app-action-footer>

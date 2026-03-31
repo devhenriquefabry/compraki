@@ -27,8 +27,9 @@
     width: 90%;
     min-height: 60%;
     border-radius: 20px;
-    padding: 20px 35px;
+    padding: 30px 35px;
     position: relative;
+    gap: 8px;
 }
 
 h2 {
@@ -58,6 +59,7 @@ h2 {
     flex-direction: row !important;
     width: 100%;
     position: relative;
+    margin: 5px 0;
 
     ion-icon {
         display: flex;
@@ -74,7 +76,7 @@ ion-input {
     --highlight-color: var(--cor-principal);
     --padding-start: 50px !important;
     text-align: start;
-    margin: 3px 0;
+    margin: 0;
 }
 
 .text-green {
@@ -99,11 +101,13 @@ hr{
 
 .submitButton{
     --background: var(--cor-principal) ;
-    margin: 5px 0px;
+    margin-top: 15px;
+    margin-bottom: 5px;
 }
 
 .submitButtonGoogle{
     margin-top: 5px;
+    margin-bottom: 15px;
     display: flex ;
     opacity: 1;
     flex-direction: row;

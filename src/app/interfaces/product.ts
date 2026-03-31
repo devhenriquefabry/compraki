@@ -1,17 +1,21 @@
 export interface Product {
     id?: string;
-    name : string,
-    price : number,
-    priceDiscounted? : number,
-    description? : string,
-    photoURL? : string[], 
-    isUsed : boolean,
+    name : string;
+    price : number;
+    priceDiscounted? : number;
+    description? : string;
+    photoURL? : string[]; 
+    condition: 'novo' | 'usado-como-novo' | 'usado-bom' | 'usado-aceitavel';
+    stock: number;
     soldCount? : number;
-    categories?: string[];
+    categoryIds: string[];
+    subcategoryIds: string[];
     acceptOffers?: boolean;
-    inventory?: number;
-    paymentMethod? : 'PIX' | 'CARTÃO';
-    shipping?: 'Frete Grátis' | 'A combinar',
+    paymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[];
+    shipping: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa';
     rating?: number;
-
+    location?: string;
+    sellerId?: string;
+    createdAt?: any;
+    updatedAt?: any;
 }

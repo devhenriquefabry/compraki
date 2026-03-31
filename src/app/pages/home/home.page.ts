@@ -20,18 +20,21 @@ export class HomePage implements OnInit {
   
 
   constructor(  public selectionService: ProductSelectionService , private router : Router) { }
-public products$!: Observable<Product[]> 
+  public products$!: Observable<Product[]> 
   public servicoDeProdutosDoFirebase = inject(FirebaseProducts)
+
 
   ngOnInit() {
     this.products$ = this.servicoDeProdutosDoFirebase.getAll()
+    
+    // Atualização do usuário
     setInterval(()=>{
-
-    if( this.servicoDeProdutosDoFirebase.getUser()){
-      this.usuario = this.servicoDeProdutosDoFirebase.getUser()
-    }
+      if( this.servicoDeProdutosDoFirebase.getUser()){
+        this.usuario = this.servicoDeProdutosDoFirebase.getUser()
+      }
     }, 1000)
   }
+
 
 sendProductToDetailPage(product: Product) { // Receba o objeto Product diretamente
   this.selectionService.setSelectedProduct(product);

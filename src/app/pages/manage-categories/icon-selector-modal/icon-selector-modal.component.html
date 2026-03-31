@@ -1,0 +1,25 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar style="--background: #f8f9fa;">
+    <ion-title>Escolha um Ícone</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()">Fechar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar style="--background: #f8f9fa; --padding-top: 0;">
+    <ion-searchbar placeholder="Buscar ícone..." [(ngModel)]="searchTerm" (ionInput)="filterIcons()" mode="ios"></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="icon-grid">
+    <div *ngFor="let icon of filteredIcons" class="icon-item" (click)="selectIcon(icon)">
+      <ion-icon [name]="icon"></ion-icon>
+      <span>{{ icon.replace('-outline', '') }}</span>
+    </div>
+  </div>
+  
+  <div *ngIf="filteredIcons.length === 0" class="no-results">
+    <ion-icon name="search-outline"></ion-icon>
+    <p>Nenhum ícone encontrado para "{{ searchTerm }}"</p>
+  </div>
+</ion-content>

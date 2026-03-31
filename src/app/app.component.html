@@ -1,3 +1,19 @@
 <ion-app>
+  <!-- TRANSIÇÃO FALSO-SPLASH NATIVA -> WEB -->
+  <div class="custom-splash" *ngIf="showSplash" [class.animating-out]="splashAnimatingOut">
+    
+    <!-- Pulso e brilho (Onda) atrás do logo -->
+    <div class="glow-ring"></div>
+
+    <!-- Foto do logo animada -->
+    <img src="assets/imagens/app-logo.png" alt="Compraki" class="splash-logo">
+
+    <!-- Bar de loading moderna -->
+    <div class="loading-bar-container">
+      <div class="loading-bar"></div>
+    </div>
+    
+  </div>
+
   <ion-router-outlet></ion-router-outlet>
 </ion-app>

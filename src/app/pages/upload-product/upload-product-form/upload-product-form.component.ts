@@ -1,162 +1,210 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
+import { FirebaseCategories } from 'src/app/services/firebase-categories';
+import { Category, Subcategory } from 'src/app/interfaces/category';
+import { NgFor, NgIf, AsyncPipe } from '@angular/common';
+import { Observable } from 'rxjs';
+import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
+import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 
 @Component({
   selector: 'app-upload-product-form',
   templateUrl: './upload-product-form.component.html',
   styleUrls: ['./upload-product-form.component.scss'],
-  imports: [IonicModule, ReactiveFormsModule, FormsModule ],
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent ],
   standalone: true  
 })
 export class UploadProductFormComponent  implements OnInit {
 
-  public isFormValid : boolean = false
+  public isFormValid : boolean = false;
+  public selectedPhotos: string[] = []; 
+  private filesToUpload: File[] = [];
+  public categories$!: Observable<Category[]>;
+  public availableSubcategories: Subcategory[] = [];
+  private allCategories: Category[] = [];
 
+  // Feedback modal
+  public showFeedback = false;
+  public feedbackType: 'success' | 'error' = 'success';
+  public feedbackTitle = '';
+  public feedbackMessage = '';
+  public isLoading = false;
 
-  produtos = [
-  {
-    "id": 1,
-    "name": "Eletrônicos",
-    "icon": "hardware-chip-outline",
-    "subcategories": [
-      {
-        "id": 101,
-        "name": "Computadores",
-        "types": ["Notebooks", "Desktops", "Monitores", "Peças e Componentes"]
-      },
-      {
-        "id": 102,
-        "name": "Celulares e Telefonia",
-        "types": ["Smartphones", "Smartwatches", "Acessórios"]
-      },
-      {
-        "id": 103,
-        "name": "Áudio e Vídeo",
-        "types": ["Fones de Ouvido", "Caixas de Som", "Televisores"]
-      }
-    ]
-  },
-  {
-    "id": 2,
-    "name": "Moda e Acessórios",
-    "icon": "shirt-outline",
-    "subcategories": [
-      {
-        "id": 201,
-        "name": "Roupas",
-        "types": ["Masculino", "Feminino", "Infantil"]
-      },
-      {
-        "id": 202,
-        "name": "Calçados",
-        "types": ["Tênis", "Sapatos", "Sandálias"]
-      }
-    ]
-  },
-  {
-    "id": 3,
-    "name": "Casa e Jardim",
-    "icon": "home-outline",
-    "subcategories": [
-      {
-        "id": 301,
-        "name": "Móveis",
-        "types": ["Camas", "Sofás", "Mesas e Cadeiras"]
-      },
-      {
-        "id": 302,
-        "name": "Eletrodomésticos",
-        "types": ["Geladeiras", "Fogões", "Máquinas de Lavar"]
-      }
-    ]
-  }
-]
-
-  control : any = '';
-    
   submitProductForm = new FormGroup({
-    id: new FormControl('1123'),
-    photoURL: new FormControl<string[]>([]), // Inicializado como array vazio
-    shipping: new FormControl<'Frete Grátis' | 'A combinar'>('Frete Grátis'),
-    rating: new FormControl(0),
-    soldCount: new FormControl<number | null>(null),
+    id: new FormControl(''),
+    photoURL: new FormControl<string[]>([]),
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    condition: new FormControl('novo', [Validators.required]),
     price: new FormControl<number | null>(null, [Validators.required]),
-    priceDiscounted: new FormControl<number | null>(null, [Validators.required]),
-    isUsed: new FormControl<boolean | null>(null, [Validators.required]),
-    paymentMethod: new FormControl<'PIX' | 'CARTÃO' | null>(null, [Validators.required]),
+    stock: new FormControl<number>(1, [Validators.required]),
+    acceptOffers: new FormControl(true),
     description: new FormControl('', [Validators.required]),
-    terms: new FormControl(false, [Validators.requiredTrue]) // Validators.requiredTrue para checkbox
+    categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
+    subcategoryIds: new FormControl<string[]>([])
   });
-  constructor(private servicoFirebase : FirebaseProducts) { }
+
+  constructor(
+    private servicoFirebase : FirebaseProducts,
+    private servicoCategorias : FirebaseCategories,
+    private router : Router
+  ) { }
 
   ngOnInit() {
-    this.submitProductForm.valueChanges.subscribe((dadosEmSi)=>{
-      if(this.submitProductForm.valid && this.submitProductForm.value['terms'] === true){
-      this.isFormValid = true
-      } else{
-      this.isFormValid = false
+    this.categories$ = this.servicoCategorias.getAll();
+    this.categories$.subscribe(cats => this.allCategories = cats);
 
+    this.submitProductForm.statusChanges.subscribe(status => {
+      this.isFormValid = status === 'VALID';
+    });
+
+    // Lógica de cascata para subcategorias
+    this.submitProductForm.get('categoryIds')?.valueChanges.subscribe(catIds => {
+      if (catIds && catIds.length > 0) {
+        const selectedCat = this.allCategories.find(c => c.id === catIds[0]);
+        this.availableSubcategories = selectedCat?.subcategories || [];
+      } else {
+        this.availableSubcategories = [];
       }
-    })
-  }
-  public submit () {
-     if (this.submitProductForm.valid) {
-    // 1. Extraímos os valores do formulário
-    const { terms, ...dadosProduto } = this.submitProductForm.value;
-
-    // 2. Fazemos o "cast" para Product (garantindo que os dados batem com a interface)
-    const novoProduto = dadosProduto as Product;
-
-    // 3. Chamamos o serviço
-    this.servicoFirebase.add(novoProduto)
-      .then(() => {
-        console.log('Produto salvo com sucesso!');
-        this.submitProductForm.reset(); // Limpa o formulário após o sucesso
-      })
-      .catch(err => console.error('Erro ao salvar:', err));
-  }
+      this.submitProductForm.patchValue({ subcategoryIds: [] });
+    });
   }
 
+  selectCategory(catId: string) {
+    this.submitProductForm.patchValue({ categoryIds: [catId] });
+  }
 
-
-
-
-
-
-
-
-
-  async enviarComFoto(files: FileList | null) {
-  if (this.submitProductForm.valid && files && files.length > 0) {
-    const file = files[0]; // Pega a primeira imagem selecionada
-
-    try {
-      // 1. Faz o upload para o Storage e pega a URL
-      const downloadURL = await this.servicoFirebase.uploadImage(file);
-
-      // 2. Extrai dados do formulário e injeta a URL
-      const { terms, ...dados } = this.submitProductForm.value;
-      const novoProduto: Product = {
-        ...dados,
-        photoURL: [downloadURL] // Salva no array como definido na sua interface
-      } as Product;
-
-      // 3. Salva no Firestore
-      await this.servicoFirebase.add(novoProduto);
-      
-      this.submitProductForm.reset();
-      alert('Produto cadastrado com sucesso!');
-      
-    } catch (error) {
-      console.error("Erro ao processar:", error);
-      alert('Erro ao enviar imagem ou dados.');
+  toggleSubcategory(subId: string) {
+    const current = this.submitProductForm.get('subcategoryIds')?.value || [];
+    const idx = current.indexOf(subId);
+    if (idx > -1) {
+      current.splice(idx, 1);
+    } else {
+      current.push(subId);
     }
-  } else if (!files || files.length === 0) {
-    alert('Por favor, selecione uma imagem.');
+    this.submitProductForm.patchValue({ subcategoryIds: [...current] });
   }
-}
+
+  onFileSelected(event: any) {
+    const files = event.target.files;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        this.filesToUpload.push(file);
+
+        const reader = new FileReader();
+        reader.onload = (e: any) => {
+          this.selectedPhotos.push(e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }
+
+  removePhoto(index: number) {
+    this.selectedPhotos.splice(index, 1);
+    this.filesToUpload.splice(index, 1);
+  }
+
+  // ===== REORDER PHOTOS (INSTAGRAM STYLE) =====
+  public isReorderModalOpen = false;
+  public reorderIndices: number[] = [];
+
+  openReorderModal() {
+    this.reorderIndices = [];
+    this.isReorderModalOpen = true;
+  }
+
+  closeReorderModal() {
+    this.isReorderModalOpen = false;
+    this.reorderIndices = [];
+  }
+
+  toggleReorder(index: number) {
+    const idx = this.reorderIndices.indexOf(index);
+    if (idx > -1) {
+      // Se for o último selecionado, desseleciona para permitir correção
+      if (idx === this.reorderIndices.length - 1) {
+        this.reorderIndices.pop();
+      }
+    } else {
+      // Só adiciona se clicar na ordem certa
+      this.reorderIndices.push(index);
+    }
+  }
+
+  getReorderNumber(index: number): number | null {
+    const idx = this.reorderIndices.indexOf(index);
+    return idx > -1 ? idx + 1 : null;
+  }
+
+  confirmReorder() {
+    if (this.reorderIndices.length !== this.selectedPhotos.length) return;
+
+    // Reconstrói arrays de fotos e arquivos
+    const newPhotos = this.reorderIndices.map(i => this.selectedPhotos[i]);
+    const newFiles = this.reorderIndices.map(i => this.filesToUpload[i]);
+
+    this.selectedPhotos = [...newPhotos];
+    this.filesToUpload = [...newFiles];
+    
+    this.closeReorderModal();
+  }
+
+  // ===== IMAGE PREVIEW =====
+  public previewImage: string | null = null;
+
+  openPreview(photo: string) {
+    this.previewImage = photo;
+  }
+
+  closePreview() {
+    this.previewImage = null;
+  }
+
+  public async submit () {
+     if (this.submitProductForm.valid) {
+      this.isLoading = true;
+      try {
+        const uploadPromises = this.filesToUpload.map(file => this.servicoFirebase.uploadImage(file));
+        const uploadedUrls = await Promise.all(uploadPromises);
+
+        this.submitProductForm.patchValue({ photoURL: uploadedUrls });
+
+        const novoProduto = this.submitProductForm.value as Product;
+
+        await this.servicoFirebase.add(novoProduto);
+        await new Promise(r => setTimeout(r, 2000));
+        
+        this.isLoading = false;
+        this.feedbackType = 'success';
+        this.feedbackTitle = 'Produto Publicado!';
+        this.feedbackMessage = 'Seu anúncio já está disponível para compradores.';
+        this.showFeedback = true;
+        // The form reset and navigation are moved to onFeedbackClosed()
+
+
+      } catch (err) {
+        console.error('Erro ao publicar produto:', err);
+        this.isLoading = false;
+        this.feedbackType = 'error';
+        this.feedbackTitle = 'Erro ao Publicar';
+        this.feedbackMessage = 'Verifique sua conexão e tente novamente.';
+        this.showFeedback = true;
+      }
+    }
+  }
+
+  onFeedbackClosed() {
+    this.showFeedback = false;
+    if (this.feedbackType === 'success') {
+      this.submitProductForm.reset();
+      this.selectedPhotos = [];
+      this.filesToUpload = [];
+      this.router.navigate(['/home']);
+    }
+  }
 }

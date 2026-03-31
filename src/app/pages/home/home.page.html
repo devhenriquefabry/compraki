@@ -1,43 +1,110 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar style="--background: #f8f9fa;">
+    <app-mini-header theme="light" [showBackButton]="false"></app-mini-header>
+  </ion-toolbar>
 
+  <ion-toolbar style="--background: #f8f9fa; --padding-top: 0; --padding-bottom: 0;">
+    <app-dev-mode-notice></app-dev-mode-notice>
+  </ion-toolbar>
+</ion-header>
 
-<ion-content [fullscreen]="true">
-  <app-custom-header titlePage="Home"></app-custom-header>
-  <app-mini-header></app-mini-header>
+<ion-content [fullscreen]="true" class="custom-bg">
+  <div class="menu-list">
+    
+    <span class="section-title">Exploração</span>
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/tabs/tab2']">
+      <ion-icon name="search" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Explorar Produtos</h2>
+        <p>Veja todos os itens disponíveis</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
 
-  <p>O usuario logado é : {{usuario?.email}}</p>
-  <ion-button color="danger" size="full" (click)="logout()">LOGOUT</ion-button>
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/product-details']">
+      <ion-icon name="information-circle" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Detalhes do Produto</h2>
+        <p>Veja informações completas do item</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
 
-  <div class="product-list">
+    <span class="section-title">Vendas e Compras</span>
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/checkout']">
+      <ion-icon name="cart" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Checkout Novo</h2>
+        <p>Acesse a nova tela de pagamento</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
 
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/tabs/upload-product']">
+      <ion-icon name="add-circle" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Cadastrar Produto</h2>
+        <p>Venda um novo item no Compraki</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
 
-@for (produto of (products$ | async); track produto.id) {
-  <app-product-card [item]="produto" (click)="sendProductToDetailPage(produto)"></app-product-card>
-}
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/edit-product']">
+      <ion-icon name="create-outline" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Editar Produto</h2>
+        <p>Gerencie e altere itens existentes</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/manage-categories']">
+      <ion-icon name="list-outline" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Gerenciar Categorias</h2>
+        <p>Organize o catálogo do sistema</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <span class="section-title">Perfil e Conta</span>
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/tabs/my-account']">
+      <ion-icon name="person" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Minha Conta</h2>
+        <p>Gerencie seus dados e perfil</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/forgot-password']">
+      <ion-icon name="key" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Esqueci minha Senha</h2>
+        <p>Recupere o acesso à sua conta</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <span class="section-title">Acesso</span>
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/login']">
+      <ion-icon name="log-in" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Login</h2>
+        <p>Entre com sua conta existente</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/sign-in']">
+      <ion-icon name="person-add" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Cadastre-se</h2>
+        <p>Crie uma nova conta no sistema</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
 
   </div>
-
-
-
-  <ion-button [routerLink]="['/upload-product']" routerLinkActive="router-link-active" >Formulário de Cadastro de Produto</ion-button>
-  <br>
-  <ion-button [routerLink]="['/forgot-password']" routerLinkActive="router-link-active" >Esqueci minha Senha</ion-button>
-  <br>  
-  <ion-button [routerLink]="['/login']" routerLinkActive="router-link-active" >Login</ion-button>
-  <br>
-  <ion-button [routerLink]="['/sign-in']" routerLinkActive="router-link-active" >Cadastre-se</ion-button>
-  <br>
-  <ion-button [routerLink]="['/notifications']" disabled routerLinkActive="router-link-active" >Notifications</ion-button>
-  <br>
-  <br>
-  <ion-button [routerLink]="['/product-details']"  routerLinkActive="router-link-active" >Detalhes do Produto</ion-button>
-  <br>
-  <ion-button [routerLink]="['/my-account']" routerLinkActive="router-link-active" >Minha Conta</ion-button>
-  <br>
-
-
-
-
-
-
 
 </ion-content>
