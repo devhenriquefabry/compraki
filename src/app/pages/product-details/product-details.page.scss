@@ -45,31 +45,35 @@
   }
 
   .img-viewer {
-    padding: 10px;
+    padding: 0;
+    width: 100%;
+    height: 300px;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    overflow: hidden;
     
-    img {
-      max-height: 250px;
-      object-fit: contain;
+    swiper-container {
+      width: 100%;
+      height: 100%;
+      --swiper-navigation-size: 25px;
+      --swiper-theme-color: var(--green-main);
     }
 
-    .pagination-dots {
+    swiper-slide {
       display: flex;
-      gap: 5px;
-      margin-top: 15px;
-
-      .dot {
-        width: 8px;
-        height: 8px;
-        background: #e0e0e0;
-        border-radius: 50%;
-        
-        &.active {
-          background: #799d50;
-          width: 10px;
-        }
+      align-items: center;
+      justify-content: center;
+      background: white;
+      
+      img {
+        max-width: 100%;
+        max-height: 280px;
+        height: auto;
+        width: auto;
+        object-fit: contain;
       }
     }
   }

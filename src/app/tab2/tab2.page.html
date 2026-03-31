@@ -37,9 +37,15 @@
 
   <!-- CATEGORIAS -->
   <div class="category-grid">
-    <div class="cat-item" *ngFor="let cat of categories">
-      <div class="cat-circle">
-        <ion-icon [name]="cat.icon"></ion-icon>
+    <div class="cat-item" (click)="clearFilters()">
+      <div class="cat-circle" [class.active]="selectedCategory === 'Todas'">
+        <ion-icon name="grid-outline"></ion-icon>
+      </div>
+      <span>Todas</span>
+    </div>
+    <div class="cat-item" *ngFor="let cat of (categories$ | async)" (click)="filterByCategory(cat.id)">
+      <div class="cat-circle" [class.active]="selectedCategory === cat.id">
+        <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
       </div>
       <span>{{ cat.name }}</span>
     </div>
@@ -148,7 +154,7 @@
         <ion-item lines="none" class="filter-item">
           <ion-select aria-label="Categoria" interface="action-sheet" [(ngModel)]="selectedCategory">
             <ion-select-option value="Todas">Todas as Categorias</ion-select-option>
-            <ion-select-option *ngFor="let cat of categories" [value]="cat.name">{{cat.name}}</ion-select-option>
+            <ion-select-option *ngFor="let cat of (categories$ | async)" [value]="cat.id">{{cat.name}}</ion-select-option>
           </ion-select>
         </ion-item>
       </div>

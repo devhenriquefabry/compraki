@@ -1,21 +1,68 @@
-<div class="selection-state">
-  <div class="select-container">
-    <ion-icon name="hand-pointing-up-outline" class="select-hint-icon"></ion-icon>
-    <h3>Selecionar Produto</h3>
-    <p>Escolha um item da lista abaixo para prosseguir:</p>
-    
-    <ion-item lines="none" class="custom-select-item">
-      <ion-select label="Selecionar Produto" label-placement="floating" interface="action-sheet" 
-                  placeholder="Toque para escolher" 
-                  (ionChange)="onProductSelect($event)">
-        <ion-select-option *ngFor="let prod of allProducts$ | async" [value]="prod.id">
-          {{prod.name}} - R${{prod.price}}
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
-
-    <ion-button fill="clear" color="medium" routerLink="/home" class="btn-cancel">
-      Voltar para a Home
-    </ion-button>
+<div class="selection-view">
+  <div class="view-header">
+    <div class="icon-badge">
+      <ion-icon name="cube-outline"></ion-icon>
+    </div>
+    <h2>Selecionar Produto</h2>
+    <p>Escolha o item base para continuar com o ajuste</p>
   </div>
+
+  <div class="selector-box" id="open-product-modal">
+    <div class="box-content">
+      <div class="preview-img" *ngIf="selectedProduct">
+        <img [src]="selectedProduct.photoURL?.[0] || placeholder" (error)="handleImageError($event)" />
+      </div>
+      <div class="text-info">
+        <span class="label">Produto Escolhido</span>
+        <h3 class="name">{{ selectedProduct?.name || 'Toque para selecionar...' }}</h3>
+      </div>
+    </div>
+    <ion-icon name="chevron-down-outline" class="arrow"></ion-icon>
+  </div>
+
+  <ion-button fill="clear" color="medium" routerLink="/tabs/home" class="btn-cancel">
+    <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+    Cancelar e Voltar
+  </ion-button>
+
+  <ion-modal trigger="open-product-modal" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85]" mode="ios">
+    <ng-template>
+      <div class="modal-wrapper">
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>Lista de Produtos</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="modal.dismiss()" color="medium">FECHAR</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+          <div class="product-cards-list">
+            <div 
+              *ngFor="let prod of (allProducts$ | async)" 
+              class="horizontal-card" 
+              (click)="selectAndClose(prod)">
+              
+              <div class="prod-thumb">
+                <img [src]="prod.photoURL?.[0] || placeholder" (error)="handleImageError($event)" alt="produto">
+              </div>
+              
+              <div class="prod-details">
+                <div class="top-row">
+                  <span class="condition-tag" [class]="prod.condition">{{ prod.condition | titlecase }}</span>
+                  <span class="price-val">{{ prod.price | currency:'BRL' }}</span>
+                </div>
+                <h3 class="prod-name">{{ prod.name }}</h3>
+                <div class="bottom-row">
+                  <span class="stock-info">Estoque: {{ prod.stock }}</span>
+                  <ion-icon name="arrow-forward-outline"></ion-icon>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ion-content>
+      </div>
+    </ng-template>
+  </ion-modal>
 </div>

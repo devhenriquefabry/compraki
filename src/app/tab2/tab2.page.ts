@@ -3,7 +3,9 @@ import { Router } from '@angular/router';
 import { Product } from '../interfaces/product';
 import { ProductSelectionService } from '../services/product-selection-service';
 import { FirebaseProducts } from '../services/firebase-products';
-import { Subscription } from 'rxjs';
+import { FirebaseCategories } from '../services/firebase-categories';
+import { Category } from '../interfaces/category';
+import { Subscription, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-tab2',
@@ -15,12 +17,7 @@ export class Tab2Page implements OnInit, OnDestroy {
 
   @ViewChild('bannerContainer', { static: false }) bannerContainer!: ElementRef;
 
-  public categories = [
-    { name: 'Eletrônicos', icon: 'laptop-outline' },
-    { name: 'Moda', icon: 'shirt-outline' },
-    { name: 'Casa e Móveis', icon: 'bed-outline' },
-    { name: 'Esportes', icon: 'basketball-outline' }
-  ];
+  public categories$!: Observable<Category[]>;
 
   public currentBannerIndex = 0;
   private allProducts: Product[] = [];
@@ -37,6 +34,7 @@ export class Tab2Page implements OnInit, OnDestroy {
 
   private productSub!: Subscription;
   private fbProducts = inject(FirebaseProducts);
+  private fbCategories = inject(FirebaseCategories);
   private selectionService = inject(ProductSelectionService);
   private router = inject(Router);
 
@@ -47,6 +45,8 @@ export class Tab2Page implements OnInit, OnDestroy {
       this.allProducts = products;
       this.applyFilters();
     });
+
+    this.categories$ = this.fbCategories.getAll();
 
     // Lógica do Carrossel de Banners (Auto-scroll sincronizado)
     this.bannerInterval = setInterval(() => {
@@ -82,7 +82,7 @@ export class Tab2Page implements OnInit, OnDestroy {
 
     // Filtro de Categoria
     if (this.selectedCategory !== 'Todas') {
-      result = result.filter(p => p.categories?.includes(this.selectedCategory));
+      result = result.filter(p => p.categoryIds?.includes(this.selectedCategory));
     }
 
     // Filtro de Preço
@@ -108,6 +108,11 @@ export class Tab2Page implements OnInit, OnDestroy {
     this.selectedCategory = 'Todas';
     this.sortOrder = 'relevancia';
     this.onlyFreeShipping = false;
+    this.applyFilters();
+  }
+
+  public filterByCategory(id: string) {
+    this.selectedCategory = id;
     this.applyFilters();
   }
 

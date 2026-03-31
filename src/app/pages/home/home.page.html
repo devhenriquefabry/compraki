@@ -2,42 +2,13 @@
   <ion-toolbar style="--background: #f8f9fa;">
     <app-mini-header theme="light" [showBackButton]="false"></app-mini-header>
   </ion-toolbar>
+
+  <ion-toolbar style="--background: #f8f9fa; --padding-top: 0; --padding-bottom: 0;">
+    <app-dev-mode-notice></app-dev-mode-notice>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="custom-bg">
-  
-    <div class="secret-notice">
-      <div class="brand-watermark">
-        <img src="/assets/imagens/logoCompraki.png" class="notice-logo" alt="Compraki">
-        <span class="devmode-text">devmode</span>
-      </div>
-      <h4>PROTOCOLO DE DESENVOLVIMENTO</h4>
-      <p>Este ambiente opera sob condições experimentais. Certas funcionalidades podem apresentar instabilidade ou comportamento não documentado. Prossiga com cautela e limite-se ao ambiente de testes autorizado.</p>
-      <div class="contract-links">
-        <div class="link-group">
-          <span class="label">Programação do Sistema:</span>
-          <a href="https://www.instagram.com/henrique_santous/" target="_blank">
-            Henrique Santos
-            <ion-icon name="open-outline"></ion-icon>
-          </a>
-        </div>
-        <div class="link-group">
-          <span class="label">Coordenação de Projeto:</span>
-          <a href="https://www.instagram.com/thayruan__/" target="_blank">
-            Thay Ruan
-            <ion-icon name="open-outline"></ion-icon>
-          </a>
-        </div>
-
-        <div class="project-duration" *ngIf="showSecretNotice">
-          <span class="label">Tempo de Operação:</span>
-          <span class="time">{{ projectDuration }}</span>
-        </div>
-      </div>
-    </div>
-
-  <div style="height: 10px;"></div> <!-- Pequeno espaçamento inicial -->
-
   <div class="menu-list">
     
     <span class="section-title">Exploração</span>
@@ -83,6 +54,15 @@
       <ion-label>
         <h2>Editar Produto</h2>
         <p>Gerencie e altere itens existentes</p>
+      </ion-label>
+      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
+    </ion-item>
+
+    <ion-item lines="none" class="menu-item" button [routerLink]="['/manage-categories']">
+      <ion-icon name="list-outline" slot="start" class="icon-green"></ion-icon>
+      <ion-label>
+        <h2>Gerenciar Categorias</h2>
+        <p>Organize o catálogo do sistema</p>
       </ion-label>
       <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
     </ion-item>

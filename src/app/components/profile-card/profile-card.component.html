@@ -1,17 +1,34 @@
 <div class="profile-card">
-  <div class="avatar-container">
-    <img [src]="usuario?.photoURL || 'https://i.pravatar.cc/150?img=11'" referrerpolicy="no-referrer" alt="Avatar">
-  </div>
-  
-  <h2>{{ usuario?.displayName || 'Usuário Não Logado' }}</h2>
-  <p>{{ usuario?.email || 'Faça login para continuar' }}</p>
-  
-  <ion-button fill="outline" shape="round" color="secondary" class="btn-perfil">
-    Ver perfil público
-  </ion-button>
-  
-  <ion-text color="warning" class="mini-alert">
-    <ion-icon name="warning"></ion-icon>
-    <span>Não sei pq devia ter esse botão mas coloquei mesmo assim 😅</span>
-  </ion-text>
+  <!-- USUÁRIO LOGADO -->
+  <ng-container *ngIf="usuario; else unloggedTpl">
+    <div class="avatar-container">
+      <img [src]="usuario?.photoURL || 'assets/imagens/default-avatar.png'" referrerpolicy="no-referrer" alt="Avatar" (error)="image.src='https://ionicframework.com/docs/img/demos/avatar.svg'" #image>
+    </div>
+    
+    <h2>{{ usuario?.displayName || 'Usuário Compraki' }}</h2>
+    <p>{{ usuario?.email }}</p>
+    
+    <ion-button fill="outline" shape="round" color="secondary" class="btn-perfil">
+      Ver perfil público
+    </ion-button>
+    
+    <ion-text color="warning" class="mini-alert">
+      <ion-icon name="warning"></ion-icon>
+      <span>Não sei pq devia ter esse botão mas coloquei mesmo assim 😅</span>
+    </ion-text>
+  </ng-container>
+
+  <!-- USUÁRIO VISITANTE (NÃO LOGADO) -->
+  <ng-template #unloggedTpl>
+    <div class="avatar-container unlogged-avatar">
+      <ion-icon name="person"></ion-icon>
+    </div>
+    
+    <h2>Visitante</h2>
+    <p>Faça login para ver seus dados e gerenciar opções.</p>
+    
+    <div style="margin-top: 15px;">
+      <app-action-footer label="Fazer Login / Cadastrar" icon="person-add" (clicked)="navigateToLogin()"></app-action-footer>
+    </div>
+  </ng-template>
 </div>

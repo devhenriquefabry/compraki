@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -22,6 +22,7 @@ import { ProductSelectorComponent } from 'src/app/components/product-selector/pr
     ProductDetailsPageRoutingModule,
     ProductSelectorComponent
   ],
-  declarations: [ProductDetailsPage]
+  declarations: [ProductDetailsPage],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class ProductDetailsPageModule {}

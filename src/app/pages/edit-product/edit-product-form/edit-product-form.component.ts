@@ -1,24 +1,45 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
+import { FirebaseCategories } from 'src/app/services/firebase-categories';
+import { Category, Subcategory } from 'src/app/interfaces/category';
 import { NgFor, NgIf, CommonModule } from '@angular/common';
-
+import { Observable } from 'rxjs';
+import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
+import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 @Component({
   selector: 'app-edit-product-form',
   templateUrl: './edit-product-form.component.html',
   styleUrls: ['./edit-product-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule]
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent]
 })
 export class EditProductFormComponent implements OnInit {
-  @Input() product!: Product;
+  private _product!: Product;
+  @Input() set product(value: Product) {
+    this._product = value;
+    this.updateFormWithProduct(value);
+  }
+  get product(): Product {
+    return this._product;
+  }
   @Output() cancel = new EventEmitter<void>();
 
   public isFormValid: boolean = false;
-  public selectedPhotos: string[] = []; // Para prévia (urls ou base64)
+  public selectedPhotos: string[] = []; 
   private filesToUpload: File[] = [];
+  public categories$!: Observable<Category[]>;
+  public availableSubcategories: Subcategory[] = [];
+  private allCategories: Category[] = [];
+
+  public showFeedback = false;
+  public feedbackType: 'success' | 'error' = 'success';
+  public feedbackTitle = '';
+  public feedbackMessage = '';
+  public isLoading = false;
 
   editProductForm = new FormGroup({
     id: new FormControl(''),
@@ -29,19 +50,64 @@ export class EditProductFormComponent implements OnInit {
     stock: new FormControl<number>(1, [Validators.required]),
     acceptOffers: new FormControl(true),
     description: new FormControl('', [Validators.required]),
+    categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
+    subcategoryIds: new FormControl<string[]>([])
   });
 
-  constructor(private servicoFirebase: FirebaseProducts) { }
+  constructor(
+    private servicoFirebase: FirebaseProducts,
+    private servicoCategorias: FirebaseCategories,
+    private router: Router
+  ) { }
 
   ngOnInit() {
-    if (this.product) {
-      this.editProductForm.patchValue(this.product);
-      this.selectedPhotos = this.product.photoURL || [];
-    }
+    this.categories$ = this.servicoCategorias.getAll();
+    this.categories$.subscribe(cats => {
+      this.allCategories = cats;
+      if (this.product && this.product.categoryIds?.length > 0) {
+        this.updateAvailableSubcategories(this.product.categoryIds[0]);
+      }
+    });
 
     this.editProductForm.statusChanges.subscribe(status => {
       this.isFormValid = status === 'VALID';
     });
+
+    this.editProductForm.get('categoryIds')?.valueChanges.subscribe(catIds => {
+      if (catIds && catIds.length > 0) {
+        this.updateAvailableSubcategories(catIds[0]);
+      } else {
+        this.availableSubcategories = [];
+      }
+    });
+  }
+
+  private updateFormWithProduct(product: Product) {
+    if (product) {
+      this.editProductForm.patchValue(product);
+      this.selectedPhotos = [...(product.photoURL || [])];
+      this.filesToUpload = []; // Reset local files on product change
+    }
+  }
+
+  private updateAvailableSubcategories(categoryId: string) {
+    const selectedCat = this.allCategories.find(c => c.id === categoryId);
+    this.availableSubcategories = selectedCat?.subcategories || [];
+  }
+
+  selectCategory(catId: string) {
+    this.editProductForm.patchValue({ categoryIds: [catId] });
+  }
+
+  toggleSubcategory(subId: string) {
+    const current = this.editProductForm.get('subcategoryIds')?.value || [];
+    const idx = current.indexOf(subId);
+    if (idx > -1) {
+      current.splice(idx, 1);
+    } else {
+      current.push(subId);
+    }
+    this.editProductForm.patchValue({ subcategoryIds: [...current] });
   }
 
   onFileSelected(event: any) {
@@ -63,48 +129,165 @@ export class EditProductFormComponent implements OnInit {
     // Nota: Essa lógica simplificada não remove URLs antigas do Firebase Storage, apenas do array local
   }
 
+  // ===== REORDER PHOTOS (INSTAGRAM STYLE) =====
+  public isReorderModalOpen = false;
+  public reorderIndices: number[] = [];
+
+  openReorderModal() {
+    this.reorderIndices = [];
+    this.isReorderModalOpen = true;
+  }
+
+  closeReorderModal() {
+    this.isReorderModalOpen = false;
+    this.reorderIndices = [];
+  }
+
+  toggleReorder(index: number) {
+    const idx = this.reorderIndices.indexOf(index);
+    if (idx > -1) {
+      if (idx === this.reorderIndices.length - 1) {
+        this.reorderIndices.pop();
+      }
+    } else {
+      this.reorderIndices.push(index);
+    }
+  }
+
+  getReorderNumber(index: number): number | null {
+    const idx = this.reorderIndices.indexOf(index);
+    return idx > -1 ? idx + 1 : null;
+  }
+
+  confirmReorder() {
+    if (this.reorderIndices.length !== this.selectedPhotos.length) return;
+
+    const newPhotos = this.reorderIndices.map(i => this.selectedPhotos[i]);
+    
+    // Sincronizar filesToUpload também
+    // Precisamos saber quais índices no reorderIndices correspondem a arquivos no filesToUpload
+    // No Edit, o selectedPhotos pode ter URLs E Files (Base64)
+    // A melhor forma é reconstruir o filesToUpload baseado no novo selectedPhotos depois.
+    // Mas o filesToUpload só contém os NOVOS arquivos.
+    
+    // Vamos reconstruir o filesToUpload filtrando o novo selectedPhotos por o que é Base64
+    // Mas precisamos manter a referência original do File. 
+    // Uma forma melhor é mapear os arquivos novos para seus índices originais.
+    
+    const newFiles: File[] = [];
+    this.reorderIndices.forEach(oldIdx => {
+      const photo = this.selectedPhotos[oldIdx];
+      if (photo.startsWith('data:')) {
+        // Encontrar qual File no filesToUpload corresponde a esse Base64
+        // (Isso assume que não há duplicatas de Base64 idênticas, o que é seguro)
+        // Na verdade, no UploadComponent eu fiz simplificado. Vou fazer igual aqui.
+        
+        // Se o selectedPhotos[oldIdx] é um Base64, ele veio de ALGUM lugar no filesToUpload.
+        // O desafio é que o drag-and-drop original não mantinha esse mapeamento explícito.
+        // Vou assumir a mesma lógica que fiz no Upload por enquanto.
+      }
+    });
+
+    // Lógica correta para sincronizar filesToUpload com selectedPhotos durante reordenação:
+    // 1. Identificar quais fotos no selectedPhotos ORIGINAL eram arquivos (data:)
+    // 2. Criar um mapeamento: index_no_selectedPhotos -> index_no_filesToUpload
+    const fileMap = new Map<number, number>();
+    let fIdx = 0;
+    this.selectedPhotos.forEach((p, idx) => {
+      if (p.startsWith('data:')) {
+        fileMap.set(idx, fIdx++);
+      }
+    });
+
+    // 3. Reordenar filesToUpload baseado na nova ordem
+    const sortedFiles: File[] = [];
+    this.reorderIndices.forEach(newPosIdx => {
+      if (fileMap.has(newPosIdx)) {
+        sortedFiles.push(this.filesToUpload[fileMap.get(newPosIdx)!]);
+      }
+    });
+
+    this.selectedPhotos = [...newPhotos];
+    this.filesToUpload = [...sortedFiles];
+    
+    this.closeReorderModal();
+  }
+
+  // ===== IMAGE PREVIEW =====
+  public previewImage: string | null = null;
+
+  openPreview(photo: string) {
+    this.previewImage = photo;
+  }
+
+  closePreview() {
+    this.previewImage = null;
+  }
+
   async submit() {
     if (this.editProductForm.valid) {
+      this.isLoading = true;
       try {
-        let finalPhotoUrls = [...(this.product.photoURL || [])];
-        
-        // Se houver novos arquivos, faz upload
-        if (this.filesToUpload.length > 0) {
-          const uploadPromises = this.filesToUpload.map(file => this.servicoFirebase.uploadImage(file));
-          const newUrls = await Promise.all(uploadPromises);
-          finalPhotoUrls = [...finalPhotoUrls, ...newUrls];
+        // 1. Identificar quais "fotos" no selectedPhotos são arquivos novos (data:base64) 
+        // e quais são URLs existentes.
+        const currentUrls = this.selectedPhotos.filter(p => p.startsWith('http'));
+        const newPhotoFiles = this.filesToUpload; // Já estão na ordem correta pois o drag-and-drop sincronizou os dois arrays
+
+        // 2. Upload das novas fotos
+        let uploadedUrls: string[] = [];
+        if (newPhotoFiles.length > 0) {
+          const uploadPromises = newPhotoFiles.map(file => this.servicoFirebase.uploadImage(file));
+          uploadedUrls = await Promise.all(uploadPromises);
         }
 
-        // Garante que mostre as fotos que sobraram se algumas foram "removidas" na UI
-        // Para simplificar, estamos apenas concatenando novas. 
-        // Em um app real, compararíamos selectedPhotos com photoURL original.
+        // 3. Mesclar mantendo a ordem do selectedPhotos
+        // Como o selectedPhotos contém tanto URLs quanto 'data:image...', precisamos reconstruir a lista final
+        // mas aqui temos uma simplificação: as URLs novas vão para o final ou na ordem que os arquivos estavam.
+        // Uma forma mais robusta é substituir os 'data:...' no selectedPhotos pelas URLs retornadas.
         
-        this.editProductForm.patchValue({ photoURL: this.selectedPhotos.filter(p => !p.startsWith('data:')) });
-        // Na verdade, vamos apenas usar o que está em selectedPhotos se não for base64
-        const currentUrls = this.selectedPhotos.filter(p => !p.startsWith('data:'));
-        
+        let fileIndex = 0;
+        const finalPhotoURL = this.selectedPhotos.map(photo => {
+          if (photo.startsWith('data:')) {
+            return uploadedUrls[fileIndex++];
+          }
+          return photo;
+        });
+
         const updatedProduct = {
           ...this.editProductForm.value,
-          photoURL: [...currentUrls]
+          photoURL: finalPhotoURL
         } as Product;
 
-        if (this.filesToUpload.length > 0) {
-           const newUrls = await Promise.all(this.filesToUpload.map(f => this.servicoFirebase.uploadImage(f)));
-           updatedProduct.photoURL = [...updatedProduct.photoURL || [], ...newUrls];
-        }
-
         await this.servicoFirebase.update(updatedProduct);
-        alert('Produto atualizado com sucesso!');
-        this.cancel.emit();
+        await new Promise(r => setTimeout(r, 2000));
+
+        this.isLoading = false;
+        this.feedbackType = 'success';
+        this.feedbackTitle = 'Produto Atualizado!';
+        this.feedbackMessage = 'As alterações foram salvas com sucesso.';
+        this.showFeedback = true;
 
       } catch (err) {
         console.error('Erro ao atualizar produto:', err);
-        alert('Erro ao atualizar. Verifique sua conexão.');
+        this.isLoading = false;
+        this.feedbackType = 'error';
+        this.feedbackTitle = 'Erro ao Atualizar';
+        this.feedbackMessage = 'Verifique sua conexão e tente novamente.';
+        this.showFeedback = true;
       }
     }
   }
 
   onCancel() {
     this.cancel.emit();
+  }
+
+  onFeedbackClosed() {
+    this.showFeedback = false;
+    if (this.feedbackType === 'success') {
+      this.editProductForm.reset();
+      this.selectedPhotos = [];
+      this.router.navigate(['/home']);
+    }
   }
 }

@@ -12,13 +12,17 @@
       <div class="oferta-badge">OFERTA!</div>
       
       <div class="img-viewer">
-        <img [src]="p.photoURL?.[0] || 'https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg'" alt="Produto">
-        <div class="pagination-dots">
-          <span class="dot active"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
+        <swiper-container 
+          slides-per-view="1" 
+          pagination="true" 
+          keyboard="true" 
+          mousewheel="true" 
+          style="--swiper-pagination-color: var(--cor-principal); --swiper-pagination-bullet-inactive-color: #ccc;">
+          
+          <swiper-slide *ngFor="let img of p.photoURL || ['https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg']">
+            <img [src]="img" alt="Produto">
+          </swiper-slide>
+        </swiper-container>
       </div>
 
       <div class="product-info-padding">

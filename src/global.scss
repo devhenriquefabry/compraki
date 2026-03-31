@@ -57,3 +57,167 @@ ion-toolbar{
    font-family: "Poppins", sans-serif !important;
 }
 
+/* FORÇAR MODO CLARO EM MODAIS */
+ion-modal {
+  --ion-background-color: #ffffff !important;
+  --ion-text-color: #1e2d3e !important;
+  --background: #ffffff !important;
+  --color: #1e2d3e !important;
+
+  ion-header ion-toolbar {
+    --background: #ffffff !important;
+    --color: #1e2d3e !important;
+    --padding-start: 24px !important;
+    --padding-end: 24px !important;
+    --padding-top: 15px !important;
+    --padding-bottom: 15px !important;
+    border-bottom: 1px solid #f0f0f0;
+    
+    ion-title {
+       --padding-start: 0 !important;
+       font-weight: 800 !important;
+    }
+    
+    ion-button {
+      --color: #1e2d3e !important;
+      color: #1e2d3e !important;
+      font-weight: 700;
+      margin: 0;
+    }
+  }
+
+  ion-content {
+    --background: #ffffff !important;
+    --color: #1e2d3e !important;
+  }
+
+  ion-item {
+    --background: #ffffff !important;
+    --color: #1e2d3e !important;
+    --inner-border-color: #f0f0f0 !important;
+  }
+
+  ion-input, ion-textarea {
+    --placeholder-color: #999999 !important;
+    --placeholder-opacity: 1 !important;
+    color: #1e2d3e !important;
+  }
+
+  ion-label {
+    color: #1e2d3e !important;
+  }
+  
+  ion-searchbar {
+    --background: #f0f2f5 !important;
+    --color: #1e2d3e !important;
+    --icon-color: #999999 !important;
+    --placeholder-color: #999999 !important;
+  }
+
+  .grid-icon-selector {
+    background: #ffffff !important;
+    border-color: #eeeeee !important;
+    .icon-circle { background: #f8f9fa !important; }
+  }
+  
+  .custom-input {
+    --background: #ffffff !important;
+  }
+}
+
+/* FORÇAR MODO CLARO EM ALERTAS E POPUPS */
+ion-alert {
+  --background: #ffffff !important;
+  --backdrop-opacity: 0.5 !important;
+  
+  .alert-wrapper {
+    background: #ffffff !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+  }
+
+  .alert-title {
+    color: #1e2d3e !important;
+    font-weight: 800 !important;
+    font-size: 18px !important;
+  }
+
+  .alert-message, .alert-sub-title {
+    color: #444444 !important;
+    font-size: 14px !important;
+  }
+
+  .alert-input {
+    background: #fdfdfd !important;
+    border: 1px solid #eee !important;
+    border-radius: 8px !important;
+    color: #1e2d3e !important;
+    margin: 10px 0 !important;
+    --placeholder-color: #999 !important;
+    
+    &::placeholder { color: #999 !important; }
+  }
+
+  .alert-button-group {
+    padding: 8px !important;
+  }
+
+  .alert-button {
+    color: #799d50 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    font-size: 13px !important;
+    
+    &.alert-button-role-cancel {
+        color: #888888 !important;
+    }
+  }
+}
+
+/* OUTROS OVERLAYS — MODO CLARO */
+ion-action-sheet {
+  --background: #ffffff !important;
+  --color: #1e2d3e !important;
+  --button-color: #1e2d3e !important;
+  --button-color-selected: #799d50 !important;
+
+  .action-sheet-wrapper {
+    background: #ffffff !important;
+  }
+  .action-sheet-group {
+    background: #ffffff !important;
+  }
+  .action-sheet-title {
+    color: #1e2d3e !important;
+    font-weight: 800 !important;
+  }
+  .action-sheet-button {
+    color: #1e2d3e !important;
+    font-weight: 600 !important;
+    &.action-sheet-cancel { color: #888 !important; }
+    &.action-sheet-selected { color: #799d50 !important; font-weight: 800 !important; }
+  }
+}
+
+ion-popover {
+  --background: #ffffff !important;
+  --color: #1e2d3e !important;
+
+  ion-content { --background: #ffffff !important; }
+  ion-item { --background: #ffffff !important; --color: #1e2d3e !important; }
+  ion-label { color: #1e2d3e !important; }
+  ion-radio { --color-checked: #799d50 !important; }
+  ion-checkbox { --checkbox-background-checked: #799d50 !important; --border-color-checked: #799d50 !important; }
+}
+
+ion-select-popover {
+  ion-item { --background: #ffffff !important; --color: #1e2d3e !important; }
+  ion-label { color: #1e2d3e !important; }
+  ion-radio { --color-checked: #799d50 !important; }
+}
+
+ion-loading, ion-toast {
+  --background: #ffffff !important;
+  --color: #1e2d3e !important;
+}
+

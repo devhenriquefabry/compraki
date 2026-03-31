@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, IonModal } from '@ionic/angular';
 import { Observable } from 'rxjs';
 import { Product } from 'src/app/interfaces/product';
 
@@ -15,8 +15,18 @@ import { Product } from 'src/app/interfaces/product';
 export class ProductSelectorComponent {
   @Input() allProducts$!: Observable<Product[]>;
   @Output() productSelected = new EventEmitter<string>();
+  @ViewChild(IonModal) modal!: IonModal;
 
-  onProductSelect(event: any) {
-    this.productSelected.emit(event.detail.value);
+  public selectedProduct: Product | null = null;
+  public readonly placeholder = 'https://placehold.co/200x200/f0f2f5/a0aec0?text=Sem+Foto';
+
+  handleImageError(event: any) {
+    event.target.src = this.placeholder;
+  }
+
+  selectAndClose(product: Product) {
+    this.selectedProduct = product;
+    this.productSelected.emit(product.id);
+    this.modal.dismiss();
   }
 }

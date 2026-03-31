@@ -192,15 +192,19 @@
 /* CATEGORIAS */
 .category-grid {
   display: flex;
-  justify-content: space-around;
-  padding: 15px 5px;
+  gap: 20px;
+  padding: 15px 20px;
   background: white;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar { display: none; }
 
   .cat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    min-width: 70px;
 
     .cat-circle {
       width: 60px; height: 60px;
@@ -211,8 +215,20 @@
       justify-content: center;
       border: 1px solid #eee;
       ion-icon { font-size: 28px; color: #799d50; }
+
+      &.active {
+        background: #f1f8eb;
+        border-color: #799d50;
+        box-shadow: 0 4px 10px rgba(121, 157, 80, 0.2);
+      }
     }
-    span { font-size: 11px; font-weight: 600; color: #555; }
+    span { 
+      font-size: 11px; 
+      font-weight: 600; 
+      color: #333; 
+      text-align: center;
+      white-space: nowrap;
+    }
   }
 }
 

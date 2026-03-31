@@ -14,7 +14,8 @@ import {
 import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
 import { Product } from '../interfaces/product';
 import { Observable } from 'rxjs';
-import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider} from 'firebase/auth';
+import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider} from 'firebase/auth';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Router } from '@angular/router';
 
 // Copie sua config aqui para garantir que o SDK use o objeto puro
@@ -129,18 +130,26 @@ async signIn(email: string, password: string): Promise<boolean> {
 
 async signInWithGoogle(): Promise<boolean> {
   this.carregando = true;
-  const provider = new GoogleAuthProvider();
 
   try {
-    const result = await signInWithPopup(this.authenticator, provider);
+    // 1. Dispara a bandeja nativa do Google no Android/iOS
+    const googleUser = await GoogleAuth.signIn();
+
+    if (!googleUser.authentication.idToken) {
+      throw new Error("Falha ao recuperar idToken do Google.");
+    }
+
+    // 2. Passar o token para o Firebase Auth
+    const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+    const result = await signInWithCredential(this.authenticator, credential);
     const user = result.user;
     
     alert('Bem-vindo, ' + user.displayName);
     this.router.navigate(['/tabs']);
     return true;
   } catch (error) {
-    console.error("Erro ao logar com Google:", error);
-    alert('Erro ao autenticar com o Google. Tente novamente.');
+    console.error("Erro ao logar com Google NATIVO:", error);
+    alert('Erro ao autenticar. Coloque o seu Web Client ID em capacitor.config.ts e strings.xml para o plugin funcionar.');
     return false;
   } finally {
     this.carregando = false;

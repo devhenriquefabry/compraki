@@ -1,23 +1,39 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
-import { NgFor, NgIf } from '@angular/common';
+import { FirebaseCategories } from 'src/app/services/firebase-categories';
+import { Category, Subcategory } from 'src/app/interfaces/category';
+import { NgFor, NgIf, AsyncPipe } from '@angular/common';
+import { Observable } from 'rxjs';
+import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
+import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 
 @Component({
   selector: 'app-upload-product-form',
   templateUrl: './upload-product-form.component.html',
   styleUrls: ['./upload-product-form.component.scss'],
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf ],
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent ],
   standalone: true  
 })
 export class UploadProductFormComponent  implements OnInit {
 
   public isFormValid : boolean = false;
-  public selectedPhotos: string[] = []; // Para prévia (base64)
-  private filesToUpload: File[] = [];   // Arquivos reais para upload
-  
+  public selectedPhotos: string[] = []; 
+  private filesToUpload: File[] = [];
+  public categories$!: Observable<Category[]>;
+  public availableSubcategories: Subcategory[] = [];
+  private allCategories: Category[] = [];
+
+  // Feedback modal
+  public showFeedback = false;
+  public feedbackType: 'success' | 'error' = 'success';
+  public feedbackTitle = '';
+  public feedbackMessage = '';
+  public isLoading = false;
+
   submitProductForm = new FormGroup({
     id: new FormControl(''),
     photoURL: new FormControl<string[]>([]),
@@ -27,14 +43,49 @@ export class UploadProductFormComponent  implements OnInit {
     stock: new FormControl<number>(1, [Validators.required]),
     acceptOffers: new FormControl(true),
     description: new FormControl('', [Validators.required]),
+    categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
+    subcategoryIds: new FormControl<string[]>([])
   });
 
-  constructor(private servicoFirebase : FirebaseProducts) { }
+  constructor(
+    private servicoFirebase : FirebaseProducts,
+    private servicoCategorias : FirebaseCategories,
+    private router : Router
+  ) { }
 
   ngOnInit() {
+    this.categories$ = this.servicoCategorias.getAll();
+    this.categories$.subscribe(cats => this.allCategories = cats);
+
     this.submitProductForm.statusChanges.subscribe(status => {
       this.isFormValid = status === 'VALID';
     });
+
+    // Lógica de cascata para subcategorias
+    this.submitProductForm.get('categoryIds')?.valueChanges.subscribe(catIds => {
+      if (catIds && catIds.length > 0) {
+        const selectedCat = this.allCategories.find(c => c.id === catIds[0]);
+        this.availableSubcategories = selectedCat?.subcategories || [];
+      } else {
+        this.availableSubcategories = [];
+      }
+      this.submitProductForm.patchValue({ subcategoryIds: [] });
+    });
+  }
+
+  selectCategory(catId: string) {
+    this.submitProductForm.patchValue({ categoryIds: [catId] });
+  }
+
+  toggleSubcategory(subId: string) {
+    const current = this.submitProductForm.get('subcategoryIds')?.value || [];
+    const idx = current.indexOf(subId);
+    if (idx > -1) {
+      current.splice(idx, 1);
+    } else {
+      current.push(subId);
+    }
+    this.submitProductForm.patchValue({ subcategoryIds: [...current] });
   }
 
   onFileSelected(event: any) {
@@ -58,11 +109,66 @@ export class UploadProductFormComponent  implements OnInit {
     this.filesToUpload.splice(index, 1);
   }
 
+  // ===== REORDER PHOTOS (INSTAGRAM STYLE) =====
+  public isReorderModalOpen = false;
+  public reorderIndices: number[] = [];
+
+  openReorderModal() {
+    this.reorderIndices = [];
+    this.isReorderModalOpen = true;
+  }
+
+  closeReorderModal() {
+    this.isReorderModalOpen = false;
+    this.reorderIndices = [];
+  }
+
+  toggleReorder(index: number) {
+    const idx = this.reorderIndices.indexOf(index);
+    if (idx > -1) {
+      // Se for o último selecionado, desseleciona para permitir correção
+      if (idx === this.reorderIndices.length - 1) {
+        this.reorderIndices.pop();
+      }
+    } else {
+      // Só adiciona se clicar na ordem certa
+      this.reorderIndices.push(index);
+    }
+  }
+
+  getReorderNumber(index: number): number | null {
+    const idx = this.reorderIndices.indexOf(index);
+    return idx > -1 ? idx + 1 : null;
+  }
+
+  confirmReorder() {
+    if (this.reorderIndices.length !== this.selectedPhotos.length) return;
+
+    // Reconstrói arrays de fotos e arquivos
+    const newPhotos = this.reorderIndices.map(i => this.selectedPhotos[i]);
+    const newFiles = this.reorderIndices.map(i => this.filesToUpload[i]);
+
+    this.selectedPhotos = [...newPhotos];
+    this.filesToUpload = [...newFiles];
+    
+    this.closeReorderModal();
+  }
+
+  // ===== IMAGE PREVIEW =====
+  public previewImage: string | null = null;
+
+  openPreview(photo: string) {
+    this.previewImage = photo;
+  }
+
+  closePreview() {
+    this.previewImage = null;
+  }
+
   public async submit () {
      if (this.submitProductForm.valid) {
+      this.isLoading = true;
       try {
-        console.log('Iniciando upload de ' + this.filesToUpload.length + ' imagens...');
-        
         const uploadPromises = this.filesToUpload.map(file => this.servicoFirebase.uploadImage(file));
         const uploadedUrls = await Promise.all(uploadPromises);
 
@@ -71,43 +177,34 @@ export class UploadProductFormComponent  implements OnInit {
         const novoProduto = this.submitProductForm.value as Product;
 
         await this.servicoFirebase.add(novoProduto);
+        await new Promise(r => setTimeout(r, 2000));
         
-        alert('Produto publicado com sucesso!');
-        this.submitProductForm.reset(); 
-        this.selectedPhotos = [];
-        this.filesToUpload = [];
+        this.isLoading = false;
+        this.feedbackType = 'success';
+        this.feedbackTitle = 'Produto Publicado!';
+        this.feedbackMessage = 'Seu anúncio já está disponível para compradores.';
+        this.showFeedback = true;
+        // The form reset and navigation are moved to onFeedbackClosed()
+
 
       } catch (err) {
         console.error('Erro ao publicar produto:', err);
-        alert('Erro ao publicar produto. Verifique sua conexão.');
+        this.isLoading = false;
+        this.feedbackType = 'error';
+        this.feedbackTitle = 'Erro ao Publicar';
+        this.feedbackMessage = 'Verifique sua conexão e tente novamente.';
+        this.showFeedback = true;
       }
     }
   }
 
-  async enviarComFoto(files: FileList | null) {
-  if (this.submitProductForm.valid && files && files.length > 0) {
-    const file = files[0]; 
-
-    try {
-      const downloadURL = await this.servicoFirebase.uploadImage(file);
-      const dados = this.submitProductForm.value;
-      const novoProduto: Product = {
-        ...dados,
-        photoURL: [downloadURL]
-      } as Product;
-
-      await this.servicoFirebase.add(novoProduto);
-      
+  onFeedbackClosed() {
+    this.showFeedback = false;
+    if (this.feedbackType === 'success') {
       this.submitProductForm.reset();
       this.selectedPhotos = [];
-      alert('Produto cadastrado com sucesso!');
-      
-    } catch (error) {
-      console.error("Erro ao processar:", error);
-      alert('Erro ao enviar imagem ou dados.');
+      this.filesToUpload = [];
+      this.router.navigate(['/home']);
     }
-  } else if (!files || files.length === 0) {
-    alert('Por favor, selecione uma imagem.');
   }
-}
 }
