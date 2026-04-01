@@ -67,13 +67,19 @@ export class FirebaseChatService {
     // Criar nova sala
     const me: ChatParticipant = {
       uid: user.uid,
-      name: user.displayName || 'Você', 
-      photoUrl: user.photoURL || undefined
+      name: user.displayName || 'Você'
     };
+    if (user.photoURL) me.photoUrl = user.photoURL;
+
+    const cleanOther: ChatParticipant = {
+      uid: otherParticipant.uid,
+      name: otherParticipant.name || 'Usuário'
+    };
+    if (otherParticipant.photoUrl) cleanOther.photoUrl = otherParticipant.photoUrl;
 
     const newChat: ChatRoom = {
-      participantIds: [me.uid, otherParticipant.uid],
-      participants: [me, otherParticipant],
+      participantIds: [me.uid, cleanOther.uid],
+      participants: [me, cleanOther],
       createdAt: serverTimestamp(),
       lastMessage: 'Chat iniciado. Mande um oi!',
       lastMessageAt: serverTimestamp()
@@ -82,7 +88,7 @@ export class FirebaseChatService {
     if (productContext) {
       newChat.productId = productContext.id;
       newChat.productName = productContext.name;
-      newChat.productPhoto = productContext.photo;
+      if (productContext.photo) newChat.productPhoto = productContext.photo;
     }
 
     const docRef = await addDoc(chatsCol, newChat);
