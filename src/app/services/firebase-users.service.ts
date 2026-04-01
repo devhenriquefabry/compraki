@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, Firestore, collection, onSnapshot } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { AppUser } from '../interfaces/app-user';
+import { Observable } from 'rxjs';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
@@ -51,5 +52,25 @@ export class FirebaseUsersService {
     } catch (e) {
       console.error("Erro no espelhamento passivo do usuário Firestore:", e);
     }
+  }
+
+  /**
+   * Puxa todos os usuários do sistema para que possamos iniciar um bate-papo.
+   */
+  getAllUsers(): Observable<AppUser[]> {
+    return new Observable<AppUser[]>(observer => {
+       const usersCol = collection(this.db, 'users');
+       
+       return onSnapshot(usersCol, (snapshot) => {
+          const users: AppUser[] = [];
+          snapshot.forEach(d => {
+            const data = d.data() as any;
+            users.push({ id: d.id, ...data } as AppUser);
+          });
+          observer.next(users);
+       }, (err) => {
+           observer.error(err);
+       });
+    });
   }
 }

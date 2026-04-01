@@ -16,6 +16,6 @@ export class CheckoutPaymentComponent implements OnInit {
 
   constructor() { }
 
-  ngOnInit() {}
+  ngOnInit() { }
 
 }

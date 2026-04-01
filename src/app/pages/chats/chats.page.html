@@ -20,7 +20,6 @@
     <p>Você ainda não iniciou bate-papos com nenhum vendedor ou comprador.</p>
   </div>
 
-  <!-- Lista Rápida -->
   <ion-list lines="full" *ngIf="!isLoading && chats.length > 0" class="chat-list">
     <ion-item *ngFor="let chat of chats" button detail="false" (click)="openChat(chat.id)">
       <!-- Avatar -->
@@ -45,4 +44,53 @@
       </ion-label>
     </ion-item>
   </ion-list>
+
+  <!-- Botão Flutuante Nova Conversa -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button id="open-new-chat-modal" color="primary">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- Modal Nova Conversa -->
+  <ion-modal #newChatModal trigger="open-new-chat-modal" [initialBreakpoint]="1" [breakpoints]="[0, 1]">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-title>Nova Conversa</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="newChatModal.dismiss()">
+              <ion-icon name="close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding">
+        
+        <div class="loading-state" *ngIf="modalLoading">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Carregando usuários...</p>
+        </div>
+
+        <div class="empty-state" *ngIf="!modalLoading && globalUsers.length === 0">
+          <p>Nenhum outro usuário cadastrado no momento.</p>
+        </div>
+
+        <ion-list *ngIf="!modalLoading && globalUsers.length > 0" lines="full">
+          <ion-item button detail="true" *ngFor="let user of globalUsers" (click)="startNewChatWith(user)">
+            <ion-avatar slot="start">
+              <img [src]="user.photoURL || 'assets/imagens/foto-henrique.jpeg'" alt="avatar">
+            </ion-avatar>
+            <ion-label>
+              <h2>{{ user.displayName || 'Novo Usuário' }}</h2>
+              <p *ngIf="user.email">{{ user.email }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
 </ion-content>
