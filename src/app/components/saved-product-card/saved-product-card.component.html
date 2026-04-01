@@ -1,0 +1,26 @@
+<ion-card class="saved-card ion-activatable" (click)="goToDetails()">
+  <ion-ripple-effect></ion-ripple-effect>
+  
+  <div class="card-content">
+    <div class="image-container">
+       <img [src]="(product.photoURL && product.photoURL[0]) || 'assets/placeholder.jpg'" [alt]="product.name" />
+    </div>
+    
+    <div class="info-container">
+      <div class="header-row">
+         <h3 class="product-title">{{ product.name }}</h3>
+         <ion-button fill="clear" color="danger" class="remove-btn" (click)="onRemove($event)">
+           <ion-icon name="heart" slot="icon-only"></ion-icon>
+         </ion-button>
+      </div>
+      
+      <p class="product-price">R$ {{ formatPrice(product.price) }}</p>
+      
+      <div class="product-meta">
+        <ion-text color="medium" class="meta-item">
+          {{ product.condition || 'Sem condição' }}
+        </ion-text>
+      </div>
+    </div>
+  </div>
+</ion-card>

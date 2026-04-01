@@ -20,7 +20,7 @@ import { Router } from '@angular/router';
 
 // Copie sua config aqui para garantir que o SDK use o objeto puro
 const firebaseConfig = {
-  apiKey: "AIzaSyBD5AH1b1_p6AghhPx3Nr0fBVab8djRbkI",
+  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
   authDomain: "compraki-mcu.firebaseapp.com",
   projectId: "compraki-mcu",
   storageBucket: "compraki-mcu.firebasestorage.app",

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "2028715763",
+    "project_id": "compraki-mcu",
+    "storage_bucket": "compraki-mcu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:2028715763:android:8b8a94adf2064c46e50186",
+        "android_client_info": {
+          "package_name": "io.ionic.starter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "2028715763-p879a7gv1u0u3in5n0t5k3f87r5i7sib.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "2028715763-p879a7gv1u0u3in5n0t5k3f87r5i7sib.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

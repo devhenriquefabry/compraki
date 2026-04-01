@@ -19,7 +19,8 @@ export class ProductDetailsPage implements OnInit {
   constructor(
     private selectionService: ProductSelectionService, 
     private router: Router,
-    private fbProducts: FirebaseProducts
+    private fbProducts: FirebaseProducts,
+    private chatService: import('src/app/services/firebase-chat.service').FirebaseChatService
   ) {
     // Liga a variável local ao Observable do serviço
     this.product$ = this.selectionService.selectedProduct$;
@@ -37,6 +38,23 @@ export class ProductDetailsPage implements OnInit {
         this.selectionService.setSelectedProduct(selected);
       }
     });
+  }
+
+  public async startChat(product: Product) {
+    if (!product.sellerId) {
+      console.error("Produto sem vendedor definido.");
+      return; // Could show a toast here
+    }
+
+    try {
+      const chatId = await this.chatService.startChat(
+         { uid: product.sellerId, name: 'Vendedor do Anúncio' },
+         { id: product.id!, name: product.name, photo: product.photoURL?.[0] }
+      );
+      this.router.navigate(['/chat-details', chatId]);
+    } catch (e) {
+       console.error("Falha ao iniciar chat", e);
+    }
   }
 
   public goToCheckout() {

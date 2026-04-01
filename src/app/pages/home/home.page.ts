@@ -6,6 +6,8 @@ import { ProductDetailsPage } from '../product-details/product-details.page';
 import { Router } from '@angular/router';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
 import { User } from 'firebase/auth';
+import { addIcons } from 'ionicons';
+import { chatbubbles } from 'ionicons/icons';
 
 
 @Component({
@@ -19,7 +21,9 @@ export class HomePage implements OnInit {
   public usuario! : User | null
   
 
-  constructor(  public selectionService: ProductSelectionService , private router : Router) { }
+  constructor(  public selectionService: ProductSelectionService , private router : Router) { 
+    addIcons({ chatbubbles });
+  }
   public products$!: Observable<Product[]> 
   public servicoDeProdutosDoFirebase = inject(FirebaseProducts)
 

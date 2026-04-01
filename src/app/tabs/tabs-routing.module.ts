@@ -28,6 +28,14 @@ const routes: Routes = [
         loadChildren: () => import('../pages/notifications/notifications.module').then(m => m.NotificationsPageModule)
       },
       {
+        path: 'saved',
+        loadComponent: () => import('../pages/saved/saved.page').then(m => m.SavedPage)
+      },
+      {
+        path: 'chats',
+        loadComponent: () => import('../pages/chats/chats.page').then(m => m.ChatsPage)
+      },
+      {
         path: '',
         redirectTo: '/tabs/home',
         pathMatch: 'full'

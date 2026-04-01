@@ -13,8 +13,9 @@ import { Auth } from '../services/auth';
     IonicModule,
     CommonModule,
     FormsModule,
-    TabsPageRoutingModule
+    TabsPageRoutingModule,
+    TabsPage
   ],
-  declarations: [TabsPage]
+  declarations: []
 })
 export class TabsPageModule {}

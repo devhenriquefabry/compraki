@@ -1,0 +1,40 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Favoritos</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+  <!-- Filter -->
+  <app-saved-filter (filterChanged)="onFilterChanged($event)"></app-saved-filter>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Carregando favoritos...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && filteredItems.length === 0">
+    <div class="icon-circle">
+      <ion-icon name="heart-outline"></ion-icon>
+    </div>
+    <h2>Nenhum favorito</h2>
+    <p>Você ainda não salvou nenhum produto como favorito. Explore o app para encontrar itens de seu interesse!</p>
+  </div>
+
+  <!-- List -->
+  <div class="list-container" *ngIf="!isLoading && filteredItems.length > 0">
+    <app-saved-product-card 
+      *ngFor="let item of filteredItems" 
+      [item]="item"
+      (remove)="onRemove($event)">
+    </app-saved-product-card>
+  </div>
+
+  <!-- Undo Toast -->
+  <app-saved-undo-toast 
+    *ngIf="showUndoToast"
+    (undo)="onUndo()">
+  </app-saved-undo-toast>
+</ion-content>

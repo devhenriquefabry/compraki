@@ -1,0 +1,111 @@
+ion-toolbar {
+  --background: #fff;
+  --border-width: 0;
+  
+  ion-title {
+    font-weight: 700;
+    font-size: 20px;
+  }
+}
+
+.chat-list {
+  background: white;
+  margin: 12px 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  padding: 0;
+
+  ion-item {
+    --padding-start: 16px;
+    --inner-padding-end: 16px;
+    --min-height: 84px;
+    --background-hover: rgba(0,0,0,0.02);
+
+    ion-avatar {
+      width: 50px;
+      height: 50px;
+      margin-right: 14px;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+
+      h2 {
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--ion-color-dark);
+        margin: 0;
+      }
+      
+      ion-note {
+        font-size: 12px;
+        color: var(--ion-color-medium);
+      }
+    }
+
+    .product-context {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ion-color-primary, #3880ff);
+      margin-bottom: 2px;
+      display: inline-block;
+      background: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .last-msg {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+}
+
+.loading-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.empty-state {
+  .icon-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(var(--ion-color-medium-rgb), 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    
+    ion-icon {
+      font-size: 40px;
+      color: var(--ion-color-medium);
+    }
+  }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  p { font-size: 15px; color: var(--ion-color-medium); }
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-toolbar { --background: var(--ion-color-step-50, #1e1e1e); }
+  .chat-list {
+    background: var(--ion-color-step-50, #1e1e1e);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    ion-item {
+      --background-hover: rgba(255,255,255,0.05);
+      h2 { color: #fff; }
+    }
+  }
+}

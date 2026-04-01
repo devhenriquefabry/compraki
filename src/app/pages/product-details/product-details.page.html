@@ -69,7 +69,13 @@
         </div>
       </div>
       
-      <ion-button class="btn-seller" expand="block">Ver Perfil do Vendedor</ion-button>
+      <div class="seller-actions" style="display: flex; gap: 8px; margin-top: 10px;">
+        <ion-button class="btn-seller" fill="outline" style="flex: 1;">Perfil</ion-button>
+        <ion-button class="btn-chat" color="success" style="flex: 2;" (click)="startChat(p)">
+          <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+          Falar com Vendedor
+        </ion-button>
+      </div>
       
       <div class="seller-stats">
         <span><ion-icon name="bag-handle-outline"></ion-icon> 392 vendas</span>

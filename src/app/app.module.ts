@@ -10,7 +10,7 @@ import {provideFirebaseApp, initializeApp} from '@angular/fire/app'
 import { environment } from 'src/environments/environment.prod';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 const firebaseConfig = {
-apiKey: "AIzaSyBD5AH1b1_p6AghhPx3Nr0fBVab8djRbkI",
+apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
   authDomain: "compraki-mcu.firebaseapp.com",
   projectId: "compraki-mcu",
   storageBucket: "compraki-mcu.firebasestorage.app",

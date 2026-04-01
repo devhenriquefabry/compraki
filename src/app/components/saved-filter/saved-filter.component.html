@@ -1,0 +1,9 @@
+<div class="filter-container">
+  <ion-chip 
+    *ngFor="let filter of filters" 
+    [class.active]="activeFilter === filter"
+    (click)="setFilter(filter)"
+  >
+    <ion-label>{{ filter }}</ion-label>
+  </ion-chip>
+</div>

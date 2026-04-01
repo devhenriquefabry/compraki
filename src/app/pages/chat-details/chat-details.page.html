@@ -1,0 +1,57 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/chats"></ion-back-button>
+    </ion-buttons>
+
+    <div class="header-profile" *ngIf="otherParticipant">
+      <ion-avatar>
+        <img [src]="otherParticipant.photoUrl || 'assets/imagens/foto-henrique.jpeg'">
+      </ion-avatar>
+      <div class="header-info">
+        <h2>{{ otherParticipant.name || 'Usuário Compraki' }}</h2>
+        <p *ngIf="chatRoom?.productName">{{ chatRoom?.productName }}</p>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light" class="chat-content">
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <div class="messages-container" *ngIf="!isLoading">
+    <!-- Context Indicator -->
+    <div class="chat-context-card" *ngIf="chatRoom?.productName">
+      <p>Você iniciou o chat sobre:</p>
+      <strong>{{ chatRoom?.productName }}</strong>
+    </div>
+
+    <!-- Bubbles -->
+    <div *ngFor="let msg of messages" 
+         class="message-wrapper" 
+         [ngClass]="{'mine': msg.senderId === currentUserId, 'theirs': msg.senderId !== currentUserId}">
+      <div class="message-bubble">
+        <p>{{ msg.text }}</p>
+        <span class="message-time">{{ formatTime(msg.createdAt) }}</span>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer class="ion-no-border">
+  <ion-toolbar class="message-input-toolbar">
+    <div class="input-container">
+      <ion-input 
+        [(ngModel)]="newMessage" 
+        (keyup.enter)="sendMessage()"
+        placeholder="Digite uma mensagem..."
+        type="text">
+      </ion-input>
+      <ion-button fill="clear" (click)="sendMessage()" [disabled]="!newMessage.trim()">
+        <ion-icon name="send" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-footer>

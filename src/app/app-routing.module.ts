@@ -53,6 +53,10 @@ const routes: Routes = [
   {
     path: 'manage-categories',
     loadChildren: () => import('./pages/manage-categories/manage-categories.module').then( m => m.ManageCategoriesPageModule)
+  },
+  {
+    path: 'chat-details/:id',
+    loadComponent: () => import('./pages/chat-details/chat-details.page').then( m => m.ChatDetailsPage)
   }
 
 ];
