@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Product } from 'src/app/interfaces/product';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
+import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 
 @Component({
   selector: 'app-product-details',
@@ -20,7 +21,7 @@ export class ProductDetailsPage implements OnInit {
     private selectionService: ProductSelectionService, 
     private router: Router,
     private fbProducts: FirebaseProducts,
-    private chatService: import('src/app/services/firebase-chat.service').FirebaseChatService
+    private chatService: FirebaseChatService
   ) {
     // Liga a variável local ao Observable do serviço
     this.product$ = this.selectionService.selectedProduct$;

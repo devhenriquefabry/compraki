@@ -17,6 +17,7 @@ import { Observable } from 'rxjs';
 import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider} from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Router } from '@angular/router';
+import { FirebaseUsersService } from './firebase-users.service';
 
 // Copie sua config aqui para garantir que o SDK use o objeto puro
 const firebaseConfig = {
@@ -42,7 +43,7 @@ export class FirebaseProducts {
 
 
 
-  constructor(private router : Router) {
+  constructor(private router : Router, private usersService: FirebaseUsersService) {
     // Inicializa ou recupera o App SEM passar pelo sistema de injeção do Angular 21
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     this.db = getFirestore(app);
@@ -100,6 +101,9 @@ async signIn(email: string, password: string): Promise<boolean> {
   try {
     const userCredential = await createUserWithEmailAndPassword(this.authenticator, email, password);
     
+    // 🔥 Espelhando o usuário no Firestore passivamente
+    await this.usersService.ensureAppUserDocument(userCredential.user);
+    
     alert('cadastrado com sucesso!');
     console.log('O ID do usuário no sistema é: ' + userCredential.user.uid);
     
@@ -143,6 +147,9 @@ async signInWithGoogle(): Promise<boolean> {
     const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
     const result = await signInWithCredential(this.authenticator, credential);
     const user = result.user;
+    
+    // 🔥 Espelhando/Atualizando o usuário vindo do Google no Firestore de forma segura
+    await this.usersService.ensureAppUserDocument(user);
     
     alert('Bem-vindo, ' + user.displayName);
     this.router.navigate(['/tabs']);
