@@ -1,0 +1,181 @@
+.cart-card {
+  margin: 12px 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  background: white !important;
+  color: #1e2d3e !important;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:active {
+    transform: scale(0.985);
+  }
+
+  .card-content {
+    display: flex;
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .image-container {
+    width: 100px;
+    height: 100px;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #f8f9fa;
+    position: relative;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .shipping-badge {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #6cb33e 0%, #4a9d2d 100%);
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      text-align: center;
+      padding: 3px 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+  }
+
+  .info-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+
+      .product-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e2d3e;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.35;
+        flex: 1;
+        letter-spacing: -0.2px;
+      }
+
+      .remove-btn {
+        margin: -10px -10px 0 4px;
+        --padding-start: 8px;
+        --padding-end: 8px;
+        height: 32px;
+        opacity: 0.5;
+        transition: opacity 0.2s ease;
+
+        &:hover {
+          opacity: 1;
+        }
+
+        ion-icon {
+          font-size: 18px;
+        }
+      }
+    }
+
+    .price-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0 2px;
+
+      .price-original {
+        font-size: 12px;
+        color: #aaa;
+        text-decoration: line-through;
+        font-weight: 500;
+      }
+
+      .price-current {
+        font-size: 16px;
+        font-weight: 700;
+        color: #5d8c3f;
+      }
+    }
+
+    .quantity-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        background: #f5f7f9;
+        border-radius: 10px;
+        padding: 2px 4px;
+
+        .qty-btn {
+          background: none;
+          border: none;
+          padding: 4px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: opacity 0.15s ease, transform 0.15s ease;
+
+          ion-icon {
+            font-size: 24px;
+          }
+
+          &.minus ion-icon {
+            color: #c0392b;
+          }
+
+          &.plus ion-icon {
+            color: #5d8c3f;
+          }
+
+          &.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+          }
+
+          &:active {
+            transform: scale(0.85);
+          }
+        }
+
+        .qty-value {
+          min-width: 28px;
+          text-align: center;
+          font-weight: 700;
+          font-size: 15px;
+          color: #1e2d3e;
+        }
+      }
+
+      .subtotal {
+        font-size: 15px;
+        font-weight: 800;
+        color: #1e2d3e;
+        letter-spacing: -0.3px;
+      }
+    }
+  }
+}
+
+

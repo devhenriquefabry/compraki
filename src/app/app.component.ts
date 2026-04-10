@@ -1,7 +1,9 @@
-import { Component, QueryList, ViewChildren } from '@angular/core';
+import { Component, QueryList, ViewChildren, OnInit, inject } from '@angular/core';
 import { IonRouterOutlet, Platform, NavController } from '@ionic/angular';
 import { App } from '@capacitor/app';
 import { Router } from '@angular/router';
+import { FirebaseProducts } from './services/firebase-products';
+import { User } from 'firebase/auth';
 import { addIcons } from 'ionicons';
 import { openOutline, heart, heartOutline } from 'ionicons/icons';
 
@@ -11,7 +13,9 @@ import { openOutline, heart, heartOutline } from 'ionicons/icons';
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
+  public usuario! : User | null;
+  private fbProducts = inject(FirebaseProducts);
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
   
   showSplash: boolean;
@@ -28,6 +32,21 @@ export class AppComponent {
 
     addIcons({ openOutline, heart, heartOutline });
     this.initializeApp();
+  }
+
+  ngOnInit() {
+    // Atualização constante do usuário para a sidebar
+    setInterval(() => {
+      const user = this.fbProducts.getUser();
+      if (user) {
+        this.usuario = user;
+      }
+    }, 1000);
+  }
+
+  logout() {
+    this.fbProducts.signOut();
+    this.router.navigate(['/login']);
   }
 
   initializeApp() {
@@ -57,15 +76,15 @@ export class AppComponent {
           this.navCtrl.back();
         } else {
           // Só fecha o app se estiver em rotas consideradas "raízes"
-          const rootRoutes = ['/tabs/home', '/login', '/home', '/', ''];
+          const rootRoutes = ['/tabs/tab2', '/login', '/home', '/', ''];
           const currentUrl = this.router.url.split('?')[0]; // Remove query params
 
           if (rootRoutes.includes(currentUrl)) {
             App.exitApp();
           } else {
             // Se não for rota raiz mas não tem história no outlet, 
-            // tenta voltar para a home ou tab anterior
-            this.navCtrl.navigateRoot('/tabs/home');
+            // tenta voltar para a aba principal
+            this.navCtrl.navigateRoot('/tabs/tab2');
           }
         }
       });

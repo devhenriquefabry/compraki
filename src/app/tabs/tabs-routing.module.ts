@@ -8,12 +8,12 @@ const routes: Routes = [
     component: TabsPage,
     children: [
       {
-        path: 'home',
-        loadChildren: () => import('../pages/home/home.module').then(m => m.HomePageModule)
-      },
-      {
         path: 'tab2',
         loadChildren: () => import('../tab2/tab2.module').then(m => m.Tab2PageModule)
+      },
+      {
+        path: 'cart',
+        loadComponent: () => import('../pages/cart/cart.page').then(m => m.CartPage)
       },
       {
         path: 'upload-product',
@@ -37,7 +37,7 @@ const routes: Routes = [
       },
       {
         path: '',
-        redirectTo: '/tabs/home',
+        redirectTo: '/tabs/tab2',
         pathMatch: 'full'
       }
     ]

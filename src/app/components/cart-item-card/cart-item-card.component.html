@@ -1,0 +1,43 @@
+<ion-card class="cart-card ion-activatable" (click)="goToDetails()">
+  <ion-ripple-effect></ion-ripple-effect>
+
+  <div class="card-content">
+    <!-- Imagem do produto -->
+    <div class="image-container">
+      <img [src]="(product.photoURL && product.photoURL[0]) || 'assets/placeholder.jpg'" [alt]="product.name" />
+      <div class="shipping-badge" *ngIf="product.shipping === 'Frete Grátis'">Frete Grátis</div>
+    </div>
+
+    <!-- Informações do produto -->
+    <div class="info-container">
+      <div class="header-row">
+        <h3 class="product-title">{{ product.name }}</h3>
+        <ion-button fill="clear" color="medium" class="remove-btn" (click)="onRemove($event)">
+          <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+
+      <!-- Preço -->
+      <div class="price-row">
+        <span class="price-original" *ngIf="product.priceDiscounted">
+          R$ {{ formatPrice(product.price) }}
+        </span>
+        <span class="price-current">R$ {{ formatPrice(effectivePrice) }}</span>
+      </div>
+
+      <!-- Controles de quantidade -->
+      <div class="quantity-row" (click)="$event.stopPropagation()">
+        <div class="qty-controls">
+          <button class="qty-btn minus" [class.disabled]="item.quantity <= 1" (click)="decrement($event)">
+            <ion-icon name="remove-circle-outline"></ion-icon>
+          </button>
+          <span class="qty-value">{{ item.quantity }}</span>
+          <button class="qty-btn plus" [class.disabled]="item.quantity >= product.stock" (click)="increment($event)">
+            <ion-icon name="add-circle-outline"></ion-icon>
+          </button>
+        </div>
+        <span class="subtotal">R$ {{ formatPrice(subtotal) }}</span>
+      </div>
+    </div>
+  </div>
+</ion-card>

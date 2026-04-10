@@ -1,10 +1,22 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar>
-    <ion-title>Favoritos</ion-title>
+  <ion-toolbar style="--background: #ffffff;">
+    <app-mini-header theme="light" [showBackButton]="false" [showMenuButton]="true" backUrl="/tabs/tab2"></app-mini-header>
   </ion-toolbar>
 </ion-header>
 
-<ion-content color="light">
+<ion-content class="favorites-content">
+  
+  <div class="header-section">
+    <h1 class="main-title">Favoritos</h1>
+    
+    <div class="search-container">
+      <div class="search-box">
+        <ion-icon name="search-outline"></ion-icon>
+        <input type="text" placeholder="Pesquisar favoritos..." [(ngModel)]="searchTerm" (input)="applyFilter(activeFilter)">
+      </div>
+    </div>
+  </div>
+
   <!-- Filter -->
   <app-saved-filter (filterChanged)="onFilterChanged($event)"></app-saved-filter>
 

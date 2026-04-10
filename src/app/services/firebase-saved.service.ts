@@ -13,7 +13,7 @@ import {
   Firestore,
   serverTimestamp
 } from 'firebase/firestore';
-import { getAuth, Auth, User } from 'firebase/auth';
+import { getAuth, Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { Product } from '../interfaces/product';
 import { SavedItem } from '../interfaces/saved-item';
@@ -34,6 +34,9 @@ const firebaseConfig = {
 export class FirebaseSavedService {
   private db: Firestore;
   private authenticator: Auth;
+
+  private savedCountSource = new BehaviorSubject<number>(0);
+  savedCount$ = this.savedCountSource.asObservable();
 
   constructor() {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -109,33 +112,41 @@ export class FirebaseSavedService {
   // Listen in real-time to all saved products of the current user
   getAllSaved(): Observable<SavedItem[]> {
     return new Observable<SavedItem[]>(subscriber => {
-      // Small timeout or observer pattern might be needed if user is not loaded immediately
-      // Assuming Auth state is loaded immediately upon enter
-      const user = this.getCurrentUser();
-      
-      if (!user) {
-          // You could listen to auth state changes, but for simplicity:
+      // Usar onAuthStateChanged para garantir que temos o usuário antes de escutar o Firestore
+      const authUnsub = onAuthStateChanged(this.authenticator, (user) => {
+        if (!user) {
           subscriber.next([]);
-          subscriber.complete();
           return;
-      }
+        }
 
-      const userSavedCol = collection(this.db, `users/${user.uid}/savedProducts`);
-      
-      return onSnapshot(userSavedCol, (snapshot) => {
-        const items = snapshot.docs.map(d => {
-           return { id: d.id, ...d.data() } as SavedItem;
-        });
+        const userSavedCol = collection(this.db, `users/${user.uid}/savedProducts`);
         
-        // Return sorted by mostly recent if needed:
-        items.sort((a,b) => {
-            if(!a.savedAt || !b.savedAt) return 0;
-            return b.savedAt.seconds - a.savedAt.seconds;
-        })
-        subscriber.next(items);
-      }, (err) => {
-         subscriber.error(err);
+        const snapshotUnsub = onSnapshot(userSavedCol, (snapshot) => {
+          const items = snapshot.docs.map(d => {
+             return { id: d.id, ...d.data() } as SavedItem;
+          });
+          
+          this.savedCountSource.next(items.length);
+
+          items.sort((a,b) => {
+              if(!a.savedAt || !b.savedAt) return 0;
+              return b.savedAt.seconds - a.savedAt.seconds;
+          });
+          subscriber.next(items);
+        }, (err) => {
+           subscriber.error(err);
+        });
+
+        // Limpar snapshot unsub quando desinscrever do Observable principal
+        subscriber.add(() => {
+          if (snapshotUnsub) snapshotUnsub();
+        });
       });
+
+      // Limpar auth unsub
+      return () => {
+        if (authUnsub) authUnsub();
+      };
     });
   }
 }

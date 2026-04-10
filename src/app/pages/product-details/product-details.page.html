@@ -1,6 +1,6 @@
 <ion-header class="ion-no-border">
   <ion-toolbar style="--background: #ffffff; border-bottom: 1px solid #eeeeee;">
-    <app-mini-header theme="light" backUrl="/home"></app-mini-header>
+    <app-mini-header theme="light" [showBackButton]="true" [showMenuButton]="false" backUrl="/tabs/tab2"></app-mini-header>
   </ion-toolbar>
 </ion-header>
 
@@ -32,6 +32,12 @@
           <span class="currency">R$</span>
           <span class="main-price">{{p.price | number:'1.0-0'}}</span>
           <span class="cents">,{{getFloating(p.price)}}</span>
+          
+          <!-- Indicador de Carrinho -->
+          <div class="cart-indicator-badge" *ngIf="(cartQuantity$ | async) as qty">
+            <ion-icon name="cart"></ion-icon>
+            <span>{{ qty }} no carrinho</span>
+          </div>
         </div>
 
         <div class="payment-hints">
@@ -108,13 +114,12 @@
 
 <ion-footer class="ion-no-border action-footer" *ngIf="product$ | async as p">
   <div class="footer-content">
-    <ion-button class="btn-buy-cart" expand="block" (click)="goToCheckout()">
-      <ion-icon name="bag-add-outline" slot="start"></ion-icon>
-      ADICIONAR AO CARRINHO
+    <ion-button class="btn-favorite" (click)="toggleFavorite()">
+      <ion-icon [name]="isSaved ? 'heart' : 'heart-outline'"></ion-icon>
     </ion-button>
-    <div class="secure-label">
-      <ion-icon name="lock-closed"></ion-icon>
-      Compra 100% segura
-    </div>
+    <ion-button class="btn-buy-cart" expand="block" (click)="goToCheckout()">
+      <ion-icon [name]="(cartQuantity$ | async) ? 'add-circle-outline' : 'bag-add-outline'" slot="start"></ion-icon>
+      {{ (cartQuantity$ | async) ? 'ADICIONAR MAIS' : 'ADICIONAR AO CARRINHO' }}
+    </ion-button>
   </div>
 </ion-footer>

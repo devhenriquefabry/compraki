@@ -1,17 +1,19 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { 
   IonContent, IonHeader, IonTitle, IonToolbar, 
   IonButtons, IonBackButton, IonSpinner, IonIcon 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { heartOutline } from 'ionicons/icons';
+import { heartOutline, searchOutline } from 'ionicons/icons';
 import { Subscription } from 'rxjs';
 import { SavedItem } from '../../interfaces/saved-item';
 import { FirebaseSavedService } from '../../services/firebase-saved.service';
 import { SavedProductCardComponent } from '../../components/saved-product-card/saved-product-card.component';
 import { SavedFilterComponent } from '../../components/saved-filter/saved-filter.component';
 import { SavedUndoToastComponent } from '../../components/saved-undo-toast/saved-undo-toast.component';
+import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
 
 @Component({
   selector: 'app-saved-page',
@@ -20,9 +22,11 @@ import { SavedUndoToastComponent } from '../../components/saved-undo-toast/saved
   standalone: true,
   imports: [
     CommonModule, 
+    FormsModule,
     IonContent, IonHeader, IonTitle, IonToolbar, 
     IonButtons, IonBackButton, IonSpinner, IonIcon,
-    SavedProductCardComponent, SavedFilterComponent, SavedUndoToastComponent
+    SavedProductCardComponent, SavedFilterComponent, SavedUndoToastComponent,
+    MiniHeaderComponent
   ]
 })
 export class SavedPage implements OnInit, OnDestroy {
@@ -34,11 +38,12 @@ export class SavedPage implements OnInit, OnDestroy {
   showUndoToast = false;
   lastRemovedItem: SavedItem | null = null;
   undoTimeout: any;
+  searchTerm = '';
 
   private sub!: Subscription;
 
   constructor(private savedService: FirebaseSavedService) {
-    addIcons({ heartOutline });
+    addIcons({ heartOutline, searchOutline });
   }
 
   ngOnInit() {
@@ -66,12 +71,22 @@ export class SavedPage implements OnInit, OnDestroy {
   }
 
   applyFilter(filter: string) {
+    let items = [...this.savedItems];
+
+    // Busca
+    if (this.searchTerm) {
+      items = items.filter(i => 
+        i.productData.name.toLowerCase().includes(this.searchTerm.toLowerCase())
+      );
+    }
+
+    // Categorias/Condição
     if (filter === 'Todos') {
-      this.filteredItems = [...this.savedItems];
+      this.filteredItems = items;
     } else if (filter === 'Novos') {
-      this.filteredItems = this.savedItems.filter(i => i.productData.condition === 'novo');
+      this.filteredItems = items.filter(i => i.productData.condition === 'novo');
     } else if (filter === 'Usados') {
-      this.filteredItems = this.savedItems.filter(i => i.productData.condition?.startsWith('usado'));
+      this.filteredItems = items.filter(i => i.productData.condition?.startsWith('usado'));
     }
   }
 

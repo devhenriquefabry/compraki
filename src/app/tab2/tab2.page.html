@@ -1,6 +1,6 @@
 <ion-header class="ion-no-border">
   <ion-toolbar style="--background: #1e2d3e;">
-    <app-mini-header theme="light" backUrl="/home"></app-mini-header>
+    <app-mini-header theme="light" [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
   </ion-toolbar>
 
   <ion-toolbar class="search-toolbar">
@@ -19,95 +19,133 @@
 
 <ion-content class="bg-gray">
   
-  <!-- BANNER TOPO (Snap Nativo + Drag) -->
-  <div class="banner-scroll-container" #bannerContainer>
-    <div class="scroll-track">
-      <div class="banner-slide" *ngFor="let i of [1,2,3]">
-        <div class="promo-banner">
-          <div class="promo-text">
-            <h3>Mega Promoção!</h3>
-            <p>Descontos de até <span>60% OFF</span></p>
-            <button class="btn-aproveite">APROVEITE</button>
+  <!-- CONTEÚDO ORIGINAL (Só aparece se NÃO estiver buscando) -->
+  <ng-container *ngIf="!searchTerm">
+    <!-- BANNER TOPO (Snap Nativo + Drag) -->
+    <div class="banner-scroll-container" #bannerContainer>
+      <div class="scroll-track">
+        <div class="banner-slide" *ngFor="let i of [1,2,3]">
+          <div class="promo-banner">
+            <div class="promo-text">
+              <h3>Mega Promoção!</h3>
+              <p>Descontos de até <span>60% OFF</span></p>
+              <button class="btn-aproveite">APROVEITE</button>
+            </div>
+            <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-shopping-discount-illustration-download-in-svg-png-gif-formats--flash-sale-offer-gift-pack-special-box-delivery-and-pack-illustrations-5241697.png" alt="Promo">
           </div>
-          <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-shopping-discount-illustration-download-in-svg-png-gif-formats--flash-sale-offer-gift-pack-special-box-delivery-and-pack-illustrations-5241697.png" alt="Promo">
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- CATEGORIAS -->
-  <div class="category-grid">
-    <div class="cat-item" (click)="clearFilters()">
-      <div class="cat-circle" [class.active]="selectedCategory === 'Todas'">
-        <ion-icon name="grid-outline"></ion-icon>
+    <!-- CATEGORIAS -->
+    <div class="category-grid">
+      <div class="cat-item" (click)="clearFilters()">
+        <div class="cat-circle" [class.active]="selectedCategory === 'Todas'">
+          <ion-icon name="grid-outline"></ion-icon>
+        </div>
+        <span>Todas</span>
       </div>
-      <span>Todas</span>
-    </div>
-    <div class="cat-item" *ngFor="let cat of (categories$ | async)" (click)="filterByCategory(cat.id)">
-      <div class="cat-circle" [class.active]="selectedCategory === cat.id">
-        <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
+      <div class="cat-item" *ngFor="let cat of (categories$ | async)" (click)="filterByCategory(cat.id)">
+        <div class="cat-circle" [class.active]="selectedCategory === cat.id">
+          <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
+        </div>
+        <span>{{ cat.name }}</span>
       </div>
-      <span>{{ cat.name }}</span>
-    </div>
-  </div>
-
-  <!-- OFERTAS EM DESTAQUE -->
-  <div class="section-container">
-    <div class="section-header">
-      <span class="section-title">Ofertas em Destaque</span>
-      <span class="ver-todos">VER TODOS ></span>
     </div>
 
-    <div class="featured-list">
-      <div class="product-card-v" *ngFor="let prod of featuredOffers" (click)="selectProduct(prod)">
+    <!-- OFERTAS EM DESTAQUE -->
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-title">Ofertas em Destaque</span>
+        <span class="ver-todos">VER TODOS ></span>
+      </div>
+
+      <div class="featured-list">
+        <div class="product-card-v" *ngFor="let prod of featuredOffers" (click)="selectProduct(prod)">
+          <div class="prod-img">
+            <img [src]="(prod.photoURL && prod.photoURL.length > 0) ? prod.photoURL[0] : 'assets/imagens/imagem-placeholder.png'" alt="Imagem do Produto">
+          </div>
+          <div class="prod-info">
+            <h4 class="name">{{ prod.name }}</h4>
+            <div class="price-row">
+               <span class="curr-price">R${{ prod.priceDiscounted | number:'1.2-2' }}</span>
+               <span class="old-price">R$ {{ prod.price | number:'1.2-2' }}</span>
+            </div>
+            <div class="meta">
+              <span>{{ prod.soldCount }} vendidos...</span>
+              <span class="free-shipping">
+                <ion-icon name="flash"></ion-icon>
+                Frete Grátis
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TALVEZ VOCÊ GOSTE -->
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-title">Talvez você goste</span>
+      </div>
+
+      <div class="rec-grid">
+        <div class="product-card-h" *ngFor="let prod of recommendations" (click)="selectProduct(prod)">
+          <img [src]="(prod.photoURL && prod.photoURL.length > 0) ? prod.photoURL[0] : 'https://m.media-amazon.com/images/I/61XZQX89nBL._AC_SL1500_.jpg'" alt="Recomendação">
+          <div class="h-info">
+            <span class="h-name">{{ prod.name }}</span>
+            <span class="h-price">R$ {{ prod.price | number:'1.2-2' }}</span>
+            <button class="btn-comprar-mini">COMPRAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BANNER RODAPÉ -->
+    <div class="promo-banner-container bottom">
+      <div class="promo-banner">
+        <div class="promo-text">
+          <h3>Mega Promoção!</h3>
+          <p>Descontos de até <span>60% OFF</span></p>
+          <button class="btn-aproveite">APROVEITE</button>
+        </div>
+        <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-shopping-discount-illustration-download-in-svg-png-gif-formats--flash-sale-offer-gift-pack-special-box-delivery-and-pack-illustrations-5241697.png" alt="Promo">
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- RESULTADOS DA BUSCA (Só aparece se estiver buscando) -->
+  <div class="search-results-container" *ngIf="searchTerm">
+    <div class="results-header">
+      <span class="results-count">Encontramos {{ filteredProducts.length }} resultados</span>
+      <ion-button fill="clear" color="medium" (click)="clearFilters()">Limpar busca</ion-button>
+    </div>
+
+    <div class="no-results" *ngIf="filteredProducts.length === 0">
+      <ion-icon name="search-outline"></ion-icon>
+      <h3>Nenhum produto encontrado</h3>
+      <p>Tente termos mais genéricos ou verifique a ortografia.</p>
+    </div>
+
+    <div class="products-grid">
+      <div class="product-card-search" *ngFor="let prod of filteredProducts" (click)="selectProduct(prod)">
         <div class="prod-img">
-          <img [src]="(prod.photoURL && prod.photoURL.length > 0) ? prod.photoURL[0] : 'assets/imagens/imagem-placeholder.png'" alt="Imagem do Produto">
+          <img [src]="(prod.photoURL && prod.photoURL.length > 0) ? prod.photoURL[0] : 'assets/imagens/imagem-placeholder.png'" alt="Produto">
+          <div class="promo-tag" *ngIf="prod.priceDiscounted">OFERTA</div>
         </div>
         <div class="prod-info">
           <h4 class="name">{{ prod.name }}</h4>
           <div class="price-row">
-             <span class="curr-price">R${{ prod.priceDiscounted | number:'1.2-2' }}</span>
-             <span class="old-price">R$ {{ prod.price | number:'1.2-2' }}</span>
+             <span class="curr-price">R$ {{ (prod.priceDiscounted || prod.price) | number:'1.2-2' }}</span>
+             <span class="old-price" *ngIf="prod.priceDiscounted">R$ {{ prod.price | number:'1.2-2' }}</span>
           </div>
           <div class="meta">
-            <span>{{ prod.soldCount }} vendidos...</span>
-            <span class="free-shipping">
-              <ion-icon name="flash"></ion-icon>
-              Frete Grátis
+            <span class="free-shipping" *ngIf="prod.shipping === 'Frete Grátis'">
+              <ion-icon name="flash"></ion-icon> Frete Grátis
             </span>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- TALVEZ VOCÊ GOSTE -->
-  <div class="section-container">
-    <div class="section-header">
-      <span class="section-title">Talvez você goste</span>
-    </div>
-
-    <div class="rec-grid">
-      <div class="product-card-h" *ngFor="let prod of recommendations" (click)="selectProduct(prod)">
-        <img [src]="(prod.photoURL && prod.photoURL.length > 0) ? prod.photoURL[0] : 'https://m.media-amazon.com/images/I/61XZQX89nBL._AC_SL1500_.jpg'" alt="Recomendação">
-        <div class="h-info">
-          <span class="h-name">{{ prod.name }}</span>
-          <span class="h-price">R$ {{ prod.price | number:'1.2-2' }}</span>
-          <button class="btn-comprar-mini">COMPRAR</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- BANNER RODAPÉ -->
-  <div class="promo-banner-container bottom">
-    <div class="promo-banner">
-      <div class="promo-text">
-        <h3>Mega Promoção!</h3>
-        <p>Descontos de até <span>60% OFF</span></p>
-        <button class="btn-aproveite">APROVEITE</button>
-      </div>
-      <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-shopping-discount-illustration-download-in-svg-png-gif-formats--flash-sale-offer-gift-pack-special-box-delivery-and-pack-illustrations-5241697.png" alt="Promo">
     </div>
   </div>
 

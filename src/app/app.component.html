@@ -15,5 +15,109 @@
     
   </div>
 
-  <ion-router-outlet></ion-router-outlet>
+  <ion-menu contentId="main-content" menuId="main-menu" class="main-sidebar">
+    <ion-header class="ion-no-border">
+      <ion-toolbar class="sidebar-header">
+        <div class="sidebar-logo-container">
+          <img src="assets/imagens/app-logo.png" alt="Logo">
+          <div class="logo-text">Compra<span>ki</span></div>
+        </div>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="sidebar-content">
+      <ion-list lines="none" class="menu-list">
+        
+        <ion-list-header>EXPLORAÇÃO</ion-list-header>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/tabs/tab2']" routerLinkActive="active-item">
+            <ion-icon name="search-outline" slot="start"></ion-icon>
+            <ion-label>Explorar Produtos</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/product-details']" routerLinkActive="active-item">
+            <ion-icon name="information-circle-outline" slot="start"></ion-icon>
+            <ion-label>Detalhes do Produto</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-list-header>VENDAS E COMPRAS</ion-list-header>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/checkout']" routerLinkActive="active-item">
+            <ion-icon name="cart-outline" slot="start"></ion-icon>
+            <ion-label>Checkout</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/tabs/chats']" routerLinkActive="active-item">
+            <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+            <ion-label>Mensagens</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/tabs/upload-product']" routerLinkActive="active-item">
+            <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+            <ion-label>Cadastrar Produto</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/edit-product']" routerLinkActive="active-item">
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            <ion-label>Editar Produto</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/manage-categories']" routerLinkActive="active-item">
+            <ion-icon name="list-outline" slot="start"></ion-icon>
+            <ion-label>Gerenciar Categorias</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-list-header>PERFIL E CONTA</ion-list-header>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/tabs/my-account']" routerLinkActive="active-item">
+            <ion-icon name="person-outline" slot="start"></ion-icon>
+            <ion-label>Minha Conta</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/forgot-password']" routerLinkActive="active-item">
+            <ion-icon name="key-outline" slot="start"></ion-icon>
+            <ion-label>Recuperar Senha</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <div class="divider"></div>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button (click)="logout()" class="logout-item">
+            <ion-icon name="log-out-outline" slot="start" color="danger"></ion-icon>
+            <ion-label color="danger">Sair</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+      </ion-list>
+    </ion-content>
+
+    <ion-footer class="ion-no-border sidebar-footer" *ngIf="usuario">
+      <ion-item lines="none" class="user-profile">
+        <ion-avatar slot="start">
+          <img [src]="usuario.photoURL || 'assets/imagens/avatar-placeholder.png'" alt="User">
+        </ion-avatar>
+        <ion-label>
+          <h3>{{ usuario.displayName || 'Usuário' }}</h3>
+          <p>{{ usuario.email }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-footer>
+  </ion-menu>
+
+  <ion-router-outlet id="main-content"></ion-router-outlet>
 </ion-app>

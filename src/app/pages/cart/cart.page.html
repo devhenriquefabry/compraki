@@ -1,0 +1,90 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Carrinho</ion-title>
+    <ion-button
+      *ngIf="cartItems.length > 0"
+      slot="end"
+      fill="clear"
+      color="danger"
+      class="clear-btn"
+      (click)="clearCart()"
+      [disabled]="isClearing">
+      <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+    </ion-button>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="cart-content">
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-pulse">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Carregando carrinho...</p>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && cartItems.length === 0">
+    <div class="empty-illustration">
+      <div class="icon-circle">
+        <ion-icon name="cart-outline"></ion-icon>
+      </div>
+      <div class="empty-sparkle sparkle-1"></div>
+      <div class="empty-sparkle sparkle-2"></div>
+      <div class="empty-sparkle sparkle-3"></div>
+    </div>
+    <h2>Seu carrinho está vazio</h2>
+    <p>Explore nossos produtos e encontre ofertas incríveis para adicionar ao seu carrinho!</p>
+    <ion-button class="explore-btn" expand="block" (click)="continueShopping()">
+      <ion-icon name="bag-check-outline" slot="start"></ion-icon>
+      Explorar produtos
+    </ion-button>
+  </div>
+
+  <!-- Cart List -->
+  <div class="cart-list" *ngIf="!isLoading && cartItems.length > 0">
+    <!-- Items -->
+
+    <!-- Items -->
+    <app-cart-item-card
+      *ngFor="let item of cartItems; trackBy: trackItem"
+      [item]="item"
+      (remove)="onRemove($event)"
+      (quantityChange)="onQuantityChange($event)">
+    </app-cart-item-card>
+
+    <!-- Continue shopping -->
+    <div class="continue-shopping" (click)="continueShopping()">
+      <span>Continuar comprando</span>
+      <ion-icon name="arrow-forward"></ion-icon>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Footer fixo com resumo e botão -->
+<ion-footer class="ion-no-border cart-footer" *ngIf="!isLoading && cartItems.length > 0">
+  <div class="footer-content">
+    <!-- Resumo de valores -->
+    <div class="totals-section">
+      <div class="total-row" *ngIf="totalDiscount > 0">
+        <span class="label">Desconto</span>
+        <span class="value discount">- R$ {{ formatPrice(totalDiscount) }}</span>
+      </div>
+      <div class="total-row main">
+        <span class="label">Total</span>
+        <span class="value total-price">R$ {{ formatPrice(total) }}</span>
+      </div>
+      <span class="installments">
+        ou em até 12x de R$ {{ formatPrice(total / 12) }}
+      </span>
+    </div>
+
+    <!-- Botão de checkout -->
+    <ion-button class="checkout-btn" expand="block" (click)="goToCheckout()">
+      Finalizar compra
+      <ion-icon name="arrow-forward" slot="end"></ion-icon>
+    </ion-button>
+
+
+  </div>
+</ion-footer>

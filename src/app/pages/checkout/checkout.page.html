@@ -1,16 +1,87 @@
 <ion-header class="ion-no-border">
   <ion-toolbar style="--background: #f8f9fa;">
-    <app-mini-header theme="light" backUrl="/home"></app-mini-header>
+    <app-mini-header theme="light" [showBackButton]="true" [showMenuButton]="false" (click)="prevStep()"></app-mini-header>
   </ion-toolbar>
+
+  <!-- Stepper Indicator -->
+  <div class="stepper-wrapper">
+    <div class="stepper-item" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+      <div class="step-counter">1</div>
+      <div class="step-name">Pedido</div>
+    </div>
+    <div class="stepper-item" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+      <div class="step-counter">2</div>
+      <div class="step-name">Entrega</div>
+    </div>
+    <div class="stepper-item" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
+      <div class="step-counter">3</div>
+      <div class="step-name">Pagamento</div>
+    </div>
+    <div class="stepper-item" [class.active]="currentStep >= 4" [class.completed]="currentStep > 4">
+      <div class="step-counter">4</div>
+      <div class="step-name">Revisão</div>
+    </div>
+    <div class="progress-line">
+      <div class="progress-fill" [style.width.%]="(currentStep - 1) * 33.33"></div>
+    </div>
+  </div>
 </ion-header>
 
 <ion-content class="ion-padding custom-bg">
-  
-  <div class="checkout-container">
-    <app-checkout-order-summary [produto]="product"></app-checkout-order-summary>
-    <app-checkout-address></app-checkout-address>
-    <app-checkout-payment></app-checkout-payment>
-    <app-checkout-totals [produto]="product"></app-checkout-totals>
-  </div>
+  <div class="checkout-container" [ngSwitch]="currentStep">
+    
+    <!-- Step 1: Resumo do Pedido -->
+    <div *ngSwitchCase="1" class="step-content animate-fade">
+      <app-checkout-order-summary [items]="cartItems"></app-checkout-order-summary>
+      <app-checkout-totals [items]="cartItems"></app-checkout-totals>
+    </div>
 
+    <!-- Step 2: Entrega -->
+    <div *ngSwitchCase="2" class="step-content animate-fade">
+      <app-checkout-address></app-checkout-address>
+      <app-checkout-totals [items]="cartItems"></app-checkout-totals>
+    </div>
+
+    <!-- Step 3: Pagamento -->
+    <div *ngSwitchCase="3" class="step-content animate-fade">
+      <app-checkout-payment></app-checkout-payment>
+      <app-checkout-totals [items]="cartItems"></app-checkout-totals>
+    </div>
+
+    <!-- Step 4: Revisão Final -->
+    <div *ngSwitchCase="4" class="step-content animate-fade">
+      <div class="final-review-card">
+        <h2 class="review-title">Confirme seus dados</h2>
+        <div class="review-section">
+          <app-checkout-order-summary [items]="cartItems"></app-checkout-order-summary>
+        </div>
+        <div class="review-section">
+          <app-checkout-address></app-checkout-address>
+        </div>
+        <div class="review-section">
+          <app-checkout-payment></app-checkout-payment>
+        </div>
+      </div>
+      <app-checkout-totals [items]="cartItems"></app-checkout-totals>
+    </div>
+
+  </div>
 </ion-content>
+
+<ion-footer class="ion-no-border stepper-footer">
+  <div class="footer-actions">
+    <ion-button fill="clear" color="medium" (click)="prevStep()" class="btn-back">
+      {{ currentStep === 1 ? 'Cancelar' : 'Voltar' }}
+    </ion-button>
+    
+    <ion-button *ngIf="currentStep < 4" fill="solid" color="success" (click)="nextStep()" class="btn-next">
+      Continuar
+      <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+    </ion-button>
+
+    <ion-button *ngIf="currentStep === 4" fill="solid" color="success" (click)="finishOrder()" class="btn-finish">
+      FINALIZAR COMPRA
+      <ion-icon name="bag-check-outline" slot="end"></ion-icon>
+    </ion-button>
+  </div>
+</ion-footer>

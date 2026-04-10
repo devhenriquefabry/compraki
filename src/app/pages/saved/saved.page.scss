@@ -1,10 +1,65 @@
-ion-toolbar {
-  --background: #fff;
-  --border-width: 0;
-  
-  ion-title {
-    font-weight: 700;
-    font-size: 20px;
+:host {
+  --ion-background-color: #fdfdfd !important;
+  --ion-text-color: #1e2d3e !important;
+}
+
+ion-content {
+  --background: #fdfdfd !important;
+  --color: #1e2d3e !important;
+}
+
+.favorites-content {
+  --background: #fdfdfd !important;
+  background: #fdfdfd !important;
+  color: #1e2d3e !important;
+
+  .header-section {
+    padding: 10px 20px 20px;
+    background: #fff !important;
+    border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.02);
+    margin-bottom: 10px;
+
+    .main-title {
+      margin: 0 0 20px 0;
+      font-size: 28px;
+      font-weight: 800;
+      color: #1e2d3e !important;
+      letter-spacing: -0.5px;
+    }
+
+    .search-container {
+      .search-box {
+        background: #f8f9fa !important;
+        border: 1px solid #f0f0f0 !important;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        padding: 12px 18px;
+        gap: 12px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+
+        ion-icon {
+          font-size: 20px;
+          color: #999 !important;
+        }
+
+        input {
+          background: transparent !important;
+          border: none;
+          outline: none;
+          width: 100%;
+          font-size: 14px;
+          color: #333 !important;
+          font-weight: 500;
+
+          &::placeholder {
+            color: #bbb !important;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -14,8 +69,9 @@ ion-toolbar {
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  color: var(--ion-color-medium);
-  
+  background: #fdfdfd !important;
+  color: #999 !important;
+
   ion-spinner {
     margin-bottom: 16px;
     transform: scale(1.5);
@@ -29,51 +85,35 @@ ion-toolbar {
   justify-content: center;
   text-align: center;
   padding: 60px 24px;
-  
+  background: #fdfdfd !important;
+
   .icon-circle {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: rgba(var(--ion-color-medium-rgb), 0.1);
+    background: #f0f0f0 !important;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
-    
+
     ion-icon {
       font-size: 40px;
-      color: var(--ion-color-medium);
+      color: #ccc !important;
     }
   }
-  
+
   h2 {
     font-size: 20px;
     font-weight: 700;
-    color: var(--ion-color-dark);
+    color: #1e2d3e !important;
     margin: 0 0 12px;
   }
-  
+
   p {
     font-size: 15px;
     line-height: 1.5;
-    color: var(--ion-color-medium);
+    color: #666 !important;
     margin: 0;
   }
-}
-
-.list-container {
-  padding-bottom: 30px;
-}
-
-// Dark Mode Handling
-@media (prefers-color-scheme: dark) {
-  ion-toolbar {
-    --background: var(--ion-color-step-50, #1e1e1e);
-  }
-  
-  .empty-state {
-    h2 {
-      color: #fff;
-    }
-  }
-}
+}

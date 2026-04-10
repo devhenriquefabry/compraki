@@ -1,3 +1,5 @@
+import { Product } from "./product";
+
 export interface ChatParticipant {
   uid: string;
   name: string;
@@ -14,8 +16,8 @@ export interface ChatRoom {
   lastMessage?: string;
   lastMessageAt?: any; // Firestore Timestamp
   createdAt?: any;
-}
-
+} 
+ 
 export interface ChatMessage {
   id?: string;
   senderId: string;

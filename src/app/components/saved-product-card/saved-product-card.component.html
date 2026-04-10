@@ -1,26 +1,53 @@
-<ion-card class="saved-card ion-activatable" (click)="goToDetails()">
+<ion-card class="saved-card-premium ion-activatable" (click)="goToDetails()">
   <ion-ripple-effect></ion-ripple-effect>
   
-  <div class="card-content">
-    <div class="image-container">
+  <div class="card-horizontal">
+    <!-- IMAGEM -->
+    <div class="image-box">
        <img [src]="(product.photoURL && product.photoURL[0]) || 'assets/placeholder.jpg'" [alt]="product.name" />
     </div>
     
-    <div class="info-container">
-      <div class="header-row">
+    <!-- CONTEÚDO -->
+    <div class="content-box">
+      <div class="header-line">
          <h3 class="product-title">{{ product.name }}</h3>
-         <ion-button fill="clear" color="danger" class="remove-btn" (click)="onRemove($event)">
+         <ion-button fill="clear" class="favorite-btn" (click)="onRemove($event)">
            <ion-icon name="heart" slot="icon-only"></ion-icon>
          </ion-button>
       </div>
+
+      <p class="seller-name">Loja do Henricão</p>
       
-      <p class="product-price">R$ {{ formatPrice(product.price) }}</p>
-      
-      <div class="product-meta">
-        <ion-text color="medium" class="meta-item">
-          {{ product.condition || 'Sem condição' }}
-        </ion-text>
+      <div class="price-container">
+        <span class="currency">R$</span>
+        <span class="actual-price">{{ formatPrice(product.priceDiscounted || product.price) }}</span>
+        <span class="old-price" *ngIf="product.priceDiscounted">R$ {{ formatPrice(product.price) }}</span>
       </div>
+      
+      <div class="meta-row">
+        <div class="shipping-badge">
+          <ion-icon name="flash"></ion-icon>
+          <span>Frete grátis</span>
+        </div>
+        
+        <div class="cart-actions-box">
+          <ion-button *ngIf="(cartQuantity$ | async) as qty; else addBtn" 
+                      fill="outline" 
+                      class="btn-in-cart" 
+                      [routerLink]="['/tabs/cart']"
+                      (click)="$event.stopPropagation()">
+            <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
+            No Carrinho ({{qty}})
+          </ion-button>
+          
+          <ng-template #addBtn>
+            <ion-button fill="solid" class="btn-add-cart" (click)="addToCart($event)">
+              Adicionar ao Carrinho
+            </ion-button>
+          </ng-template>
+        </div>
+      </div>
+
     </div>
   </div>
 </ion-card>

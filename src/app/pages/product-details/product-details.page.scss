@@ -99,6 +99,41 @@
       .currency { font-size: 30px; margin-right: 5px; }
       .main-price { font-size: 45px; }
       .cents { font-size: 28px; }
+
+      .cart-indicator-badge {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(121, 157, 80, 0.1);
+        border: 1px solid rgba(121, 157, 80, 0.2);
+        padding: 5px 12px;
+        border-radius: 20px;
+        animation: fadeInRight 0.5s ease-out;
+
+        ion-icon {
+          color: var(--green-main);
+          font-size: 16px;
+        }
+
+        span {
+          font-size: 13px;
+          color: var(--green-main);
+          white-space: nowrap;
+          font-weight: 600;
+        }
+      }
+    }
+
+    @keyframes fadeInRight {
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .payment-hints {
@@ -249,13 +284,43 @@
   padding: 15px 20px;
   box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
 
-  .btn-buy-cart {
-    --background: var(--green-gradient);
-    --border-radius: 12px;
-    font-weight: bold;
-    font-size: 15px;
-    height: 54px;
-    margin-bottom: 10px;
+  .footer-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+
+    .btn-favorite {
+      --background: white;
+      --color: #799d50;
+      --border-radius: 50%;
+      --border-style: solid;
+      --border-width: 1px;
+      --border-color: #f0f0f0;
+      --box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      margin: 0;
+      height: 54px;
+      width: 54px;
+      min-width: 54px;
+      --padding-start: 0;
+      --padding-end: 0;
+      font-size: 24px;
+      transition: transform 0.2s ease;
+
+      &:active {
+        transform: scale(0.9);
+      }
+    }
+
+    .btn-buy-cart {
+      flex: 1;
+      --background: var(--green-gradient);
+      --border-radius: 12px;
+      font-weight: bold;
+      font-size: 15px;
+      height: 54px;
+      margin: 0;
+    }
   }
 
   .secure-label {

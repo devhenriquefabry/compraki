@@ -57,6 +57,10 @@ const routes: Routes = [
   {
     path: 'chat-details/:id',
     loadComponent: () => import('./pages/chat-details/chat-details.page').then( m => m.ChatDetailsPage)
+  },
+  {
+    path: 'cart',
+    loadComponent: () => import('./pages/cart/cart.page').then( m => m.CartPage)
   }
 
 ];

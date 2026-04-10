@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
-import { Product } from 'src/app/interfaces/product';
+import { CartItem } from 'src/app/interfaces/cart-item';
 
 @Component({
   selector: 'app-checkout-totals',
@@ -12,18 +12,21 @@ import { Product } from 'src/app/interfaces/product';
 })
 export class CheckoutTotalsComponent implements OnInit {
 
-  @Input() produto: Product | null = null;
+  @Input() items: CartItem[] = [];
   
   get subtotal() { 
-    return this.produto?.price || 0; 
+    return this.items.reduce((sum, item) => sum + (item.productData.price * item.quantity), 0);
   }
   
   get discount() { 
-    return this.produto?.priceDiscounted ? (this.produto.price - this.produto.priceDiscounted) : 0; 
+    return this.items.reduce((sum, item) => {
+      const disc = item.productData.priceDiscounted ? (item.productData.price - item.productData.priceDiscounted) : 0;
+      return sum + (disc * item.quantity);
+    }, 0);
   }
   
   get total() { 
-    return this.produto?.priceDiscounted || this.produto?.price || 0; 
+    return this.subtotal - this.discount;
   }
 
   constructor() { }

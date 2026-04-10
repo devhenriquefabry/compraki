@@ -10,14 +10,14 @@
   
   ion-chip {
     margin: 0;
-    --background: rgba(var(--ion-color-primary-rgb), 0.08);
-    --color: var(--ion-color-medium);
+    --background: #f0f2f5 !important;
+    --color: #666 !important;
     font-weight: 500;
     transition: all 0.2s ease;
     
     &.active {
-      --background: var(--ion-color-primary);
-      --color: var(--ion-color-primary-contrast);
+      --background: #799d50 !important;
+      --color: #ffffff !important;
       font-weight: 600;
     }
   }

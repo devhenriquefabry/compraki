@@ -78,3 +78,136 @@
   50% { width: 50%; }
   100% { left: 100%; width: 30%; }
 }
+
+/* ===== SIDEBAR (ion-menu) PREMIUM ===== */
+.main-sidebar {
+  --width: 280px;
+
+  &::part(container) {
+    box-shadow: 15px 0 40px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.sidebar-header {
+  --background: #1e2d3e;
+  --padding-top: 40px;
+  --padding-bottom: 25px;
+  
+  .sidebar-logo-container {
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    img {
+      height: 42px;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.5px;
+
+      span { color: #799d50; }
+    }
+  }
+}
+
+.sidebar-content {
+  --background: #ffffff;
+}
+
+.menu-list {
+  padding: 15px 10px;
+  background: transparent;
+
+  ion-list-header {
+    font-size: 10px;
+    font-weight: 800;
+    color: #bbb;
+    letter-spacing: 2px;
+    margin-top: 25px;
+    margin-bottom: 8px;
+    padding-left: 20px;
+    text-transform: uppercase;
+  }
+
+  ion-item {
+    --padding-start: 18px;
+    --inner-padding-end: 15px;
+    --border-radius: 14px;
+    --background: transparent;
+    --color: #444;
+    margin-bottom: 4px;
+    font-size: 15px;
+    font-weight: 600;
+
+    &.active-item {
+      --background: rgba(121, 157, 80, 0.08);
+      --color: #799d50;
+      font-weight: 700;
+      
+      ion-icon { color: #799d50; }
+    }
+
+    ion-icon {
+      font-size: 20px;
+      margin-right: 16px;
+      color: #777;
+    }
+
+    &:active {
+      --background: rgba(0,0,0,0.04);
+    }
+  }
+
+  .divider {
+    height: 1px;
+    background: #f4f4f4;
+    margin: 20px 15px;
+  }
+
+  .logout-item {
+    margin-top: 10px;
+    --color: #eb445a;
+    font-weight: 700;
+  }
+}
+
+.sidebar-footer {
+  --background: #fcfcfc;
+  border-top: 1px solid #f0f0f0;
+  padding: 12px 10px;
+
+  .user-profile {
+    --background: transparent;
+    --padding-start: 10px;
+    
+    ion-avatar {
+      width: 40px;
+      height: 40px;
+      margin-right: 12px;
+      border: 2px solid #799d50;
+    }
+
+    h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e2d3e;
+      margin: 0;
+    }
+
+    p {
+      font-size: 11px;
+      color: #888;
+      margin: 2px 0 0;
+    }
+  }
+}
+
+@keyframes fadeInMenu {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
