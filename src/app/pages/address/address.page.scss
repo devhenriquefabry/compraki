@@ -1,0 +1,194 @@
+.address-content {
+  --background: #f8f9fa !important;
+  --ion-background-color: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+
+  .header-section {
+    margin-bottom: 24px;
+    padding: 0 4px;
+
+    .page-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #777;
+      margin: 0;
+    }
+  }
+
+  .address-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 80px;
+  }
+
+  .address-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+
+    &.is-default {
+      border: 1.5px solid #799d50;
+      box-shadow: 0 8px 25px rgba(121, 157, 80, 0.12);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .type-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #f0f7e9;
+        color: #799d50;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 600;
+
+        ion-icon {
+          font-size: 14px;
+        }
+      }
+
+      .default-badge {
+        background: #799d50;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    .card-body {
+      .address-info {
+        .street {
+          font-size: 17px;
+          font-weight: 700;
+          color: #333;
+          margin: 0 0 6px 0;
+        }
+
+        .complement {
+          font-size: 14px;
+          color: #666;
+          margin: 0 0 4px 0;
+        }
+
+        .location {
+          font-size: 14px;
+          color: #888;
+          margin: 0 0 4px 0;
+        }
+
+        .zip {
+          font-size: 13px;
+          color: #aaa;
+          margin: 0;
+          font-family: monospace;
+        }
+      }
+    }
+
+    .card-footer {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #f5f5f5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .actions {
+        display: flex;
+        gap: 8px;
+
+        ion-button {
+          --padding-start: 0;
+          --padding-end: 8px;
+          font-weight: 600;
+          font-size: 13px;
+        }
+
+        .btn-edit {
+          --color: #799d50;
+        }
+      }
+
+      .btn-default {
+        --color: #799d50;
+        --border-color: #799d50;
+        --border-radius: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        height: 32px;
+      }
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+
+    .icon-circle {
+      width: 80px;
+      height: 80px;
+      background: #f0f7e9;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+
+      ion-icon {
+        font-size: 40px;
+        color: #799d50;
+      }
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #777;
+      max-width: 250px;
+      line-height: 1.5;
+    }
+  }
+}
+
+.fab-green {
+  --background: #799d50;
+  --background-activated: #688744;
+  --color: white;
+  --box-shadow: 0 8px 25px rgba(121, 157, 80, 0.4);
+}

@@ -1,0 +1,63 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="page-container">
+    
+    <div class="header-section">
+      <h1 class="page-title">Minhas Vendas</h1>
+      <p class="subtitle">Acompanhe seus pedidos recebidos</p>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="ion-text-center ion-padding">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>Buscando vendas...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && sales.length === 0" class="empty-state">
+      <ion-icon name="cash-outline"></ion-icon>
+      <h3>Nenhuma venda ainda</h3>
+      <p>Seus produtos estão online, logo as vendas vão chegar!</p>
+    </div>
+
+    <!-- Lista de Vendas -->
+    <div class="sales-list" *ngIf="!isLoading && sales.length > 0">
+      
+      <div *ngFor="let s of sales" class="sale-card" [routerLink]="['/sale-details', s.id]">
+        <div class="sale-header">
+          <span class="order-id">#{{ s.id?.substring(0,8)?.toUpperCase() }}</span>
+          <span class="order-date">{{ formatDate(s.createdAt) }}</span>
+        </div>
+
+        <div class="sale-body">
+          <div class="items-preview">
+            <div *ngFor="let item of s.items.slice(0, 3)" class="item-thumb">
+              <img [src]="item.productData.photoURL?.[0] || 'assets/imagens/placeholder.png'">
+            </div>
+            <div *ngIf="s.items.length > 3" class="more-items">+{{ s.items.length - 3 }}</div>
+          </div>
+
+          <div class="sale-total">
+            <span class="label">Total</span>
+            <span class="value">{{ s.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</span>
+          </div>
+        </div>
+
+        <div class="sale-footer">
+          <div class="buyer-name">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            {{ s.customerData.name }}
+          </div>
+          <ion-badge [color]="s.status === 'RECEIVED' ? 'success' : 'medium'" mode="ios">
+            {{ getStatusLabel(s.status) }}
+          </ion-badge>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</ion-content>

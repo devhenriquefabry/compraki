@@ -1,0 +1,54 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="pix-container">
+    <div class="header-section ion-text-center">
+      <div class="pix-badge">
+        <ion-icon name="flashlight-outline"></ion-icon>
+        PAGAMENTO PIX
+      </div>
+      <h1 class="page-title">Quase lá!</h1>
+      <p class="subtitle">Finalize o seu pagamento para processarmos o seu pedido.</p>
+    </div>
+
+    <ion-card class="pix-card">
+      <div class="qr-container ion-text-center">
+        <img [src]="'data:image/png;base64,' + qrCode" alt="QR Code PIX" class="qr-image">
+        <div class="qr-overlay">
+          <ion-icon name="qr-code-outline"></ion-icon>
+        </div>
+      </div>
+
+      <div class="pix-info">
+        <p class="instruct">Escaneie o QR Code ou copie o código abaixo:</p>
+        
+        <div class="copy-paste-box">
+          <div class="code-text">{{ pixCode }}</div>
+          <ion-button fill="clear" (click)="copyPixCode()" class="copy-btn">
+            <ion-icon slot="icon-only" [name]="copied ? 'checkmark-circle' : 'copy-outline'" [color]="copied ? 'success' : 'primary'"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+
+      <div class="timer-box">
+        <ion-icon name="time-outline"></ion-icon>
+        <span>Este código expira em 3 dias.</span>
+      </div>
+    </ion-card>
+
+    <div class="simulation-section">
+      <div class="simulation-alert">
+        <ion-icon name="bug-outline"></ion-icon>
+        <p>Ambiente de Testes: Use o botão abaixo para confirmar o recebimento sem precisar pagar de verdade.</p>
+      </div>
+      
+      <ion-button expand="block" shape="round" color="success" (click)="simulatePayment()" class="simulate-btn">
+        <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
+        SIMULAR PAGAMENTO
+      </ion-button>
+    </div>
+
+  </div>
+</ion-content>

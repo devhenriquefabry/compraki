@@ -9,13 +9,14 @@ import { FirebaseChatService } from '../../services/firebase-chat.service';
 import { FirebaseUsersService } from '../../services/firebase-users.service';
 import { ChatRoom, ChatParticipant } from '../../interfaces/chat';
 import { AppUser } from '../../interfaces/app-user';
+import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
 
 @Component({
   selector: 'app-chats',
   templateUrl: './chats.page.html',
   styleUrls: ['./chats.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonAvatar, IonLabel, IonNote, IonSpinner, IonIcon, IonFab, IonFabButton, IonModal, IonButtons, IonButton]
+  imports: [CommonModule, IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonAvatar, IonLabel, IonNote, IonSpinner, IonIcon, IonFab, IonFabButton, IonModal, IonButtons, IonButton, MiniHeaderComponent]
 })
 export class ChatsPage implements OnInit, OnDestroy {
   @ViewChild('newChatModal') newChatModal!: IonModal;

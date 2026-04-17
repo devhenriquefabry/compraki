@@ -1,0 +1,10 @@
+{
+  "/asaas-api": {
+    "target": "https://api.asaas.com",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/asaas-api": ""
+    }
+  }
+}

@@ -9,6 +9,9 @@ import {
   updateDoc,
   deleteDoc,
   Firestore,
+  query,
+  where,
+  orderBy
 } from 'firebase/firestore';
 
 import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
@@ -70,6 +73,24 @@ export class FirebaseProducts {
     });
   }
 
+  getBySeller(sellerId: string): Observable<Product[]> {
+    return new Observable<Product[]>(subscriber => {
+      const productCol = collection(this.db, 'products');
+      const q = query(productCol, where('sellerId', '==', sellerId), orderBy('createdAt', 'desc'));
+
+      return onSnapshot(q,
+        (snapshot) => {
+          const products = snapshot.docs.map(d => {
+            const data = d.data() as any;
+            return { ...data, id: d.id } as Product;
+          });
+          subscriber.next(products);
+        },
+        (err) => subscriber.error(err)
+      );
+    });
+  }
+
   add(product: Product) {
     const productCol = collection(this.db, 'products');
     return addDoc(productCol, product);
@@ -95,20 +116,30 @@ export class FirebaseProducts {
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
   }
-async signIn(email: string, password: string): Promise<boolean> {
-  this.carregando = true;
+  async signIn(email: string, password: string, name: string, cpf?: string, phone?: string): Promise<boolean> {
+    this.carregando = true;
 
-  try {
-    const userCredential = await createUserWithEmailAndPassword(this.authenticator, email, password);
-    
-    // 🔥 Espelhando o usuário no Firestore passivamente
-    await this.usersService.ensureAppUserDocument(userCredential.user);
-    
-    alert('cadastrado com sucesso!');
-    console.log('O ID do usuário no sistema é: ' + userCredential.user.uid);
-    
-    this.router.navigate(['/tabs']);
-    return true; // Retorno em caso de sucesso
+    try {
+      const { updateProfile } = await import('firebase/auth');
+      const userCredential = await createUserWithEmailAndPassword(this.authenticator, email, password);
+      
+      // Atualiza o perfil no Auth com o nome fornecido
+      await updateProfile(userCredential.user, {
+        displayName: name
+      });
+
+      // 🔥 Espelhando o usuário no Firestore passivamente com dados extras
+      await this.usersService.ensureAppUserDocument(userCredential.user, {
+          cpf: cpf || null,
+          phoneNumber: phone || null,
+          displayName: name
+      });
+      
+      alert('Cadastro realizado com sucesso!');
+      console.log('O ID do usuário no sistema é: ' + userCredential.user.uid);
+      
+      this.router.navigate(['/tabs']);
+      return true; // Retorno em caso de sucesso
 
   } catch (error) {
     const erroRetornadoTransformadoEmString = JSON.stringify(error)

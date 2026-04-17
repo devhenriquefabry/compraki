@@ -7,6 +7,8 @@ import { User } from 'firebase/auth';
 import { addIcons } from 'ionicons';
 import { openOutline, heart, heartOutline } from 'ionicons/icons';
 
+import { NotificationService } from './services/notification.service';
+
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
@@ -16,11 +18,12 @@ import { openOutline, heart, heartOutline } from 'ionicons/icons';
 export class AppComponent implements OnInit {
   public usuario! : User | null;
   private fbProducts = inject(FirebaseProducts);
+  private notifyService = inject(NotificationService);
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
   
   showSplash: boolean;
   splashAnimatingOut = false;
-
+  
   constructor(
     private platform: Platform,
     private navCtrl: NavController,
@@ -32,6 +35,7 @@ export class AppComponent implements OnInit {
 
     addIcons({ openOutline, heart, heartOutline });
     this.initializeApp();
+    this.notifyService.initOrderListener();
   }
 
   ngOnInit() {

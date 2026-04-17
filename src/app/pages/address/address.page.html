@@ -1,0 +1,65 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding address-content">
+  
+  <div class="header-section">
+    <h1 class="page-title">Meu Endereço</h1>
+    <p class="subtitle">Gerencie seus endereços de entrega</p>
+  </div>
+
+  <div class="address-list">
+    <div class="address-card" *ngFor="let addr of addresses" [class.is-default]="addr.isDefault">
+      <div class="card-header">
+        <div class="type-badge">
+          <ion-icon [name]="addr.type === 'Casa' ? 'home' : 'briefcase'"></ion-icon>
+          <span>{{ addr.type }}</span>
+        </div>
+        <div class="default-badge" *ngIf="addr.isDefault">
+          Padrão
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="address-info">
+          <h2 class="street">{{ addr.street }}, {{ addr.number }}</h2>
+          <p class="complement" *ngIf="addr.complement">{{ addr.complement }}</p>
+          <p class="location">{{ addr.neighborhood }} - {{ addr.city }}, {{ addr.state }}</p>
+          <p class="zip">CEP: {{ addr.zipCode }}</p>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="actions">
+          <ion-button fill="clear" size="small" (click)="editAddress(addr)" class="btn-edit">
+            <ion-icon name="pencil" slot="start"></ion-icon>
+            Editar
+          </ion-button>
+          <ion-button fill="clear" size="small" color="danger" (click)="deleteAddress(addr.id)">
+            <ion-icon name="trash" slot="start"></ion-icon>
+            Excluir
+          </ion-button>
+        </div>
+        <ion-button *ngIf="!addr.isDefault" fill="outline" size="small" class="btn-default" (click)="setDefault(addr.id)">
+          Tornar Padrão
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="addresses.length === 0">
+    <div class="icon-circle">
+      <ion-icon name="location-outline"></ion-icon>
+    </div>
+    <h2>Nenhum endereço salvo</h2>
+    <p>Adicione um endereço de entrega para facilitar suas compras.</p>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="addNewAddress()" class="fab-green">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+</ion-content>

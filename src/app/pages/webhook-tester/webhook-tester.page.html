@@ -1,0 +1,117 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="page-container">
+    
+    <div class="header-section">
+      <h1 class="page-title">Laboratório Webhook</h1>
+      <p class="subtitle">Dispare eventos locais para simular o Asaas</p>
+    </div>
+
+    <!-- Configuração de Conexão -->
+    <ion-card class="premium-card">
+      <div class="card-header">
+        <ion-icon name="link-outline" color="primary"></ion-icon>
+        <h2>Conexão</h2>
+      </div>
+      <div class="card-body">
+        <div class="input-group">
+          <label>URL de Destino</label>
+          <input type="text" [(ngModel)]="targetUrl" placeholder="http://localhost:3000">
+        </div>
+        <div class="input-group">
+          <label>Token de Autenticação (Header asaas-access-token)</label>
+          <input type="text" [(ngModel)]="webhookToken" placeholder="whsec_...">
+        </div>
+      </div>
+    </ion-card>
+
+    <!-- Seletor de Eventos -->
+    <ion-card class="premium-card">
+      <div class="card-header">
+        <ion-icon name="flash-outline" color="warning"></ion-icon>
+        <h2>Testar Eventos</h2>
+      </div>
+      <div class="card-body">
+        <p class="section-desc">Selecione o evento que você quer disparar e veja como o payload será formatado.</p>
+        
+        <div class="events-grid">
+          <div *ngFor="let ev of eventsList" 
+               class="event-btn" 
+               [ngClass]="{'active': selectedEventId === ev.id}"
+               (click)="onEventSelect(ev.id)">
+            {{ ev.label }}
+            <small>{{ ev.id }}</small>
+          </div>
+        </div>
+      </div>
+    </ion-card>
+
+    <!-- Preview do Payload -->
+    <ion-card class="premium-card">
+      <div class="card-header">
+        <ion-icon name="code-slash-outline" color="medium"></ion-icon>
+        <h2>Payload (JSON)</h2>
+      </div>
+      <div class="card-body">
+        <pre class="json-viewer">{{ getPayloadString() }}</pre>
+      </div>
+      <div class="action-footer">
+        <ion-button expand="block" shape="round" color="success" (click)="testLocalWebhook()">
+          <ion-icon name="paper-plane-outline" slot="start"></ion-icon>
+          Enviar Teste
+        </ion-button>
+      </div>
+    </ion-card>
+
+    <!-- Resposta do Servidor -->
+    <ion-card class="premium-card" *ngIf="lastResponse">
+      <div class="card-header">
+        <ion-icon name="terminal-outline" color="dark"></ion-icon>
+        <h2>Resposta do Servidor</h2>
+      </div>
+      <div class="card-body">
+        <pre class="json-viewer response-viewer" [class.error]="lastResponse.includes('ERRO')">{{ lastResponse }}</pre>
+      </div>
+    </ion-card>
+
+    <!-- Histórico de Eventos (Firebase) -->
+    <ion-card class="premium-card">
+      <div class="card-header">
+        <ion-icon name="time-outline" color="tertiary"></ion-icon>
+        <h2>Histórico de Eventos</h2>
+        <span class="cloud-badge">
+          <ion-icon name="cloud-done-outline"></ion-icon> Nuvem
+        </span>
+      </div>
+      <div class="card-body">
+
+        <div *ngIf="history.length === 0" class="empty-history">
+          <ion-icon name="file-tray-outline"></ion-icon>
+          <p>Nenhum evento disparado ainda.</p>
+        </div>
+
+        <div class="history-list" *ngIf="history.length > 0">
+          <div *ngFor="let ev of history" class="history-item" [class.success]="ev.success" [class.error]="!ev.success">
+            <div class="history-icon">
+              <ion-icon [name]="ev.success ? 'checkmark-circle' : 'close-circle'"></ion-icon>
+            </div>
+            <div class="history-info">
+              <span class="history-label">{{ ev.eventLabel }}</span>
+              <span class="history-type">{{ ev.eventType }}</span>
+            </div>
+            <div class="history-meta">
+              <span class="history-status" [class.success-text]="ev.success" [class.error-text]="!ev.success">
+                {{ ev.success ? 'OK' : 'ERRO' }}
+              </span>
+              <span class="history-date">{{ formatDate(ev.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ion-card>
+
+  </div>
+</ion-content>

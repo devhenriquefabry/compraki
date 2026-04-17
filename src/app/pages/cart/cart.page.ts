@@ -12,6 +12,7 @@ import { CartItem } from '../../interfaces/cart-item';
 import { FirebaseCartService } from '../../services/firebase-cart.service';
 import { CartItemCardComponent } from '../../components/cart-item-card/cart-item-card.component';
 import { AlertController } from '@ionic/angular/standalone';
+import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
 
 @Component({
   selector: 'app-cart-page',
@@ -22,7 +23,7 @@ import { AlertController } from '@ionic/angular/standalone';
     CommonModule,
     IonContent, IonHeader, IonTitle, IonToolbar,
     IonSpinner, IonIcon, IonButton, IonFooter,
-    CartItemCardComponent
+    CartItemCardComponent, MiniHeaderComponent
   ]
 })
 export class CartPage implements OnInit, OnDestroy {

@@ -125,11 +125,50 @@
         </div>
       </div>
       <div class="form-group col">
+        <label>Preço Oferta (Opcional)</label>
+        <div class="input-wrapper price-input promo">
+          <span class="prefix">R$</span>
+          <input type="number" formControlName="priceDiscounted" placeholder="0,00">
+        </div>
+      </div>
+      <div class="form-group col-small">
         <label>Estoque</label>
         <div class="input-wrapper stock-input">
           <input type="number" formControlName="stock" placeholder="1">
-          <span class="suffix">unidades</span>
         </div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO LOGÍSTICA E PAGAMENTO -->
+    <div class="section-title">
+      <div class="dot"></div>
+      <span>Logística e Pagamento</span>
+    </div>
+
+    <div class="form-group">
+      <label>Opções de Entrega</label>
+      <div class="shipping-options">
+        <button type="button" 
+                *ngFor="let opt of shippingOptions" 
+                class="ship-pill"
+                [class.active]="submitProductForm.get('shipping')?.value === opt"
+                (click)="submitProductForm.patchValue({shipping: opt})">
+          {{ opt }}
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Formas de Pagamento Aceitas</label>
+      <div class="payment-methods-grid">
+        <button type="button" 
+                *ngFor="let method of availablePaymentMethods" 
+                class="pay-pill"
+                [class.active]="submitProductForm.get('paymentMethods')?.value?.includes(method)"
+                (click)="togglePaymentMethod(method)">
+          <ion-icon [name]="method === 'PIX' ? 'qr-code-outline' : (method === 'CARTÃO' ? 'card-outline' : 'cash-outline')"></ion-icon>
+          <span>{{ method }}</span>
+        </button>
       </div>
     </div>
 

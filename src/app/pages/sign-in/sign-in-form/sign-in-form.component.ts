@@ -21,6 +21,8 @@ export class SignInFormComponent implements OnInit {
   signInForm = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     email: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    cpf: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(11)] }),
+    phone: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     password: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     repeatPassword: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
 
@@ -45,8 +47,14 @@ export class SignInFormComponent implements OnInit {
 
   callSignInFunction() {
     if (this.signInForm.valid) {
-      if (this.signInForm.value.email && this.signInForm.value.password) {
-        this.firebaseProducts.signIn(this.signInForm.value.email, this.signInForm.value.password).then((salvouNoFirebaseMesmo) => {
+      if (this.signInForm.value.email && this.signInForm.value.password && this.signInForm.value.name) {
+        this.firebaseProducts.signIn(
+          this.signInForm.value.email, 
+          this.signInForm.value.password,
+          this.signInForm.value.name,
+          this.signInForm.value.cpf,
+          this.signInForm.value.phone
+        ).then((salvouNoFirebaseMesmo) => {
           if (salvouNoFirebaseMesmo === true) {
             this.signInForm.reset()
           }

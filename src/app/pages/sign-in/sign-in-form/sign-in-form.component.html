@@ -28,8 +28,17 @@
     <div class="input-container">
       <ion-icon name="document-text"></ion-icon>
 
-      <ion-input inputmode="numeric" label="Digite o seu CPF" label-placement="floating" mode="md" fill="outline"
+      <ion-input formControlName="cpf" inputmode="numeric" label="Digite o seu CPF" label-placement="floating" mode="md" fill="outline"
         placeholder="Seu CPF aqui">
+      </ion-input>
+
+    </div>
+
+    <div class="input-container">
+      <ion-icon name="phone-portrait"></ion-icon>
+
+      <ion-input formControlName="phone" inputmode="tel" label="Digite o seu Celular" label-placement="floating" mode="md" fill="outline"
+        placeholder="(11) 99999-9999">
       </ion-input>
 
     </div>

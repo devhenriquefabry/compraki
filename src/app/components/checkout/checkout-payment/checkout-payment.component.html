@@ -1,58 +1,57 @@
-<div class="section-title">Forma de Pagamento</div>
-<ion-card class="checkout-card">
-  <ion-radio-group [(ngModel)]="paymentMethod">
-    
-    <!-- Opção: Cartão de Crédito -->
-    <div class="payment-option">
-      <ion-radio value="credit" justify="start" class="custom-radio">
-        <span>Cartão de crédito</span>
-      </ion-radio>
-      
-      <!-- Fomulário expansível de cartão -->
-      <div class="card-form" *ngIf="paymentMethod === 'credit'">
-        <div class="input-group full-width">
-          <div class="input-with-icon">
-            <ion-icon name="card" color="success"></ion-icon>
-            <input type="text" placeholder="1234 5678 9012 3456" />
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="input-group col-name">
-            <label>Nome no Cartão</label>
-            <input type="text" placeholder="CAIO PEREIRA" />
-          </div>
-          <div class="input-group col-date">
-            <label>Validade</label>
-            <input type="text" placeholder="12/26" />
-          </div>
-          <div class="input-group col-cvv">
-            <label>CVV</label>
-            <input type="text" placeholder="123" />
-          </div>
-        </div>
+<div class="section-title">Dados do Comprador</div>
+<ion-card class="checkout-card" style="margin-bottom: 20px; padding-top: 10px;">
+  <div class="card-form">
+    <div class="input-group full-width">
+      <label>Nome Completo (Conforme Identidade)</label>
+      <input type="text" placeholder="Nome do Comprador" [(ngModel)]="stateService.paymentData.buyerName" />
+    </div>
+    <div class="form-row" style="margin-top: 10px;">
+      <div class="input-group col-name" style="flex: 1.5; margin-right: 8px;">
+        <label>CPF (Apenas números)</label>
+        <input type="text" placeholder="00000000000" [(ngModel)]="stateService.paymentData.buyerCpf" />
+      </div>
+      <div class="input-group col-cvv" style="flex: 1;">
+        <label>Celular</label>
+        <input type="text" placeholder="11999999999" [(ngModel)]="stateService.paymentData.buyerPhone" />
       </div>
     </div>
+  </div>
+</ion-card>
 
+<div class="section-title">Forma de Pagamento</div>
+<ion-card class="checkout-card">
+  <ion-radio-group [(ngModel)]="stateService.paymentData.method">
+    
     <!-- Opção: Pix -->
     <div class="payment-option">
-      <ion-radio value="pix" justify="start" class="custom-radio">
+      <ion-radio value="PIX" justify="start" class="custom-radio">
         <div class="radio-label-with-icon">
-          <ion-icon src="/assets/icon/pix.svg" color="tertiary" *ngIf="false"></ion-icon> 
-          <ion-icon name="grid" color="tertiary"></ion-icon> <!-- Fallback icon for pix -->
+          <ion-icon name="grid" color="tertiary"></ion-icon>
           <span>Pix</span>
         </div>
       </ion-radio>
     </div>
 
     <!-- Opção: Boleto -->
-    <div class="payment-option no-border">
-      <ion-radio value="boleto" justify="start" class="custom-radio">
+    <div class="payment-option disabled-option">
+      <ion-radio value="BOLETO" justify="start" class="custom-radio" [disabled]="true">
         <div class="radio-label-with-icon">
           <ion-icon name="barcode" color="success"></ion-icon>
           <span>Boleto</span>
         </div>
       </ion-radio>
+      <span class="soon-text">Disponível em breve</span>
+    </div>
+
+    <!-- Opção: Cartão de Crédito -->
+    <div class="payment-option no-border disabled-option">
+      <ion-radio value="CREDIT_CARD" justify="start" class="custom-radio" [disabled]="true">
+        <div class="radio-label-with-icon">
+          <ion-icon name="card" color="primary"></ion-icon>
+          <span>Cartão de crédito</span>
+        </div>
+      </ion-radio>
+      <span class="soon-text">Disponível em breve</span>
     </div>
 
   </ion-radio-group>

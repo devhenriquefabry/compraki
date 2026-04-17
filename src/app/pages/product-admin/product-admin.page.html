@@ -1,0 +1,104 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="page-container" *ngIf="!isLoading && product">
+    
+    <!-- Product Header -->
+    <div class="product-banner">
+      <img [src]="product.photoURL?.[0] || 'assets/imagens/placeholder.png'">
+      <div class="name-overlay">
+        <h1>{{ product.name }}</h1>
+        <ion-badge color="light" mode="ios">{{ product.stock }} em estoque</ion-badge>
+      </div>
+    </div>
+
+    <!-- Custom Segments / Tabs -->
+    <div class="custom-tabs">
+      <div class="tab-item" [class.active]="activeTab === 'DETAILS'" (click)="activeTab = 'DETAILS'">
+        Gerenciar
+      </div>
+      <div class="tab-item" [class.active]="activeTab === 'STATS'" (click)="activeTab = 'STATS'">
+        Estatísticas
+      </div>
+    </div>
+
+    <!-- Content: DETAILS -->
+    <div *ngIf="activeTab === 'DETAILS'" class="tab-content animate-fade">
+      
+      <ion-card class="admin-option-card">
+        <ion-list lines="inset">
+          <ion-item button [routerLink]="['/edit-product', product.id]">
+            <ion-icon name="create-outline" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h3>Editar informações</h3>
+              <p>Mudar preço, fotos ou descrição</p>
+            </ion-label>
+          </ion-item>
+          
+          <ion-item lines="none">
+            <ion-icon name="cash-outline" slot="start" color="success"></ion-icon>
+            <ion-label>
+              <h3>Preço Atual</h3>
+              <p>{{ formatPrice(product.price) }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card>
+
+      <ion-button expand="block" fill="outline" color="danger" class="ion-margin-top" (click)='deleteProduct()'>
+        <ion-icon name="trash-outline" slot="start"></ion-icon>
+        Excluir Produto
+      </ion-button>
+    </div>
+
+    <!-- Content: STATS -->
+    <div *ngIf="activeTab === 'STATS'" class="tab-content animate-fade">
+      
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="icon-wrap saves">
+            <ion-icon name="heart"></ion-icon>
+          </div>
+          <span class="val">{{ stats?.savedCount }}</span>
+          <span class="lab">Salvos</span>
+        </div>
+
+        <div class="stat-box">
+          <div class="icon-wrap sales">
+            <ion-icon name="cart"></ion-icon>
+          </div>
+          <span class="val">{{ stats?.totalSales }}</span>
+          <span class="lab">Vendidos</span>
+        </div>
+
+        <div class="stat-box full">
+          <div class="icon-wrap time">
+            <ion-icon name="timer"></ion-icon>
+          </div>
+          <div>
+            <span class="val">{{ stats?.avgSellingTime }}</span>
+            <span class="lab">Tempo médio de venda</span>
+          </div>
+        </div>
+      </div>
+
+      <ion-card class="insight-card">
+        <ion-card-header>
+          <ion-card-subtitle>Análise de Performance</ion-card-subtitle>
+          <ion-card-title>Status do Produto</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          Este item está com uma conversão <strong>acima da média</strong>. Manter os salvamentos altos garante maior visibilidade nos recomendados.
+        </ion-card-content>
+      </ion-card>
+
+    </div>
+
+  </div>
+
+  <div *ngIf="isLoading" class="ion-text-center ion-padding">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+</ion-content>

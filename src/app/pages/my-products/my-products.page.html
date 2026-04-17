@@ -1,0 +1,68 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="page-container">
+    
+    <div class="header-section">
+      <h1 class="page-title">Meus Produtos</h1>
+      <p class="subtitle">Gerencie seu inventário e estoque</p>
+    </div>
+
+    <!-- Skeleton Loading -->
+    <div *ngIf="isLoading">
+      <ion-card *ngFor="let i of [1,2,3]" class="product-item-card skeleton">
+        <ion-skeleton-text animated style="width: 100%; height: 80px;"></ion-skeleton-text>
+      </ion-card>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && myProducts.length === 0" class="empty-state">
+      <ion-icon name="cube-outline"></ion-icon>
+      <h3>Nenhum produto cadastrado</h3>
+      <p>Você ainda não colocou produtos à venda.</p>
+      <ion-button expand="block" shape="round" color="primary" routerLink="/upload-product" class="ion-margin-top">
+        Cadastrar Primeiro Produto
+      </ion-button>
+    </div>
+
+    <!-- Lista de Produtos -->
+    <div class="product-list" *ngIf="!isLoading && myProducts.length > 0">
+      
+      <div *ngFor="let p of myProducts" class="product-item-card" [routerLink]="['/product-admin', p.id]">
+        <div class="product-main">
+          <div class="product-img">
+            <img [src]="p.photoURL?.[0] || 'assets/imagens/placeholder.png'" alt="Produto">
+          </div>
+          
+          <div class="product-info">
+            <h4 class="product-name">{{ p.name }}</h4>
+            <div class="product-meta">
+              <span class="price">{{ formatPrice(p.priceDiscounted || p.price) }}</span>
+              <span class="stock" [class.low]="p.stock < 5">Estoq: {{ p.stock }}</span>
+            </div>
+          </div>
+
+          <div class="product-actions">
+            <button class="action-btn edit" (click)="editProduct(p.id!)" title="Editar">
+              <ion-icon name="create-outline"></ion-icon>
+            </button>
+            <button class="action-btn delete" (click)="deleteProduct(p)" title="Excluir">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Botão Flutuante para Adicionar Novo -->
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab-button color="primary" routerLink="/upload-product">
+        <ion-icon name="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+
+  </div>
+</ion-content>

@@ -26,6 +26,9 @@ export class UploadProductFormComponent  implements OnInit {
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
+  
+  public shippingOptions: ('Frete Grátis' | 'A combinar' | 'Entrega Expressa')[] = ['Frete Grátis', 'A combinar', 'Entrega Expressa'];
+  public availablePaymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[] = ['PIX', 'CARTÃO', 'DINHEIRO'];
 
   // Feedback modal
   public showFeedback = false;
@@ -44,7 +47,10 @@ export class UploadProductFormComponent  implements OnInit {
     acceptOffers: new FormControl(true),
     description: new FormControl('', [Validators.required]),
     categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
-    subcategoryIds: new FormControl<string[]>([])
+    subcategoryIds: new FormControl<string[]>([]),
+    priceDiscounted: new FormControl<number | null>(null),
+    shipping: new FormControl<'Frete Grátis' | 'A combinar' | 'Entrega Expressa'>('A combinar', [Validators.required]),
+    paymentMethods: new FormControl<('PIX' | 'CARTÃO' | 'DINHEIRO')[]>(['PIX'], [Validators.required, Validators.minLength(1)])
   });
 
   constructor(
@@ -86,6 +92,19 @@ export class UploadProductFormComponent  implements OnInit {
       current.push(subId);
     }
     this.submitProductForm.patchValue({ subcategoryIds: [...current] });
+  }
+
+  togglePaymentMethod(method: 'PIX' | 'CARTÃO' | 'DINHEIRO') {
+    const current = this.submitProductForm.get('paymentMethods')?.value || [];
+    const idx = current.indexOf(method);
+    if (idx > -1) {
+      if (current.length > 1) { // Garante pelo menos um método
+        current.splice(idx, 1);
+      }
+    } else {
+      current.push(method);
+    }
+    this.submitProductForm.patchValue({ paymentMethods: [...current] });
   }
 
   onFileSelected(event: any) {
@@ -174,7 +193,24 @@ export class UploadProductFormComponent  implements OnInit {
 
         this.submitProductForm.patchValue({ photoURL: uploadedUrls });
 
-        const novoProduto = this.submitProductForm.value as Product;
+        const currentUser = this.servicoFirebase.getUser();
+        if (!currentUser) throw new Error("Usuário não autenticado");
+
+        const data = this.submitProductForm.value;
+        const novoProduto: Product = {
+          ...data,
+          name: data.name!,
+          price: data.price!,
+          condition: data.condition as any,
+          stock: data.stock!,
+          categoryIds: data.categoryIds!,
+          subcategoryIds: data.subcategoryIds || [],
+          paymentMethods: data.paymentMethods as any,
+          shipping: data.shipping as any,
+          sellerId: currentUser.uid,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as Product;
 
         await this.servicoFirebase.add(novoProduto);
         await new Promise(r => setTimeout(r, 2000));

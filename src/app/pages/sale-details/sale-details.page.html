@@ -1,0 +1,101 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="page-container" *ngIf="!isLoading && sale">
+    
+    <!-- Status Card -->
+    <ion-card class="status-card">
+      <div class="status-header">
+        <ion-badge color="success" mode="ios">Venda Confirmada</ion-badge>
+        <span class="order-id">#{{ sale.id?.substring(0,8)?.toUpperCase() }}</span>
+      </div>
+      
+      <div class="status-selector">
+        <label>Status da Entrega</label>
+        <ion-select [(ngModel)]="shipmentStatus" (ionChange)="updateStatus()" interface="popover">
+          <ion-select-option value="PREPARING">Preparando Envio</ion-select-option>
+          <ion-select-option value="SHIPPED">Enviado / Em Trânsito</ion-select-option>
+          <ion-select-option value="DELIVERED">Entregue</ion-select-option>
+          <ion-select-option value="PROBLEM">Problema na entrega</ion-select-option>
+        </ion-select>
+      </div>
+    </ion-card>
+
+    <!-- Buyer Info -->
+    <div class="section-title">Dados do Comprador</div>
+    <ion-card class="info-card buyer-section">
+      <div class="user-main">
+        <ion-avatar>
+          <img src="assets/imagens/avatar-placeholder.png">
+        </ion-avatar>
+        <div class="user-names">
+          <h3>{{ sale.customerData.name }}</h3>
+          <p>{{ sale.customerData.email }}</p>
+        </div>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-item">
+          <ion-icon name="phone-portrait-outline"></ion-icon>
+          <span>{{ sale.customerData.phone }}</span>
+        </div>
+        <div class="contact-item">
+          <ion-icon name="document-text-outline"></ion-icon>
+          <span>CPF: {{ sale.customerData.cpf }}</span>
+        </div>
+      </div>
+    </ion-card>
+
+    <!-- Address -->
+    <div class="section-title">Endereço de Entrega</div>
+    <ion-card class="info-card address-section">
+      <div class="address-main">
+        <ion-icon name="location-outline" color="primary" class="main-icon"></ion-icon>
+        <div class="address-text">
+          <p class="street">{{ sale.addressData.street }}, {{ sale.addressData.number }}</p>
+          <p class="city">{{ sale.addressData.city }} - {{ sale.addressData.state }}</p>
+          <p class="zip">CEP: {{ sale.addressData.postalCode }}</p>
+        </div>
+      </div>
+      <ion-button expand="block" fill="clear" color="secondary" size="small" class="map-btn">
+        <ion-icon name="map-outline" slot="start"></ion-icon>
+        Ver no Google Maps
+      </ion-button>
+    </ion-card>
+
+    <!-- Items -->
+    <div class="section-title">Produtos Vendidos</div>
+    <div class="items-list">
+      <div *ngFor="let item of sale.items" class="product-mini-card">
+        <img [src]="item.productData.photoURL?.[0] || 'assets/imagens/placeholder.png'">
+        <div class="prod-info">
+          <span class="name">{{ item.productData.name }}</span>
+          <span class="qty">Qtd: {{ item.quantity }}</span>
+        </div>
+        <div class="prod-total">
+          {{ formatPrice(item.productData.price * item.quantity) }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-section">
+      <div class="row">
+        <span>Subtotal</span>
+        <span>{{ formatPrice(sale.total) }}</span>
+      </div>
+      <div class="row total">
+        <span>Sua Venda</span>
+        <span>{{ formatPrice(sale.total) }}</span>
+      </div>
+    </div>
+
+    <div style="height: 40px;"></div>
+
+  </div>
+
+  <div *ngIf="isLoading" class="ion-text-center ion-padding">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+</ion-content>

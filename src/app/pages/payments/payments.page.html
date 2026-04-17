@@ -1,0 +1,130 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding payments-content">
+  
+  <div class="header-section">
+    <h1 class="page-title">Pagamentos</h1>
+    <p class="subtitle">Gerencie seus cartões e formas de pagamento</p>
+  </div>
+
+  <!-- Meus Cartões (Visual) -->
+  <div class="cards-section">
+    <div class="section-header">
+      <h2>Meus Cartões</h2>
+      <ion-button fill="clear" size="small" (click)="addNewCard()" class="btn-add">
+        <ion-icon name="add" slot="start"></ion-icon>
+        Novo
+      </ion-button>
+    </div>
+
+    <div class="cards-slider">
+      <div class="payment-card" *ngFor="let card of cards" [style.background]="card.color" (click)="setDefault(card.id)">
+        <div class="card-chip"></div>
+        <div class="card-brand">
+          <img [src]="'assets/imagens/' + card.brand + '-logo.png'" [alt]="card.brand" *ngIf="false">
+          <!-- Fallback text while logo doesn't exist -->
+          <span class="brand-name">{{ card.brand | uppercase }}</span>
+        </div>
+        <div class="card-number">
+          <span>••••</span>
+          <span>••••</span>
+          <span>••••</span>
+          <span>{{ card.lastFour }}</span>
+        </div>
+        <div class="card-details">
+          <div class="detail-item">
+            <span class="label">Titular</span>
+            <span class="value">{{ card.holderName }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Validade</span>
+            <span class="value">{{ card.expiryDate }}</span>
+          </div>
+        </div>
+        <div class="default-badge" *ngIf="card.isDefault">
+          <ion-icon name="checkmark-circle"></ion-icon>
+          Padrão
+        </div>
+        
+        <ion-button fill="clear" class="btn-delete-card" (click)="$event.stopPropagation(); deleteCard(card.id)">
+          <ion-icon name="trash"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Outras Opções -->
+  <div class="options-section">
+    <div class="section-header">
+      <h2>Outras Formas</h2>
+    </div>
+
+    <div class="options-list">
+      <div class="option-item">
+        <div class="icon-box purple">
+          <ion-icon name="grid"></ion-icon>
+        </div>
+        <div class="option-info">
+          <h3>Pix</h3>
+          <p>Pagamento instantâneo</p>
+        </div>
+        <ion-icon name="chevron-forward" color="medium"></ion-icon>
+      </div>
+
+      <div class="option-item">
+        <div class="icon-box orange">
+          <ion-icon name="barcode"></ion-icon>
+        </div>
+        <div class="option-info">
+          <h3>Boleto Bancário</h3>
+          <p>Até 3 dias úteis para compensar</p>
+        </div>
+        <ion-icon name="chevron-forward" color="medium"></ion-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="secure-notice">
+    <ion-icon name="lock-closed"></ion-icon>
+    <p>Suas informações de pagamento são criptografadas e seguras.</p>
+  </div>
+
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" [initialBreakpoint]="0.8" [breakpoints]="[0, 0.8]">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-title>Novo Cartão</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isModalOpen = false">Fechar</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <div class="input-group full-width" style="margin-bottom: 12px;">
+          <label>Número do Cartão</label>
+          <input type="text" placeholder="1234 5678 9012 3456" [(ngModel)]="newCardData.number" class="custom-modal-input" />
+        </div>
+        <div class="input-group full-width" style="margin-bottom: 12px;">
+          <label>Nome no Cartão</label>
+          <input type="text" placeholder="Como impresso no cartão" [(ngModel)]="newCardData.holderName" class="custom-modal-input" />
+        </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+          <div class="input-group" style="flex: 1;">
+            <label>Validade</label>
+            <input type="text" placeholder="MM/AA" [(ngModel)]="newCardData.expiry" class="custom-modal-input" />
+          </div>
+          <div class="input-group" style="flex: 1;">
+            <label>CVV</label>
+            <input type="text" placeholder="123" [(ngModel)]="newCardData.ccv" class="custom-modal-input" />
+          </div>
+        </div>
+        <ion-button expand="block" color="success" (click)="saveNewCard()" style="margin-top: 20px;">
+          Salvar Cartão
+        </ion-button>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+</ion-content>

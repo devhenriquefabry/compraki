@@ -1,0 +1,69 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="ion-padding custom-bg">
+  <div class="orders-container">
+    
+    <div class="header-section">
+      <h1 class="page-title">Meus Pedidos</h1>
+      <p class="subtitle">Acompanhe suas compras e pagamentos</p>
+    </div>
+
+    <!-- Filtros de Status -->
+    <div class="status-filter">
+      <div class="filter-chip" [class.active]="filter === 'ALL'" (click)="setFilter('ALL')">Todos</div>
+      <div class="filter-chip" [class.active]="filter === 'PAID'" (click)="setFilter('PAID')">
+        <ion-icon name="checkmark-done-circle-outline"></ion-icon> Pagos
+      </div>
+      <div class="filter-chip" [class.active]="filter === 'PENDING'" (click)="setFilter('PENDING')">Pendentes</div>
+    </div>
+
+    <div *ngIf="isLoading" class="ion-text-center ion-padding">
+      <ion-spinner color="primary"></ion-spinner>
+    </div>
+
+    <div *ngIf="!isLoading && filteredOrders.length === 0" class="empty-state">
+      <ion-icon name="bag-handle-outline"></ion-icon>
+      <h3>Nenhum pedido encontrado</h3>
+      <p>Você ainda não realizou compras com este status.</p>
+      <ion-button fill="outline" shape="round" color="primary" routerLink="/tabs/tab2" class="ion-margin-top">
+        Ver Produtos
+      </ion-button>
+    </div>
+
+    <div class="orders-list">
+      <ion-card *ngFor="let order of filteredOrders" class="order-card">
+        <div class="order-header">
+          <div class="order-id">Pedido #{{ order.id?.substring(0, 8) }}</div>
+          <div class="order-status-badge" [ngClass]="order.status.toLowerCase()">
+            {{ getStatusLabel(order.status) }}
+          </div>
+        </div>
+
+        <div class="order-items">
+          <div *ngFor="let item of order.items" class="order-item">
+            <div class="item-img">
+              <img [src]="item.productData.photoURL?.[0] || 'assets/imagens/placeholder.png'" alt="Produto">
+            </div>
+            <div class="item-details">
+              <h4>{{ item.productData.name }}</h4>
+              <p>{{ item.quantity }}x &bull; {{ (item.productData.priceDiscounted || item.productData.price) | currency:'BRL':'R$ ':'1.2-2' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-footer">
+          <div class="order-date">
+            <ion-icon name="calendar-outline"></ion-icon>
+            {{ formatDate(order.createdAt) }}
+          </div>
+          <div class="order-total">
+            <small>Total:</small> <span>{{ order.total | currency:'BRL':'R$ ':'1.2-2' }}</span>
+          </div>
+        </div>
+      </ion-card>
+    </div>
+
+  </div>
+</ion-content>

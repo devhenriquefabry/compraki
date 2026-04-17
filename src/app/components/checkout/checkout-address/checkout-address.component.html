@@ -1,15 +1,30 @@
 <div class="section-title">Endereço de Entrega</div>
 <ion-card class="checkout-card">
-  <div class="address-content">
+  <div class="address-content" *ngIf="selectedAddress; else noAddress">
     <div class="icon-container">
       <ion-icon name="location" class="location-icon"></ion-icon>
     </div>
     <div class="address-text">
-      <p class="street">Rua João Silva, 123</p>
-      <p class="city">São Paulo - SP</p>
+      <p class="street">{{ selectedAddress.street }}, {{ selectedAddress.number }} <span *ngIf="selectedAddress.complement">, {{ selectedAddress.complement }}</span></p>
+      <p class="city">{{ selectedAddress.city }} - {{ selectedAddress.state }} | {{ selectedAddress.zipCode }}</p>
     </div>
     <div class="button-container">
-      <button class="btn-alterar">ALTERAR</button>
+      <button class="btn-alterar" (click)="alterarEndereco()">ALTERAR</button>
     </div>
   </div>
+  
+  <ng-template #noAddress>
+    <div class="address-content" style="padding: 16px;">
+      <div class="icon-container" style="background: rgba(121, 157, 80, 0.1);">
+        <ion-icon name="location" class="location-icon"></ion-icon>
+      </div>
+      <div class="address-text">
+        <p class="street">Nenhum endereço cadastrado</p>
+        <p class="city">Clique em adicionar para inserir um endereço</p>
+      </div>
+      <div class="button-container">
+        <button class="btn-alterar" (click)="alterarEndereco()">ADICIONAR</button>
+      </div>
+    </div>
+  </ng-template>
 </ion-card>

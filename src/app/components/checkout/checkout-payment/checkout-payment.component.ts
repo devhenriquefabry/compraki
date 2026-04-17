@@ -1,8 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-
+import { CommonModule } from '@angular/common';import { CheckoutStateService } from 'src/app/services/checkout-state.service';
 @Component({
   selector: 'app-checkout-payment',
   templateUrl: './checkout-payment.component.html',
@@ -12,10 +11,10 @@ import { CommonModule } from '@angular/common';
 })
 export class CheckoutPaymentComponent implements OnInit {
 
-  paymentMethod: string = 'credit';
+  // Removendo variaveis locais para usar direto o stateService
+  stateService = inject(CheckoutStateService);
 
   constructor() { }
 
   ngOnInit() { }
-
 }

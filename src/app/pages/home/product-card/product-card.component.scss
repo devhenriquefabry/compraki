@@ -1,73 +1,72 @@
 .container {
     display: flex;
-    justify-content: center;
-    align-items: center;
     flex-direction: column;
-    background-color:white;
-    height: 200px;
-    padding: 5px 15px;
-    max-width: calc(45vw - 10px);
-    border: 2px solid var(--cor-principal);
+    background-color: white;
+    min-height: 280px; // Aumentado para acomodar o botão e info sem aperto
+    padding: 15px;
+    max-width: calc(50vw - 20px);
+    border: 1px solid #f0f0f0; // Borda mais suave conforme o mockup
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     overflow: hidden;
+    position: relative;
 
-    img{
-        height: 47%;
-        width: auto;
-        order: 1;
+    img {
+        height: 120px;
+        width: 100%;
+        object-fit: contain;
+        margin-bottom: 12px;
     }
-
 }
 
-.data-container{
+.data-container {
     display: flex;
-    justify-content: start;
-    align-items: start;
     flex-direction: column;
-    height: 47% !important;
-    order: 2;
+    flex-grow: 1; // Ocupa o espaço disponível
     color: var(--cor-principal) !important;
-    font-size: 8px;
     width: 100%;
 }
 
 .titleProduct {
     font-size: 13px;
-    font-weight: 300;
+    font-weight: 700; // Aumentado para melhor legibilidade
     color: var(--cor-secundaria);
     width: 100%;
-    height: 33.3%;
+    height: 36px; // Altura fixa para 2 linhas de texto
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
 }
 
 .prices {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: baseline;
-    flex-direction: row;
-    height: 33.3%;
-    width: 100%;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
 .priceProduct {
-    display: flex;
-    font-size: 17px;
-    font-weight: bold;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--cor-principal);
 }
 
 .priceDiscounted {
-    display: flex;
-    font-size: 10px;
-    color: #00000050;
+    font-size: 11px;
+    color: #999;
     text-decoration: line-through;
-    margin: 0 10px;
 }
 
-.bottom-container{
+.bottom-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-direction: row;
-    width: 100%;
-    height: 33.3%;
+    margin-top: auto; // Empurra para o fundo antes do botão
+    padding-bottom: 8px;
 
     .sold-count{
         color: black;
@@ -86,7 +85,11 @@
 
 }
 
-    .enviar{
-        order: 3;
+    .enviar {
+        margin: 0;
+        --border-radius: 12px;
         --background: var(--cor-principal);
+        font-weight: 800;
+        font-size: 12px;
+        width: 100%;
     }

@@ -1,8 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { Notifications } from 'src/app/interfaces/notifications';
-import { Product } from 'src/app/interfaces/product';
 import { User } from 'firebase/auth';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
+import { NavController } from '@ionic/angular';
 
 @Component({
   selector: 'app-my-account',
@@ -14,6 +13,7 @@ export class MyAccountPage implements OnInit {
 
   public usuario!: User | null;
   public firebaseService = inject(FirebaseProducts);
+  private navCtrl = inject(NavController);
 
   constructor() { }
 
@@ -21,6 +21,14 @@ export class MyAccountPage implements OnInit {
     setInterval(() => {
       this.usuario = this.firebaseService.getUser();
     }, 1000);
+  }
+
+  goToAddress() {
+    this.navCtrl.navigateForward('/address');
+  }
+
+  goToPayments() {
+    this.navCtrl.navigateForward('/payments');
   }
 
   logout() {

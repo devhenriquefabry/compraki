@@ -265,7 +265,18 @@
 
     .prod-info {
         margin-top: 12px;
-      .name { margin: 0; font-size: 13px; color: #333; font-weight: 600; height: 32px; overflow: hidden; }
+      .name { 
+        margin: 0; 
+        font-size: 13px; 
+        color: #333; 
+        font-weight: 700; 
+        height: 38px; 
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden; 
+      }
       .price-row {
         margin-top: 8px;
         .curr-price { color: #799d50; font-weight: 800; font-size: 16px; margin-right: 5px; }
@@ -322,7 +333,17 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      .h-name { font-size: 11px; font-weight: bold; color: #333; }
+      .h-name { 
+        font-size: 12px; 
+        font-weight: 700; 
+        color: #333;
+        height: 34px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
       .h-price { color: #799d50; font-weight: 800; font-size: 13px; }
       .btn-comprar-mini {
         background: #799d50; color: white; border: none; font-size: 9px; font-weight: bold; padding: 2px 8px; border-radius: 10px;
@@ -566,8 +587,8 @@
         font-size: 14px;
         font-weight: 700;
         color: #1e2d3e;
-        line-height: 1.3;
-        height: 36px;
+        line-height: 1.4;
+        height: 40px;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;

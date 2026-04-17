@@ -10,12 +10,12 @@
         <div class="order-details">
           <h3>{{ item.productData.name }}</h3>
           <div class="price-qty">
-            <span class="price-green">{{ (item.productData.priceDiscounted || item.productData.price) | currency:'BRL':'R$ ':'1.2-2' }}</span>
+            <span class="price-green">{{ getFinalPrice(item) | currency:'BRL':'R$ ':'1.2-2' }}</span>
             <span class="qty"> &bull; Qtd: {{ item.quantity }}</span>
           </div>
         </div>
         <div class="order-total">
-          {{ ((item.productData.priceDiscounted || item.productData.price) * item.quantity) | currency:'BRL':'R$ ':'1.2-2' }}
+          {{ (getFinalPrice(item) * item.quantity) | currency:'BRL':'R$ ':'1.2-2' }}
         </div>
       </div>
     </ion-card>

@@ -8,13 +8,14 @@ import { send, personCircle } from 'ionicons/icons';
 import { Subscription } from 'rxjs';
 import { FirebaseChatService } from '../../services/firebase-chat.service';
 import { ChatRoom, ChatMessage, ChatParticipant } from '../../interfaces/chat';
+import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
 
 @Component({
   selector: 'app-chat-details',
   templateUrl: './chat-details.page.html',
   styleUrls: ['./chat-details.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, IonFooter, IonInput, IonButton, IonIcon, IonAvatar, IonSpinner]
+  imports: [CommonModule, FormsModule, IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, IonFooter, IonInput, IonButton, IonIcon, IonAvatar, IonSpinner, MiniHeaderComponent]
 })
 export class ChatDetailsPage implements OnInit, OnDestroy {
   @ViewChild(IonContent, { static: false }) content!: IonContent;

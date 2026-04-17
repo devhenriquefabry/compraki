@@ -19,4 +19,15 @@ export class CheckoutOrderSummaryComponent implements OnInit {
 
   ngOnInit() {}
 
+  getOriginalPrice(item: CartItem): number {
+    return Math.max(item.productData.price, item.productData.priceDiscounted || 0);
+  }
+
+  getFinalPrice(item: CartItem): number {
+    return item.productData.priceDiscounted 
+      ? Math.min(item.productData.price, item.productData.priceDiscounted) 
+      : item.productData.price;
+  }
+
 }
+

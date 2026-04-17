@@ -31,7 +31,7 @@ export class FirebaseUsersService {
    * Ao utilizar `{ merge: true }`, o Firebase não sobrescreve os dados (como nome trocado, 
    * ou um campo super_admin flag), caso o documento já exista.
    */
-  async ensureAppUserDocument(user: User): Promise<void> {
+  async ensureAppUserDocument(user: User, extraData?: Partial<AppUser>): Promise<void> {
     try {
       if (!user.uid) return;
 
@@ -40,9 +40,13 @@ export class FirebaseUsersService {
       const payload: Partial<AppUser> = {
         uid: user.uid,
         email: user.email,
-        displayName: user.displayName || 'Novo Usuário',
+        displayName: extraData?.displayName || user.displayName || 'Novo Usuário',
         photoURL: user.photoURL || null,
-        lastLoginAt: serverTimestamp()
+        phoneNumber: extraData?.phoneNumber || user.phoneNumber || null,
+        cpf: extraData?.cpf || null,
+        isSeller: true,
+        lastLoginAt: serverTimestamp(),
+        ...extraData
       };
 
       // Cria ou Executa Merge
@@ -52,6 +56,19 @@ export class FirebaseUsersService {
     } catch (e) {
       console.error("Erro no espelhamento passivo do usuário Firestore:", e);
     }
+  }
+
+  /**
+   * Puxa os dados de um usuário específico do Firestore.
+   */
+  async getUserById(uid: string): Promise<AppUser | null> {
+    const { getDoc } = await import('firebase/firestore');
+    const userRef = doc(this.db, 'users', uid);
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+      return snap.data() as AppUser;
+    }
+    return null;
   }
 
   /**

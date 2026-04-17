@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
 
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 
@@ -29,7 +30,8 @@ apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
    provideFirebaseApp(() => initializeApp(firebaseConfig)),
-  provideFirestore(() => getFirestore()), // Deixe o AngularFire gerenciar a criação básica
+  provideFirestore(() => getFirestore()),
+  provideHttpClient(),
   ],
   bootstrap: [AppComponent],
 })

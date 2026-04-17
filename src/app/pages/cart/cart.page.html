@@ -1,5 +1,6 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar>
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+  <ion-toolbar class="title-toolbar">
     <ion-title>Carrinho</ion-title>
     <ion-button
       *ngIf="cartItems.length > 0"

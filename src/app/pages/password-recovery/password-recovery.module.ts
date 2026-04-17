@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { PasswordRecoveryPageRoutingModule } from './password-recovery-routing.module';
 
 import { PasswordRecoveryPage } from './password-recovery.page';
+import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    PasswordRecoveryPageRoutingModule
+    PasswordRecoveryPageRoutingModule,
+    MiniHeaderComponent
   ],
   declarations: [PasswordRecoveryPage]
 })
