@@ -3,8 +3,11 @@ import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
+import { addIcons } from 'ionicons';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
+import { AddressService } from 'src/app/services/address.service';
+import { AppAddress } from 'src/app/interfaces/app-user';
 
 @Component({
   selector: 'app-sign-in-form',
@@ -15,8 +18,9 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
 })
 
 export class SignInFormComponent implements OnInit {
-
-  public formularioValido: boolean = false
+  public currentStep: number = 1;
+  public totalSteps: number = 3;
+  public formularioValido: boolean = false;
 
   signInForm = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -25,35 +29,102 @@ export class SignInFormComponent implements OnInit {
     phone: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     password: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     repeatPassword: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-
-
-
+    
+    // Address fields
+    cep: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(8)] }),
+    street: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    number: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    complement: new FormControl('', { nonNullable: true }),
+    neighborhood: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    city: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    state: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   })
-  constructor(public firebaseProducts: FirebaseProducts) { }
+
+  constructor(public firebaseProducts: FirebaseProducts, private addressService: AddressService) { }
 
 
   ngOnInit() {
-    this.signInForm.valid
     this.signInForm.valueChanges.subscribe(() => {
-      if (this.signInForm.valid) {
-        this.formularioValido = true
+      this.formularioValido = this.signInForm.valid;
+    });
+
+    // Restaurando observador de CEP
+    this.signInForm.get('cep')?.valueChanges.subscribe(cep => {
+      const cleanCep = cep?.replace(/\D/g, '') || '';
+      if (cleanCep.length === 8) {
+        this.fillAddressFromCEP(cleanCep);
       }
-      else {
-        this.formularioValido = false
+    });
+  }
+
+  isStepValid(step: number): boolean {
+    const f = this.signInForm;
+    switch (step) {
+      case 1:
+        return f.get('name')!.valid && f.get('email')!.valid && 
+               f.get('cpf')!.valid && f.get('phone')!.valid;
+      case 2:
+        return f.get('password')!.valid && f.get('repeatPassword')!.valid &&
+               f.get('password')!.value === f.get('repeatPassword')!.value;
+      case 3:
+        return f.get('cep')!.valid && f.get('street')!.valid && 
+               f.get('number')!.valid && f.get('neighborhood')!.valid && 
+               f.get('city')!.valid && f.get('state')!.valid;
+      default:
+        return false;
+    }
+  }
+
+  nextStep() {
+    if (this.currentStep < this.totalSteps && this.isStepValid(this.currentStep)) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.currentStep--;
+    }
+  }
+
+  async fillAddressFromCEP(cep: string) {
+    try {
+      const data = await this.addressService.getCEP(cep);
+      if (data) {
+        this.signInForm.patchValue({
+          street: data.logradouro,
+          neighborhood: data.bairro,
+          city: data.localidade,
+          state: data.uf
+        });
       }
-      console.log(this.signInForm.value)
-    })
+    } catch (e) {
+      console.error('Erro ao buscar CEP no formulário:', e);
+    }
   }
 
   callSignInFunction() {
-    if (this.signInForm.valid) {
-      if (this.signInForm.value.email && this.signInForm.value.password && this.signInForm.value.name) {
+    const form = this.signInForm.value;
+    if (this.signInForm.valid && this.isStepValid(3)) {
+      if (form.email && form.password && form.name) {
+        
+        const address: AppAddress = {
+          cep: form.cep!,
+          street: form.street!,
+          number: form.number!,
+          complement: form.complement,
+          neighborhood: form.neighborhood!,
+          city: form.city!,
+          state: form.state!
+        };
+
         this.firebaseProducts.signIn(
-          this.signInForm.value.email, 
-          this.signInForm.value.password,
-          this.signInForm.value.name,
-          this.signInForm.value.cpf,
-          this.signInForm.value.phone
+          form.email, 
+          form.password,
+          form.name,
+          form.cpf,
+          form.phone,
+          address
         ).then((salvouNoFirebaseMesmo) => {
           if (salvouNoFirebaseMesmo === true) {
             this.signInForm.reset()

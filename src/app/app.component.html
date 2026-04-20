@@ -36,12 +36,6 @@
           </ion-item>
         </ion-menu-toggle>
 
-        <ion-menu-toggle auto-hide="false">
-          <ion-item button [routerLink]="['/product-details']" routerLinkActive="active-item">
-            <ion-icon name="information-circle-outline" slot="start"></ion-icon>
-            <ion-label>Detalhes do Produto</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
 
         <ion-list-header>VENDAS E COMPRAS</ion-list-header>
         <ion-menu-toggle auto-hide="false">
@@ -117,7 +111,29 @@
         </ion-menu-toggle>
 
 
+        <ion-list-header>ADMINISTRAÇÃO</ion-list-header>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/dev-products']" routerLinkActive="active-item">
+            <ion-icon name="cube-outline" slot="start"></ion-icon>
+            <ion-label>Gestão de Inventário</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/manage-chats']" routerLinkActive="active-item">
+            <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+            <ion-label>Moderação de Chats</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
         <ion-list-header>DESENVOLVEDOR</ion-list-header>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button [routerLink]="['/bots']" routerLinkActive="active-item">
+            <ion-icon name="rocket-outline" slot="start"></ion-icon>
+            <ion-label>Central de Bots</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+
         <ion-menu-toggle auto-hide="false">
           <ion-item button [routerLink]="['/webhook-tester']" routerLinkActive="active-item">
             <ion-icon name="flask-outline" slot="start"></ion-icon>
@@ -140,7 +156,7 @@
     <ion-footer class="ion-no-border sidebar-footer" *ngIf="usuario">
       <ion-item lines="none" class="user-profile">
         <ion-avatar slot="start">
-          <img [src]="usuario.photoURL || 'assets/imagens/avatar-placeholder.png'" alt="User">
+          <img [src]="usuario.photoURL || 'https://ionicframework.com/docs/img/demos/avatar.svg'" alt="User">
         </ion-avatar>
         <ion-label>
           <h3>{{ usuario.displayName || 'Usuário' }}</h3>

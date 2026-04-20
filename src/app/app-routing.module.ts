@@ -27,8 +27,8 @@ const routes: Routes = [
     loadChildren: () => import('./pages/notifications/notifications.module').then(m => m.NotificationsPageModule)
   },
   {
-    path: 'product-details',
-    loadChildren: () => import('./pages/product-details/product-details.module').then(m => m.ProductDetailsPageModule)
+    path: 'product-details/:id',
+    loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage)
   },
   {
     path: 'home',
@@ -97,7 +97,19 @@ const routes: Routes = [
   {
     path: 'product-admin/:id',
     loadChildren: () => import('./pages/product-admin/product-admin.module').then( m => m.ProductAdminPageModule)
+  },  {
+    path: 'bots',
+    loadChildren: () => import('./pages/bots/bots.module').then( m => m.BotsPageModule)
+  },
+  {
+    path: 'dev-products',
+    loadChildren: () => import('./pages/dev-products/dev-products.module').then( m => m.DevProductsPageModule)
+  },
+  {
+    path: 'manage-chats',
+    loadComponent: () => import('./pages/manage-chats/manage-chats.page').then( m => m.ManageChatsPage)
   }
+
 ];
 
 @NgModule({

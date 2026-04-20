@@ -1,6 +1,6 @@
 .logoCompraki {
-    width: 300px;
-    padding: 20px;
+    width: 260px;
+    padding: 10px;
 }
 
 .containerLogin {
@@ -10,47 +10,97 @@
     align-items: center;
     justify-content: center;
     width: 100vw;
-    height: 100vh;
-
+    min-height: 100vh;
+    padding: 20px 0;
 }
 
-
-
 .formuLogin {
-
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     text-align: center;
     background-color: #182E3C;
     width: 90%;
-    min-height: 60%;
+    max-width: 450px;
+    min-height: 500px;
     border-radius: 20px;
-    padding: 30px 35px;
+    padding: 25px 30px;
     position: relative;
-    gap: 8px;
+    gap: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 h2 {
-    top: 5px;
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 10px 0;
+    letter-spacing: 1px;
 }
 
-.camposForm {
-    background-color: transparent;
+/* PROGRESS BAR / STEPS */
+.steps-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 10px;
+
+    .step-bubble {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: #2c4a63;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        z-index: 2;
+
+        &.active {
+            background: var(--cor-principal);
+            box-shadow: 0 0 15px var(--cor-principal);
+        }
+
+        &.completed {
+            background: var(--cor-principal);
+            
+            ion-icon {
+                font-size: 20px;
+            }
+        }
+    }
+
+    .step-line {
+        flex: 1;
+        height: 3px;
+        background: #2c4a63;
+        margin: 0 -5px;
+        transition: all 0.3s ease;
+        z-index: 1;
+
+        &.active {
+            background: var(--cor-principal);
+        }
+    }
+}
+
+.step-content {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    width: 80%;
-    height: 10%;
-    padding: 10px;
-    border-radius: 10px;
-    border-color: rgba(240, 248, 255, 0.596);
-    border-width: 2px;
-
+    gap: 10px;
+    animation: fadeIn 0.4s ease-out;
 }
 
-
-
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 .input-container {
     display: flex;
@@ -59,86 +109,91 @@ h2 {
     flex-direction: row !important;
     width: 100%;
     position: relative;
-    margin: 5px 0;
+    margin: 2px 0;
 
     ion-icon {
         display: flex;
-
         position: absolute;
         left: 15px;
+        z-index: 10;
+        color: var(--cor-principal);
     }
 }
 
 ion-input {
-    --border-width: 3px;
-    --highlight-border-width: 5px;
+    --border-width: 2px;
+    --highlight-border-width: 3px;
     --border-color: #ffffff52 !important;
     --highlight-color: var(--cor-principal);
-    --padding-start: 50px !important;
+    --padding-start: 45px !important;
+    --color: white;
     text-align: start;
     margin: 0;
+    width: 100%;
+    font-size: 0.95rem;
+}
+
+.navigation-buttons {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    margin-top: 15px;
+
+    .btn-back {
+        --color: #ffffff99;
+        font-weight: 600;
+        flex: 1;
+    }
+
+    .submitButton {
+        flex: 2;
+    }
+}
+
+.submitButton {
+    --background: var(--cor-principal);
+    --border-radius: 8px;
+    font-weight: 700;
+    margin: 0;
+    height: 48px;
+    width: 100%;
+}
+
+.submitButtonGoogle {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 48px;
+    
+    --background: #fff;
+    --color: #333;
+    --border-radius: 8px;
+    font-weight: 600;
+
+    img {
+        width: 18px;
+        margin-right: 12px;
+    }
+}
+
+.textos {
+    color: #ffffffb3;
+    font-size: 0.85rem;
+    margin: 5px 0;
 }
 
 .text-green {
     color: var(--cor-principal);
+    font-weight: 600;
 }
 
-ion-button {
-    width: 100%;
-    --border-radius: 5px !important;
-}
-
-ion-icon {
-    color: var(--cor-principal);
-}
-
-hr{
+hr {
     width: 100%;
     height: 1px;
-    background-color: #ffffff;
-}
-
-
-.submitButton{
-    --background: var(--cor-principal) ;
-    margin-top: 15px;
-    margin-bottom: 5px;
-}
-
-.submitButtonGoogle{
-    margin-top: 5px;
-    margin-bottom: 15px;
-    display: flex ;
-    opacity: 1;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: center; 
-    align-items: center;
-    width: 100%;
-    
-    --background: var(--cor-secundaria);
-    --color: #fefefe;
-    --highlight-border-width: 5px;
-    --border-style: solid;
-    --border-color: #ffffff52;
-    --border-radius:5px;
-    --border-width: solid;
-
-    img {
-        display: flex;
-        flex-direction: row !important;
-        justify-content: center;
-        align-items: center;
-        width: 15px;
-        margin: 0 10px;
-    }
-}
-
-
-
-.signInButton{
-    --border-radius: 5px;
-    --color: var(--cor-principal);
-    --border-color: var(--cor-principal);
-    --border-width: 3px;
+    background-color: rgba(255,255,255,0.1);
+    border: none;
+    margin: 10px 0;
 }

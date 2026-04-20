@@ -5,9 +5,19 @@ import { Router } from '@angular/router';
 import { FirebaseProducts } from './services/firebase-products';
 import { User } from 'firebase/auth';
 import { addIcons } from 'ionicons';
-import { openOutline, heart, heartOutline } from 'ionicons/icons';
+import { 
+  openOutline, heart, heartOutline, searchOutline, 
+  informationCircleOutline, cartOutline, chatbubblesOutline, 
+  addCircleOutline, cubeOutline, cashOutline, createOutline, 
+  listOutline, personOutline, bagCheckOutline, keyOutline, 
+  rocketOutline, flaskOutline, logOutOutline,
+  person, mail, documentText, phonePortrait, lockClosed, 
+  map, location, business, addCircle, navigate, flag, checkmark,
+  serverOutline, closeOutline
+} from 'ionicons/icons';
 
 import { NotificationService } from './services/notification.service';
+import { PresenceService } from './services/presence.service';
 
 @Component({
   selector: 'app-root',
@@ -19,6 +29,7 @@ export class AppComponent implements OnInit {
   public usuario! : User | null;
   private fbProducts = inject(FirebaseProducts);
   private notifyService = inject(NotificationService);
+  private presenceService = inject(PresenceService); // Inicializa o rastreamento global
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
   
   showSplash: boolean;
@@ -33,7 +44,40 @@ export class AppComponent implements OnInit {
     const jaExibiu = sessionStorage.getItem('compraki_splash_done');
     this.showSplash = !jaExibiu;
 
-    addIcons({ openOutline, heart, heartOutline });
+    addIcons({ 
+      'open-outline': openOutline,
+      'heart': heart,
+      'heart-outline': heartOutline,
+      'search-outline': searchOutline, 
+      'information-circle-outline': informationCircleOutline, 
+      'cart-outline': cartOutline, 
+      'chatbubbles-outline': chatbubblesOutline, 
+      'add-circle-outline': addCircleOutline, 
+      'cube-outline': cubeOutline, 
+      'cash-outline': cashOutline, 
+      'create-outline': createOutline, 
+      'list-outline': listOutline, 
+      'person-outline': personOutline, 
+      'bag-check-outline': bagCheckOutline, 
+      'key-outline': keyOutline, 
+      'rocket-outline': rocketOutline, 
+      'flask-outline': flaskOutline, 
+      'log-out-outline': logOutOutline,
+      'person': person,
+      'mail': mail,
+      'document-text': documentText,
+      'phone-portrait': phonePortrait,
+      'lock-closed': lockClosed,
+      'map': map,
+      'location': location,
+      'business': business,
+      'add-circle': addCircle,
+      'navigate': navigate,
+      'flag': flag,
+      'checkmark': checkmark,
+      'server-outline': serverOutline,
+      'close-outline': closeOutline
+    });
     this.initializeApp();
     this.notifyService.initOrderListener();
   }

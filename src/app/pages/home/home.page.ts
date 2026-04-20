@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { ProductDetailsPage } from '../product-details/product-details.page';
@@ -29,7 +30,9 @@ export class HomePage implements OnInit {
 
 
   ngOnInit() {
-    this.products$ = this.servicoDeProdutosDoFirebase.getAll()
+    this.products$ = this.servicoDeProdutosDoFirebase.getAll().pipe(
+      map(products => products.filter(p => (p.stock || 0) > 0))
+    );
     
     // Atualização do usuário
     setInterval(()=>{
@@ -42,7 +45,7 @@ export class HomePage implements OnInit {
 
 sendProductToDetailPage(product: Product) { // Receba o objeto Product diretamente
   this.selectionService.setSelectedProduct(product);
-  this.router.navigate(['/product-details']);
+  this.router.navigate(['/product-details', product.id]);
 } 
 
 logout(){

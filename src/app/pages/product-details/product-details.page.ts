@@ -1,29 +1,53 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
-import { Observable, Subject, combineLatest } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
+import { Observable, Subject, combineLatest, from, of } from 'rxjs';
+import { map, switchMap, takeUntil } from 'rxjs/operators';
+import { 
+  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, 
+  IonFooter, IonButton, IonIcon, IonModal, IonCard, IonSpinner, IonImg, IonText, IonThumbnail, IonLabel, IonItem
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart } from 'ionicons/icons';
+
 import { Product } from 'src/app/interfaces/product';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { FirebaseCartService } from 'src/app/services/firebase-cart.service';
 import { FirebaseSavedService } from 'src/app/services/firebase-saved.service';
-import { addIcons } from 'ionicons';
-import { heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline } from 'ionicons/icons';
+import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
+import { AppUser } from 'src/app/interfaces/app-user';
+
+import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
+import { ProductSelectorComponent } from 'src/app/components/product-selector/product-selector.component';
+import { ChatBoxComponent } from 'src/app/components/chat-box/chat-box.component';
 
 @Component({
   selector: 'app-product-details',
   templateUrl: './product-details.page.html',
   styleUrls: ['./product-details.page.scss'],
-  standalone: false
+  standalone: true,
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, 
+    IonFooter, IonButton, IonIcon, IonModal, IonCard, IonSpinner, 
+    MiniHeaderComponent, ProductSelectorComponent, ChatBoxComponent
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
-export class ProductDetailsPage implements OnInit {
+export class ProductDetailsPage implements OnInit, OnDestroy {
   public product$: Observable<Product | null>;
   public allProducts$: Observable<Product[]>;
+  public seller$: Observable<AppUser | null>;
   public cartQuantity$: Observable<number>;
   public isSaved = false;
   private destroy$ = new Subject<void>();
 
+  public isChatOpen = false;
+  public activeChatId = '';
 
   constructor(
     private selectionService: ProductSelectionService, 
@@ -31,14 +55,33 @@ export class ProductDetailsPage implements OnInit {
     private fbProducts: FirebaseProducts,
     private chatService: FirebaseChatService,
     private cartService: FirebaseCartService,
-    private savedService: FirebaseSavedService
+    private savedService: FirebaseSavedService,
+    private fbUsers: FirebaseUsersService,
+    private route: ActivatedRoute
   ) {
-    addIcons({ heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline });
-    // Liga a variável local ao Observable do serviço
-    this.product$ = this.selectionService.selectedProduct$;
+    addIcons({ heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart });
+    
+    this.product$ = this.route.params.pipe(
+      switchMap(params => {
+        const id = params['id'];
+        if (id) {
+          return this.fbProducts.getById(id);
+        }
+        return this.selectionService.selectedProduct$;
+      })
+    );
+
     this.allProducts$ = this.fbProducts.getAll();
 
-    // Monitorar a quantidade deste produto no carrinho
+    this.seller$ = this.product$.pipe(
+      switchMap(p => {
+        if (p && p.sellerId) {
+          return from(this.fbUsers.getUserById(p.sellerId));
+        }
+        return of(null);
+      })
+    );
+
     this.cartQuantity$ = combineLatest([
       this.product$,
       this.cartService.getAllCartItems()
@@ -57,16 +100,16 @@ export class ProductDetailsPage implements OnInit {
   }
 
   ngOnInit() {
-    // Monitorar se o produto está salvo
-    this.product$.subscribe(async p => {
+    this.product$.pipe(takeUntil(this.destroy$)).subscribe(async p => {
       if (p && p.id) {
+        this.selectionService.setSelectedProduct(p);
         this.isSaved = await this.savedService.isProductSaved(p.id);
       }
     });
   }
 
   public onProductSelect(productId: string) {
-    this.allProducts$.subscribe(products => {
+    this.allProducts$.pipe(takeUntil(this.destroy$)).subscribe(products => {
       const selected = products.find(p => p.id === productId);
       if (selected) {
         this.selectionService.setSelectedProduct(selected);
@@ -77,7 +120,7 @@ export class ProductDetailsPage implements OnInit {
   public async startChat(product: Product) {
     if (!product.sellerId) {
       console.error("Produto sem vendedor definido.");
-      return; // Could show a toast here
+      return; 
     }
 
     try {
@@ -85,10 +128,16 @@ export class ProductDetailsPage implements OnInit {
          { uid: product.sellerId, name: 'Vendedor do Anúncio' },
          { id: product.id!, name: product.name, photo: product.photoURL?.[0] }
       );
-      this.router.navigate(['/chat-details', chatId]);
+      this.activeChatId = chatId;
+      this.isChatOpen = true;
     } catch (e) {
        console.error("Falha ao iniciar chat", e);
     }
+  }
+
+  public closeChat() {
+    this.isChatOpen = false;
+    this.activeChatId = '';
   }
 
   public async goToCheckout() {
@@ -130,4 +179,3 @@ export class ProductDetailsPage implements OnInit {
     return price || priceDiscounted;
   }
 }
-

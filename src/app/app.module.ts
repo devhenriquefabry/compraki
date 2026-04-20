@@ -1,18 +1,23 @@
-import { NgModule } from '@angular/core';
+import { LOCALE_ID, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
+import { registerLocaleData } from '@angular/common';
+import localePt from '@angular/common/locales/pt';
+
+registerLocaleData(localePt);
 
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import {provideFirebaseApp, initializeApp} from '@angular/fire/app'
+import { provideFirebaseApp, initializeApp } from '@angular/fire/app'
 import { environment } from 'src/environments/environment.prod';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 const firebaseConfig = {
-apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
+  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
   authDomain: "compraki-mcu.firebaseapp.com",
+  databaseURL: "https://compraki-mcu-default-rtdb.firebaseio.com",
   projectId: "compraki-mcu",
   storageBucket: "compraki-mcu.firebasestorage.app",
   messagingSenderId: "2028715763",
@@ -25,14 +30,15 @@ apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
 @NgModule({
   declarations: [AppComponent],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule,
-    
+
   ],
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
-   provideFirebaseApp(() => initializeApp(firebaseConfig)),
-  provideFirestore(() => getFirestore()),
-  provideHttpClient(),
+    { provide: LOCALE_ID, useValue: 'pt-BR' },
+    provideFirebaseApp(() => initializeApp(firebaseConfig)),
+    provideFirestore(() => getFirestore()),
+    provideHttpClient(),
   ],
   bootstrap: [AppComponent],
 })
-export class AppModule {}
+export class AppModule { }

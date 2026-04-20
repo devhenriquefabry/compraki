@@ -72,7 +72,7 @@ export class ChatDetailsPage implements OnInit, OnDestroy {
     this.newMessage = ''; // optimistic clear
     
     try {
-      await this.chatService.sendMessage(this.chatId, text);
+      await this.chatService.sendMessage(this.chatId, { text, type: 'text' });
       this.scrollToBottom();
     } catch(e) {
       console.error("Failed to send message", e);

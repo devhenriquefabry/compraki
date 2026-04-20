@@ -1,0 +1,104 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="dark">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title class="poppins">Central de Bots</ion-title>
+    <ion-badge slot="end" [color]="currentStatus.status === 'running' ? 'success' : 'medium'" class="ion-margin-end">
+      {{ currentStatus.status | uppercase }}
+    </ion-badge>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding bots-bg">
+
+  <div class="bots-grid">
+    <!-- DISPONÍVEIS -->
+    <div class="section-container">
+      <h3>ROBÔS DISPONÍVEIS</h3>
+      <div class="bot-cards">
+        <ion-card *ngFor="let bot of availableBots" class="bot-card">
+          <ion-item lines="none" class="bot-card-header">
+            <ion-icon [name]="bot.icon" slot="start" color="success"></ion-icon>
+            <ion-label>
+              <h2 class="poppins">{{ bot.name }}</h2>
+              <p>AGENTE AUTÔNOMO V1.2</p>
+            </ion-label>
+          </ion-item>
+          <ion-card-content>
+            <p>{{ bot.description }}</p>
+            <div class="config-params" *ngIf="bot.config.keyword !== undefined">
+              <ion-input label="Palavra-chave (Vazio = Aleatório IA)" placeholder="Ex: iPhone 15" [(ngModel)]="bot.config.keyword" fill="solid" label-placement="floating"></ion-input>
+            </div>
+            <div class="config-params">
+              <ion-input label="Repetições (Vazio = Auto)" type="number" placeholder="Digite a quantidade" [(ngModel)]="bot.config.count" fill="solid" label-placement="floating"></ion-input>
+            </div>
+            <ion-button expand="block" color="success" (click)="addToQueue(bot)" class="btn-premium">
+              ADICIONAR À FILA
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+
+    <!-- FILA E STATUS -->
+    <div class="section-container sticky-panel">
+      
+      <div class="status-panel" [class.running]="currentStatus.status === 'running'">
+        <div class="status-header">
+          <ion-spinner *ngIf="currentStatus.status === 'running'" name="crescent"></ion-spinner>
+          <span class="poppins">{{ currentStatus.message }}</span>
+        </div>
+        
+        <div class="queue-list-container" *ngIf="queue.length > 0">
+          <h4><ion-icon name="list-outline"></ion-icon> FILA DE EXECUÇÃO</h4>
+          
+          <div class="queue-list">
+            <ion-item *ngFor="let item of queue; let i = index" lines="full">
+              <ion-icon [name]="item.icon" slot="start" size="small"></ion-icon>
+              <ion-label>
+                <span style="font-weight: 700;">{{ item.name }}</span>
+                <p style="font-size: 0.7rem;">{{ item.config.count || 1 }} repetições</p>
+              </ion-label>
+              <ion-button slot="end" fill="clear" color="danger" (click)="removeFromQueue(i)">
+                <ion-icon name="trash-outline"></ion-icon>
+              </ion-button>
+            </ion-item>
+          </div>
+
+          <div class="execution-mode-container">
+            <ion-label>MODO DE SEQUENCIAMENTO</ion-label>
+            <ion-segment [(ngModel)]="executionMode" mode="ios">
+              <ion-segment-button value="batch">
+                <ion-label>Lote</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="alternate">
+                <ion-label>Alternado</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+          </div>
+
+          <ion-button expand="block" color="success" (click)="runCascade()" class="btn-premium">
+            <ion-icon name="play-outline" slot="start"></ion-icon>
+            INICIAR CASCATA
+          </ion-button>
+        </div>
+      </div>
+
+      <div class="logs-container">
+        <div class="logs-header">
+          <h3>TERMINAL INTERATIVO</h3>
+          <ion-button fill="clear" size="small" color="success" (click)="clearLogs()">LIMPAR</ion-button>
+        </div>
+        <div class="logs-window" #scrollMe [scrollTop]="scrollMe.scrollHeight">
+          <div *ngFor="let log of logs" class="log-line">
+            {{ log }}
+          </div>
+          <div *ngIf="logs.length === 0" class="empty-logs">O robô está aguardando ordens...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</ion-content>

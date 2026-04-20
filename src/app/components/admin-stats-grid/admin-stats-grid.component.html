@@ -1,0 +1,107 @@
+<!-- DASHBOARD STATS HERO -->
+<div class="section-title poppins" *ngIf="!isLoading">Visão Geral de Inventário</div>
+<div class="stats-hero-grid" *ngIf="!isLoading">
+  <div class="stat-card animate-up">
+    <ion-icon name="cube-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Itens Totais</p>
+      <h3>{{ stats.totalItems }}</h3>
+    </div>
+  </div>
+  
+  <div class="stat-card animate-up" style="animation-delay: 0.1s;">
+    <ion-icon name="cash-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Valor Estimado</p>
+      <h3>R${{ stats.totalValue | number:'1.2-2' }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card animate-up" style="animation-delay: 0.2s;">
+    <ion-icon name="sparkles-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Novos</p>
+      <h3>{{ stats.newItems }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card animate-up" style="animation-delay: 0.3s;">
+    <ion-icon name="close-circle-outline" style="color: #ef4444;"></ion-icon>
+    <div class="stat-content">
+      <p>Esgotados</p>
+      <h3>{{ stats.outOfStockItems }}</h3>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD FINANCIAL STATS -->
+<div class="section-title poppins" *ngIf="!isLoading">Análise Financeira</div>
+<div class="stats-hero-grid financial-grid" *ngIf="!isLoading">
+  <div class="stat-card financial animate-up" style="animation-delay: 0.4s;">
+    <ion-icon name="pricetag-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Ticket Médio</p>
+      <h3>R${{ financialStats.avgTicket | number:'1.2-2' }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card financial animate-up" style="animation-delay: 0.5s;">
+    <ion-icon name="trending-up-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Receita Vendida</p>
+      <h3>R${{ financialStats.soldRevenue | number:'1.2-2' }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card financial animate-up" style="animation-delay: 0.6s;">
+    <ion-icon name="bag-check-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Unidades Vendidas</p>
+      <h3>{{ financialStats.unitsSold }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card financial animate-up" style="animation-delay: 0.7s;">
+    <ion-icon name="wallet-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Valor em Estoque</p>
+      <h3>R${{ financialStats.stockValue | number:'1.2-2' }}</h3>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD SHIPPING STATS -->
+<div class="section-title poppins" *ngIf="!isLoading">Status de Envios</div>
+<div class="stats-hero-grid shipping-grid" *ngIf="!isLoading">
+  <div class="stat-card shipping animate-up" style="animation-delay: 0.8s;">
+    <ion-icon name="car-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Aguardando Entrega</p>
+      <h3>{{ shippingStats.pendingDelivery }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card shipping animate-up" style="animation-delay: 0.9s;">
+    <ion-icon name="alert-circle-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Entregas Atrasadas</p>
+      <h3>{{ shippingStats.lateDelivery }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card shipping animate-up" style="animation-delay: 1.0s;">
+    <ion-icon name="stopwatch-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Atrasam Hoje</p>
+      <h3>{{ shippingStats.lateToday }}</h3>
+    </div>
+  </div>
+
+  <div class="stat-card shipping animate-up" style="animation-delay: 1.1s;">
+    <ion-icon name="cash-outline"></ion-icon>
+    <div class="stat-content">
+      <p>Renda Retida (Pendente)</p>
+      <h3>R${{ shippingStats.pendingValue | number:'1.2-2' }}</h3>
+    </div>
+  </div>
+</div>

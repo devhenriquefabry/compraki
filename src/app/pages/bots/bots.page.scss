@@ -1,0 +1,278 @@
+.bots-bg {
+    --background: #000;
+    --padding-bottom: 20px;
+}
+
+.bots-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    height: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+    .bots-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.section-container {
+    h3 {
+        font-family: 'Poppins', sans-serif;
+        color: #98fb98;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        margin-bottom: 20px;
+        padding-left: 5px;
+        border-left: 3px solid #98fb98;
+    }
+}
+
+.bot-card {
+    background: rgba(30, 30, 30, 0.4);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    margin: 0 0 25px 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        border-color: rgba(152, 251, 152, 0.2);
+    }
+    
+    .bot-card-header {
+        --background: transparent;
+        --padding-start: 15px;
+        margin-top: 10px;
+        
+        ion-icon {
+            font-size: 40px;
+            filter: drop-shadow(0 0 10px rgba(152, 251, 152, 0.3));
+        }
+        h2 {
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+        p {
+            font-size: 0.75rem;
+            color: #888;
+            font-weight: 500;
+        }
+    }
+
+    ion-card-content {
+        p {
+            color: #ccc;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+    }
+}
+
+.config-params {
+    margin-bottom: 20px;
+    
+    ion-input {
+        --background: rgba(255, 255, 255, 0.03);
+        --color: #fff;
+        --placeholder-color: #555;
+        --border-radius: 12px;
+        --padding-start: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 10px;
+        font-weight: 500;
+
+        &.focused {
+            border-color: #98fb98;
+        }
+    }
+}
+
+.sticky-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    position: sticky;
+    top: 20px;
+}
+
+.status-panel {
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.6), rgba(15, 15, 15, 0.8));
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+
+    &.running {
+        border-color: #98fb98;
+        box-shadow: 0 0 30px rgba(152, 251, 152, 0.15);
+    }
+
+    .status-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: #fff;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+
+        ion-spinner {
+            --color: #98fb98;
+        }
+    }
+
+    h4 {
+        color: #98fb98;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin: 20px 0 15px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        &::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: rgba(152, 251, 152, 0.2);
+        }
+    }
+
+    .queue-list {
+        max-height: 200px;
+        overflow-y: auto;
+        
+        ion-item {
+            --background: transparent;
+            --color: #eee;
+            --padding-start: 0;
+            --border-color: rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+            font-weight: 500;
+
+            ion-icon {
+                color: #98fb98;
+                opacity: 0.7;
+            }
+        }
+    }
+}
+
+.execution-mode-container {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin: 20px 0;
+
+    ion-label {
+        color: #888 !important;
+        font-weight: 700;
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+    }
+
+    ion-segment {
+        background: transparent;
+        --background: transparent;
+        
+        ion-segment-button {
+            --color: #666;
+            --color-checked: #fff;
+            --indicator-color: #98fb98;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+    }
+}
+
+.logs-container {
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(152, 251, 152, 0.1);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+
+    .logs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 1px solid rgba(152, 251, 152, 0.05);
+        padding-bottom: 10px;
+        
+        h3 {
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #98fb98;
+            letter-spacing: 1px;
+        }
+    }
+
+    .logs-window {
+        height: 400px;
+        overflow-y: auto;
+        font-family: 'Fira Code', 'Courier New', monospace;
+        font-size: 0.75rem;
+        color: #98fb98;
+        line-height: 1.4;
+        
+        .log-line {
+            padding: 4px 0;
+            opacity: 0.9;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            font-weight: 400;
+            
+            &::before {
+                content: '> ';
+                opacity: 0.5;
+            }
+        }
+
+        .empty-logs {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        /* Custom Scrollbar */
+        &::-webkit-scrollbar { width: 5px; }
+        &::-webkit-scrollbar-track { background: transparent; }
+        &::-webkit-scrollbar-thumb { background: rgba(152, 251, 152, 0.2); border-radius: 10px; }
+    }
+}
+
+.btn-premium {
+    --border-radius: 12px;
+    --box-shadow: 0 4px 15px rgba(152, 251, 152, 0.2);
+    font-weight: 800;
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: 1px;
+    margin-top: 20px;
+}

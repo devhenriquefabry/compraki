@@ -104,9 +104,18 @@ export class ChatsPage implements OnInit, OnDestroy {
     if (!timestamp || !timestamp.seconds) return '';
     const date = new Date(timestamp.seconds * 1000);
     const today = new Date();
-    if (date.toDateString() === today.toDateString()) {
-       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+    const isYesterday = date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear();
+
+    if (isToday) {
+      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } else if (isYesterday) {
+      return 'Ontem';
+    } else {
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
     }
-    return date.toLocaleDateString();
   }
 }

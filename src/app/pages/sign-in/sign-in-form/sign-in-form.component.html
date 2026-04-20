@@ -1,73 +1,132 @@
 
-
- <app-loading-spinner-overlay *ngIf="firebaseProducts.carregando"></app-loading-spinner-overlay>
+<app-loading-spinner-overlay *ngIf="firebaseProducts.carregando"></app-loading-spinner-overlay>
 
 <div class="containerLogin">
   <img class="logoCompraki" src="assets/imagens/logoCompraki.png" alt="logoCompraki">
+  
   <form class="formuLogin" [formGroup]="signInForm">
-    <h2>CRIAR CONTA</h2>
-
-    <div class="input-container">
-      <ion-icon name="person"></ion-icon>
-
-      <ion-input formControlName="name" inputmode="nome" label="Nome completo" label-placement="floating" mode="md" fill="outline"
-        placeholder="Seu nome aqui">
-      </ion-input>
-
+    <!-- INDICADOR DE PROGRESSO -->
+    <div class="steps-container">
+      <div class="step-bubble" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+        <ion-icon *ngIf="currentStep > 1" name="checkmark"></ion-icon>
+        <span *ngIf="currentStep <= 1">1</span>
+      </div>
+      <div class="step-line" [class.active]="currentStep >= 2"></div>
+      <div class="step-bubble" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+        <ion-icon *ngIf="currentStep > 2" name="checkmark"></ion-icon>
+        <span *ngIf="currentStep <= 2">2</span>
+      </div>
+      <div class="step-line" [class.active]="currentStep >= 3"></div>
+      <div class="step-bubble" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
+        <span>3</span>
+      </div>
     </div>
 
-    <div class="input-container">
-      <ion-icon name="mail"></ion-icon>
+    <h2 *ngIf="currentStep === 1">DADOS PESSOAIS</h2>
+    <h2 *ngIf="currentStep === 2">SEGURANÇA</h2>
+    <h2 *ngIf="currentStep === 3">ENDEREÇO</h2>
 
-      <ion-input formControlName="email" inputmode="email" label="Digite seu e-mail" label-placement="floating" mode="md" fill="outline"
-        placeholder="Seu e-mail aqui">
-      </ion-input>
+    <!-- ETAPA 1: DADOS PESSOAIS -->
+    <div class="step-content" *ngIf="currentStep === 1">
+      <div class="input-container">
+        <ion-icon name="person"></ion-icon>
+        <ion-input formControlName="name" label="Nome completo" label-placement="floating" mode="md" fill="outline" placeholder="Seu nome"></ion-input>
+      </div>
 
+      <div class="input-container">
+        <ion-icon name="mail"></ion-icon>
+        <ion-input formControlName="email" inputmode="email" label="E-mail" label-placement="floating" mode="md" fill="outline" placeholder="seu@email.com"></ion-input>
+      </div>
+
+      <div class="input-container">
+        <ion-icon name="document-text"></ion-icon>
+        <ion-input formControlName="cpf" inputmode="numeric" label="CPF" label-placement="floating" mode="md" fill="outline" placeholder="000.000.000-00"></ion-input>
+      </div>
+
+      <div class="input-container">
+        <ion-icon name="phone-portrait"></ion-icon>
+        <ion-input formControlName="phone" inputmode="tel" label="Celular" label-placement="floating" mode="md" fill="outline" placeholder="(11) 99999-9999"></ion-input>
+      </div>
     </div>
 
-    <div class="input-container">
-      <ion-icon name="document-text"></ion-icon>
+    <!-- ETAPA 2: SEGURANÇA -->
+    <div class="step-content" *ngIf="currentStep === 2">
+      <div class="input-container">
+        <ion-icon name="lock-closed"></ion-icon>
+        <ion-input formControlName="password" type="password" label="Senha" label-placement="floating" mode="md" fill="outline" placeholder="Sua senha"></ion-input>
+      </div>
 
-      <ion-input formControlName="cpf" inputmode="numeric" label="Digite o seu CPF" label-placement="floating" mode="md" fill="outline"
-        placeholder="Seu CPF aqui">
-      </ion-input>
-
+      <div class="input-container">
+        <ion-icon name="lock-closed"></ion-icon>
+        <ion-input formControlName="repeatPassword" type="password" label="Confirmar senha" label-placement="floating" mode="md" fill="outline" placeholder="Confirme a senha"></ion-input>
+      </div>
+      
+      <p *ngIf="signInForm.get('repeatPassword')?.value && signInForm.get('password')?.value !== signInForm.get('repeatPassword')?.value" style="color: #ff4d4d; font-size: 0.8rem; margin: 0;">
+        As senhas não coincidem
+      </p>
     </div>
 
-    <div class="input-container">
-      <ion-icon name="phone-portrait"></ion-icon>
+    <!-- ETAPA 3: ENDEREÇO -->
+    <div class="step-content" *ngIf="currentStep === 3">
+      <div class="input-container">
+        <ion-icon name="map"></ion-icon>
+        <ion-input formControlName="cep" inputmode="numeric" label="CEP" label-placement="floating" mode="md" fill="outline" placeholder="36900-000"></ion-input>
+      </div>
 
-      <ion-input formControlName="phone" inputmode="tel" label="Digite o seu Celular" label-placement="floating" mode="md" fill="outline"
-        placeholder="(11) 99999-9999">
-      </ion-input>
+      <div class="input-container">
+        <ion-icon name="location"></ion-icon>
+        <ion-input formControlName="street" label="Rua/Avenida" label-placement="floating" mode="md" fill="outline" placeholder="Ex: Rua das Flores"></ion-input>
+      </div>
 
+      <div style="display: flex; gap: 8px; width: 100%;">
+        <div class="input-container" style="flex: 1;">
+          <ion-icon name="business"></ion-icon>
+          <ion-input formControlName="number" label="Nº" label-placement="floating" mode="md" fill="outline" placeholder="123"></ion-input>
+        </div>
+        <div class="input-container" style="flex: 2;">
+          <ion-icon name="add-circle"></ion-icon>
+          <ion-input formControlName="complement" label="Complem." label-placement="floating" mode="md" fill="outline" placeholder="Apto/Bloco"></ion-input>
+        </div>
+      </div>
+
+      <div class="input-container">
+        <ion-icon name="navigate"></ion-icon>
+        <ion-input formControlName="neighborhood" label="Bairro" label-placement="floating" mode="md" fill="outline" placeholder="Ex: Centro"></ion-input>
+      </div>
+
+      <div style="display: flex; gap: 8px; width: 100%;">
+        <div class="input-container" style="flex: 2.5;">
+          <ion-icon name="business"></ion-icon>
+          <ion-input formControlName="city" label="Cidade" label-placement="floating" mode="md" fill="outline" placeholder="Manhuaçu"></ion-input>
+        </div>
+        <div class="input-container" style="flex: 1;">
+          <ion-icon name="flag"></ion-icon>
+          <ion-input formControlName="state" label="UF" label-placement="floating" mode="md" fill="outline" placeholder="MG"></ion-input>
+        </div>
+      </div>
     </div>
 
-    <div class="input-container">
-      <ion-icon name="lock-closed"></ion-icon>
+    <!-- BOTÕES DE NAVEGAÇÃO -->
+    <div class="navigation-buttons">
+      <ion-button *ngIf="currentStep > 1" fill="clear" class="btn-back" (click)="prevStep()">
+        VOLTAR
+      </ion-button>
+      
+      <ion-button *ngIf="currentStep < totalSteps" class="submitButton" (click)="nextStep()" [disabled]="!isStepValid(currentStep)">
+        PRÓXIMO
+      </ion-button>
 
-      <ion-input formControlName="password" inputmode="text" label="Digite sua senha" label-placement="floating" mode="md" fill="outline"
-        placeholder="Sua senha aqui">
-      </ion-input>
-
+      <ion-button *ngIf="currentStep === totalSteps" class="submitButton" (click)="callSignInFunction()" [disabled]="!isStepValid(3) || !signInForm.valid">
+        FINALIZAR CADASTRO
+      </ion-button>
     </div>
 
-    <div class="input-container">
-      <ion-icon name="lock-closed"></ion-icon>
+    <ion-button *ngIf="currentStep === 1" class="submitButtonGoogle" type="button" (click)="callSignInGoogleFunction()">
+      <img class="imgGoogle" src="assets/imagens/google.png" alt=""> LOGIN COM GOOGLE
+    </ion-button>
 
-      <ion-input formControlName="repeatPassword" inputmode="text" label="Confirmar senha" label-placement="floating" mode="md" fill="outline"
-        placeholder="Confirme sua senha aqui">
-      </ion-input>
- 
-    </div>
-
-    <ion-button class="submitButton" type="submit" *ngIf="formularioValido" (click)="callSignInFunction()">CADASTRAR</ion-button>
-    <ion-button  disabled class="submitButton" type="submit" *ngIf="!formularioValido">CADASTRAR</ion-button>
-    <ion-button  class="submitButtonGoogle" type="submit" (click)="callSignInGoogleFunction()"><img class="imgGoogle" src="assets/imagens/google.png" alt="">LOGIN COM GOOGLE</ion-button>
-
-    <ion-label class="textos">Ao seu cadastrar, você concorda com nossos <span class="text-green">Termos de Uso e Privacidade</span></ion-label>
-    <hr>
-
-    <ion-label class="textos" [routerLink]="['/login']" routerLinkActive="router-link-active" >Já possui uma conta? <span class="text-green">ENTRAR</span></ion-label>
+    <ion-label *ngIf="currentStep === 1" class="textos">Ao se cadastrar, você concorda com nossos <span class="text-green">Termos de Uso</span></ion-label>
+    <hr *ngIf="currentStep === 1">
+    <ion-label *ngIf="currentStep === 1" class="textos" [routerLink]="['/login']">Já possui uma conta? <span class="text-green">ENTRAR</span></ion-label>
   </form>
-</div>  
+</div>

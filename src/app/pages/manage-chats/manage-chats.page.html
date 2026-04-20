@@ -1,0 +1,270 @@
+<app-admin-header titlePage="Gerenciador de Conversas" [showBackButton]="false" [showMenuButton]="true">
+  <ion-button slot="end" (click)="openNewChatModal()" color="success" fill="solid" class="btn-new-chat-top ion-hide-sm-down">
+    <ion-icon name="add" slot="start"></ion-icon>
+    Nova Conversa
+  </ion-button>
+  <ion-button slot="end" (click)="openNewChatModal()" color="success" fill="clear" class="ion-hide-sm-up">
+    <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+  </ion-button>
+  <ion-button slot="end" (click)="loadData()" color="medium">
+    <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+  </ion-button>
+</app-admin-header>
+
+<div class="admin-tabs-nav ion-no-border">
+  <div class="tabs-container">
+    <button class="nav-tab" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">
+      <ion-icon [name]="activeTab === 'all' ? 'chatbubbles' : 'chatbubbles-outline'"></ion-icon>
+      Todas
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'reported'" (click)="activeTab = 'reported'">
+      <ion-icon [name]="activeTab === 'reported' ? 'flag' : 'flag-outline'"></ion-icon>
+      Denunciadas
+      <span class="count-badge warn" *ngIf="reports.length > 0">{{ reports.length }}</span>
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'banned'" (click)="activeTab = 'banned'">
+      <ion-icon [name]="activeTab === 'banned' ? 'ban' : 'ban-outline'"></ion-icon>
+      Banidas
+    </button>
+  </div>
+  <!-- BUSCA ESTILO DASHBOARD -->
+  <ion-toolbar class="search-toolbar">
+    <div class="search-row">
+      <div class="search-bar">
+        <ion-icon name="search-outline"></ion-icon>
+        <input type="text" placeholder="Filtrar auditoria de conversas..." 
+               [(ngModel)]="searchQuery">
+      </div>
+      <ion-button fill="clear" color="primary" (click)="clearSelection()" *ngIf="selectedChatId" class="btn-back-hub">
+        <ion-icon name="grid-outline" slot="start"></ion-icon>
+        Voltar ao Hub
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</div>
+
+<ion-content color="light" [scrollY]="false">
+  <div class="page-split-container">
+    
+    <div class="main-scroll-content">
+      
+      <!-- MODO 1: DASHBOARD HUB (GRID) -->
+      <div class="dashboard-wrapper" *ngIf="!selectedChatId">
+        <div class="main-panel-title">
+          <h2 class="poppins">Hub de Auditoria {{ filteredChats.length > 0 ? '(' + filteredChats.length + ')' : '' }}</h2>
+        </div>
+
+        <div *ngIf="isLoading" class="loader-state">
+          <ion-spinner name="crescent" color="primary"></ion-spinner>
+          <p>Carregando Dashboard...</p>
+        </div>
+
+        <div *ngIf="!isLoading && filteredChats.length === 0" class="empty-state">
+          <ion-icon name="chatbox-outline"></ion-icon>
+          <p>Nenhuma conversa ativa para auditoria</p>
+        </div>
+
+        <!-- GRID DE CARDS QUADRADOS -->
+        <div class="admin-grid" *ngIf="!isLoading && filteredChats.length > 0">
+          <div *ngFor="let chat of filteredChats" 
+               class="square-chat-card animate-pop"
+               (click)="selectChat(chat.id!)">
+            
+            <div class="card-status-indicator" *ngIf="getReportsForChat(chat.id!).length > 0"></div>
+            
+            <div class="card-inner">
+              <div class="participants-stack">
+                <span class="user-a">{{ chat.participants[0]?.name }}</span>
+                <ion-icon name="arrow-forward-outline" class="sep-icon"></ion-icon>
+                <span class="user-b">{{ chat.participants[1]?.name }}</span>
+              </div>
+
+              <div class="msg-preview-box">
+                <p>"{{ chat.lastMessage }}"</p>
+              </div>
+
+              <div class="card-metadata">
+                <div class="product-context" *ngIf="chat.productName">
+                  <ion-icon name="cart-outline"></ion-icon>
+                  {{ chat.productName }}
+                </div>
+                <div class="time-info">
+                  {{ formatDate(chat.lastMessageAt) }}
+                </div>
+              </div>
+
+              <div class="report-alert-banner" *ngIf="getReportsForChat(chat.id!).length > 0">
+                <ion-icon name="flag"></ion-icon>
+                {{ getReportsForChat(chat.id!).length }} Denúncias
+              </div>
+            </div>
+
+            <div class="card-footer-action">
+               <span>INSPECIONAR CONVERSA</span>
+               <ion-icon name="chevron-forward-outline"></ion-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODO 2: INSPEÇÃO (CENTRO DE AUDITORIA 360) -->
+      <div class="management-grid inspection-mode" *ngIf="selectedChatId">
+        
+        <!-- COLUNA 1: PAINEL ANALÍTICO (ANTIGO ESPAÇO DA LISTA) -->
+        <div class="col-audit-panel">
+          <div class="audit-header">
+             <ion-button fill="clear" color="medium" (click)="clearSelection()" class="btn-back">
+               <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+               Voltar ao Hub
+             </ion-button>
+             <h3 class="poppins">Relatório de Auditoria</h3>
+          </div>
+
+          <div class="audit-scroll">
+            
+            <!-- SEÇÃO 1: DOSSIÊ DOS PARTICIPANTES -->
+            <div class="audit-section">
+              <h4 class="section-label">Participantes da Transação</h4>
+              <div class="participants-dossier">
+                <div class="user-audit-mini" *ngFor="let p of activeChatRoom?.participants">
+                   <ion-avatar>
+                     <img [src]="p.photoUrl || 'assets/icon/favicon.png'">
+                   </ion-avatar>
+                   <div class="u-info">
+                     <span class="u-name">{{ p.name }}</span>
+                     <span class="u-role">{{ p.uid === activeChatRoom?.participantIds?.[0] ? 'Iniciou o chat' : 'Destinatário' }}</span>
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SEÇÃO 2: CONTEXTO DE PRODUTO -->
+            <div class="audit-section" *ngIf="activeChatRoom?.productName">
+               <h4 class="section-label">Contexto de Produto</h4>
+               <div class="product-audit-card">
+                  <div class="p-image">
+                    <img [src]="activeChatRoom?.productPhoto || 'assets/imagens/app-logo.png'">
+                  </div>
+                  <div class="p-details">
+                    <span class="p-name">{{ activeChatRoom?.productName }}</span>
+                    <span class="p-id">Ref: {{ activeChatRoom?.productId?.substring(0,8) }}</span>
+                  </div>
+               </div>
+            </div>
+
+            <!-- SEÇÃO 3: ORIGEM (PRIMEIRA MENSAGEM) -->
+            <div class="audit-section" *ngIf="inspectedMessages.length > 0">
+               <h4 class="section-label">Origem da Conversa</h4>
+               <div class="first-msg-card">
+                  <div class="msg-meta">
+                    <ion-icon name="time-outline"></ion-icon>
+                    <span>{{ formatDate(inspectedMessages[0].createdAt) }}</span>
+                  </div>
+                  <p class="msg-text">"{{ inspectedMessages[0].text }}"</p>
+               </div>
+            </div>
+
+            <!-- SEÇÃO 4: HEATMAP DE ATIVIDADE -->
+            <div class="audit-section">
+               <h4 class="section-label">Atividade Recente (Últimos 14 Dias)</h4>
+               <div class="activity-heatmap">
+                  <div class="heatmap-grid">
+                    <div *ngFor="let day of heatmap" 
+                         class="heat-cell" 
+                         [attr.data-intensity]="day.intensity"
+                         title="{{day.day}}: {{day.count}} msgs">
+                    </div>
+                  </div>
+                  <div class="heatmap-legend">
+                    <span>Domin</span>
+                    <span>Hoje</span>
+                  </div>
+               </div>
+            </div>
+
+            <!-- SEÇÃO 5: BOTÃO DE AÇÃO RÁPIDA -->
+            <div class="audit-section">
+              <ion-button expand="block" color="danger" (click)="toggleBan(activeChatTargetUser!)" *ngIf="activeChatTargetUser" class="btn-ban-quick">
+                <ion-icon name="ban-outline" slot="start"></ion-icon>
+                Gerenciar Restrição do Alvo
+              </ion-button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- COLUNA 2: CONSOLE DE CHAT (DIREITA) -->
+        <div class="col-chat-console">
+          <div class="console-header">
+             <div class="live-indicator">
+               <span class="pulse"></span>
+               MONITORAMENTO AO VIVO
+             </div>
+          </div>
+          <div class="chat-container">
+             <app-chat-box [chatId]="selectedChatId" [aiSimulationActive]="false"></app-chat-box>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PAINEL LATERAL DE CHAT + MODAIS MOBILE -->
+    <app-admin-chat-sidebar
+      [activeChatId]="activeChatId"
+      [activeChats]="activeChats"
+      [activeSellerName]="getActiveSellerName()"
+      [isChatOpen]="isChatOpen"
+      [isInboxOpen]="isInboxOpen"
+      (chatSelected)="openChatFromInbox($event)"
+      (backToInbox)="goBackToInbox()"
+      (chatClosed)="closeChat()"
+      (inboxDismissed)="isInboxOpen = false">
+    </app-admin-chat-sidebar>
+
+  </div>
+
+  <!-- FLOATING ACTION BUTTON PARA CONVERSAS ABERTAS -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="fab-chats-inbox">
+    <ion-fab-button color="success" (click)="openInbox()">
+      <ion-icon name="chatbubbles"></ion-icon>
+      <ion-badge color="danger" *ngIf="activeChats.length > 0">{{ activeChats.length }}</ion-badge>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
+
+<!-- MODAL: NOVA CONVERSA -->
+<ion-modal [isOpen]="isNewChatModalOpen" (didDismiss)="isNewChatModalOpen = false" class="new-chat-modal">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar color="white">
+        <ion-title class="poppins">Iniciar Nova Conversa</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="isNewChatModalOpen = false" color="medium">Fechar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar color="white">
+        <ion-searchbar placeholder="Buscar por nome ou e-mail..." [(ngModel)]="userSearchQuery" mode="ios" class="ion-no-padding px-16"></ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content color="light">
+      <div class="user-selection-list">
+        <div *ngFor="let u of filteredUsers" class="user-select-item animate-pop" (click)="startChatWithUser(u)">
+          <div class="user-avatar-wrapper">
+             <ion-avatar>
+               <img [src]="u.photoURL || 'assets/icon/favicon.png'" />
+             </ion-avatar>
+             <div class="status-dot" [class.online]="u.status === 'online'"></div>
+          </div>
+          <div class="user-info-text">
+            <span class="u-name">{{ u.displayName }}</span>
+            <span class="u-email">{{ u.email }}</span>
+          </div>
+          <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+        </div>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+

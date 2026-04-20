@@ -17,6 +17,7 @@ import {
 import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
 import { Product } from '../interfaces/product';
 import { Observable } from 'rxjs';
+import { AppAddress } from '../interfaces/app-user';
 import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider} from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Router } from '@angular/router';
@@ -73,6 +74,24 @@ export class FirebaseProducts {
     });
   }
 
+  getById(id: string): Observable<Product | null> {
+    return new Observable<Product | null>(subscriber => {
+      const productDoc = doc(this.db, 'products', id);
+
+      return onSnapshot(productDoc,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data() as any;
+            subscriber.next({ ...data, id: snapshot.id } as Product);
+          } else {
+            subscriber.next(null);
+          }
+        },
+        (err) => subscriber.error(err)
+      );
+    });
+  }
+
   getBySeller(sellerId: string): Observable<Product[]> {
     return new Observable<Product[]>(subscriber => {
       const productCol = collection(this.db, 'products');
@@ -116,7 +135,7 @@ export class FirebaseProducts {
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
   }
-  async signIn(email: string, password: string, name: string, cpf?: string, phone?: string): Promise<boolean> {
+  async signIn(email: string, password: string, name: string, cpf?: string, phone?: string, address?: AppAddress): Promise<boolean> {
     this.carregando = true;
 
     try {
@@ -132,7 +151,8 @@ export class FirebaseProducts {
       await this.usersService.ensureAppUserDocument(userCredential.user, {
           cpf: cpf || null,
           phoneNumber: phone || null,
-          displayName: name
+          displayName: name,
+          address: address || undefined
       });
       
       alert('Cadastro realizado com sucesso!');

@@ -1,0 +1,157 @@
+<!-- PAINEL LATERAL DE CHAT (SEMPRE VISÍVEL EM DESKTOP) -->
+<div class="desktop-chat-pane">
+  <div class="pane-header">
+     <div class="header-titles">
+       <div class="header-navigation-row">
+         <ion-button fill="clear" color="medium" *ngIf="activeChatId" (click)="onBackToInbox()" class="btn-back-inbox">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+         </ion-button>
+         <div class="title-stack">
+           <h3 class="poppins">
+             <ion-icon name="chatbubbles-outline" class="header-icon"></ion-icon>
+             <span>{{ activeChatId ? 'Conversa Ativa' : 'Mensagens' }}</span>
+             <ion-icon name="settings-outline" id="chat-settings-trigger" class="header-icon settings-hover"></ion-icon>
+           </h3>
+           <p class="seller-name-label" *ngIf="activeChatId">{{ activeSellerName | uppercase }}</p>
+         </div>
+       </div>
+     </div>
+  </div>
+
+  <!-- POPOVER DE CONFIGURAÇÕES DO CHAT -->
+  <ion-popover trigger="chat-settings-trigger" [dismissOnSelect]="false" alignment="end" side="bottom" class="chat-config-popover">
+    <ng-template>
+      <div class="popover-content" style="padding: 16px; min-width: 280px;">
+        <h4 class="poppins" style="margin: 0 0 16px 0; font-size: 0.95rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+          <ion-icon name="sparkles" style="color: #6366f1;"></ion-icon>
+          Assistente de Simulação
+        </h4>
+        <p style="font-size: 0.75rem; color: #64748b; margin-top: 0; margin-bottom: 16px; line-height: 1.4;">
+          Ative para que a inteligência artificial (Grok) responda como um vendedor automaticamente, permitindo simular negociações.
+        </p>
+        
+        <ion-item lines="none" style="--background: transparent; --padding-start: 0; margin-bottom: 8px;">
+          <ion-label style="font-size: 0.85rem; font-weight: 600; color: #334155;">Ativar IA de Simulação</ion-label>
+          <ion-toggle slot="end" color="primary" [checked]="isAiSimulationActive" (ionChange)="toggleAiSimulation($event)"></ion-toggle>
+        </ion-item>
+      </div>
+    </ng-template>
+  </ion-popover>
+
+  <!-- ABAS ATIVAS / FINALIZADAS -->
+  <div class="pane-tabs" *ngIf="!activeChatId">
+    <button class="tab-btn" [class.active]="activeTab === 'active'" (click)="activeTab = 'active'">
+      Ativas
+      <span class="tab-count" *ngIf="activeCount > 0">{{ activeCount }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'closed'" (click)="activeTab = 'closed'">
+      Finalizadas
+      <span class="tab-count closed" *ngIf="closedCount > 0">{{ closedCount }}</span>
+    </button>
+    <button class="tab-btn trash-toggle" [class.selection-active]="isSelectionMode" (click)="toggleSelectionMode()">
+      <ion-icon [name]="isSelectionMode ? 'close-outline' : 'trash-outline'"></ion-icon>
+    </button>
+  </div>
+  
+  <div class="selection-header-bar" *ngIf="isSelectionMode && !activeChatId">
+    <ion-button fill="clear" color="medium" (click)="toggleSelectAll()" class="btn-select-all">
+      <ion-icon [name]="selectedChatIds.size === filteredChats.length ? 'checkbox-outline' : 'square-outline'" slot="start"></ion-icon>
+      {{ selectedChatIds.size === filteredChats.length ? 'Desmarcar Todos' : 'Selecionar ' + filteredChats.length + ' Conversas' }}
+    </ion-button>
+  </div>
+  
+  <div class="pane-body">
+    <!-- VISUALIZAÇÃO: LISTA DE CONVERSAS (INBOX) -->
+    <div class="inbox-list-view" *ngIf="!activeChatId">
+      <div *ngIf="filteredChats.length === 0" class="empty-inbox-small">
+        <ion-icon name="chatbubbles-outline"></ion-icon>
+        <p *ngIf="activeTab === 'active'">Sem conversas no momento.</p>
+        <p *ngIf="activeTab === 'closed'">Nenhuma conversa finalizada.</p>
+      </div>
+      <ion-list lines="full" *ngIf="filteredChats.length > 0">
+        <ion-item *ngFor="let chat of filteredChats" (click)="onSelectChat(chat.id!)" detail="false" mode="ios" class="inbox-item-small" [class.item-selected]="isChatSelected(chat.id!)">
+          <ion-checkbox slot="start" *ngIf="isSelectionMode" [checked]="isChatSelected(chat.id!)" (ionChange)="toggleChatSelection(chat.id!)" color="danger"></ion-checkbox>
+          <ion-avatar slot="start" class="inbox-avatar">
+            <img *ngIf="getOtherParticipant(chat)?.photoUrl" [src]="getOtherParticipant(chat)?.photoUrl" />
+            <ion-icon *ngIf="!getOtherParticipant(chat)?.photoUrl" name="person-circle" class="avatar-icon"></ion-icon>
+          </ion-avatar>
+          <ion-label>
+            <div class="item-header">
+              <h2 class="poppins">{{ getOtherParticipant(chat)?.name || 'Usuário' }}</h2>
+              <span class="time-stamp">{{ getFormattedDate(chat.lastMessageAt) }}</span>
+            </div>
+            <p class="last-msg-preview">{{ chat.lastMessage }}</p>
+            <ion-note *ngIf="chat.productName" class="product-context"># {{ chat.productName }}</ion-note>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </div>
+
+    <!-- VISUALIZAÇÃO: CAIXA DE CHAT -->
+    <app-chat-box *ngIf="activeChatId" [chatId]="activeChatId" [aiSimulationActive]="isAiSimulationActive" (onClose)="onCloseChat()" (onChatClosed)="onChatFinalized($event)"></app-chat-box>
+  </div>
+  
+  <!-- BARRA DE AÇÕES (FOOTER DE SELEÇÃO) -->
+  <div class="selection-footer" *ngIf="isSelectionMode && !activeChatId" [class.visible]="selectedChatIds.size > 0">
+    <div class="selection-info">
+      <span class="count-badge">{{ selectedChatIds.size }}</span>
+      <span class="selection-text">Selecionadas</span>
+    </div>
+    <ion-button (click)="onDeleteSelected()" fill="solid" color="danger" class="btn-delete-bulk">
+      <ion-icon name="trash-outline" slot="start"></ion-icon>
+      APAGAR
+    </ion-button>
+  </div>
+</div>
+
+<!-- MODAL DE LISTAGEM DE CONVERSAS (INBOX) - MOBILE -->
+<ion-modal [isOpen]="isInboxOpen" (didDismiss)="onInboxDismissed()" class="inbox-modal">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title class="poppins">Conversas Abertas</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="onInboxDismissed()">FECHAR</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div *ngIf="activeChats.length === 0" class="empty-inbox">
+        <ion-icon name="chatbubbles-outline"></ion-icon>
+        <p>Nenhuma conversa ativa no momento.</p>
+      </div>
+      <ion-list lines="full" *ngIf="activeChats.length > 0">
+        <ion-item *ngFor="let chat of activeChats" (click)="onSelectChat(chat.id!)" detail="true" mode="ios" class="inbox-item">
+          <ion-avatar slot="start">
+            <img [src]="getOtherParticipant(chat)?.photoUrl || 'assets/imagens/placeholder-pessoal.webp'" />
+          </ion-avatar>
+          <ion-label>
+            <div class="item-header">
+              <h2 class="poppins">{{ getOtherParticipant(chat)?.name || 'Usuário' }}</h2>
+              <span class="time-stamp">{{ getFormattedDate(chat.lastMessageAt) }}</span>
+            </div>
+            <p>{{ chat.lastMessage }}</p>
+            <ion-note *ngIf="chat.productName" class="product-context">Produto: {{ chat.productName }}</ion-note>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- MODAL DE CHAT DETALHADO (MOBILE) -->
+<ion-modal [isOpen]="isChatOpen && !isInboxOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="onCloseChat()" class="mobile-chat-modal">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title class="poppins">Chat</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="onCloseChat()">Voltar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <div class="modal-body-wrapper">
+      <app-chat-box [chatId]="activeChatId" (onChatClosed)="onChatFinalized($event)"></app-chat-box>
+    </div>
+  </ng-template>
+</ion-modal>

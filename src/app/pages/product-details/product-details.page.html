@@ -2,104 +2,121 @@
   <app-mini-header [showBackButton]="true" [showMenuButton]="false" backUrl="/tabs/tab2"></app-mini-header>
 </ion-header>
 
-<ion-content class="product-bg-gray">
-  <div *ngIf="product$ | async as p" class="main-content">
+<ion-content class="product-bg-gray" [class.chat-active-layout]="isChatOpen">
+  
+  <div class="page-split-container">
     
-    <!-- CARD DO PRODUTO -->
-    <ion-card class="product-card-premium">
-      <div class="oferta-badge">OFERTA!</div>
+    <!-- CONTEÚDO PRINCIPAL (PRODUTO) -->
+    <div class="main-content-scroll" *ngIf="product$ | async as p">
       
-      <div class="img-viewer">
-        <swiper-container 
-          slides-per-view="1" 
-          pagination="true" 
-          keyboard="true" 
-          mousewheel="true" 
-          style="--swiper-pagination-color: var(--cor-principal); --swiper-pagination-bullet-inactive-color: #ccc;">
-          
-          <swiper-slide *ngFor="let img of p.photoURL || ['https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg']">
-            <img [src]="img" alt="Produto">
-          </swiper-slide>
-        </swiper-container>
-      </div>
-
-      <div class="product-info-padding">
-        <h1 class="product-title">{{p.name}}</h1>
+      <!-- CARD DO PRODUTO -->
+      <ion-card class="product-card-premium">
+        <div class="oferta-badge">OFERTA!</div>
         
-        <div class="price-section">
-          <span class="currency">R$</span>
-          <span class="main-price">{{p.price | number:'1.0-0'}}</span>
-          <span class="cents">,{{getFloating(p.price)}}</span>
+        <div class="img-viewer">
+          <swiper-container 
+            slides-per-view="1" 
+            pagination="true" 
+            keyboard="true" 
+            mousewheel="true" 
+            style="--swiper-pagination-color: var(--cor-principal); --swiper-pagination-bullet-inactive-color: #ccc;">
+            
+            <swiper-slide *ngFor="let img of p.photoURL || ['https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg']">
+              <img [src]="img" alt="Produto">
+            </swiper-slide>
+          </swiper-container>
+        </div>
+
+        <div class="product-info-padding">
+          <h1 class="product-title">{{p.name}}</h1>
           
-          <!-- Indicador de Carrinho -->
-          <div class="cart-indicator-badge" *ngIf="(cartQuantity$ | async) as qty">
-            <ion-icon name="cart"></ion-icon>
-            <span>{{ qty }} no carrinho</span>
+          <div class="price-section">
+            <span class="currency">R$</span>
+            <span class="main-price">{{p.price | number:'1.0-0'}}</span>
+            <span class="cents">,{{getFloating(p.price)}}</span>
+            
+            <!-- Indicador de Carrinho -->
+            <div class="cart-indicator-badge" *ngIf="(cartQuantity$ | async) as qty">
+              <ion-icon name="cart"></ion-icon>
+              <span>{{ qty }} no carrinho</span>
+            </div>
+          </div>
+
+          <div class="payment-hints">
+            À vista no PIX, DINHEIRO ou CARTÃO 
+            <ion-icon name="grid-outline" class="pix-icon-small"></ion-icon>
+            <span class="pix-label">pix</span>
+          </div>
+
+          <div class="shipping-info-green">Frete Grátis</div>
+
+          <div class="rating-row">
+            <div class="stars">
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+            </div>
+            <span class="rating-text">{{p.rating || 390}} avaliações &gt;</span>
           </div>
         </div>
+      </ion-card>
 
-        <div class="payment-hints">
-          À vista no PIX, DINHEIRO ou CARTÃO 
-          <ion-icon name="grid-outline" class="pix-icon-small"></ion-icon>
-          <span class="pix-label">pix</span>
-        </div>
-
-        <div class="shipping-info-green">Frete Grátis</div>
-
-        <div class="rating-row">
-          <div class="stars">
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star"></ion-icon>
-          </div>
-          <span class="rating-text">{{p.rating || 390}} avaliações &gt;</span>
-        </div>
-      </div>
-    </ion-card>
-
-    <!-- SEÇÃO VENDEDOR -->
-    <div class="section-label">Vendedor</div>
-    <ion-card class="seller-card-premium">
-      <div class="seller-header">
-        <img class="seller-avatar" src="/assets/imagens/foto-henrique.jpeg" alt="">
-        <div class="seller-meta">
-          <div class="seller-name-row">
-            <span class="seller-name">Loja do Henricão</span>
-            <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
-            <span class="verified-text">Verificado</span>
+      <!-- SEÇÃO VENDEDOR -->
+      <div class="section-label">Vendedor</div>
+      <ion-card class="seller-card-premium" *ngIf="seller$ | async as seller">
+        <div class="seller-header">
+          <img class="seller-avatar" [src]="seller.photoURL || 'assets/imagens/foto-henrique.jpeg'" alt="">
+          <div class="seller-meta">
+            <div class="seller-name-row">
+              <span class="seller-name">{{ seller.displayName || 'Loja do Henricão' }}</span>
+              <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
+              <span class="verified-text">Verificado</span>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div class="seller-actions" style="display: flex; gap: 8px; margin-top: 10px;">
-        <ion-button class="btn-seller" fill="outline" style="flex: 1;">Perfil</ion-button>
-        <ion-button class="btn-chat" color="success" style="flex: 2;" (click)="startChat(p)">
-          <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-          Falar com Vendedor
-        </ion-button>
-      </div>
-      
-      <div class="seller-stats">
-        <span><ion-icon name="bag-handle-outline"></ion-icon> 392 vendas</span>
-        <span class="separator">&bull;</span>
-        <span>100% avaliações positivas</span>
-      </div>
-    </ion-card>
+        
+        <div class="seller-actions" style="display: flex; gap: 8px; margin-top: 10px;">
+          <ion-button class="btn-seller" fill="outline" style="flex: 1;">Perfil</ion-button>
+          <ion-button class="btn-chat" color="success" style="flex: 2;" (click)="startChat(p)">
+            <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+            Falar com Vendedor
+          </ion-button>
+        </div>
+        
+        <div class="seller-stats">
+          <span><ion-icon name="bag-handle-outline"></ion-icon> 392 vendas</span>
+          <span class="separator">&bull;</span>
+          <span>100% avaliações positivas</span>
+        </div>
+      </ion-card>
 
-    <!-- ABAS E DESCRIÇÃO -->
-    <div class="tabs-container">
-      <div class="tab-item active">Descrição</div>
-      <div class="tab-item">Especificações</div>
-      <div class="tab-item">Avaliações</div>
+      <!-- ABAS E DESCRIÇÃO -->
+      <div class="tabs-container">
+        <div class="tab-item active">Descrição</div>
+        <div class="tab-item">Especificações</div>
+        <div class="tab-item">Avaliações</div>
+      </div>
+
+      <ion-card class="description-card">
+        <p class="description-text">
+          {{p.description || 'Produto em ótimo estado, pouco tempo de uso. Equipado com processador de alto desempenho, ideal para produtividade e lazer sem travamentos.' }}
+        </p>
+      </ion-card>
+
     </div>
 
-    <ion-card class="description-card">
-      <p class="description-text">
-        {{p.description || 'Produto em ótimo estado, pouco tempo de uso. Equipado com processador de alto desempenho, ideal para produtividade e lazer sem travamentos.' }}
-      </p>
-    </ion-card>
+    <!-- PAINEL LATERAL DE CHAT (VISÍVEL APENAS EM DESKTOP) -->
+    <div class="desktop-chat-pane" *ngIf="isChatOpen">
+      <div class="pane-header">
+         <h3 class="poppins">Conversa com Vendedor</h3>
+         <ion-button fill="clear" color="medium" (click)="closeChat()">
+            <ion-icon name="close-circle"></ion-icon>
+         </ion-button>
+      </div>
+      <app-chat-box [chatId]="activeChatId" (onClose)="closeChat()"></app-chat-box>
+    </div>
 
   </div>
 
@@ -110,7 +127,24 @@
   </app-product-selector>
 </ion-content>
 
-<ion-footer class="ion-no-border action-footer" *ngIf="product$ | async as p">
+<!-- MODAL DE CHAT (MOBILE) -->
+<ion-modal [isOpen]="isChatOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="closeChat()" class="mobile-chat-modal">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title class="poppins">Falar com Vendedor</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeChat()">FECHAR</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <app-chat-box [chatId]="activeChatId"></app-chat-box>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-footer class="ion-no-border action-footer" *ngIf="(product$ | async) as p">
   <div class="footer-content">
     <ion-button class="btn-favorite" (click)="toggleFavorite()">
       <ion-icon [name]="isSaved ? 'heart' : 'heart-outline'"></ion-icon>

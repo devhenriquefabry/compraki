@@ -12,7 +12,6 @@ import { ProductCardComponent } from './product-card/product-card.component';
 import { CustomHeaderComponent } from 'src/app/components/custom-header/custom-header.component';
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
 import { ProductDetailsPage } from '../product-details/product-details.page';
-import { ProductDetailsPageModule } from '../product-details/product-details.module';
 import { ProfileCardComponent } from 'src/app/components/profile-card/profile-card.component';
 import { DevModeNoticeComponent } from 'src/app/components/dev-mode-notice/dev-mode-notice.component';
 

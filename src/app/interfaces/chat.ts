@@ -16,11 +16,32 @@ export interface ChatRoom {
   lastMessage?: string;
   lastMessageAt?: any; // Firestore Timestamp
   createdAt?: any;
+  source?: 'marketplace' | 'direct';
+  status?: 'active' | 'closed';
+  closedAt?: any; // Firestore Timestamp
 } 
  
 export interface ChatMessage {
   id?: string;
   senderId: string;
   text: string;
+  type: 'text' | 'image' | 'audio';
+  mediaUrl?: string;
   createdAt: any; // Firestore Timestamp
+  status?: 'sending' | 'error';
+  clientId?: string; // ID único gerado pelo cliente para evitar duplicidade
 }
+
+export interface ChatReport {
+  id?: string;
+  senderId: string;
+  senderName: string;
+  reportedUserId: string;
+  chatId: string;
+  productName?: string;
+  reason: 'spam' | 'abuse' | 'scam' | 'other';
+  details?: string;
+  createdAt: any;
+  status: 'pending' | 'resolved' | 'ignored';
+}
+

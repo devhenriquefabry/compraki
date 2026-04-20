@@ -126,7 +126,7 @@ export class Tab2Page implements OnInit, OnDestroy {
 
   public selectProduct(product: Product) {
     this.selectionService.setSelectedProduct(product);
-    this.router.navigate(['/product-details']);
+    this.router.navigate(['/product-details', product.id]);
   }
 
 }

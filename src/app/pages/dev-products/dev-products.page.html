@@ -1,0 +1,131 @@
+<ion-header class="ion-no-border">
+  <app-admin-header titlePage="Painel de Inventário" [showMenuButton]="true" [showBackButton]="false"></app-admin-header>
+
+  <!-- BUSCA ESTILO MARKETPLACE -->
+  <ion-toolbar class="search-toolbar">
+    <div class="search-row">
+      <div class="search-bar">
+        <ion-icon name="search-outline"></ion-icon>
+        <input type="text" placeholder="Pesquisar no inventário..." 
+               [(ngModel)]="searchTerm" (input)="applyFilters()">
+      </div>
+      <button class="btn-filter" id="open-filters-dev">
+        <ion-icon name="options-outline"></ion-icon>
+      </button>
+      <ion-button fill="clear" color="success" routerLink="/manage-chats" class="btn-manage-chats">
+        <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+        Moderação
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="dev-bg" [class.chat-active-layout]="isChatOpen" [scrollY]="false">
+  
+  <div class="page-split-container">
+    
+    <!-- ÁREA DE LISTAGEM DE PRODUTOS -->
+    <div class="dashboard-wrapper main-scroll-content">
+      
+      <!-- DASHBOARD STATS HERO -->
+      <app-admin-stats-grid 
+        [stats]="stats" 
+        [financialStats]="financialStats" 
+        [shippingStats]="shippingStats"
+        [isLoading]="isLoading">
+      </app-admin-stats-grid>
+
+      <div class="main-panel-title" *ngIf="!isLoading">
+        <h2 class="poppins">Registros Disponíveis {{ filteredProducts.length > 0 ? '(' + filteredProducts.length + ')' : '' }}</h2>
+        <div class="selection-actions" *ngIf="filteredProducts.length > 0">
+          <ion-checkbox (ionChange)="toggleSelectAll($event)" mode="md"></ion-checkbox>
+          <span>Todos</span>
+        </div>
+      </div>
+
+      <!-- SKELETON LOADING UI -->
+      <div class="admin-grid" *ngIf="isLoading">
+        <div class="system-card skeleton" *ngFor="let item of [1,2,3,4,5,6]">
+          <div class="card-main-content">
+             <div class="visual-container skeleton-box"></div>
+             <div class="info-container">
+                <div class="skeleton-text short"></div>
+                <div class="skeleton-text large"></div>
+                <div class="skeleton-text medium"></div>
+             </div>
+          </div>
+          <div class="card-actions-bar skeleton-bar"></div>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div *ngIf="!isLoading && filteredProducts.length === 0" class="empty-container">
+        <ion-icon name="search-outline"></ion-icon>
+        <p>Nenhum produto encontrado para este filtro.</p>
+        <ion-button fill="clear" (click)="clearFilters()">Limpar Filtros</ion-button>
+      </div>
+
+      <!-- ADMIN SYSTEM GRID -->
+      <div class="admin-grid" *ngIf="!isLoading && filteredProducts.length > 0">
+        <app-admin-product-card *ngFor="let p of filteredProducts"
+          [product]="p"
+          [sellerName]="usersMap[p.sellerId || ''] || '...'"
+          [isCurrentUser]="p.sellerId === (currentUser$ | async)?.uid"
+          (chatRequested)="startChat(p)">
+        </app-admin-product-card>
+      </div>
+    </div>
+
+    <!-- PAINEL LATERAL DE CHAT + MODAIS MOBILE -->
+    <app-admin-chat-sidebar
+      [activeChatId]="activeChatId"
+      [activeChats]="activeChats"
+      [activeSellerName]="getActiveSellerName()"
+      [isChatOpen]="isChatOpen"
+      [isInboxOpen]="isInboxOpen"
+      (chatSelected)="openChatFromInbox($event)"
+      (backToInbox)="goBackToInbox()"
+      (chatClosed)="closeChat()"
+      (inboxDismissed)="isInboxOpen = false">
+    </app-admin-chat-sidebar>
+
+  </div>
+
+  <!-- FLOATING ACTION BUTTON PARA CONVERSAS ABERTAS -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="fab-chats-inbox">
+    <ion-fab-button color="success" (click)="openInbox()">
+      <ion-icon name="chatbubbles"></ion-icon>
+      <ion-badge color="danger" *ngIf="activeChats.length > 0">{{ activeChats.length }}</ion-badge>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- FLOATING BATCH TOOLBAR -->
+  <div class="floating-batch-hub animate-up" *ngIf="selectedCount > 0">
+    <div class="hub-container">
+      <div class="batch-info">
+        <span class="counter">{{ selectedCount }}</span>
+        <span class="text">Itens</span>
+      </div>
+      <div class="batch-actions">
+        <ion-button color="danger" (click)="deleteBatch()" mode="ios" class="btn-glow">
+          <ion-icon name="trash-outline" slot="start"></ion-icon>
+          EXCLUIR EM LOTE
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+</ion-content>
+
+<!-- MODAL DE FILTROS -->
+<ion-modal trigger="open-filters-dev" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.5, 0.75, 1]" class="filter-modal">
+  <ng-template>
+    <app-admin-filter-modal 
+      [filterState]="filterState" 
+      [sellersList]="sellersList"
+      (filterChange)="applyFilters()" 
+      (filterClear)="clearFilters()">
+    </app-admin-filter-modal>
+  </ng-template>
+</ion-modal>
+

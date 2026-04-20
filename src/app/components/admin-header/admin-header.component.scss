@@ -1,0 +1,32 @@
+.admin-toolbar {
+    --background: #ffffff; /* Força cor branca para garantir leitura */
+    --color: #1e293b;
+    --border-width: 0;
+    --padding-top: 6px;
+    --padding-bottom: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    
+    ::ng-deep ion-buttons {
+        ion-menu-button, ion-back-button {
+            --color: #64748b;
+        }
+    }
+}
+
+.admin-title {
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: #1e293b;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-logo {
+    height: 26px;
+    width: auto;
+    object-fit: contain;
+    margin-right: 16px;
+}

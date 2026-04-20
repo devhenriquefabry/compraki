@@ -1,0 +1,387 @@
+.poppins { font-family: 'Poppins', sans-serif; }
+
+/* DESKTOP CHAT PANE - escondido no mobile, sempre visível no desktop */
+.desktop-chat-pane {
+    display: none;
+    width: 450px;
+    background: #fff;
+    border-left: 1px solid #e2e8f0;
+    flex-direction: column;
+    box-shadow: -10px 0 20px rgba(0,0,0,0.02);
+    z-index: 100;
+    height: 100%;
+
+    .pane-header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f1f5f9;
+      background: #fdfdfd;
+      flex-shrink: 0;
+      
+      .header-titles {
+        .header-navigation-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          .btn-back-inbox {
+            --padding-start: 0;
+            --padding-end: 0;
+            margin: 0;
+            font-size: 1.2rem;
+            height: 32px;
+            width: 32px;
+          }
+          .title-stack {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+          }
+        }
+        h3 { 
+          margin: 0; font-size: 0.85rem; font-weight: 800; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1;
+          display: flex; align-items: center; gap: 6px;
+          
+          .header-icon { 
+             font-size: 1rem; color: #94a3b8; 
+             
+             &.settings-hover {
+                cursor: pointer;
+                transition: color 0.2s, background 0.2s;
+                padding: 4px;
+                border-radius: 4px;
+                margin-left: 8px;
+                
+                &:hover {
+                   color: #64748b;
+                   background: #f8fafc;
+                }
+             }
+          }
+        }
+        .seller-name-label { 
+          margin: 2px 0 0 0; 
+          font-size: 0.65rem; 
+          color: #799d50; 
+          font-weight: 800; 
+          text-transform: uppercase; 
+          letter-spacing: 0.5px;
+          display: block;
+          line-height: 1;
+        }
+      }
+      
+      ::ng-deep ion-button { --color: #94a3b8; font-size: 1.4rem; --padding-start: 0; --padding-end: 0; margin: 0; }
+    }
+
+    .pane-tabs {
+      display: flex;
+      border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
+      background: #fff;
+
+      .tab-btn {
+        flex: 1;
+        background: none;
+        border: none;
+        padding: 10px 0;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: color 0.2s;
+
+        &.active {
+          color: #1e293b;
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            right: 20%;
+            height: 2px;
+            background: #799d50;
+            border-radius: 2px;
+          }
+        }
+
+        &:hover:not(.active) { color: #64748b; }
+
+        .tab-count {
+          font-size: 0.55rem;
+          background: #799d50;
+          color: #fff;
+          min-width: 18px;
+          height: 18px;
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 900;
+
+          &.closed {
+            background: #94a3b8;
+          }
+        }
+      }
+
+      .trash-toggle {
+        flex: 0 0 50px;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border-left: 1px solid #f1f5f9;
+
+        &:hover {
+          color: #64748b;
+          background: #f8fafc;
+        }
+
+        &.selection-active {
+          color: #ef4444;
+          background: #fef2f2;
+          font-size: 1.3rem;
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    .selection-header-bar {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 4px 8px;
+      display: flex;
+      flex-shrink: 0;
+
+      .btn-select-all {
+        --padding-start: 12px;
+        --color: #64748b;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+        width: 100%;
+        justify-content: flex-start;
+        height: 36px;
+
+        ion-icon {
+          font-size: 1.1rem;
+          color: #94a3b8;
+        }
+      }
+    }
+
+    .pane-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+
+      .inbox-list-view {
+        padding: 0;
+        
+        .empty-inbox-small {
+          display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #94a3b8;
+          ion-icon { font-size: 48px; margin-bottom: 8px; opacity: 0.3; }
+          p { font-size: 0.8rem; font-weight: 700; }
+        }
+
+        .inbox-item-small {
+          --padding-start: 16px; 
+          --inner-padding-end: 16px;
+          --min-height: 85px;
+          --background: #fff;
+          cursor: pointer;
+          transition: all 0.2s;
+          border-bottom: 1px solid #f8fafc;
+
+          &:hover { --background: #f8fafc; }
+
+          &.item-selected {
+            --background: #fdf2f2;
+            &::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 3px;
+              background: #ef4444;
+            }
+          }
+
+          ion-checkbox {
+            --border-radius: 4px;
+            --checkbox-background-checked: #ef4444;
+            --border-color-checked: #ef4444;
+            margin-right: 12px;
+          }
+
+          .inbox-avatar { 
+            width: 44px; height: 44px; margin-top: 12px; margin-bottom: 12px; 
+            display: flex; align-items: center; justify-content: center;
+            .avatar-icon { font-size: 44px; color: #cbd5e1; }
+          }
+
+          .item-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+            h2 { font-size: 0.85rem; font-weight: 800; color: #1e293b; margin: 0; }
+            .time-stamp { font-size: 0.65rem; color: #94a3b8; font-weight: 600; }
+          }
+
+          .last-msg-preview { 
+            font-size: 0.75rem; color: #64748b; margin: 0; line-height: 1.3;
+            display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+          }
+
+          .product-context { 
+            display: inline-block; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: none; margin-top: 3px;
+            background: none; padding: 0; border-radius: 0; border: none;
+          }
+        }
+      }
+
+      ::ng-deep app-chat-box {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+    }
+
+    .selection-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1e293b;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+      z-index: 1000;
+
+      &.visible {
+        transform: translateY(0);
+      }
+
+      .selection-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .count-badge {
+          background: #ef4444;
+          color: #fff;
+          font-size: 0.85rem;
+          font-weight: 800;
+          padding: 2px 10px;
+          border-radius: 20px;
+          box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+
+        .selection-text {
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #94a3b8;
+        }
+      }
+
+      .btn-delete-bulk {
+        --background: #ef4444;
+        --background-hover: #dc2626;
+        --color: #fff;
+        --padding-start: 16px;
+        --padding-end: 16px;
+        --border-radius: 8px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        height: 38px;
+        margin: 0;
+        font-size: 0.75rem;
+        
+        ion-icon {
+          font-size: 1.1rem;
+        }
+      }
+    }
+}
+
+@media (min-width: 992px) {
+    .desktop-chat-pane {
+        display: flex;
+    }
+}
+
+/* SCROLLBAR */
+.pane-body {
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  &:hover::-webkit-scrollbar-thumb { background: #799d50; }
+  &::-webkit-scrollbar-thumb:hover { background: #62823d; }
+}
+
+/* INBOX MODAL (MOBILE) */
+::ng-deep .inbox-modal {
+    --border-radius: 20px 20px 0 0;
+    .empty-inbox {
+        display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #94a3b8;
+        ion-icon { font-size: 64px; margin-bottom: 12px; opacity: 0.3; }
+        p { font-weight: 700; }
+    }
+    .inbox-item {
+        --padding-start: 0; --inner-padding-end: 0;
+        h2 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+        p { font-size: 0.85rem; color: #64748b; margin-bottom: 4px; }
+        .product-context { display: block; font-size: 0.7rem; font-weight: 700; color: #799d50; text-transform: uppercase; }
+        ion-avatar { width: 48px; height: 48px; }
+    }
+}
+
+/* MOBILE CHAT MODAL */
+::ng-deep .mobile-chat-modal {
+    --border-radius: 20px 20px 0 0;
+    --height: 100%;
+    
+    @media (min-width: 992px) {
+        display: none !important;
+    }
+
+    .modal-body-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        height: 100%;
+        
+        app-chat-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+    }
+}

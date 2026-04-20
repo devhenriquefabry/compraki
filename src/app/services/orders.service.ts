@@ -3,7 +3,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, updateDoc, doc, 
   query, where, orderBy, onSnapshot, serverTimestamp, 
-  Firestore, getDocs 
+  Firestore, getDocs, increment
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { Observable } from 'rxjs';
@@ -41,6 +41,24 @@ export class OrdersService {
       ...orderData,
       createdAt: serverTimestamp()
     });
+
+    // ATUALIZAÇÃO DO DASHBOARD FINANCEIRO E INVENTÁRIO (soldCount)
+    try {
+      if (orderData.items && orderData.items.length > 0) {
+        for (const item of orderData.items) {
+          if (item.productData && item.productData.id) {
+            const productRef = doc(this.db, 'products', item.productData.id);
+            await updateDoc(productRef, {
+              soldCount: increment(item.quantity),
+              stock: increment(-item.quantity)
+            });
+          }
+        }
+      }
+    } catch (metricError) {
+      console.warn("Aviso: Falha ao atualizar as métricas financeiras do produto", metricError);
+    }
+
     return docRef.id;
   }
 

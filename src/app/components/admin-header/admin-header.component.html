@@ -1,0 +1,17 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="admin-toolbar">
+    <ion-buttons slot="start">
+      <ion-back-button *ngIf="showBackButton" [defaultHref]="defaultBackHref" text=""></ion-back-button>
+      <ion-menu-button *ngIf="showMenuButton"></ion-menu-button>
+    </ion-buttons>
+    
+    <ion-title class="admin-title poppins">
+      {{ titlePage }}
+    </ion-title>
+
+    <ion-buttons slot="end">
+      <ng-content select="[slot=end]"></ng-content>
+      <img src="assets/imagens/logoCompraki.png" alt="Compraki" class="admin-logo ion-margin-end">
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>

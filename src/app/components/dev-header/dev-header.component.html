@@ -1,0 +1,18 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="dev-toolbar">
+    <ion-buttons slot="start">
+      <ion-back-button *ngIf="showBackButton" [defaultHref]="defaultBackHref" text="" color="light"></ion-back-button>
+      <ion-menu-button *ngIf="showMenuButton" color="light"></ion-menu-button>
+    </ion-buttons>
+    
+    <ion-title class="poppins dev-title">
+      <img src="assets/imagens/logoCompraki.png" alt="Compraki" style="height: 24px; width: auto; object-fit: contain; filter: brightness(0) invert(1);">
+      <ion-icon name="code-slash-outline" class="dev-icon"></ion-icon>
+      {{ titlePage }}
+    </ion-title>
+
+    <ion-badge slot="end" class="dev-badge ion-margin-end">
+      DEV MODE
+    </ion-badge>
+  </ion-toolbar>
+</ion-header>

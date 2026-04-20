@@ -2,5 +2,8 @@
   <div *ngIf="backButton" [routerLink]="['/']" routerLinkActive="router-link-active"  class="backbutton">
     < {{backButton}}
   </div>
-  <span *ngIf="titlePage" class="content">{{titlePage}}</span>
+  <span *ngIf="titlePage" class="content">
+    <img src="assets/imagens/logoCompraki.png" alt="Compraki" style="height: 24px; margin-right: 8px; filter: brightness(0) invert(1);">
+    {{titlePage}}
+  </span>
 </div>

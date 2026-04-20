@@ -1,0 +1,89 @@
+<div class="modal-handle"></div>
+<ion-header class="ion-no-border">
+  <ion-toolbar class="modal-toolbar">
+    <ion-title>Filtros de Inventário</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="onClearFilters()" class="btn-clear text-dark">LIMPAR</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="filter-modal-content">
+  <!-- SEÇÃO DE ORDENAÇÃO -->
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="swap-vertical-outline"></ion-icon>
+      <span class="filter-label">Ordenar Resultados</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Ordenação" interface="action-sheet" [(ngModel)]="filterState.sortBy" (ionChange)="onFilterChange()" placeholder="Escolha a ordem">
+        <ion-select-option value="newest">Mais Recentes</ion-select-option>
+        <ion-select-option value="oldest">Mais Antigos</ion-select-option>
+        <ion-select-option value="priceLow">Menor Preço</ion-select-option>
+        <ion-select-option value="priceHigh">Maior Preço</ion-select-option>
+        <ion-select-option value="mostSold">Mais Vendidos</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="cash-outline"></ion-icon>
+      <span class="filter-label">Faixa de Preço (R$)</span>
+    </div>
+    <div class="price-inputs">
+      <div class="price-field">
+        <span class="field-hint">Mínimo</span>
+        <ion-item lines="none" class="price-box">
+          <ion-input type="number" placeholder="0.00" [(ngModel)]="filterState.minPrice" (ionInput)="onFilterChange()"></ion-input>
+        </ion-item>
+      </div>
+      <div class="price-field">
+        <span class="field-hint">Máximo</span>
+        <ion-item lines="none" class="price-box">
+          <ion-input type="number" placeholder="99.99" [(ngModel)]="filterState.maxPrice" (ionInput)="onFilterChange()"></ion-input>
+        </ion-item>
+      </div>
+    </div>
+  </div>
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="sparkles-outline"></ion-icon>
+      <span class="filter-label">Estado do Produto</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Condição" interface="action-sheet" [(ngModel)]="filterState.condition" (ionChange)="onFilterChange()">
+        <ion-select-option value="todos">Todos os Estados</ion-select-option>
+        <ion-select-option value="novo">Novos</ion-select-option>
+        <ion-select-option value="usado">Usados</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="cube-outline"></ion-icon>
+      <span class="filter-label">Disponibilidade</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Estoque" interface="action-sheet" [(ngModel)]="filterState.stockStatus" (ionChange)="onFilterChange()">
+        <ion-select-option value="todos">Todos os Níveis</ion-select-option>
+        <ion-select-option value="disponivel">Com Estoque</ion-select-option>
+        <ion-select-option value="esgotado">Esgotados</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="person-outline"></ion-icon>
+      <span class="filter-label">Proprietário / Vendedor</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Vendedor" interface="action-sheet" [(ngModel)]="filterState.sellerId" (ionChange)="onFilterChange()">
+        <ion-select-option value="todos">Todos os Vendedores</ion-select-option>
+        <ion-select-option *ngFor="let s of sellersList" [value]="s.id">{{s.name}}</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+  <div style="height: 40px;"></div>
+  <ion-button expand="block" class="btn-apply-filters" (click)="onFilterChange()">APLICAR FILTROS</ion-button>
+</ion-content>

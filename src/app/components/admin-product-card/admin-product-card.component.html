@@ -1,0 +1,66 @@
+<div class="system-card" [class.selected]="product.selected" [class.out-of-stock]="(product.stock || 0) <= 0">
+  
+  <div class="status-indicator" [class.new]="product.condition === 'novo'" [class.used]="product.condition !== 'novo'"></div>
+  
+  <div class="card-main-content">
+    <div class="selection-box">
+      <ion-checkbox [(ngModel)]="product.selected" (ionChange)="onSelectedChange($event)" mode="md"></ion-checkbox>
+    </div>
+    
+    <div class="visual-container">
+      <img [src]="(product['photoURL'] && product['photoURL'].length > 0) ? product['photoURL'][0] : 'assets/imagens/app-logo.png'" alt="Product">
+      <div class="out-stock-badge" *ngIf="(product.stock || 0) <= 0">ESGOTADO</div>
+    </div>
+
+    <div class="info-container">
+      <div class="header-info">
+        <h3 class="poppins">{{ product.name }}</h3>
+        <div class="price-box">
+          <span class="label-p">PREÇO</span>
+          <span class="value-p">R${{ product.price | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="specs-grid">
+        <div class="spec-row">
+          <span class="s-label">VENDEDOR</span>
+          <span class="s-value seller">
+            <ion-icon name="checkmark-circle"></ion-icon>
+            {{ sellerName }}
+            <span class="me-badge" *ngIf="isCurrentUser">VOCÊ</span>
+          </span>
+        </div>
+        <div class="spec-row">
+          <span class="s-label">ESTOQUE / VENDAS</span>
+          <span class="s-value" [class.zero-stock]="(product.stock || 0) <= 0">
+             {{ product.stock || 0 }} UN / {{ product.soldCount || 0 }} VD
+          </span>
+        </div>
+        <div class="spec-row">
+          <span class="s-label">ID DO REGISTRO</span>
+          <span class="s-value">#{{ product.id?.substring(0,10) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-actions-bar">
+    <div class="badge-type">
+      <ion-icon name="calendar-outline" style="vertical-align: middle; margin-right: 4px; font-size: 10px;"></ion-icon>
+      {{ product.createdAt | date:'dd/MM/yy' }}
+    </div>
+    <div class="btns-group">
+      <ion-button fill="clear" color="primary" [routerLink]="['/upload-product']">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        GERENCIAR
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- BOTÃO DE CHAT LARGURA TOTAL NO RODAPÉ -->
+  <button class="btn-full-chat" (click)="onChatRequested($event)" 
+          *ngIf="!isCurrentUser">
+    <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+    CONVERSAR COM VENDEDOR
+  </button>
+</div>

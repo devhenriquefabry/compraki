@@ -1,0 +1,133 @@
+.system-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+
+    &.selected { border-color: #799d50; background: rgba(121, 157, 80, 0.01); }
+
+    .status-indicator {
+        position: absolute; top: 0; left: 0; width: 3px; height: 100%; z-index: 5;
+        &.new { background: #799d50; }
+        &.used { background: #ffc233; }
+    }
+
+    .card-main-content {
+        display: flex; padding: 12px; gap: 12px; align-items: flex-start;
+        .selection-box { padding-top: 4px; ::ng-deep ion-checkbox { --border-color: #e2e8f0; width: 20px; height: 20px; } }
+        .visual-container {
+            flex-shrink: 0; width: 75px; height: 75px; border-radius: 8px; border: 1px solid #f1f5f9; background: #fff; overflow: hidden;
+            img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+        }
+        .info-container {
+            flex-grow: 1; min-width: 0;
+            .header-info {
+                display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;
+                h3 { margin: 0; font-size: 0.85rem; font-weight: 700; color: #1e293b; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+                .price-box { text-align: right; .label-p { font-size: 0.5rem; color: #94a3b8; font-weight: 800; display: block; } .value-p { color: #799d50; font-weight: 900; font-size: 1rem; } }
+            }
+            .specs-grid {
+                background: #f8fafc; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 4px;
+                .spec-row {
+                    display: flex; justify-content: space-between; font-size: 0.6rem;
+                    .s-label { color: #94a3b8; font-weight: 700; text-transform: uppercase; }
+                    .s-value { color: #475569; font-weight: 600; &.seller { color: #799d50; display: flex; align-items: center; gap: 2px; } }
+                }
+            }
+        }
+    }
+
+    .card-actions-bar {
+        padding: 8px 12px; background: #fcfcfc; border-top: 1px solid #f8fafc; display: flex; justify-content: space-between; align-items: center;
+        .badge-type { font-size: 0.6rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #f1f5f9; color: #64748b; text-transform: uppercase; }
+        
+        .btns-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-chat-item {
+            font-size: 1.2rem;
+            --color: #799d50;
+            margin: 0;
+        }
+
+        ::ng-deep ion-button { height: 28px; font-size: 0.7rem; font-weight: 800; margin: 0; }
+    }
+
+    /* BOTÃO RODAPÉ INTERAÇÃO */
+    .btn-full-chat {
+        width: 100%;
+        background: #799d50;
+        color: #fff;
+        border: none;
+        padding: 12px;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: 0.2s ease;
+        ion-icon { font-size: 1.1rem; }
+        &:hover { background: #62823f; }
+        &:active { background: #557037; }
+    }
+
+    &:hover { border-color: #cbd5e1; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04); }
+
+    /* ESTILOS PARA PRODUTO ESGOTADO */
+    &.out-of-stock {
+        opacity: 0.7;
+        
+        .card-main-content {
+            filter: grayscale(0.5);
+        }
+
+        .header-info h3 {
+            text-decoration: line-through;
+            color: #94a3b8 !important;
+        }
+
+        .visual-container {
+            position: relative;
+            background: #f1f5f9;
+        }
+
+        .out-stock-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-10deg);
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.55rem;
+            font-weight: 900;
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            white-space: nowrap;
+            z-index: 10;
+            opacity: 0.9;
+        }
+
+        .price-box .value-p {
+            color: #94a3b8 !important;
+        }
+        
+        .zero-stock {
+            color: #ef4444 !important;
+            font-weight: 800;
+        }
+    }
+}

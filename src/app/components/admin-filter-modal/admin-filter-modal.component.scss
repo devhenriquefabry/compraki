@@ -1,0 +1,132 @@
+.modal-handle {
+    width: 40px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin: 12px auto 0;
+}
+
+.modal-toolbar {
+    --background: #fff;
+    --border-width: 0;
+    --padding-top: 10px;
+    --padding-bottom: 10px;
+
+    ion-title {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #1e293b;
+    }
+
+    .btn-clear {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        --color: #94a3b8;
+    }
+}
+
+.filter-modal-content {
+    --background: #fff;
+    padding: 20px;
+
+    .filter-section {
+        margin-bottom: 24px;
+        background: #fdfdfd;
+        border: 1px solid #f1f5f9;
+        border-radius: 16px;
+        padding: 16px;
+        
+        .label-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            
+            ion-icon {
+                font-size: 1.2rem;
+                color: #799d50;
+            }
+            
+            .filter-label {
+                font-family: 'Poppins', sans-serif;
+                font-weight: 700;
+                font-size: 0.85rem;
+                color: #475569;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+        }
+
+        .filter-item {
+            --background: #f8fafc;
+            --border-radius: 12px;
+            --padding-start: 12px;
+            --padding-end: 12px;
+            --min-height: 48px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+
+            ion-select {
+                width: 100%;
+                --placeholder-color: #94a3b8;
+                --placeholder-opacity: 1;
+            }
+        }
+    }
+
+    .price-inputs {
+        display: flex;
+        gap: 12px;
+        
+        .price-field {
+            flex: 1;
+            
+            .field-hint {
+                display: block;
+                font-size: 0.65rem;
+                font-weight: 800;
+                color: #94a3b8;
+                margin-bottom: 4px;
+                text-transform: uppercase;
+                padding-left: 4px;
+            }
+
+            .price-box {
+                --background: #f8fafc;
+                --border-radius: 12px;
+                --padding-start: 12px;
+                --min-height: 48px;
+                border: 1px solid transparent;
+                transition: border-color 0.2s;
+
+                &:focus-within {
+                    border-color: #799d50;
+                }
+
+                ion-input {
+                    font-weight: 700;
+                    color: #1e293b;
+                    --placeholder-color: #cbd5e1;
+                }
+            }
+        }
+    }
+
+    .btn-apply-filters {
+        margin: 20px 16px 40px;
+        --background: #799d50;
+        --background-activated: #62823f;
+        --border-radius: 14px;
+        --padding-top: 18px;
+        --padding-bottom: 18px;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 800;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+        box-shadow: 0 10px 20px rgba(121, 157, 80, 0.2);
+    }
+}

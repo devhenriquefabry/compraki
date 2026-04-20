@@ -1,0 +1,74 @@
+/* STATS HERO GRID */
+.stats-hero-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    
+    ion-icon {
+        font-size: 16px;
+        padding: 8px;
+        color: #799d50;
+        background: rgba(121, 157, 80, 0.08);
+        border-radius: 8px;
+    }
+
+    .stat-content {
+        p { margin: 0; font-size: 0.6rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; }
+        h3 { margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px; }
+    }
+
+        /* Variante financeira — ícones em azul-petróleo */
+    &.financial {
+        ion-icon {
+            color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.08);
+        }
+        .stat-content h3 {
+            color: #0f172a;
+        }
+    }
+
+    /* Variante Envio (Cinza Neutro) */
+    &.shipping {
+        ion-icon {
+            color: #64748b;
+            background: rgba(100, 116, 139, 0.08);
+        }
+        .stat-content h3 {
+            color: #0f172a;
+        }
+    }
+}
+
+.section-title {
+    font-size: 0.70rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    margin-left: 2px;
+}
+
+/* Animações */
+.animate-up {
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
