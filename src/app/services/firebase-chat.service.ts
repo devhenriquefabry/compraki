@@ -344,4 +344,16 @@ export class FirebaseChatService {
       isChatBanned: isBanned
     });
   }
+
+  /**
+   * Converte um timestamp do Firebase (ou Date) em objeto Date JS
+   */
+  convertTimestampToDate(timestamp: any): Date {
+    if (!timestamp) return new Date();
+    if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+    if (typeof timestamp === 'number') return new Date(timestamp);
+    if (timestamp.seconds !== undefined) return new Date(timestamp.seconds * 1000);
+    return new Date(timestamp);
+  }
 }

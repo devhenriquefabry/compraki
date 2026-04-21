@@ -1,0 +1,124 @@
+:host {
+  --background: #f8fafc;
+}
+
+.modal-handle {
+  width: 40px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  margin: 12px auto;
+}
+
+.modal-toolbar {
+  --background: transparent;
+  --color: #1e293b;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  
+  ion-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 850;
+    font-size: 1.1rem;
+    letter-spacing: -0.5px;
+  }
+
+  .btn-clear {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    --color: #ef4444;
+  }
+}
+
+.filter-modal-content {
+  --padding-start: 24px;
+  --padding-end: 24px;
+  --padding-top: 10px;
+  --background: #f8fafc;
+}
+
+.filter-section {
+  margin-bottom: 28px;
+  
+  .label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    
+    ion-icon {
+      font-size: 18px;
+      color: #94a3b8;
+    }
+    
+    .filter-label {
+      font-size: 0.7rem;
+      font-weight: 850;
+      color: #799d50;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+}
+
+.filter-item {
+  --background: #fff;
+  --border-radius: 14px;
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  border: 1px solid #f1f5f9;
+  
+  ion-select {
+    width: 100%;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+    --placeholder-color: #94a3b8;
+    --placeholder-opacity: 1;
+  }
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  
+  ion-chip {
+    margin: 0;
+    height: 38px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    --border-radius: 10px;
+    transition: all 0.2s ease;
+    
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+
+.btn-apply-filters {
+  --background: #1e293b;
+  --background-activated: #000;
+  --border-radius: 16px;
+  --box-shadow: 0 8px 20px rgba(30, 41, 59, 0.2);
+  margin: 0;
+  height: 56px;
+  font-weight: 850;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  --color: #fff;
+  position: sticky;
+  bottom: 20px;
+  z-index: 100;
+}
+
+/* Custom action sheet and popover overrides to match premium theme if needed */
+::ng-deep {
+  .action-sheet-button {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 700 !important;
+  }
+}

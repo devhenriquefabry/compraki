@@ -2,12 +2,14 @@ import { Component, Input } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 
+import { AdminMetricCardComponent } from '../admin-metric-card/admin-metric-card.component';
+
 @Component({
   selector: 'app-admin-stats-grid',
   templateUrl: './admin-stats-grid.component.html',
   styleUrls: ['./admin-stats-grid.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule, DecimalPipe]
+  imports: [CommonModule, IonicModule, DecimalPipe, AdminMetricCardComponent]
 })
 export class AdminStatsGridComponent {
   

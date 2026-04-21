@@ -1,0 +1,98 @@
+<div class="modal-handle"></div>
+<ion-header class="ion-no-border">
+  <ion-toolbar class="modal-toolbar">
+    <ion-title>Matriz de Filtros (Auditoria)</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="onClearFilters()" class="btn-clear">LIMPAR</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="filter-modal-content">
+  <!-- ORDENAÇÃO -->
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="swap-vertical-outline"></ion-icon>
+      <span class="filter-label">Ordenar Fluxo</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Ordenação" interface="action-sheet" [(ngModel)]="filterState.sortBy" (ionChange)="onFilterChange()">
+        <ion-select-option value="newest">Mensagens Recentes</ion-select-option>
+        <ion-select-option value="oldest">Antiguidade da Sala</ion-select-option>
+        <ion-select-option value="activity">Maior Volume de Tráfego</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+
+  <!-- STATUS DE SEGURANÇA -->
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <span class="filter-label">Status de Segurança</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Status" interface="action-sheet" [(ngModel)]="filterState.status" (ionChange)="onFilterChange()">
+        <ion-select-option value="all">Todos os Status</ion-select-option>
+        <ion-select-option value="reported">Denúncias Pendentes</ion-select-option>
+        <ion-select-option value="banned">Usuários Restritos</ion-select-option>
+        <ion-select-option value="active">Em Monitoramento (Live)</ion-select-option>
+        <ion-select-option value="closed">Arquivadas / Fechadas</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+
+  <!-- TIPO DE CONVERSA -->
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="chatbox-ellipses-outline"></ion-icon>
+      <span class="filter-label">Origem da Conversa</span>
+    </div>
+    <div class="filter-chips">
+      <ion-chip [outline]="filterState.chatType !== 'all'" (click)="filterState.chatType = 'all'; onFilterChange()" [color]="filterState.chatType === 'all' ? 'success' : 'medium'">
+        Qualquer
+      </ion-chip>
+      <ion-chip [outline]="filterState.chatType !== 'product'" (click)="filterState.chatType = 'product'; onFilterChange()" [color]="filterState.chatType === 'product' ? 'success' : 'medium'">
+        Venda de Item
+      </ion-chip>
+      <ion-chip [outline]="filterState.chatType !== 'general'" (click)="filterState.chatType = 'general'; onFilterChange()" [color]="filterState.chatType === 'general' ? 'success' : 'medium'">
+        Direta / Geral
+      </ion-chip>
+    </div>
+  </div>
+
+  <!-- INTELIGÊNCIA TEMPORAL -->
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="calendar-outline"></ion-icon>
+      <span class="filter-label">Inteligência Temporal</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Data" interface="action-sheet" [(ngModel)]="filterState.dateRange" (ionChange)="onFilterChange()">
+        <ion-select-option value="all">Todo o Histórico</ion-select-option>
+        <ion-select-option value="today">Últimas 24 Horas</ion-select-option>
+        <ion-select-option value="7days">Últimos 7 Dias</ion-select-option>
+        <ion-select-option value="30days">Últimos 30 Dias</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+
+  <!-- PARTICIPANTES -->
+  <div class="filter-section">
+    <div class="label-row">
+      <ion-icon name="person-outline"></ion-icon>
+      <span class="filter-label">Auditar Participante</span>
+    </div>
+    <ion-item lines="none" class="filter-item">
+      <ion-select aria-label="Participante" interface="popover" [(ngModel)]="filterState.participantId" (ionChange)="onFilterChange()" placeholder="Selecione um usuário">
+        <ion-select-option value="all">Todos os Usuários</ion-select-option>
+        <ion-select-option *ngFor="let p of participantsList" [value]="p.id">{{ p.name }}</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+
+  <div style="height: 60px;"></div>
+  
+  <ion-button expand="block" class="btn-apply-filters" (click)="onFilterChange()">
+    APLICAR FILTROS 360
+  </ion-button>
+</ion-content>

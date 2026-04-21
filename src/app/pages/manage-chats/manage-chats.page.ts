@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
@@ -13,21 +13,41 @@ import { AppUser } from '../../interfaces/app-user';
 import { ChatBoxComponent } from '../../components/chat-box/chat-box.component';
 import { AdminHeaderComponent } from '../../components/admin-header/admin-header.component';
 import { AdminChatSidebarComponent } from '../../components/admin-chat-sidebar/admin-chat-sidebar.component';
+import { AdminChatFilterModalComponent } from '../../components/admin-chat-filter-modal/admin-chat-filter-modal.component';
+import { AdminMetricCardComponent } from '../../components/admin-metric-card/admin-metric-card.component';
+import { optionsOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-manage-chats',
   templateUrl: './manage-chats.page.html',
   styleUrls: ['./manage-chats.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatBoxComponent, IonicModule, AdminHeaderComponent, AdminChatSidebarComponent]
+  imports: [CommonModule, FormsModule, ChatBoxComponent, IonicModule, AdminHeaderComponent, AdminChatSidebarComponent, AdminChatFilterModalComponent, AdminMetricCardComponent]
 })
 export class ManageChatsPage implements OnInit, OnDestroy {
+  @ViewChild(ChatBoxComponent) chatBox?: ChatBoxComponent; 
+
 
   activeTab: 'all' | 'reported' | 'banned' = 'all';
   
   // Modais e Estados de Busca
-  isNewChatModalOpen = false;
-  userSearchQuery = '';
+  public searchQuery: string = '';
+  public userSearchQuery: string = '';
+  public isLoading: boolean = true;
+  public isNewChatModalOpen: boolean = false;
+
+  // -- MATRIZ DE FILTROS 360 --
+  public chatFilterState = {
+    status: 'all',          // all, active, reported, banned, closed
+    chatType: 'all',        // all, product, general
+    dateRange: 'all',       // all, today, 7days, 30days
+    participantId: 'all',   // specific UID
+    sortBy: 'newest'        // newest, oldest, activity
+  };
+
+  public get participantsList() {
+    return this.users.map(u => ({ id: u.uid, name: u.displayName || u.email || 'Usuário Sem Nome' }));
+  }
   
   chats: ChatRoom[] = [];
   reports: ChatReport[] = [];
@@ -37,13 +57,20 @@ export class ManageChatsPage implements OnInit, OnDestroy {
   activeChatRoom?: ChatRoom;
   activeChatTargetUser?: AppUser;
   
-  searchQuery: string = '';
-  isLoading = true;
+  public currentUserId: string = '';
   
+  // -- DASHBOARD METRICS --
+  get totalChatsCount() { return this.chats.length; }
+  get activeReportsCount() { return this.reports.filter(r => r.status === 'pending').length; }
+  get businessChatsCount() { return this.chats.filter(c => !!c.productId).length; }
+  get restrictedUsersCount() { return this.users.filter(u => !!u.isChatBanned).length; }
+
   // -- DASHBOARD AUDIT 360 --
   public inspectedMessages: ChatMessage[] = [];
-  public heatmap: { day: string, count: number, intensity: number }[] = [];
+  public heatmap: { day: string, fullDate: string, count: number, intensity: number, messages: ChatMessage[] }[] = [];
+  public selectedHeatmapDay: any = null;
   private chatSub?: Subscription;
+
   
   // -- ADMIN CHAT HUB STATES (Sidebar Direita) --
   public isChatOpen = false;
@@ -62,10 +89,11 @@ export class ManageChatsPage implements OnInit, OnDestroy {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {
-    addIcons({ add, refreshOutline, chatbubbles, chatbubblesOutline, flag, flagOutline, ban, banOutline, chatboxOutline, chevronForwardOutline, arrowForwardOutline, searchOutline, gridOutline, cartOutline, closeCircleOutline, timeOutline, arrowBackOutline });
+    addIcons({ add, refreshOutline, chatbubbles, chatbubblesOutline, flag, flagOutline, ban, banOutline, chatboxOutline, chevronForwardOutline, arrowForwardOutline, searchOutline, gridOutline, cartOutline, closeCircleOutline, timeOutline, arrowBackOutline, optionsOutline });
   }
 
   ngOnInit() {
+    this.currentUserId = this.chatService.getCurrentUser()?.uid || '';
     this.loadData();
     this.monitorAdminChats();
   }
@@ -106,16 +134,54 @@ export class ManageChatsPage implements OnInit, OnDestroy {
   get filteredChats() {
     let list = this.chats;
 
+    // 1. Filtro por Aba Superior (Legacy Compatibility)
     if (this.activeTab === 'reported') {
-      // Filtra chats que possuem denúncias pendentes
       const reportedChatIds = this.reports.filter(r => r.status === 'pending').map(r => r.chatId);
       list = list.filter(c => reportedChatIds.includes(c.id!));
     } else if (this.activeTab === 'banned') {
-      // Filtra usuários banidos e mostra as conversas deles
       const bannedUserIds = this.users.filter(u => u.isChatBanned).map(u => u.uid);
       list = list.filter(c => c.participantIds.some(pid => bannedUserIds.includes(pid)));
     }
 
+    // 2. Filtros Avançados (Matriz 360)
+    if (this.chatFilterState.status !== 'all') {
+      if (this.chatFilterState.status === 'reported') {
+        const reportedIds = this.reports.filter(r => r.status === 'pending').map(r => r.chatId);
+        list = list.filter(c => reportedIds.includes(c.id!));
+      } else if (this.chatFilterState.status === 'banned') {
+        const bannedIds = this.users.filter(u => u.isChatBanned).map(u => u.uid);
+        list = list.filter(c => c.participantIds.some(pid => bannedIds.includes(pid)));
+      } else if (this.chatFilterState.status === 'active') {
+        list = list.filter(c => c.status === 'active');
+      } else if (this.chatFilterState.status === 'closed') {
+        list = list.filter(c => c.status === 'closed');
+      }
+    }
+
+    if (this.chatFilterState.chatType !== 'all') {
+      const isProduct = this.chatFilterState.chatType === 'product';
+      list = list.filter(c => isProduct ? !!c.productId : !c.productId);
+    }
+
+    if (this.chatFilterState.participantId !== 'all') {
+      list = list.filter(c => c.participantIds.includes(this.chatFilterState.participantId));
+    }
+
+    if (this.chatFilterState.dateRange !== 'all') {
+      const now = new Date().getTime();
+      const oneDay = 24 * 60 * 60 * 1000;
+      let threshold = 0;
+      if (this.chatFilterState.dateRange === 'today') threshold = now - oneDay;
+      else if (this.chatFilterState.dateRange === '7days') threshold = now - (7 * oneDay);
+      else if (this.chatFilterState.dateRange === '30days') threshold = now - (30 * oneDay);
+      
+      list = list.filter(c => {
+        const created = this.chatService.convertTimestampToDate(c.createdAt).getTime();
+        return created >= threshold;
+      });
+    }
+
+    // 3. Busca por Texto
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       list = list.filter(c => 
@@ -124,7 +190,35 @@ export class ManageChatsPage implements OnInit, OnDestroy {
       );
     }
 
+    // 4. Ordenação
+    list = [...list].sort((a, b) => {
+      if (this.chatFilterState.sortBy === 'newest') {
+        const dateB = this.chatService.convertTimestampToDate(b.lastMessageAt || b.createdAt).getTime();
+        const dateA = this.chatService.convertTimestampToDate(a.lastMessageAt || a.createdAt).getTime();
+        return dateB - dateA;
+      } else if (this.chatFilterState.sortBy === 'oldest') {
+        return this.chatService.convertTimestampToDate(a.createdAt).getTime() - 
+               this.chatService.convertTimestampToDate(b.createdAt).getTime();
+      }
+      return 0;
+    });
+
     return list;
+  }
+
+  applyFilters() {
+    // Apenas para triggar a reavaliação se necessário, mas o getter já cuida disso se o objeto mudar
+    // Como o ngModel está bindado diretamente, o getter filteredChats reage automaticamente
+  }
+
+  clearFilters() {
+    this.chatFilterState = {
+      status: 'all',
+      chatType: 'all',
+      dateRange: 'all',
+      participantId: 'all',
+      sortBy: 'newest'
+    };
   }
 
   get filteredUsers() {
@@ -168,6 +262,7 @@ export class ManageChatsPage implements OnInit, OnDestroy {
     // Limpa dados anteriores
     this.inspectedMessages = [];
     this.heatmap = [];
+    this.selectedHeatmapDay = null;
     if (this.chatSub) this.chatSub.unsubscribe();
 
     if (this.activeChatRoom) {
@@ -175,45 +270,83 @@ export class ManageChatsPage implements OnInit, OnDestroy {
       this.chatSub = this.chatService.getMessages(chatId, 100).subscribe(msgs => {
         this.inspectedMessages = msgs;
         this.generateHeatmap(msgs);
+        
+        // Se houver um dia selecionado, atualiza as mensagens dele
+        if (this.selectedHeatmapDay) {
+          const updatedDay = this.heatmap.find(d => d.fullDate === this.selectedHeatmapDay.fullDate);
+          if (updatedDay) this.selectedHeatmapDay = updatedDay;
+        }
       });
     }
   }
+
+  toggleHeatmapDay(day: any) {
+    if (this.selectedHeatmapDay?.fullDate === day.fullDate) {
+      this.selectedHeatmapDay = null;
+    } else {
+      this.selectedHeatmapDay = day;
+      
+      // Sincronização Temporal: Rola o chat até a primeira mensagem do dia
+      if (day.messages && day.messages.length > 0 && this.chatBox) {
+        const firstMsgId = day.messages[0].id || day.messages[0].clientId;
+        if (firstMsgId) {
+          this.chatBox.scrollToMessage(firstMsgId);
+        }
+      }
+    }
+  }
+
 
   generateHeatmap(msgs: ChatMessage[]) {
     const days = 14;
     const now = new Date();
     const result = [];
-    const counts: {[key: string]: number} = {};
-
+    
+    // Mapeia mensagens por dia para facilitar o agrupamento
+    const msgGroups: {[key: string]: ChatMessage[]} = {};
     msgs.forEach(m => {
       if (m.createdAt) {
         const d = new Date(m.createdAt.seconds * 1000);
         const key = d.toISOString().split('T')[0];
-        counts[key] = (counts[key] || 0) + 1;
+        if (!msgGroups[key]) msgGroups[key] = [];
+        msgGroups[key].push(m);
       }
     });
 
-    const vals = Object.values(counts);
-    const max = vals.length > 0 ? Math.max(...vals) : 1;
+    const max = Math.max(...Object.values(msgGroups).map(g => g.length), 1);
 
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
       const key = d.toISOString().split('T')[0];
-      const count = counts[key] || 0;
+      const dayMsgs = msgGroups[key] || [];
       
       result.push({
         day: d.toLocaleDateString('pt-BR', { weekday: 'short' }),
-        count: count,
-        intensity: Math.min(Math.floor((count / (max * 0.4 || 1)) * 4), 4)
+        fullDate: key,
+        count: dayMsgs.length,
+        intensity: dayMsgs.length > 0 ? Math.min(Math.floor((dayMsgs.length / (max * 0.4 || 1)) * 4), 4) : 0,
+        messages: dayMsgs
       });
     }
     this.heatmap = result;
+
+    // Abrir automaticamente o dossiê do dia mais recente na primeira carga
+    if (!this.selectedHeatmapDay && result.length > 0) {
+      this.selectedHeatmapDay = result[result.length - 1];
+    }
   }
+
 
   clearSelection() {
     this.selectedChatId = null;
     this.activeChatTargetUser = undefined;
+  }
+
+  getParticipantName(uid: string): string {
+    if (!this.activeChatRoom || !this.activeChatRoom.participants) return 'Usuário';
+    const participant = this.activeChatRoom.participants.find(p => p.uid === uid);
+    return participant ? participant.name : 'Usuário';
   }
 
   async refreshActiveChatDetails() {

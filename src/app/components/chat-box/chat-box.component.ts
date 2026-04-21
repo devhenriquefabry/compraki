@@ -327,6 +327,28 @@ export class ChatBoxComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Rola o chat até uma mensagem específica pelo ID.
+   * Útil para o Audit Hub e navegação no Heatmap.
+   */
+  public scrollToMessage(messageId: string) {
+    if (!this.content || !messageId) return;
+    
+    const id = messageId.startsWith('msg-') ? messageId : `msg-${messageId}`;
+    const el = document.getElementById(id);
+    
+    if (el) {
+      // Usamos offsetTop para calcular o ponto exato da mensagem no scroll
+      // Subtraímos um pouco para não colar no topo (ex: 100px para o header de produto)
+      const y = el.offsetTop - 120; 
+      this.content.scrollToPoint(0, y > 0 ? y : 0, 500);
+      
+      // Pequeno feedback visual na mensagem alvo
+      el.classList.add('highlight-pulse');
+      setTimeout(() => el.classList.remove('highlight-pulse'), 2000);
+    }
+  }
+
   // ====== Controle do Visualizador de Imagem ======
   
   openImage(url: string) {

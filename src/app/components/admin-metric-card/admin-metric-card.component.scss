@@ -1,0 +1,87 @@
+:host {
+    display: block;
+    width: 100%;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease-out;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+        border-color: #cbd5e1;
+    }
+
+    .m-icon-wrapper {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        background: rgba(121, 157, 80, 0.08); // Padrão oliva
+        color: #799d50;
+        transition: all 0.2s ease;
+
+        ion-icon {
+            transition: transform 0.2s ease;
+        }
+    }
+
+    .stat-content {
+        display: flex;
+        flex-direction: column;
+
+        .m-label {
+            margin: 0;
+            font-size: 0.6rem;
+            color: #94a3b8;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+
+        .m-value {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            /* Removida fonte mono para manter estilo original Poppins */
+        }
+    }
+
+    /* VARIANTES DE COR (RESPEITANDO O CLÃ DE CORES DO ADMIN) */
+    
+    &.financial .m-icon-wrapper { background: rgba(14, 165, 233, 0.08); color: #0ea5e9; }
+    &.shipping .m-icon-wrapper { background: rgba(100, 116, 139, 0.08); color: #64748b; }
+    
+    &.blue .m-icon-wrapper { background: #eff6ff; color: #3b82f6; }
+    &.green .m-icon-wrapper { background: #f0fdf4; color: #22c55e; }
+    &.warn .m-icon-wrapper { background: #fffbeb; color: #f59e0b; }
+    &.danger .m-icon-wrapper { background: #fef2f2; color: #ef4444; }
+}
+
+/* Animação global reutilizada */
+.animate-up {
+    opacity: 0;
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}

@@ -57,6 +57,7 @@
   <!-- MENSAGENS -->
   <div class="messages-container" *ngIf="!isLoading">
     <div *ngFor="let msg of allMessages; let i = index; trackBy: trackByMessages" 
+         [id]="'msg-' + (msg.id || msg.clientId)"
          [class.msg-me]="msg.senderId === currentUserId" 
          [class.msg-other]="msg.senderId !== currentUserId"
          class="msg-wrapper animate-pop">

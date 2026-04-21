@@ -413,3 +413,13 @@
         color: #cbd5e1;
     }
 }
+/* HIGHLIGHT PULSE FOR TEMPORAL NAVIGATION */
+.msg-wrapper.highlight-pulse .msg-bubble {
+    animation: highlightPulse 2s ease-out;
+}
+
+@keyframes highlightPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); border-color: #22c55e; }
+    30% { transform: scale(1.02); box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); border-color: #22c55e; }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
