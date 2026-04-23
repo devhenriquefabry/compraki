@@ -43,7 +43,14 @@ export class AdminChatFilterModalComponent {
       personOutline, 
       shieldCheckmarkOutline,
       calendarOutline,
-      refreshOutline
+      refreshOutline,
+      'swap-vertical-outline': swapVerticalOutline,
+      'time-outline': timeOutline,
+      'chatbox-ellipses-outline': chatboxEllipsesOutline,
+      'person-outline': personOutline,
+      'shield-checkmark-outline': shieldCheckmarkOutline,
+      'calendar-outline': calendarOutline,
+      'refresh-outline': refreshOutline
     });
   }
 

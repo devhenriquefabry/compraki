@@ -50,10 +50,9 @@
       {{ product.createdAt | date:'dd/MM/yy' }}
     </div>
     <div class="btns-group">
-      <ion-button fill="clear" color="primary" [routerLink]="['/upload-product']">
-        <ion-icon slot="start" name="create-outline"></ion-icon>
-        GERENCIAR
-      </ion-button>
+      <button class="btn-info-detail" (click)="onDetailRequested($event)">
+        <ion-icon name="information-circle"></ion-icon>
+      </button>
     </div>
   </div>
 

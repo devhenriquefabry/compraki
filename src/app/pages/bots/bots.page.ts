@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { interval, Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
+import { BotMonitorService } from 'src/app/services/bot-monitor.service';
 
 @Component({
   selector: 'app-bots',
@@ -29,6 +30,15 @@ export class BotsPage implements OnInit, OnDestroy {
       description: 'Cria Comprador -> Navega -> Adiciona itens de lojas diferentes -> Checkout Automático.', 
       config: { count: null }, 
       script: 'buyer-bot.js' 
+    },
+    { 
+      name: 'Bot Desenrolado', 
+      type: 'chat', 
+      icon: 'chatbubbles-outline', 
+      color: 'warning',
+      description: 'Simulação de Auditoria: Abre 2 navegadores (Vendedor e Comprador) e gera conversa infinita via IA.', 
+      config: { count: 1 }, 
+      script: 'bot-desenrolado.js' 
     }
   ];
 
@@ -36,13 +46,20 @@ export class BotsPage implements OnInit, OnDestroy {
   public currentStatus: any = { status: 'idle', message: 'Sistema pronto.' };
   public logs: string[] = [];
   public executionMode: 'batch' | 'alternate' = 'batch';
+  public isHeadless: boolean = true; // Padrão invisível para não atrapalhar
   private statusSub?: Subscription;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    public botMonitor: BotMonitorService
+  ) { }
 
   ngOnInit() {
-    // Polling de status a cada 2 segundos
-    this.statusSub = interval(2000).subscribe(() => this.updateStatus());
+    // Polling global via serviço
+    this.statusSub = this.botMonitor.status$.subscribe(s => {
+      this.currentStatus = s;
+      this.logs = s.logs || [];
+    });
   }
 
   ngOnDestroy() {
@@ -75,7 +92,12 @@ export class BotsPage implements OnInit, OnDestroy {
       botsToRun = alternated;
     }
     
-    this.http.post('http://localhost:3001/run-bots', { bots: botsToRun }).subscribe({
+    const botsWithConfig = botsToRun.map(b => ({
+      ...b,
+      config: { ...b.config, headless: this.isHeadless }
+    }));
+    
+    this.http.post('http://localhost:3001/run-bots', { bots: botsWithConfig }).subscribe({
       next: () => {
         this.queue = [];
       },
@@ -86,15 +108,7 @@ export class BotsPage implements OnInit, OnDestroy {
   }
 
   updateStatus() {
-    this.http.get('http://localhost:3001/status').subscribe({
-      next: (res: any) => {
-        this.currentStatus = res;
-        this.logs = res.logs || [];
-      },
-      error: () => {
-        this.currentStatus = { status: 'offline', message: 'Bot Server (3001) Offline' };
-      }
-    });
+    // Agora o status vem via BotMonitorService (Subscrito no ngOnInit)
   }
 
   clearLogs() {

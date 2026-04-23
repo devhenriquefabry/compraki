@@ -1,32 +1,33 @@
-<!-- CARD DE CONTEXTO DO PRODUTO (FIXO NO TOPO) -->
-<div class="product-context-header" *ngIf="chatRoom?.productId">
-  <div class="context-card animate-down">
-    <div class="product-link" (click)="goToProduct()">
-      <div class="product-thumb">
-        <img [src]="chatRoom?.productPhoto || 'assets/imagens/app-logo.png'" alt="">
+<ion-header class="ion-no-border">
+  <div class="product-context-header" *ngIf="chatRoom?.productId">
+    <div class="context-card animate-down">
+      <div class="product-link" (click)="goToProduct()">
+        <div class="product-thumb">
+          <img [src]="chatRoom?.productPhoto || 'assets/imagens/app-logo.png'" alt="">
+        </div>
+        <div class="product-meta">
+          <span class="context-label">ASSUNTO DO CHAT</span>
+          <h4 class="product-name">{{ chatRoom?.productName }}</h4>
+        </div>
       </div>
-      <div class="product-meta">
-        <span class="context-label">ASSUNTO DO CHAT</span>
-        <h4 class="product-name">{{ chatRoom?.productName }}</h4>
+      <div class="context-actions">
+        <div class="platform-badge">
+           <ion-icon name="checkmark-circle"></ion-icon>
+           VIA COMPRAKI
+        </div>
+        <ion-button *ngIf="!isChatClosed" fill="clear" size="small" class="btn-close-chat" (click)="promptCloseChat()">
+          <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
+          Finalizar
+        </ion-button>
+        <ion-button fill="clear" size="small" class="btn-report-chat" (click)="openReportModal()">
+          <ion-icon name="flag-outline" slot="start" color="danger"></ion-icon>
+          <span style="color: var(--ion-color-danger)">Denunciar</span>
+        </ion-button>
+        <span *ngIf="isChatClosed" class="closed-badge">FINALIZADA</span>
       </div>
-    </div>
-    <div class="context-actions">
-      <div class="platform-badge">
-         <ion-icon name="checkmark-circle"></ion-icon>
-         VIA COMPRAKI
-      </div>
-      <ion-button *ngIf="!isChatClosed" fill="clear" size="small" class="btn-close-chat" (click)="promptCloseChat()">
-        <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
-        Finalizar
-      </ion-button>
-      <ion-button fill="clear" size="small" class="btn-report-chat" (click)="openReportModal()">
-        <ion-icon name="flag-outline" slot="start" color="danger"></ion-icon>
-        <span style="color: var(--ion-color-danger)">Denunciar</span>
-      </ion-button>
-      <span *ngIf="isChatClosed" class="closed-badge">FINALIZADA</span>
     </div>
   </div>
-</div>
+</ion-header>
 
 <!-- OVERLAY DE FINALIZAÇÃO -->
 <div class="closing-overlay" *ngIf="closingState !== 'idle'">

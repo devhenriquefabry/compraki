@@ -1,6 +1,4 @@
 <ion-header class="ion-no-border">
-  <app-admin-header titlePage="Painel de Inventário" [showMenuButton]="true" [showBackButton]="false"></app-admin-header>
-
   <!-- BUSCA ESTILO MARKETPLACE -->
   <ion-toolbar class="search-toolbar">
     <div class="search-row">
@@ -12,10 +10,6 @@
       <button class="btn-filter" id="open-filters-dev">
         <ion-icon name="options-outline"></ion-icon>
       </button>
-      <ion-button fill="clear" color="success" routerLink="/manage-chats" class="btn-manage-chats">
-        <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-        Moderação
-      </ion-button>
     </div>
   </ion-toolbar>
 </ion-header>
@@ -71,7 +65,8 @@
           [product]="p"
           [sellerName]="usersMap[p.sellerId || ''] || '...'"
           [isCurrentUser]="p.sellerId === (currentUser$ | async)?.uid"
-          (chatRequested)="startChat(p)">
+          (chatRequested)="startChat(p)"
+          (detailRequested)="openProductDetail(p)">
         </app-admin-product-card>
       </div>
     </div>
@@ -128,4 +123,14 @@
     </app-admin-filter-modal>
   </ng-template>
 </ion-modal>
+
+<!-- MODAL DE DETALHES DO PRODUTO -->
+<app-product-detail-modal
+  *ngIf="selectedProduct"
+  [product]="selectedProduct"
+  [sellerName]="usersMap[selectedProduct.sellerId || ''] || '...'"
+  [isCurrentUser]="selectedProduct.sellerId === (currentUser$ | async)?.uid"
+  (closed)="closeProductDetail()"
+  (chatRequested)="onDetailChatRequested()">
+</app-product-detail-modal>
 

@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { IonicModule } from '@ionic/angular';
 import { FirebaseProducts } from '../../services/firebase-products';
 import { FirebaseUsersService } from '../../services/firebase-users.service';
 import { Product } from '../../interfaces/product';
@@ -8,12 +10,29 @@ import { AlertController, ToastController } from '@ionic/angular';
 import { FirebaseChatService } from '../../services/firebase-chat.service';
 import { User } from 'firebase/auth';
 import { ChatRoom, ChatParticipant } from '../../interfaces/chat';
+import { AdminStatsGridComponent } from '../../components/admin-stats-grid/admin-stats-grid.component';
+import { AdminFilterModalComponent } from '../../components/admin-filter-modal/admin-filter-modal.component';
+import { AdminProductCardComponent } from '../../components/admin-product-card/admin-product-card.component';
+import { AdminChatSidebarComponent } from '../../components/admin-chat-sidebar/admin-chat-sidebar.component';
+import { AdminHeaderComponent } from '../../components/admin-header/admin-header.component';
+import { ProductDetailModalComponent } from '../../components/product-detail-modal/product-detail-modal.component';
 
 @Component({
   selector: 'app-dev-products',
   templateUrl: './dev-products.page.html',
   styleUrls: ['./dev-products.page.scss'],
-  standalone: false
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    IonicModule,
+    AdminStatsGridComponent,
+    AdminFilterModalComponent,
+    AdminProductCardComponent,
+    AdminChatSidebarComponent,
+    AdminHeaderComponent,
+    ProductDetailModalComponent
+  ]
 })
 export class DevProductsPage implements OnInit, OnDestroy {
 
@@ -22,6 +41,7 @@ export class DevProductsPage implements OnInit, OnDestroy {
   public searchTerm: string = '';
   public isLoading: boolean = true;
   public showFilters: boolean = false;
+  public selectedProduct: any = null;
 
   public isChatOpen = false;
   public activeChatId = '';
@@ -368,6 +388,22 @@ export class DevProductsPage implements OnInit, OnDestroy {
     } catch (e) {
        console.error("Falha ao iniciar chat", e);
        this.showToast('Erro ao abrir chat. Tente novamente.', 'danger');
+    }
+  }
+
+  public openProductDetail(product: Product) {
+    this.selectedProduct = product;
+  }
+
+  public closeProductDetail() {
+    this.selectedProduct = null;
+  }
+
+  public onDetailChatRequested() {
+    if (this.selectedProduct) {
+      const p = this.selectedProduct;
+      this.closeProductDetail();
+      this.startChat(p);
     }
   }
 

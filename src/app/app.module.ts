@@ -11,6 +11,7 @@ import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { BotStatusWidgetComponent } from './components/bot-status-widget/bot-status-widget.component';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app'
 import { environment } from 'src/environments/environment.prod';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
@@ -28,7 +29,7 @@ const firebaseConfig = {
 
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent, BotStatusWidgetComponent],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule,
 
   ],

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { add, refreshOutline, chatbubbles, chatbubblesOutline, flag, flagOutline, ban, banOutline, chatboxOutline, chevronForwardOutline, arrowForwardOutline, searchOutline, gridOutline, cartOutline, closeCircleOutline, timeOutline, arrowBackOutline } from 'ionicons/icons';
+import { add, addCircle, refreshOutline, chatbubbles, chatbubblesOutline, flag, flagOutline, ban, banOutline, chatboxOutline, chevronForwardOutline, arrowForwardOutline, searchOutline, gridOutline, cartOutline, cameraOutline, micOutline, trashOutline, closeCircleOutline, timeOutline, arrowBackOutline, swapHorizontalOutline, optionsOutline } from 'ionicons/icons';
 import { Subscription, combineLatest } from 'rxjs';
 import { FirebaseChatService } from '../../services/firebase-chat.service';
 import { FirebaseUsersService } from '../../services/firebase-users.service';
@@ -15,7 +15,6 @@ import { AdminHeaderComponent } from '../../components/admin-header/admin-header
 import { AdminChatSidebarComponent } from '../../components/admin-chat-sidebar/admin-chat-sidebar.component';
 import { AdminChatFilterModalComponent } from '../../components/admin-chat-filter-modal/admin-chat-filter-modal.component';
 import { AdminMetricCardComponent } from '../../components/admin-metric-card/admin-metric-card.component';
-import { optionsOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-manage-chats',
@@ -64,6 +63,15 @@ export class ManageChatsPage implements OnInit, OnDestroy {
   get activeReportsCount() { return this.reports.filter(r => r.status === 'pending').length; }
   get businessChatsCount() { return this.chats.filter(c => !!c.productId).length; }
   get restrictedUsersCount() { return this.users.filter(u => !!u.isChatBanned).length; }
+  
+  // -- BATCH OPERATIONS --
+  public selectedChatIds: Set<string> = new Set();
+  public isAllSelected: boolean = false;
+  get selectedCount() { return this.selectedChatIds.size; }
+  
+  public totalMessagesCount: number = 0;
+  public totalImagesCount: number = 0;
+  public totalAudiosCount: number = 0;
 
   // -- DASHBOARD AUDIT 360 --
   public inspectedMessages: ChatMessage[] = [];
@@ -89,7 +97,50 @@ export class ManageChatsPage implements OnInit, OnDestroy {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {
-    addIcons({ add, refreshOutline, chatbubbles, chatbubblesOutline, flag, flagOutline, ban, banOutline, chatboxOutline, chevronForwardOutline, arrowForwardOutline, searchOutline, gridOutline, cartOutline, closeCircleOutline, timeOutline, arrowBackOutline, optionsOutline });
+    addIcons({ 
+      add, 
+      addCircle, 
+      refreshOutline, 
+      chatbubbles, 
+      chatbubblesOutline, 
+      flag, 
+      flagOutline, 
+      ban, 
+      banOutline, 
+      chatboxOutline, 
+      chevronForwardOutline, 
+      arrowForwardOutline, 
+      searchOutline, 
+      gridOutline, 
+      cartOutline, 
+      cameraOutline, 
+      micOutline, 
+      trashOutline, 
+      closeCircleOutline, 
+      timeOutline, 
+      arrowBackOutline, 
+      swapHorizontalOutline, 
+      optionsOutline,
+      'add-circle': addCircle,
+      'refresh-outline': refreshOutline,
+      'chatbubbles-outline': chatbubblesOutline,
+      'flag-outline': flagOutline,
+      'ban-outline': banOutline,
+      'chatbox-outline': chatboxOutline,
+      'chevron-forward-outline': chevronForwardOutline,
+      'arrow-forward-outline': arrowForwardOutline,
+      'search-outline': searchOutline,
+      'grid-outline': gridOutline,
+      'cart-outline': cartOutline,
+      'camera-outline': cameraOutline,
+      'mic-outline': micOutline,
+      'trash-outline': trashOutline,
+      'close-circle-outline': closeCircleOutline,
+      'time-outline': timeOutline,
+      'arrow-back-outline': arrowBackOutline,
+      'swap-horizontal-outline': swapHorizontalOutline,
+      'options-outline': optionsOutline
+    });
   }
 
   ngOnInit() {
@@ -129,6 +180,11 @@ export class ManageChatsPage implements OnInit, OnDestroy {
         }
       })
     );
+
+    // Carrega contagem de mensagens separadamente (Aggregation query)
+    this.chatService.getTotalMessagesCount().then(count => this.totalMessagesCount = count);
+    this.chatService.getTotalMediaCount('image').then(count => this.totalImagesCount = count);
+    this.chatService.getTotalMediaCount('audio').then(count => this.totalAudiosCount = count);
   }
 
   get filteredChats() {
@@ -204,6 +260,72 @@ export class ManageChatsPage implements OnInit, OnDestroy {
     });
 
     return list;
+  }
+
+  // -- BATCH METHODS --
+  toggleChatSelection(chatId: string) {
+    if (this.selectedChatIds.has(chatId)) {
+      this.selectedChatIds.delete(chatId);
+    } else {
+      this.selectedChatIds.add(chatId);
+    }
+  }
+
+  isChatSelected(chatId: string): boolean {
+    return this.selectedChatIds.has(chatId);
+  }
+
+  toggleSelectAll(event: any) {
+    const isChecked = event.detail.checked;
+    this.isAllSelected = isChecked;
+    
+    if (isChecked) {
+      this.filteredChats.forEach(c => {
+        if (c.id) this.selectedChatIds.add(c.id);
+      });
+    } else {
+      this.selectedChatIds.clear();
+    }
+  }
+
+  async deleteSelectedChats() {
+    if (this.selectedCount === 0) return;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Confirmar Exclusão',
+      mode: 'ios',
+      message: `Deseja realmente excluir ${this.selectedCount} conversas permanentemente? Esta ação não pode ser desfeita.`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Excluir em Lote',
+          role: 'destructive',
+          handler: async () => {
+             await this.performBulkDelete();
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  private async performBulkDelete() {
+    try {
+      const idsToDelete = Array.from(this.selectedChatIds);
+      this.isLoading = true;
+      
+      await this.chatService.deleteChatsBulk(idsToDelete);
+      
+      this.selectedChatIds.clear();
+      this.isAllSelected = false;
+      this.isLoading = false;
+      this.showToast(`${idsToDelete.length} conversas excluídas com sucesso.`);
+    } catch (err) {
+      console.error("Erro na exclusão em lote:", err);
+      this.isLoading = false;
+      this.showToast("Falha ao excluir algumas conversas.", 'danger');
+    }
   }
 
   applyFilters() {
@@ -440,9 +562,9 @@ export class ManageChatsPage implements OnInit, OnDestroy {
     await alert.present();
   }
 
-  async showToast(message: string) {
+  async showToast(message: string, color: string = 'success') {
     const toast = await this.toastCtrl.create({
-      message, duration: 2000, position: 'bottom'
+      message, duration: 2000, color, position: 'bottom'
     });
     await toast.present();
   }

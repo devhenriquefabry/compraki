@@ -1,0 +1,23 @@
+<div class="bot-floating-widget animate-pop" 
+     [class.running]="status.status === 'running'" 
+     [class.offline]="status.status === 'offline'"
+     (click)="goToBots()">
+    
+    <div class="status-indicator">
+        <div class="dot"></div>
+        <ion-spinner *ngIf="status.status === 'running'" name="crescent"></ion-spinner>
+    </div>
+
+    <div class="content-area">
+        <span class="bot-label">BOT MONITOR</span>
+        <p class="status-message truncate">{{ lastLog }}</p>
+    </div>
+
+    <div class="queue-badge" *ngIf="status.queueLength > 0">
+        {{ status.queueLength }}
+    </div>
+
+    <div class="action-hint">
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+    </div>
+</div>

@@ -1,7 +1,7 @@
 <ion-app>
   <!-- TRANSIÇÃO FALSO-SPLASH NATIVA -> WEB -->
   <div class="custom-splash" *ngIf="showSplash" [class.animating-out]="splashAnimatingOut">
-    
+
     <!-- Pulso e brilho (Onda) atrás do logo -->
     <div class="glow-ring"></div>
 
@@ -12,7 +12,7 @@
     <div class="loading-bar-container">
       <div class="loading-bar"></div>
     </div>
-    
+
   </div>
 
   <ion-menu contentId="main-content" menuId="main-menu" class="main-sidebar">
@@ -27,7 +27,7 @@
 
     <ion-content class="sidebar-content">
       <ion-list lines="none" class="menu-list">
-        
+
         <ion-list-header>EXPLORAÇÃO</ion-list-header>
         <ion-menu-toggle auto-hide="false">
           <ion-item button [routerLink]="['/tabs/tab2']" routerLinkActive="active-item">
@@ -113,16 +113,9 @@
 
         <ion-list-header>ADMINISTRAÇÃO</ion-list-header>
         <ion-menu-toggle auto-hide="false">
-          <ion-item button [routerLink]="['/dev-products']" routerLinkActive="active-item">
-            <ion-icon name="cube-outline" slot="start"></ion-icon>
-            <ion-label>Gestão de Inventário</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
-
-        <ion-menu-toggle auto-hide="false">
-          <ion-item button [routerLink]="['/manage-chats']" routerLinkActive="active-item">
-            <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-            <ion-label>Moderação de Chats</ion-label>
+          <ion-item button [routerLink]="['/admin']" routerLinkActive="active-item">
+            <ion-icon name="grid-outline" slot="start"></ion-icon>
+            <ion-label>Painel de Gestão</ion-label>
           </ion-item>
         </ion-menu-toggle>
 

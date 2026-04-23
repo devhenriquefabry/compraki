@@ -66,6 +66,14 @@
             </ion-item>
           </div>
 
+          <div class="execution-options">
+            <ion-item lines="none" class="headless-toggle">
+              <ion-icon name="eye-off-outline" slot="start"></ion-icon>
+              <ion-label>Executar em segundo plano (Invisível)</ion-label>
+              <ion-toggle slot="end" [(ngModel)]="isHeadless" color="success"></ion-toggle>
+            </ion-item>
+          </div>
+
           <div class="execution-mode-container">
             <ion-label>MODO DE SEQUENCIAMENTO</ion-label>
             <ion-segment [(ngModel)]="executionMode" mode="ios">

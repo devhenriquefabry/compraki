@@ -107,6 +107,32 @@
     top: 20px;
 }
 
+.execution-options {
+    background: rgba(152, 251, 152, 0.05);
+    border-radius: 15px;
+    margin-bottom: 15px;
+    border: 1px dashed rgba(152, 251, 152, 0.2);
+
+    .headless-toggle {
+        --background: transparent;
+        --color: #fff;
+        --padding-start: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+
+        ion-icon {
+            color: #98fb98;
+            margin-right: 10px;
+        }
+
+        ion-toggle {
+            --handle-background: #98fb98;
+            --handle-background-checked: #98fb98;
+            --track-background-checked: rgba(152, 251, 152, 0.3);
+        }
+    }
+}
+
 .status-panel {
     background: linear-gradient(135deg, rgba(30, 30, 30, 0.6), rgba(15, 15, 15, 0.8));
     backdrop-filter: blur(15px);

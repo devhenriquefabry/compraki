@@ -4,7 +4,7 @@ import { IonicModule } from '@ionic/angular';
 
 @Component({
   selector: 'app-action-footer',
-  template: `
+  template: `  
     <ion-footer class="ion-no-border action-footer-comp">
       <div class="footer-wrapper">
         <ion-button class="btn-action" expand="block" (click)="onAction()">

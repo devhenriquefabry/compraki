@@ -1,6 +1,19 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { 
+  chevronBackOutline, 
+  chatbubblesOutline, 
+  settingsOutline, 
+  sparkles, 
+  closeOutline, 
+  trashOutline, 
+  checkboxOutline, 
+  squareOutline, 
+  personCircle,
+  chatbubbles
+} from 'ionicons/icons';
 import { ChatRoom, ChatParticipant } from '../../interfaces/chat';
 import { ChatBoxComponent } from '../chat-box/chat-box.component';
 import { FirebaseChatService } from '../../services/firebase-chat.service';
@@ -40,8 +53,30 @@ export class AdminChatSidebarComponent {
     // Persistência local do status do AI Simulation
     const savedState = localStorage.getItem('compraki_grok_simulation');
     if (savedState) {
-      this.isAiSimulationActive = savedState === 'true';
+    this.isAiSimulationActive = savedState === 'true';
     }
+
+    // Registro de ícones mandatório para componentes standalone no Ionic 7/8
+    addIcons({ 
+      chevronBackOutline, 
+      chatbubblesOutline, 
+      settingsOutline, 
+      sparkles, 
+      closeOutline, 
+      trashOutline, 
+      checkboxOutline, 
+      squareOutline, 
+      personCircle,
+      chatbubbles,
+      'chevron-back-outline': chevronBackOutline,
+      'chatbubbles-outline': chatbubblesOutline,
+      'settings-outline': settingsOutline,
+      'close-outline': closeOutline,
+      'trash-outline': trashOutline,
+      'checkbox-outline': checkboxOutline,
+      'square-outline': squareOutline,
+      'person-circle': personCircle
+    });
   }
 
   toggleAiSimulation(event: any) {

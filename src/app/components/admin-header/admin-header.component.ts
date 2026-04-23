@@ -1,6 +1,8 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { menu, arrowBack } from 'ionicons/icons';
 
 @Component({
   selector: 'app-admin-header',
@@ -14,4 +16,8 @@ export class AdminHeaderComponent {
   @Input() showBackButton: boolean = false;
   @Input() defaultBackHref: string = '/home';
   @Input() showMenuButton: boolean = true;
+
+  constructor() {
+    addIcons({ menu, arrowBack, 'arrow-back': arrowBack });
+  }
 }

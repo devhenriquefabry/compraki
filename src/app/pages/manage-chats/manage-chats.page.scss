@@ -1453,3 +1453,137 @@ ion-title {
   100% { box-shadow: 0 0 0 0 rgba(121, 157, 80, 0); }
 }
 
+
+/* BATCH OPERATIONS STYLES */
+.selection-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-right: 1px solid #e2e8f0;
+    margin-right: 4px;
+    
+    ion-checkbox {
+        --size: 18px;
+        --checkbox-background-checked: #799d50;
+        --border-color: #cbd5e1;
+    }
+    
+    span {
+        font-size: 0.7rem;
+        font-weight: 850;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+}
+
+.batch-selection-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 100;
+    
+    ion-checkbox {
+        --size: 22px;
+        --checkbox-background: rgba(255, 255, 255, 0.9);
+        --checkbox-background-checked: #799d50;
+        --border-color: #cbd5e1;
+        --border-width: 2px;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+}
+
+.square-chat-card.selected-batch {
+    border-color: #799d50;
+    box-shadow: 0 0 0 2px #799d50, 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    background: #f0fdf4;
+    
+    &::before { opacity: 0.25; }
+}
+
+/* FLOATING BATCH HUB */
+.floating-batch-hub {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    min-width: 450px;
+    max-width: 90vw;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 16px 24px;
+    z-index: 10001;
+    box-shadow: 
+        0 20px 50px -12px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+
+    .hub-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+    }
+
+    .batch-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .count-pill {
+            background: #799d50;
+            color: #fff;
+            font-weight: 800;
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            box-shadow: 0 0 20px rgba(121, 157, 80, 0.4);
+        }
+
+        .text-meta {
+            display: flex;
+            flex-direction: column;
+            .main-label { color: #fff; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.5px; }
+            .sub-label { color: #94a3b8; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
+        }
+    }
+
+    .batch-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        ion-button {
+            --border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            height: 42px;
+        }
+
+        .btn-batch-delete {
+            --box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+    }
+}
+
+/* RESPONSIVE HUB */
+@media (max-width: 600px) {
+    .floating-batch-hub {
+        width: 95vw;
+        min-width: unset;
+        padding: 12px 16px;
+        bottom: 20px;
+        
+        .hub-container { gap: 12px; }
+        .text-meta .sub-label { display: none; }
+    }
+}

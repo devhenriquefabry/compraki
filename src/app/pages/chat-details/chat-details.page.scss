@@ -49,6 +49,13 @@ ion-toolbar {
   padding: 40px;
 }
 
+.modal-content-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .messages-container {
   padding: 16px;
   display: flex;
@@ -156,6 +163,9 @@ ion-toolbar {
   ion-toolbar { --background: var(--ion-color-step-100, #1e1e1e); }
   .chat-content { --background: #000; }
   .message-input-toolbar {
+    --background: var(--ion-color-step-100, #1e1e1e) !important;
+    background: var(--ion-color-step-100, #1e1e1e) !important;
+    display: block !important;
     .input-container {
       background: var(--ion-color-step-150, #2a2a2a);
       ion-input { color: #fff; }

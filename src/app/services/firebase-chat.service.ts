@@ -3,7 +3,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import {
   getFirestore, collection, doc, query, where, getDoc,
   getDocs, addDoc, onSnapshot, serverTimestamp, writeBatch, orderBy, updateDoc, Firestore,
-  deleteDoc
+  deleteDoc, collectionGroup, getCountFromServer
 } from 'firebase/firestore';
 import { getAuth, Auth, User } from 'firebase/auth';
 import { getDownloadURL, ref, getStorage, uploadBytes, FirebaseStorage } from 'firebase/storage';
@@ -343,6 +343,24 @@ export class FirebaseChatService {
     await updateDoc(userRef, {
       isChatBanned: isBanned
     });
+  }
+
+  /**
+   * Obtém a contagem total de mensagens enviadas em todos os chats (Usa Collection Group)
+   */
+  async getTotalMessagesCount(): Promise<number> {
+    const messagesQuery = collectionGroup(this.db, 'messages');
+    const snapshot = await getCountFromServer(messagesQuery);
+    return snapshot.data().count;
+  }
+
+  /**
+   * Obtém a contagem total de mensagens de um tipo específico (Usa Collection Group)
+   */
+  async getTotalMediaCount(type: 'text' | 'image' | 'audio'): Promise<number> {
+    const messagesQuery = query(collectionGroup(this.db, 'messages'), where('type', '==', type));
+    const snapshot = await getCountFromServer(messagesQuery);
+    return snapshot.data().count;
   }
 
   /**

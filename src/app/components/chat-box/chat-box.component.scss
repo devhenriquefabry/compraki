@@ -1,5 +1,17 @@
-.chat-content {
-    --background: #fdfdfd;
+:host {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+    background: #fff;
+    contain: layout;
+}
+
+ion-content {
+    flex: 1 !important;
+    height: auto !important;
 }
 
 /* PRODUCT CONTEXT HEADER */
@@ -176,6 +188,7 @@
     --background: #fff;
     border-top: 1px solid #f1f5f9;
     padding: 8px 12px;
+    z-index: 1000;
 }
 
 .toolbar-row {

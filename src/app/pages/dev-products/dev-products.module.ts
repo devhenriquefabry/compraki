@@ -25,8 +25,9 @@ import { AdminHeaderComponent } from 'src/app/components/admin-header/admin-head
     AdminFilterModalComponent,
     AdminProductCardComponent,
     AdminChatSidebarComponent,
-    AdminHeaderComponent
+    AdminHeaderComponent,
+    DevProductsPage
   ],
-  declarations: [DevProductsPage]
+  declarations: []
 })
 export class DevProductsPageModule {}

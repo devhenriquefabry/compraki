@@ -1,0 +1,282 @@
+<div class="modal-backdrop" (click)="onBackdropClick($event)" *ngIf="product">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    
+    <!-- HANDLE + CLOSE -->
+    <div class="modal-top-bar">
+      <div class="modal-handle"></div>
+      <button class="btn-close-modal" (click)="close()">
+        <ion-icon name="close"></ion-icon>
+      </button>
+    </div>
+
+    <!-- SCROLLABLE CONTENT -->
+    <div class="modal-body">
+
+      <!-- ============ HERO: GALERIA DE IMAGENS ============ -->
+      <div class="hero-gallery">
+        <div class="main-image-wrapper">
+          <img [src]="images[activeImageIndex]" alt="Produto" class="main-image">
+          
+          <!-- BADGES -->
+          <div class="badges-overlay">
+            <span class="badge-condition" [ngClass]="conditionClass">{{ conditionLabel }}</span>
+            <span class="badge-discount" *ngIf="hasDiscount">-{{ discountPercent }}%</span>
+          </div>
+
+          <!-- ARROWS -->
+          <button class="gallery-arrow arrow-left" (click)="prevImage()" *ngIf="images.length > 1">
+            <ion-icon name="chevron-back"></ion-icon>
+          </button>
+          <button class="gallery-arrow arrow-right" (click)="nextImage()" *ngIf="images.length > 1">
+            <ion-icon name="chevron-forward"></ion-icon>
+          </button>
+
+          <!-- COUNTER -->
+          <div class="image-counter" *ngIf="images.length > 1">
+            {{ activeImageIndex + 1 }}/{{ images.length }}
+          </div>
+        </div>
+
+        <!-- THUMBNAILS -->
+        <div class="thumbnail-strip" *ngIf="images.length > 1">
+          <div class="thumb" 
+               *ngFor="let img of images; let i = index"
+               [class.active]="i === activeImageIndex"
+               (click)="selectImage(i)">
+            <img [src]="img" alt="">
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ COLUNA DIREITA (INFORMAÇÕES) ============ -->
+      <div class="right-info-column">
+        
+        <!-- CABEÇALHO FIXO (Nome e Descrição) -->
+        <div class="fixed-product-header">
+          <h1 class="product-title">{{ product.name }}</h1>
+          <p class="product-description" *ngIf="product.description" [class.short]="true">{{ product.description }}</p>
+        </div>
+
+        <div class="info-scroll-container">
+          
+          <!-- ============ TABS NAVIGATION ============ -->
+          <div class="tabs-nav">
+            <button class="nav-item" [class.active]="currentTab === 'details'" (click)="setTab('details')">
+              DETALHES
+            </button>
+            <button class="nav-item" [class.active]="currentTab === 'specs'" (click)="setTab('specs')">
+              ESPECIFICAÇÕES
+            </button>
+            <button class="nav-item" [class.active]="currentTab === 'logistics'" (click)="setTab('logistics')">
+              ENTREGA
+            </button>
+            <button class="nav-item" [class.active]="currentTab === 'stats'" (click)="setTab('stats')">
+              ESTATÍSTICAS
+            </button>
+          </div>
+
+          <div class="tab-content-wrapper">
+            <!-- ========== ABA: DETALHES ========== -->
+            <ng-container *ngIf="currentTab === 'details'">
+              <!-- SEÇÃO DE PREÇO -->
+              <div class="section-price">
+                <div class="price-main-row">
+                  <div class="price-block">
+                    <span class="old-price" *ngIf="hasDiscount">
+                      R${{ product.price | number:'1.2-2' }}
+                    </span>
+                    <div class="current-price">
+                      <span class="currency">R$</span>
+                      <span class="amount">{{ (hasDiscount ? product.priceDiscounted : product.price) | number:'1.2-2' }}</span>
+                    </div>
+                    <span class="installment-hint">
+                      <ion-icon name="card-outline"></ion-icon>
+                      em até 12x sem juros
+                    </span>
+                  </div>
+                  <div class="stock-badge-area">
+                    <span class="stock-units">{{ product.stock || 0 }} un. disponíveis</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- VENDEDOR -->
+              <div class="section-seller">
+                <div class="section-header">
+                  <ion-icon name="storefront-outline"></ion-icon>
+                  <span>Vendedor</span>
+                </div>
+                <div class="seller-row">
+                  <div class="seller-avatar-box">
+                    <ion-icon name="person-circle" class="avatar-placeholder"></ion-icon>
+                  </div>
+                  <div class="seller-info">
+                    <div class="seller-name-row">
+                      <span class="seller-name">{{ sellerName }}</span>
+                      <span class="me-tag" *ngIf="isCurrentUser">VOCÊ</span>
+                    </div>
+                    <div class="seller-meta">
+                      <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
+                      <span class="verified-label">Vendedor Verificado</span>
+                    </div>
+                  </div>
+                  <button class="btn-chat-seller" (click)="onChatClick()" *ngIf="!isCurrentUser">
+                    <ion-icon name="chatbubbles-outline"></ion-icon>
+                  </button>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- ========== ABA: ESPECIFICAÇÕES ========== -->
+            <ng-container *ngIf="currentTab === 'specs'">
+              <div class="section-specs">
+                <div class="section-header">
+                  <ion-icon name="list-outline"></ion-icon>
+                  <span>Especificações Técnicas</span>
+                </div>
+                <div class="specs-table">
+                  <div class="spec-item">
+                    <span class="spec-label">Condição</span>
+                    <span class="spec-value">
+                      <span class="dot" [ngClass]="conditionClass"></span>
+                      {{ conditionLabel }}
+                    </span>
+                  </div>
+                  <div class="spec-item">
+                    <span class="spec-label">Estoque</span>
+                    <span class="spec-value" [ngClass]="stockClass">{{ product.stock || 0 }} unidades</span>
+                  </div>
+                  <div class="spec-item">
+                    <span class="spec-label">Vendas</span>
+                    <span class="spec-value highlight-sales">
+                      <ion-icon name="trending-up-outline"></ion-icon>
+                      {{ product.soldCount || 0 }} vendidos
+                    </span>
+                  </div>
+                  <div class="spec-item">
+                    <span class="spec-label">Aceita Ofertas</span>
+                    <span class="spec-value">{{ product.acceptOffers ? 'Sim' : 'Não' }}</span>
+                  </div>
+                  <div class="spec-item" *ngIf="product.rating">
+                    <span class="spec-label">Avaliação</span>
+                    <span class="spec-value rating-value">
+                      <ion-icon name="star"></ion-icon>
+                      {{ product.rating }}
+                    </span>
+                  </div>
+                  <div class="spec-item" *ngIf="product.location">
+                    <span class="spec-label">Localização</span>
+                    <span class="spec-value">
+                      <ion-icon name="location-outline"></ion-icon>
+                      {{ product.location }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- ========== ABA: ENTREGA ========== -->
+            <ng-container *ngIf="currentTab === 'logistics'">
+              <div class="section-logistics">
+                <div class="section-header">
+                  <ion-icon name="rocket-outline"></ion-icon>
+                  <span>Logística e Pagamento</span>
+                </div>
+                <div class="logistics-card">
+                  <div class="logistics-item">
+                    <div class="logistics-icon">
+                      <ion-icon name="car-outline"></ion-icon>
+                    </div>
+                    <div class="logistics-info">
+                      <span class="logistics-label">Forma de Entrega</span>
+                      <span class="logistics-value" [class.free-shipping]="product.shipping === 'Frete Grátis'">
+                        {{ product.shipping }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="logistics-divider"></div>
+                  <div class="logistics-item">
+                    <div class="logistics-icon">
+                      <ion-icon name="wallet-outline"></ion-icon>
+                    </div>
+                    <div class="logistics-info">
+                      <span class="logistics-label">Métodos Aceitos</span>
+                      <div class="payment-tags">
+                        <span class="pay-tag" *ngFor="let pm of paymentMethodsFormatted">
+                          <ion-icon [name]="paymentIcon[pm] || 'cash-outline'"></ion-icon>
+                          {{ pm }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- ========== ABA: ESTATÍSTICAS ========== -->
+            <ng-container *ngIf="currentTab === 'stats'">
+              <!-- MÉTRICAS FINANCEIRAS -->
+              <div class="section-metrics">
+                <div class="section-header">
+                  <ion-icon name="analytics-outline"></ion-icon>
+                  <span>Desempenho Comercial</span>
+                </div>
+                <div class="metrics-grid">
+                  <div class="metric-card">
+                    <ion-icon name="bag-handle-outline"></ion-icon>
+                    <div class="metric-data">
+                      <span class="metric-value">{{ product.soldCount || 0 }}</span>
+                      <span class="metric-label">Total Vendas</span>
+                    </div>
+                  </div>
+                  <div class="metric-card">
+                    <ion-icon name="cash-outline"></ion-icon>
+                    <div class="metric-data">
+                      <span class="metric-value">R${{ totalRevenue | number:'1.2-2' }}</span>
+                      <span class="metric-label">Faturado</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- METADADOS -->
+              <div class="section-metadata">
+                <div class="section-header">
+                  <ion-icon name="id-card-outline"></ion-icon>
+                  <span>Registro do Sistema</span>
+                </div>
+                <div class="metadata-list">
+                  <div class="meta-row">
+                    <span class="meta-label">ID Único</span>
+                    <span class="meta-value id-value" (click)="copyId()">
+                      {{ product.id }}
+                      <ion-icon name="copy-outline" class="copy-icon"></ion-icon>
+                    </span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-label">Criado em</span>
+                    <span class="meta-value">{{ product.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-label">Modificado em</span>
+                    <span class="meta-value">{{ product.updatedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+        </div><!-- /info-scroll-container -->
+      </div><!-- /right-info-column -->
+
+    </div><!-- /modal-body -->
+
+    <!-- ============ FOOTER FIXO ============ -->
+    <div class="modal-footer" *ngIf="!isCurrentUser">
+      <button class="btn-footer-chat" (click)="onChatClick()">
+        <ion-icon name="chatbubbles-outline"></ion-icon>
+        CONVERSAR COM VENDEDOR
+      </button>
+    </div>
+
+  </div><!-- /modal-sheet -->
+</div>

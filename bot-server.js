@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -35,10 +36,10 @@ async function processQueue() {
         addLog(`Iniciando Bot: ${botTask.name}...`);
         currentStatus.status = 'running';
 
-        // Caminho dinâmico para o script do bot
         const scriptPath = path.join(__dirname, 'automation', 'scripts', botTask.script);
         const botScript = require(scriptPath);
 
+        // Passamos o headless da tarefa para a execução do bot
         await botScript.run(botTask.config, (msg) => {
             addLog(msg);
         });
@@ -87,38 +88,70 @@ app.post('/clear-logs', (req, res) => {
 });
 
 // ==========================================
-// PROXY DE INTELIGÊNCIA ARTIFICIAL (GROK/xAI)
+// PROXY DE INTELIGÊNCIA ARTIFICIAL (GROK/xAI/GROQ)
 // ==========================================
 app.post('/ai/chat', async (req, res) => {
-    const { messages, productName, productDescription } = req.body;
+    const { messages, productName, productDescription, role } = req.body;
 
-    // NOTA: O usuário deve configurar a variável de ambiente XAI_API_KEY no arquivo .env
-    const API_KEY = process.env.XAI_API_KEY;
+    // Fallback Manual para .env caso o process.env esteja vindo vazio
+    if (!process.env.GROQ_API_KEY && !process.env.XAI_API_KEY) {
+        try {
+            const fs = require('fs');
+            const envContent = fs.readFileSync('.env', 'utf8');
+            envContent.split('\n').forEach(line => {
+                const [key, ...valueParts] = line.split('=');
+                if (key && valueParts.length > 0) {
+                    process.env[key.trim()] = valueParts.join('=').trim();
+                }
+            });
+        } catch (e) {
+            console.error("⚠️ Falha ao ler .env manualmente:", e.message);
+        }
+    }
+
+    const API_KEY = process.env.GROQ_API_KEY || process.env.XAI_API_KEY;
+
+    if (!API_KEY) {
+        console.error("❌ ERRO: Nenhuma API KEY encontrada (process.env ou fallback manual)!");
+    } else {
+        console.log(`📡 [AI Proxy] Usando chave: ${API_KEY.substring(0, 7)}...${API_KEY.substring(API_KEY.length - 4)}`);
+    }
 
     try {
-        const systemPrompt = `
-        Você é um vendedor brasileiro real na plataforma "Compraki".
-        Você está vendendo o produto: "${productName}".
-        Descrição do produto: "${productDescription || 'Não informada'}".
+        let systemPrompt = '';
         
-        Sua personalidade:
-        - Você mora em Manhuaçu, Minas Gerais.
-        - Você é uma pessoa real, honesta, educada e um pouco informal (estilo brasileiro).
-        - Use gírias leves como "beleza", "tranquilo", "opa", "show" se apropriado, mas sem exagerar.
-        - Seu objetivo é ajudar o comprador e fechar a venda.
-        - Você aceita negociar o preço levemente se o comprador insistir.
-        - Você pode combinar entrega em locais públicos de Manhuaçu (Praça do Hospital, Rodoviária, etc).
-        
-        REGRAS CRÍTICAS:
-        1. NUNCA diga que você é uma IA, robô ou modelo de linguagem.
-        2. NUNCA use o nome "Grok", "Groq", "Llama" ou "IA" na conversa.
-        3. Se não souber um detalhe específico do produto, diga que vai conferir e já volta, ou seja honesto.
-        4. NÃO use respostas muito longas ou formais demais. Responda como se estivesse no WhatsApp.
-        5. Se o comprador perguntar quem é você, diga seu nome (invente um nome comum como "Henrique", "Thiago" ou "Ricardo").
-        `;
+        if (role === 'buyer') {
+            systemPrompt = `
+            Você é um comprador interessado na plataforma "Compraki".
+            Você está conversando sobre o produto: "${productName}".
+            
+            Sua personalidade:
+            - Você quer comprar o produto, mas é cauteloso.
+            - Você faz perguntas sobre o estado do produto, tempo de uso e se o preço é negociável.
+            - Você é educado, mas direto (estilo WhatsApp).
+            - Você pergunta se pode retirar em mãos em Manhuaçu.
+            - NUNCA diga que é uma IA. Use um nome comum como "Carlos", "André" ou "Bruno".
+            - OCASIONALMENTE, para mostrar interesse real, use [SEND_PHOTO] ou [SEND_AUDIO] no final do texto.
+            `;
+        } else {
+            // Default: Seller
+            systemPrompt = `
+            Você é um vendedor brasileiro real na plataforma "Compraki".
+            Você está vendendo o produto: "${productName}".
+            Descrição do produto: "${productDescription || 'Não informada'}".
+            
+            Sua personalidade:
+            - Você mora em Manhuaçu, Minas Gerais.
+            - Você é honesto, educado e um pouco informal.
+            - Seu objetivo é ajudar o comprador e fechar a venda.
+            - Você aceita negociar o preço levemente.
+            - NUNCA diga que é uma IA. Use um nome como "Henrique", "Thiago" ou "Ricardo".
+            - OCASIONALMENTE, para mostrar detalhes do item ou explicar o frete, use [SEND_PHOTO] ou [SEND_AUDIO] no final do texto.
+            `;
+        }
 
         const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-            model: "llama-3.3-70b-versatile", // Versão atualizada e suportada pelo Groq
+            model: "llama-3.3-70b-versatile",
             messages: [
                 { role: "system", content: systemPrompt },
                 ...messages
@@ -135,7 +168,7 @@ app.post('/ai/chat', async (req, res) => {
 
     } catch (error) {
         console.error("Erro na chamada da IA:", error.response?.data || error.message);
-        res.status(500).json({ error: "Falha ao processar inteligência do vendedor." });
+        res.status(500).json({ error: "Falha ao processar inteligência artificial." });
     }
 });
 

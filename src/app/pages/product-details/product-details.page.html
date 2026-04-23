@@ -138,9 +138,9 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content>
-      <app-chat-box [chatId]="activeChatId"></app-chat-box>
-    </ion-content>
+    <div class="modal-content-wrapper" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+      <app-chat-box [chatId]="activeChatId" style="flex: 1; display: flex; flex-direction: column;"></app-chat-box>
+    </div>
   </ng-template>
 </ion-modal>
 

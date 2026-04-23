@@ -1,0 +1,72 @@
+/* ADMIN MASTER TABS */
+.admin-master-tabs {
+    background: #fff;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0 16px;
+
+    .tabs-container {
+        display: flex;
+        gap: 4px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .master-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 24px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        color: #94a3b8;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+
+        ion-icon {
+            font-size: 18px;
+        }
+
+        &:hover {
+            color: #64748b;
+            background: #f8fafc;
+        }
+
+        &.active {
+            color: #799d50;
+            border-bottom-color: #799d50;
+
+            ion-icon {
+                color: #799d50;
+            }
+        }
+    }
+}
+
+/* TAB CONTENT — ocupa todo o espaço restante */
+.admin-tab-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+
+    /* Garante que páginas filhas ocupem 100% */
+    app-dev-products,
+    app-manage-chats {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+    }
+}
+
+/* Host principal */
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}

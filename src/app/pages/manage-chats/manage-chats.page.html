@@ -1,15 +1,16 @@
-<app-admin-header titlePage="Gerenciador de Conversas" [showBackButton]="false" [showMenuButton]="true">
-  <ion-button slot="end" (click)="openNewChatModal()" color="success" fill="solid" class="btn-new-chat-top ion-hide-sm-down">
+<!-- TOOLBAR DE AÇÕES (SEM HEADER — VIVE NA PÁGINA MESTRA) -->
+<div class="chats-action-bar">
+  <ion-button (click)="openNewChatModal()" color="success" fill="solid" class="btn-new-chat-top ion-hide-sm-down">
     <ion-icon name="add" slot="start"></ion-icon>
     Nova Conversa
   </ion-button>
-  <ion-button slot="end" (click)="openNewChatModal()" color="success" fill="clear" class="ion-hide-sm-up">
+  <ion-button (click)="openNewChatModal()" color="success" fill="clear" class="ion-hide-sm-up">
     <ion-icon name="add-circle" slot="icon-only"></ion-icon>
   </ion-button>
-  <ion-button slot="end" (click)="loadData()" color="medium">
+  <ion-button (click)="loadData()" color="medium">
     <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
   </ion-button>
-</app-admin-header>
+</div>
 
 <div class="admin-tabs-nav ion-no-border" *ngIf="!selectedChatId">
   <div class="tabs-container">
@@ -40,6 +41,10 @@
         <div class="main-panel-header">
           <h2 class="poppins">Hub de Auditoria Central</h2>
           <div class="hub-header-actions">
+            <div class="selection-control" *ngIf="filteredChats.length > 0">
+               <ion-checkbox (ionChange)="toggleSelectAll($event)" [checked]="isAllSelected" mode="md"></ion-checkbox>
+               <span>Todos</span>
+            </div>
             <div class="hub-search-contextual">
               <ion-icon name="search-outline"></ion-icon>
               <input type="text" [(ngModel)]="searchQuery" placeholder="Filtrar auditorias..." />
@@ -67,6 +72,27 @@
                     [value]="businessChatsCount"
                     icon="cart-outline"
                     type="green">
+                  </app-admin-metric-card>
+
+                  <app-admin-metric-card
+                    label="MENSAGENS TOTAIS"
+                    [value]="totalMessagesCount"
+                    icon="chatbubbles-outline"
+                    type="indigo">
+                  </app-admin-metric-card>
+
+                  <app-admin-metric-card
+                    label="IMAGENS TOTAIS"
+                    [value]="totalImagesCount"
+                    icon="camera-outline"
+                    type="warn">
+                  </app-admin-metric-card>
+
+                  <app-admin-metric-card
+                    label="ÁUDIOS TOTAIS"
+                    [value]="totalAudiosCount"
+                    icon="mic-outline"
+                    type="secondary">
                   </app-admin-metric-card>
                </div>
             </div>
@@ -105,45 +131,54 @@
         <div class="admin-grid" *ngIf="!isLoading && filteredChats.length > 0">
           <div *ngFor="let chat of filteredChats" 
                class="square-chat-card animate-pop"
-               (click)="selectChat(chat.id!)">
+               [class.selected-batch]="isChatSelected(chat.id!)">
             
-            <img [src]="'assets/imagens/chat-card-background.png'" style="display:none">
-            <div class="card-status-indicator" *ngIf="getReportsForChat(chat.id!).length > 0"></div>
-            
-            <div class="card-inner">
-              <div class="participants-stack">
-                <span class="user-a">{{ chat.participants[0]?.name }}</span>
-                <ion-icon name="arrow-forward-outline" class="sep-icon"></ion-icon>
-                <span class="user-b">{{ chat.participants[1]?.name }}</span>
-              </div>
-
-              <div class="msg-preview-box">
-                <p>"{{ chat.lastMessage }}"</p>
-              </div>
-
-              <div class="card-metadata">
-                <div class="product-context" *ngIf="chat.productName">
-                  <ion-icon name="cart-outline"></ion-icon>
-                  {{ chat.productName }}
-                </div>
-                <div class="time-info">
-                  {{ formatDate(chat.lastMessageAt) }}
-                </div>
-              </div>
-
-              <div class="report-alert-banner" *ngIf="getReportsForChat(chat.id!).length > 0">
-                <ion-icon name="flag"></ion-icon>
-                {{ getReportsForChat(chat.id!).length }} Denúncias
-              </div>
+            <div class="batch-selection-check" (click)="$event.stopPropagation()">
+               <ion-checkbox [checked]="isChatSelected(chat.id!)" 
+                             (ionChange)="toggleChatSelection(chat.id!)"
+                             mode="md">
+               </ion-checkbox>
             </div>
 
-            <div class="card-footer-action">
-               <span>INSPECIONAR CONVERSA</span>
-               <ion-icon name="chevron-forward-outline"></ion-icon>
+            <div class="card-clickable-area" (click)="selectChat(chat.id!)">
+              <img [src]="'assets/imagens/chat-card-background.png'" style="display:none">
+              <div class="card-status-indicator" *ngIf="getReportsForChat(chat.id!).length > 0"></div>
+              
+              <div class="card-inner">
+                <div class="participants-stack">
+                  <span class="user-a">{{ chat.participants[0]?.name }}</span>
+                  <ion-icon name="arrow-forward-outline" class="sep-icon"></ion-icon>
+                  <span class="user-b">{{ chat.participants[1]?.name }}</span>
+                </div>
+
+                <div class="msg-preview-box">
+                  <p>"{{ chat.lastMessage }}"</p>
+                </div>
+
+                <div class="card-metadata">
+                  <div class="product-context" *ngIf="chat.productName">
+                    <ion-icon name="cart-outline"></ion-icon>
+                    {{ chat.productName }}
+                  </div>
+                  <div class="time-info">
+                    {{ formatDate(chat.lastMessageAt) }}
+                  </div>
+                </div>
+
+                <div class="report-alert-banner" *ngIf="getReportsForChat(chat.id!).length > 0">
+                  <ion-icon name="flag"></ion-icon>
+                  {{ getReportsForChat(chat.id!).length }} Denúncias
+                </div>
+              </div>
+
+              <div class="card-footer-action">
+                <span>INSPECIONAR CONVERSA</span>
+                <ion-icon name="chevron-forward-outline"></ion-icon>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </div> <!-- FIM dashboard-wrapper -->
 
       <!-- MODO 2: INSPEÇÃO (CENTRO DE AUDITORIA 360) -->
       <div class="management-grid inspection-mode" *ngIf="selectedChatId">
@@ -336,6 +371,29 @@
       <ion-badge color="danger" *ngIf="activeChats.length > 0">{{ activeChats.length }}</ion-badge>
     </ion-fab-button>
   </ion-fab>
+
+  <!-- FLOATING BATCH HUB -->
+  <div class="floating-batch-hub animate-up" *ngIf="selectedCount > 0">
+    <div class="hub-container">
+      <div class="batch-info">
+        <div class="count-pill">{{ selectedCount }}</div>
+        <div class="text-meta">
+          <span class="main-label">CONVERSAS SELECIONADAS</span>
+          <span class="sub-label">Ação definitiva em lote</span>
+        </div>
+      </div>
+      
+      <div class="batch-actions">
+        <ion-button fill="clear" color="medium" (click)="selectedChatIds.clear(); isAllSelected = false;">
+          Cancelar
+        </ion-button>
+        <ion-button color="danger" (click)="deleteSelectedChats()" class="btn-batch-delete">
+          <ion-icon name="trash-outline" slot="start"></ion-icon>
+          Excluir Selecionados
+        </ion-button>
+      </div>
+    </div>
+  </div>
 </ion-content>
 
 <!-- MODAL: NOVA CONVERSA -->

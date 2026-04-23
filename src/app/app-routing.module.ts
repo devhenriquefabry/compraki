@@ -102,12 +102,8 @@ const routes: Routes = [
     loadChildren: () => import('./pages/bots/bots.module').then( m => m.BotsPageModule)
   },
   {
-    path: 'dev-products',
-    loadChildren: () => import('./pages/dev-products/dev-products.module').then( m => m.DevProductsPageModule)
-  },
-  {
-    path: 'manage-chats',
-    loadComponent: () => import('./pages/manage-chats/manage-chats.page').then( m => m.ManageChatsPage)
+    path: 'admin',
+    loadComponent: () => import('./pages/admin/admin.page').then( m => m.AdminPage)
   }
 
 ];
