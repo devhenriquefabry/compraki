@@ -56,7 +56,8 @@
 
     /* Garante que páginas filhas ocupem 100% */
     app-dev-products,
-    app-manage-chats {
+    app-manage-chats,
+    app-manage-banners {
         display: flex;
         flex-direction: column;
         flex: 1;

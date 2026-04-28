@@ -24,16 +24,38 @@
     <!-- BANNER TOPO (Snap Nativo + Drag) -->
     <div class="banner-scroll-container" #bannerContainer>
       <div class="scroll-track">
-        <div class="banner-slide" *ngFor="let i of [1,2,3]">
-          <div class="promo-banner">
-            <div class="promo-text">
-              <h3>Mega Promoção!</h3>
-              <p>Descontos de até <span>60% OFF</span></p>
-              <button class="btn-aproveite">APROVEITE</button>
+        <!-- Banners dinâmicos do Firestore -->
+        @if (activeBanners.length > 0) {
+          @for (banner of activeBanners; track banner.id) {
+            <div class="banner-slide">
+              <div class="promo-banner" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
+                @if (banner.imageURL) {
+                  <img class="banner-bg-img" [src]="banner.imageURL" [alt]="banner.title">
+                } @else {
+                  <div class="promo-text" [style.color]="banner.textColor">
+                    <h3>{{ banner.title }}</h3>
+                    @if (banner.subtitle) { <p>{{ banner.subtitle }}</p> }
+                    @if (banner.buttonText) {
+                      <button class="btn-aproveite">{{ banner.buttonText }}</button>
+                    }
+                  </div>
+                }
+              </div>
             </div>
-            <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-shopping-discount-illustration-download-in-svg-png-gif-formats--flash-sale-offer-gift-pack-special-box-delivery-and-pack-illustrations-5241697.png" alt="Promo">
+          }
+        } @else {
+          <!-- Fallback: banner padrão enquanto não há banners cadastrados -->
+          <div class="banner-slide">
+            <div class="promo-banner">
+              <div class="promo-text">
+                <h3>Mega Promoção!</h3>
+                <p>Descontos de até <span>60% OFF</span></p>
+                <button class="btn-aproveite">APROVEITE</button>
+              </div>
+              <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-shopping-discount-illustration-download-in-svg-png-gif-formats--flash-sale-offer-gift-pack-special-box-delivery-and-pack-illustrations-5241697.png" alt="Promo">
+            </div>
           </div>
-        </div>
+        }
       </div>
     </div>
 

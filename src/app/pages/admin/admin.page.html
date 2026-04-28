@@ -10,10 +10,15 @@
       <ion-icon [name]="activeTab === 'chats' ? 'chatbubbles' : 'chatbubbles-outline'"></ion-icon>
       Conversas
     </button>
+    <button class="master-tab" [class.active]="activeTab === 'banners'" (click)="activeTab = 'banners'">
+      <ion-icon [name]="activeTab === 'banners' ? 'images' : 'images-outline'"></ion-icon>
+      Banners
+    </button>
   </div>
 </div>
 
 <div class="admin-tab-content">
   <app-dev-products *ngIf="activeTab === 'products'"></app-dev-products>
   <app-manage-chats *ngIf="activeTab === 'chats'"></app-manage-chats>
+  <app-manage-banners *ngIf="activeTab === 'banners'"></app-manage-banners>
 </div>

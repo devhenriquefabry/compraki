@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { AdminHeaderComponent } from '../../components/admin-header/admin-header.component';
 import { DevProductsPage } from '../dev-products/dev-products.page';
 import { ManageChatsPage } from '../manage-chats/manage-chats.page';
+import { ManageBannersPage } from '../manage-banners/manage-banners.page';
 
 @Component({
   selector: 'app-admin',
@@ -17,9 +18,10 @@ import { ManageChatsPage } from '../manage-chats/manage-chats.page';
     IonicModule,
     AdminHeaderComponent,
     DevProductsPage,
-    ManageChatsPage
+    ManageChatsPage,
+    ManageBannersPage
   ]
 })
 export class AdminPage {
-  activeTab: 'products' | 'chats' = 'products';
+  activeTab: 'products' | 'chats' | 'banners' = 'products';
 }

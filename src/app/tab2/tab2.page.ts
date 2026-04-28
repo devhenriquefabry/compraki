@@ -4,6 +4,8 @@ import { Product } from '../interfaces/product';
 import { ProductSelectionService } from '../services/product-selection-service';
 import { FirebaseProducts } from '../services/firebase-products';
 import { FirebaseCategories } from '../services/firebase-categories';
+import { BannerService } from '../services/banner.service';
+import { Banner } from '../interfaces/banner';
 import { Category } from '../interfaces/category';
 import { Subscription, Observable } from 'rxjs';
 
@@ -22,6 +24,8 @@ export class Tab2Page implements OnInit, OnDestroy {
   public currentBannerIndex = 0;
   private allProducts: Product[] = [];
   public filteredProducts: Product[] = [];
+  public activeBanners: Banner[] = [];
+  private bannerSub?: Subscription;
   
   // Estados de Filtro
   public searchTerm: string = '';
@@ -35,6 +39,7 @@ export class Tab2Page implements OnInit, OnDestroy {
   private productSub!: Subscription;
   private fbProducts = inject(FirebaseProducts);
   private fbCategories = inject(FirebaseCategories);
+  private bannerService = inject(BannerService);
   private selectionService = inject(ProductSelectionService);
   private router = inject(Router);
 
@@ -48,12 +53,18 @@ export class Tab2Page implements OnInit, OnDestroy {
 
     this.categories$ = this.fbCategories.getAll();
 
-    // Lógica do Carrossel de Banners (Auto-scroll sincronizado)
+    // Carrega banners ativos do Firestore
+    this.bannerSub = this.bannerService.getActiveBanners().subscribe(banners => {
+      this.activeBanners = banners;
+      this.currentBannerIndex = 0;
+    });
+
+    // Auto-scroll do carrossel
     this.bannerInterval = setInterval(() => {
-      if (this.bannerContainer) {
+      if (this.bannerContainer && this.activeBanners.length > 1) {
         const container = this.bannerContainer.nativeElement;
-        this.currentBannerIndex = (this.currentBannerIndex + 1) % 3;
-        
+        this.currentBannerIndex = (this.currentBannerIndex + 1) % this.activeBanners.length;
+
         container.scrollTo({
           left: this.currentBannerIndex * container.clientWidth,
           behavior: 'smooth'
@@ -66,6 +77,7 @@ export class Tab2Page implements OnInit, OnDestroy {
     if (this.productSub) {
       this.productSub.unsubscribe();
     }
+    this.bannerSub?.unsubscribe();
     if (this.bannerInterval) {
       clearInterval(this.bannerInterval);
     }
