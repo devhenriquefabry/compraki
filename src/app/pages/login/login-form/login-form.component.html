@@ -36,5 +36,62 @@
 
       <ion-label class="textos">Ainda não tem uma conta?</ion-label>
       <ion-button fill="outline" class="signInButton" [routerLink]="['/sign-in']" routerLinkActive="router-link-active" >CADASTRE-SE</ion-button>
+      
+      <div class="test-accounts-divider">
+        <hr>
+        <span>OU ACESSO RÁPIDO</span>
+        <hr>
+      </div>
+
+      <ion-button id="open-test-users-modal" fill="clear" color="medium" class="testUsersButton">
+        <ion-icon name="flask-outline" slot="start"></ion-icon>
+        CONTAS DE TESTE (DEV)
+      </ion-button>
+
+      <!-- Modal de Usuários de Teste -->
+      <ion-modal #modal trigger="open-test-users-modal" [initialBreakpoint]="0.4" [breakpoints]="[0, 0.4, 0.6]">
+        <ng-template>
+          <ion-header>
+            <ion-toolbar color="primary">
+              <ion-title>Contas de Teste</ion-title>
+              <ion-buttons slot="end">
+                <ion-button (click)="modal.dismiss()">Fechar</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding">
+            <div class="modal-header-actions">
+              <p class="modal-info">Selecione um usuário real do sistema para preencher as credenciais.</p>
+              
+              <ion-item lines="none" class="password-override">
+                <ion-label position="stacked">Senha Padrão para Testes</ion-label>
+                <ion-input type="password" [(ngModel)]="defaultPassword" placeholder="Ex: password123"></ion-input>
+              </ion-item>
+            </div>
+
+            <ion-list lines="full" class="test-user-list">
+              @for (user of testUsers; track user.email) {
+                <ion-item button (click)="selectTestUser(user); modal.dismiss()">
+                  <ion-avatar slot="start">
+                    <div class="user-avatar-placeholder">
+                      {{ user.label.charAt(0) }}
+                    </div>
+                  </ion-avatar>
+                  <ion-label>
+                    <h2>{{ user.label }}</h2>
+                    <p>{{ user.email }}</p>
+                  </ion-label>
+                  <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+                </ion-item>
+              } @empty {
+                <div class="empty-users">
+                  <ion-spinner name="crescent"></ion-spinner>
+                  <p>Carregando usuários do sistema...</p>
+                </div>
+              }
+            </ion-list>
+          </ion-content>
+        </ng-template>
+      </ion-modal>
     </form>
   </div>

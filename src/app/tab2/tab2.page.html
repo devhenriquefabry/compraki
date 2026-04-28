@@ -1,6 +1,6 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar style="--background: #1e2d3e;">
-    <app-mini-header theme="light" [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
+  <ion-toolbar class="custom-header">
+    <app-mini-header [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
   </ion-toolbar>
 
   <ion-toolbar class="search-toolbar">
@@ -17,7 +17,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="bg-dark">
+<ion-content class="bg-light">
   
   <!-- CONTEÚDO ORIGINAL (Só aparece se NÃO estiver buscando) -->
   <ng-container *ngIf="!searchTerm">

@@ -29,13 +29,13 @@ ion-content.cart-content {
 
 /* HEADER */
 ion-toolbar {
-  --background: #fff;
+  --background: #1e2d3e;
   --border-width: 0;
 
   ion-title {
     font-weight: 800;
     font-size: 22px;
-    color: var(--dark-text);
+    color: #fff;
     letter-spacing: -0.3px;
   }
 
@@ -43,6 +43,7 @@ ion-toolbar {
     margin-right: 8px;
     --padding-start: 8px;
     --padding-end: 8px;
+    --color: #fff;
 
     ion-icon {
       font-size: 20px;

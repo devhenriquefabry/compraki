@@ -1,19 +1,22 @@
 <ion-header class="ion-no-border">
   <app-mini-header [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
+  <ion-toolbar class="favorites-header-toolbar">
+    <div class="header-section">
+      <h1 class="main-title">Favoritos</h1>
+      
+      <div class="search-container">
+        <div class="search-box">
+          <ion-icon name="search-outline"></ion-icon>
+          <input type="text" placeholder="Pesquisar favoritos..." [(ngModel)]="searchTerm" (input)="applyFilter(activeFilter)">
+        </div>
+      </div>
+    </div>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content class="favorites-content">
   
-  <div class="header-section">
-    <h1 class="main-title">Favoritos</h1>
-    
-    <div class="search-container">
-      <div class="search-box">
-        <ion-icon name="search-outline"></ion-icon>
-        <input type="text" placeholder="Pesquisar favoritos..." [(ngModel)]="searchTerm" (input)="applyFilter(activeFilter)">
-      </div>
-    </div>
-  </div>
+
 
   <!-- Filter -->
   <app-saved-filter (filterChanged)="onFilterChanged($event)"></app-saved-filter>

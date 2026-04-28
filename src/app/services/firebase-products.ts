@@ -202,7 +202,7 @@ async signInWithGoogle(): Promise<boolean> {
     // 🔥 Espelhando/Atualizando o usuário vindo do Google no Firestore de forma segura
     await this.usersService.ensureAppUserDocument(user);
     
-    alert('Bem-vindo, ' + user.displayName);
+    console.log('Bem-vindo, ' + user.displayName);
     this.router.navigate(['/tabs']);
     return true;
   } catch (error) {
@@ -247,7 +247,7 @@ async signInWithGoogle(): Promise<boolean> {
 
     try {
       await signInWithEmailAndPassword(this.authenticator, email, senha).then((usuario)=>{
-      alert('Bem-vindo, ' + usuario.user.email +  '.' + ' Você é o usuário de ID : ' + usuario.user.uid)
+      console.log('Bem-vindo, ' + usuario.user.email +  '.' + ' Você é o usuário de ID : ' + usuario.user.uid);
       this.router.navigate(['/tabs'])
       })
       return true

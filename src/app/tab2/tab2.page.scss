@@ -1,7 +1,11 @@
-/* HEADER E BUSCA */
+ion-toolbar {
+  --border-width: 0 !important;
+}
+
 .custom-header {
   --background: #1e2d3e;
   --color: white;
+  --border-width: 0;
   
   .header-logo-center {
     display: flex;
@@ -15,15 +19,16 @@
       font-size: 24px;
       font-weight: 800;
       color: white;
-      span { color: #79bcc7; }
+      span { color: #799d50; }
     }
   }
 
-  ion-icon { font-size: 24px; }
+  ion-icon { font-size: 24px; color: white; }
 }
 
 .search-toolbar {
   --background: #1e2d3e;
+  --border-width: 0;
   --padding-top: 5px;
   --padding-bottom: 15px;
   --padding-start: 15px;
@@ -81,16 +86,16 @@
   }
 }
 
-/* CONTENT - FUNDO ESCURO */
-.bg-dark {
-  --background: #2b2b2b;
+/* CONTENT - FUNDO CLARO */
+.bg-light {
+  --background: #f8f9fa;
 }
 
 /* BANNERS (SNAP NATIVO + DRAG) */
 .banner-scroll-container {
   overflow-x: auto;
   overflow-y: hidden;
-  background: #2b2b2b;
+  background: transparent;
   padding: 15px 0;
   display: flex;
   scroll-snap-type: x mandatory;
@@ -114,7 +119,7 @@
   .promo-banner {
     width: 100%;
     height: 160px;
-    background: linear-gradient(135deg, #1e2d3e 0%, #2c3e50 100%);
+    background: linear-gradient(135deg, #799d50 0%, #8DBB23 100%);
     border-radius: 20px;
     padding: 20px;
     display: flex;
@@ -122,22 +127,22 @@
     align-items: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 25px rgba(121, 157, 80, 0.2);
 
     .promo-text {
       z-index: 2;
       h3 { color: white; margin: 0; font-size: 20px; font-weight: 800; }
-      p { color: #ccc; margin: 5px 0 15px; font-size: 14px; span { color: #799d50; font-weight: 800; } }
+      p { color: rgba(255,255,255,0.8); margin: 5px 0 15px; font-size: 14px; span { color: #ffffff; font-weight: 800; text-decoration: underline; } }
       .btn-aproveite {
-        background: #799d50; color: white; border: none; padding: 10px 25px;
-        border-radius: 20px; font-weight: bold; font-size: 12px; cursor: pointer;
-        box-shadow: 0 5px 15px rgba(121, 157, 80, 0.3);
+        background: #ffffff; color: #799d50; border: none; padding: 10px 25px;
+        border-radius: 20px; font-weight: 800; font-size: 12px; cursor: pointer;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
       }
     }
 
     img {
       height: 120px; object-fit: contain; z-index: 1;
-      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
     }
   }
 }
@@ -147,7 +152,7 @@
   display: flex;
   gap: 20px;
   padding: 15px 20px;
-  background: #333;
+  background: #ffffff;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   &::-webkit-scrollbar { display: none; }
@@ -161,25 +166,25 @@
 
     .cat-circle {
       width: 60px; height: 60px;
-      background: #3a3a3a;
+      background: #f0f2f5;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #444;
+      border: 1px solid #eee;
       transition: all 0.2s ease;
       ion-icon { font-size: 28px; color: #799d50; }
 
       &.active {
-        background: rgba(121, 157, 80, 0.15);
+        background: rgba(121, 157, 80, 0.1);
         border-color: #799d50;
-        box-shadow: 0 4px 10px rgba(121, 157, 80, 0.25);
+        box-shadow: 0 4px 10px rgba(121, 157, 80, 0.15);
       }
     }
     span { 
       font-size: 11px; 
-      font-weight: 600; 
-      color: #ccc; 
+      font-weight: 700; 
+      color: #1e2d3e; 
       text-align: center;
       white-space: nowrap;
     }
@@ -190,13 +195,13 @@
 .products-marketplace-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2px;
-  padding: 2px;
-  background: #2b2b2b;
+  gap: 1px;
+  padding: 0;
+  background: #f0f0f0;
 }
 
 .marketplace-card {
-  background: #363636;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   cursor: pointer;
@@ -211,7 +216,7 @@
     width: 100%;
     aspect-ratio: 1 / 1;
     overflow: hidden;
-    background: #404040;
+    background: #f8f9fa;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -224,34 +229,33 @@
   }
 
   .card-info {
-    padding: 10px 12px 14px;
+    padding: 12px 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 
     .card-price {
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 800;
-      color: #799d50;
+      color: #1e2d3e;
       letter-spacing: -0.3px;
     }
 
     .card-name {
       font-size: 13px;
       font-weight: 600;
-      color: #e8e8e8;
-      line-height: 1.3;
+      color: #444;
+      line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin-top: 2px;
     }
 
     .card-location {
       font-size: 11px;
-      color: #888;
-      margin-top: 3px;
+      color: #999;
+      margin-top: 4px;
     }
   }
 }
@@ -270,7 +274,7 @@
 
     .results-count {
       font-size: 14px;
-      color: #aaa;
+      color: #888;
       font-weight: 700;
     }
 
@@ -279,24 +283,25 @@
       font-size: 13px;
       text-transform: none;
       font-weight: 700;
+      color: #799d50;
     }
   }
 
   .no-results {
     text-align: center;
     padding: 80px 20px;
-    color: #777;
+    color: #999;
 
     ion-icon {
       font-size: 64px;
       margin-bottom: 15px;
-      color: #555;
+      color: #ddd;
     }
 
     h3 {
       font-size: 18px;
       font-weight: bold;
-      color: #ddd;
+      color: #1e2d3e;
       margin-bottom: 8px;
     }
 
@@ -308,30 +313,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* FILTROS AVANÇADOS (DRAWER PREMIUM) */
-.filter-modal {
-  --border-radius: 20px 20px 0 0;
-}
-
-.modal-handle {
-  width: 40px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 5px;
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-}
-
+/* ===== FILTRO MODAL ===== */
 .modal-toolbar {
-  --background: #1e2d3e;
-  --color: #ffffff;
+  --background: #ffffff;
+  --color: #1e2d3e;
   --padding-top: 20px;
   --padding-bottom: 5px;
 
@@ -343,100 +332,107 @@
   }
 
   .btn-clear {
-    --color: #ffffff;
+    --color: #799d50;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    opacity: 0.7;
+    opacity: 1;
   }
 }
 
 .filter-modal-content {
-    --background: #f8f9fa;
-
-    .filter-section {
-        margin-bottom: 25px;
-
-        .label-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            
-            ion-icon { color: #799d50; font-size: 18px; }
-            
-            .filter-label {
-                font-size: 10px;
-                text-transform: uppercase;
-                font-weight: 800;
-                color: #999;
-                letter-spacing: 1px;
-            }
-        }
-
-        .price-inputs {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-
-            .price-box {
-                flex: 1;
-                --background: #ffffff;
-                --border-radius: 12px;
-                border: 1px solid #eee;
-                font-size: 14px;
-                font-weight: 700;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-            }
-
-            .sep { color: #ccc; font-weight: bold; }
-        }
-
-        .filter-item {
-            --background: #ffffff;
-            --border-radius: 12px;
-            border: 1px solid #eee;
-            font-weight: 700;
-            color: #1e2d3e;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-
-            ion-select { width: 100%; }
-        }
-
-        .toggle-item {
-            --background: #ffffff;
-            --border-radius: 12px;
-            border: 1px solid #eee;
-            --padding-start: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-            
-            ion-label {
-                font-weight: 800;
-                color: #1e2d3e;
-                font-size: 14px;
-            }
-
-            ion-toggle {
-                --handle-spacing: 4px;
-                --track-background-checked: #799d50;
-            }
-        }
-    }
-
-    .btn-apply-filters {
-        --background: #799d50;
-        --border-radius: 16px;
-        --box-shadow: 0 10px 20px rgba(121, 157, 80, 0.3);
-        height: 56px;
-        font-weight: 800;
-        font-size: 14px;
-        letter-spacing: 2px;
-        margin-top: 10px;
-    }
+  --background: #ffffff;
 }
 
-/* ANIMAÇÃO DE SCROLL */
-@keyframes infiniteScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-33.33%); }
+.modal-handle {
+  width: 40px;
+  height: 5px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  margin: 10px auto 0;
+}
+
+.filter-section {
+  margin-bottom: 25px;
+
+  .label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-left: 5px;
+
+    ion-icon {
+      font-size: 18px;
+      color: #799d50;
+    }
+
+    .filter-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #1e2d3e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .price-inputs {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    .price-box {
+      --background: #f8f9fa;
+      --border-radius: 12px;
+      --padding-start: 15px;
+      flex: 1;
+      border: 1px solid #eee;
+
+      ion-input {
+        font-weight: 700;
+        --color: #1e2d3e;
+      }
+    }
+
+    .sep {
+      color: #ccc;
+      font-weight: bold;
+    }
+  }
+
+  .filter-item {
+    --background: #f8f9fa;
+    --border-radius: 12px;
+    --padding-start: 15px;
+    border: 1px solid #eee;
+
+    ion-select {
+      width: 100%;
+      font-weight: 600;
+      --color: #444;
+    }
+  }
+
+  .toggle-item {
+    --background: #f8f9fa;
+    --border-radius: 12px;
+    margin-top: 10px;
+    border: 1px solid #eee;
+
+    ion-label {
+      font-weight: 600;
+      color: #444;
+    }
+  }
+}
+
+.btn-apply-filters {
+  --background: linear-gradient(135deg, #799d50 0%, #8DBB23 100%);
+  --border-radius: 16px;
+  --box-shadow: 0 10px 20px rgba(121, 157, 80, 0.3);
+  height: 56px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 1px;
+  margin-top: 10px;
 }
