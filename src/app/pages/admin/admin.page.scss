@@ -3,17 +3,26 @@
     background: #fff;
     border-bottom: 1px solid #f1f5f9;
     padding: 0 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
 
     .tabs-container {
         display: flex;
         gap: 4px;
         max-width: 1600px;
         margin: 0 auto;
+        min-width: max-content;
     }
 
     .master-tab {
         display: flex;
         align-items: center;
+        flex: 0 0 auto;
         gap: 8px;
         padding: 14px 24px;
         font-size: 0.8rem;
@@ -47,6 +56,22 @@
     }
 }
 
+@media (max-width: 640px) {
+    .admin-master-tabs {
+        padding: 0 8px;
+
+        .master-tab {
+            padding: 12px 14px;
+            font-size: 0.74rem;
+            gap: 6px;
+
+            ion-icon {
+                font-size: 16px;
+            }
+        }
+    }
+}
+
 /* TAB CONTENT — ocupa todo o espaço restante */
 .admin-tab-content {
     display: flex;
@@ -57,7 +82,8 @@
     /* Garante que páginas filhas ocupem 100% */
     app-dev-products,
     app-manage-chats,
-    app-manage-banners {
+    app-manage-banners,
+    app-manage-whatsapp {
         display: flex;
         flex-direction: column;
         flex: 1;

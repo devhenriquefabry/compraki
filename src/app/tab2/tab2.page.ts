@@ -141,4 +141,11 @@ export class Tab2Page implements OnInit, OnDestroy {
     this.router.navigate(['/product-details', product.id]);
   }
 
+  public getIcon(icon: any): string {
+    if (typeof icon === 'string' && icon.trim() !== '') {
+      return icon;
+    }
+    return 'folder-outline';
+  }
+
 }

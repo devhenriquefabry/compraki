@@ -1,0 +1,253 @@
+<ion-content class="manage-whatsapp-content">
+  <div class="section-header">
+    <div class="header-title">
+      <ion-icon name="logo-whatsapp"></ion-icon>
+      <div>
+        <h2>Configuração de WhatsApp</h2>
+        <p>Gerencie instâncias multi-atendimento conectadas por QR Code.</p>
+      </div>
+    </div>
+
+    <button class="btn-refresh" (click)="loadInstances()" [disabled]="isLoading">
+      <ion-icon name="refresh-outline"></ion-icon>
+      Atualizar
+    </button>
+  </div>
+
+  <app-admin-subtabs
+    [options]="subtabOptions"
+    [activeTab]="activeSubTab"
+    (activeTabChange)="setActiveSubTab($event)">
+  </app-admin-subtabs>
+
+  @if (activeSubTab === 'instances') {
+  <div class="whatsapp-layout">
+    <section class="setup-card">
+      <div class="card-title">
+        <ion-icon name="add-circle-outline"></ion-icon>
+        <div>
+          <h3>Nova instância</h3>
+          <span>Crie uma conexão para loja, vendedor ou atendimento.</span>
+        </div>
+      </div>
+
+      <ion-item class="form-item">
+        <ion-input
+          label="Nome da instância *"
+          labelPlacement="stacked"
+          [(ngModel)]="instanceName"
+          placeholder="Ex: compraki_suporte">
+        </ion-input>
+      </ion-item>
+
+      <ion-item class="form-item">
+        <ion-input
+          label="Webhook específico (opcional)"
+          labelPlacement="stacked"
+          [(ngModel)]="webhookUrl"
+          placeholder="https://...">
+        </ion-input>
+      </ion-item>
+
+      @if (errorMessage) {
+        <div class="feedback error">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
+
+      @if (successMessage) {
+        <div class="feedback success">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <span>{{ successMessage }}</span>
+        </div>
+      }
+
+      <ion-button expand="block" class="btn-create" (click)="createInstance()" [disabled]="isCreating">
+        @if (isCreating) {
+          <ion-spinner name="crescent" slot="start"></ion-spinner>
+          Criando...
+        } @else {
+          <ion-icon name="qr-code-outline" slot="start"></ion-icon>
+          Criar instância
+        }
+      </ion-button>
+    </section>
+
+    <section class="instances-card">
+      <div class="card-title">
+        <ion-icon name="phone-portrait-outline"></ion-icon>
+        <div>
+          <h3>Instâncias</h3>
+          <span>{{ instances.length }} conexão(ões) cadastrada(s)</span>
+        </div>
+      </div>
+
+      @if (isLoading) {
+        <div class="loading-state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Carregando instâncias...</span>
+        </div>
+      } @else if (instances.length === 0) {
+        <div class="empty-state">
+          <ion-icon name="logo-whatsapp"></ion-icon>
+          <h3>Nenhuma instância encontrada</h3>
+          <p>Crie uma instância e leia o QR Code para conectar o WhatsApp.</p>
+        </div>
+      } @else {
+        <div class="instances-list">
+          @for (instance of instances; track instance.name) {
+            <div class="instance-row" [class.connected]="isInstanceConnected(instance.status)">
+              <div class="instance-info">
+                <div class="instance-name-row">
+                  <strong>{{ instance.name }}</strong>
+                  <span class="connection-badge" [class]="getInstanceStatusClass(instance.status)">
+                    <span class="connection-dot"></span>
+                    <ion-icon [name]="getInstanceStatusIcon(instance.status)"></ion-icon>
+                    {{ getInstanceStatusLabel(instance.status) }}
+                  </span>
+                </div>
+                <span class="status-detail">Status Evolution: {{ instance.status }}</span>
+              </div>
+
+              <div class="instance-actions">
+                <button class="btn-action test" (click)="sendTestMessage(instance.name)" [disabled]="isSendingTest">
+                  <ion-icon name="send-outline"></ion-icon>
+                  Teste
+                </button>
+                <button class="btn-action qr" (click)="showQrCode(instance.name)">
+                  <ion-icon name="qr-code-outline"></ion-icon>
+                  QR
+                </button>
+                <button class="btn-action disconnect" (click)="disconnectInstance(instance.name)">
+                  <ion-icon name="log-out-outline"></ion-icon>
+                </button>
+                <button class="btn-action delete" (click)="deleteInstance(instance.name)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="test-message-card">
+      <div class="card-title">
+        <ion-icon name="send-outline"></ion-icon>
+        <div>
+          <h3>Mensagem teste</h3>
+          <span>{{ selectedTestInstance || 'Selecione uma instância na lista' }}</span>
+        </div>
+      </div>
+
+      <ion-item class="form-item">
+        <ion-input
+          label="WhatsApp de destino *"
+          labelPlacement="stacked"
+          [(ngModel)]="testPhoneNumber"
+          placeholder="Ex: 5599999999999"
+          inputmode="tel">
+        </ion-input>
+      </ion-item>
+
+      <ion-item class="form-item textarea-item">
+        <ion-textarea
+          label="Mensagem *"
+          labelPlacement="stacked"
+          [(ngModel)]="testMessage"
+          autoGrow="true"
+          placeholder="Digite a mensagem teste">
+        </ion-textarea>
+      </ion-item>
+
+      <ion-button
+        expand="block"
+        class="btn-send-test"
+        (click)="sendTestMessage()"
+        [disabled]="isSendingTest || !selectedTestInstance">
+        @if (isSendingTest) {
+          <ion-spinner name="crescent" slot="start"></ion-spinner>
+          Enviando...
+        } @else {
+          <ion-icon name="send-outline" slot="start"></ion-icon>
+          Enviar mensagem teste
+        }
+      </ion-button>
+    </section>
+
+    <section class="qr-card">
+      <div class="card-title">
+        <ion-icon name="qr-code-outline"></ion-icon>
+        <div>
+          <h3>QR Code</h3>
+          <span>{{ selectedQrInstance || 'Selecione uma instância' }}</span>
+        </div>
+      </div>
+
+      @if (selectedQrCode) {
+        <div class="qr-preview">
+          <img [src]="selectedQrCode" [alt]="'QR Code ' + selectedQrInstance">
+          <p>Abra o WhatsApp no celular e leia este código em aparelhos conectados.</p>
+        </div>
+      } @else {
+        <div class="empty-qr">
+          <ion-icon name="scan-outline"></ion-icon>
+          <span>Clique em QR em uma instância para gerar o código de conexão.</span>
+        </div>
+      }
+    </section>
+  </div>
+  } @else {
+    <section class="docs-card">
+      <div class="card-title">
+        <ion-icon name="document-text-outline"></ion-icon>
+        <div>
+          <h3>Documentação WhatsApp</h3>
+          <span>Resumo da arquitetura e operação do servidor multi-instância.</span>
+        </div>
+      </div>
+
+      <div class="docs-grid">
+        <article class="doc-item">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          <div>
+            <h4>Segurança</h4>
+            <p>As chamadas passam pelas Firebase Functions para proteger a chave da Evolution API.</p>
+          </div>
+        </article>
+
+        <article class="doc-item">
+          <ion-icon name="server-outline"></ion-icon>
+          <div>
+            <h4>Servidor Evolution API</h4>
+            <p>A Evolution API roda fora do app e gerencia as conexões WhatsApp por instância.</p>
+          </div>
+        </article>
+
+        <article class="doc-item">
+          <ion-icon name="qr-code-outline"></ion-icon>
+          <div>
+            <h4>Conexão por QR Code</h4>
+            <p>Crie uma instância, gere o QR Code e leia pelo WhatsApp em aparelhos conectados.</p>
+          </div>
+        </article>
+
+        <article class="doc-item">
+          <ion-icon name="send-outline"></ion-icon>
+          <div>
+            <h4>Mensagem Teste</h4>
+            <p>Use o botão de teste para validar se a instância conectada consegue enviar mensagens.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="docs-note">
+        <strong>Guia completo:</strong>
+        <span>Consulte o arquivo <code>docs/whatsapp-evolution-setup.md</code> para deploy, variáveis e manutenção.</span>
+      </div>
+    </section>
+  }
+
+  <div style="height: 40px;"></div>
+</ion-content>

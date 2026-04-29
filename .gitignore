@@ -28,9 +28,11 @@ log.txt
 /tmp
 /out-tsc
 /bazel-out
+/functions/lib
 
 # Node
 /node_modules
+/functions/node_modules
 npm-debug.log
 yarn-error.log
 
@@ -71,4 +73,5 @@ Thumbs.db
 
 # Environment secrets
 .env
+**/.env
 .gemini/

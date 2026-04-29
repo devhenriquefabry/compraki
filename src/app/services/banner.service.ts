@@ -65,6 +65,7 @@ export class BannerService {
     return new Observable<Banner[]>(observer => {
       this.getAll().subscribe(banners => {
         const now = new Date();
+        const todayKey = this.getLocalDateKey(now);
         const active = banners.filter(b => {
           if (b.status === 'active') return true;
           if (b.status === 'scheduled') {
@@ -72,13 +73,52 @@ export class BannerService {
             const end = b.scheduledEnd ? new Date(b.scheduledEnd) : null;
             if (start && now < start) return false;
             if (end && now > end) return false;
-            return start !== null;
+
+            if (b.scheduledDates && b.scheduledDates.length > 0) {
+              if (!b.scheduledDates.includes(todayKey)) return false;
+              return this.isWithinDailySchedule(b, todayKey, now);
+            }
+
+            // Check specific days if defined
+            if (b.scheduledDays && b.scheduledDays.length > 0) {
+              const today = now.getDay(); // 0-6
+              if (!b.scheduledDays.includes(today)) return false;
+            }
+
+            return this.isWithinDailySchedule(b, todayKey, now);
           }
           return false;
-        });
+        }).sort((a, b) => this.getDailyOrder(a, todayKey) - this.getDailyOrder(b, todayKey));
         observer.next(active);
       });
     });
+  }
+
+  private isWithinDailySchedule(banner: Banner, dateKey: string, now: Date): boolean {
+    const schedule = banner.dailySchedules?.[dateKey];
+    if (!schedule) return true;
+
+    const currentTime = this.getLocalTimeKey(now);
+    if (schedule.startTime && currentTime < schedule.startTime) return false;
+    if (schedule.endTime && currentTime > schedule.endTime) return false;
+    return true;
+  }
+
+  private getDailyOrder(banner: Banner, dateKey: string): number {
+    return Number(banner.dailySchedules?.[dateKey]?.order || banner.order || 999);
+  }
+
+  private getLocalDateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private getLocalTimeKey(date: Date): string {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
   }
 
   /**

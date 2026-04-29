@@ -1,0 +1,13 @@
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    restart: unless-stopped
+    ports:
+      - "${EVOLUTION_PORT:-8080}:8080"
+    env_file:
+      - ./evolution/.env
+    volumes:
+      - evolution_instances:/evolution/instances
+
+volumes:
+  evolution_instances:

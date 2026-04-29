@@ -231,4 +231,11 @@ export class ManageCategoriesPage implements OnInit {
   trackSubcategory(index: number, sub: Subcategory) {
     return sub.id;
   }
+
+  public getIcon(icon: any): string {
+    if (typeof icon === 'string' && icon.trim() !== '') {
+      return icon;
+    }
+    return 'folder-outline';
+  }
 }

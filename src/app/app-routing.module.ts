@@ -128,6 +128,11 @@ const routes: Routes = [
   },
   {
     path: 'admin',
+    redirectTo: 'admin/products',
+    pathMatch: 'full'
+  },
+  {
+    path: 'admin/:tab',
     loadComponent: () => import('./pages/admin/admin.page').then( m => m.AdminPage),
     canActivate: [authGuard]
   }

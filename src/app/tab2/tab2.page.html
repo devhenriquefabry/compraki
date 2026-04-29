@@ -69,7 +69,7 @@
       </div>
       <div class="cat-item" *ngFor="let cat of (categories$ | async)" (click)="filterByCategory(cat.id)">
         <div class="cat-circle" [class.active]="selectedCategory === cat.id">
-          <ion-icon [name]="$any(cat.icon) || 'folder-outline'"></ion-icon>
+          <ion-icon [name]="getIcon(cat.icon)"></ion-icon>
         </div>
         <span>{{ cat.name }}</span>
       </div>

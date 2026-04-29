@@ -16,7 +16,7 @@
     <div *ngFor="let cat of (categories$ | async); trackBy: trackCategory" class="category-group">
       <ion-item-sliding #slidingItem>
         <ion-item lines="none" class="category-item">
-          <ion-icon [name]="cat.icon" slot="start" class="category-icon"></ion-icon>
+          <ion-icon [name]="getIcon(cat.icon)" slot="start" class="category-icon"></ion-icon>
           <ion-label>
             <h2 class="category-title">{{ cat.name || 'Nova Categoria' }}</h2>
             <span class="sub-count">{{ cat.subcategories.length || 0 }} subcategorias</span>

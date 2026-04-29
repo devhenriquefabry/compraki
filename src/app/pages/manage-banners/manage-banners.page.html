@@ -15,146 +15,243 @@
     </button>
   </div>
 
-  <!-- SPEC CARD - Instruções de Uso -->
-  <div class="spec-card">
-    <div class="spec-card-header">
-      <ion-icon name="information-circle-outline"></ion-icon>
-      <strong>Especificações para Banners</strong>
-      <button class="btn-toggle-specs" (click)="showSpecs = !showSpecs">
-        <ion-icon [name]="showSpecs ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
-      </button>
-    </div>
-    @if (showSpecs) {
-      <div class="spec-grid">
-        <div class="spec-item">
-          <ion-icon name="resize-outline" color="primary"></ion-icon>
-          <div>
-            <strong>Dimensões Recomendadas</strong>
-            <span>1080 × 400 px (Mobile)</span>
-            <span class="spec-note">Proporção 2.7:1</span>
-          </div>
-        </div>
-        <div class="spec-item">
-          <ion-icon name="document-outline" color="primary"></ion-icon>
-          <div>
-            <strong>Formato Aceito</strong>
-            <span>JPG, PNG ou WEBP</span>
-            <span class="spec-note">Máx. 2MB por arquivo</span>
-          </div>
-        </div>
-        <div class="spec-item">
-          <ion-icon name="phone-portrait-outline" color="primary"></ion-icon>
-          <div>
-            <strong>Design Mobile-First</strong>
-            <span>Margens internas de 16px</span>
-            <span class="spec-note">Texto visível no centro</span>
-          </div>
-        </div>
-        <div class="spec-item">
-          <ion-icon name="color-palette-outline" color="primary"></ion-icon>
-          <div>
-            <strong>Fundo Alternativo</strong>
-            <span>Escolha uma cor de fundo</span>
-            <span class="spec-note">Usado se sem imagem</span>
-          </div>
-        </div>
-      </div>
-      <div class="spec-preview-label">
-        <ion-icon name="phone-portrait-outline"></ion-icon>
-        Prévia de Dimensões no Mobile
-      </div>
-      <div class="spec-visual-preview">
-        <div class="preview-phone-frame">
-          <div class="preview-banner-area">
-            <span>Banner — 1080 × 400 px</span>
-            <span class="ratio-badge">Proporção 2.7:1</span>
-          </div>
-        </div>
-      </div>
-    }
-  </div>
+  <app-admin-subtabs
+    [options]="subtabOptions"
+    [activeTab]="activeSubTab"
+    (activeTabChange)="setActiveSubTab($event)">
+  </app-admin-subtabs>
 
-  <!-- LISTA DE BANNERS -->
-  <div class="banners-list-header">
-    <span>Banners Cadastrados ({{ (banners$ | async)?.length || 0 }})</span>
-  </div>
-
-  @if ((banners$ | async); as banners) {
-    @if (banners.length === 0) {
-      <div class="empty-state">
-        <ion-icon name="images-outline"></ion-icon>
-        <h3>Nenhum banner cadastrado</h3>
-        <p>Clique em "Novo Banner" para começar a criar banners para sua loja.</p>
-        <button class="btn-new-banner" (click)="openForm()">
-          <ion-icon name="add-outline"></ion-icon>
-          Criar Primeiro Banner
+  @if (activeSubTab === 'list') {
+    <!-- SPEC CARD - Instruções de Uso -->
+    <div class="spec-card">
+      <div class="spec-card-header">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <strong>Especificações para Banners</strong>
+        <button class="btn-toggle-specs" (click)="showSpecs = !showSpecs">
+          <ion-icon [name]="showSpecs ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
         </button>
       </div>
-    }
-
-    @for (banner of banners; track banner.id) {
-      <div class="banner-card" [class.inactive]="banner.status === 'inactive'">
-
-        <!-- Preview do Banner -->
-        <div class="banner-preview" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
-          @if (banner.imageURL) {
-            <img [src]="banner.imageURL" [alt]="banner.title">
-          } @else {
-            <div class="banner-preview-text" [style.color]="banner.textColor">
-              <strong>{{ banner.title }}</strong>
-              @if (banner.subtitle) { <span>{{ banner.subtitle }}</span> }
+      @if (showSpecs) {
+        <div class="spec-grid">
+          <div class="spec-item">
+            <ion-icon name="resize-outline" color="primary"></ion-icon>
+            <div>
+              <strong>Dimensões Recomendadas</strong>
+              <span>1080 × 400 px (Mobile)</span>
+              <span class="spec-note">Proporção 2.7:1</span>
             </div>
-          }
-
-          <!-- Status Badge -->
-          <div class="status-badge" [class]="'status-' + banner.status">
-            <ion-icon [name]="getStatusIcon(banner.status)"></ion-icon>
-            {{ getStatusLabel(banner.status) }}
+          </div>
+          <div class="spec-item">
+            <ion-icon name="document-outline" color="primary"></ion-icon>
+            <div>
+              <strong>Formato Aceito</strong>
+              <span>JPG, PNG ou WEBP</span>
+              <span class="spec-note">Máx. 2MB por arquivo</span>
+            </div>
+          </div>
+          <div class="spec-item">
+            <ion-icon name="phone-portrait-outline" color="primary"></ion-icon>
+            <div>
+              <strong>Design Mobile-First</strong>
+              <span>Margens internas de 16px</span>
+              <span class="spec-note">Texto visível no centro</span>
+            </div>
+          </div>
+          <div class="spec-item">
+            <ion-icon name="color-palette-outline" color="primary"></ion-icon>
+            <div>
+              <strong>Fundo Alternativo</strong>
+              <span>Escolha uma cor de fundo</span>
+              <span class="spec-note">Usado se sem imagem</span>
+            </div>
           </div>
         </div>
-
-        <!-- Info do Banner -->
-        <div class="banner-info">
-          <div class="banner-title-row">
-            <h3>{{ banner.title }}</h3>
-            <span class="banner-order">#{{ banner.order }}</span>
+        <div class="spec-preview-label">
+          <ion-icon name="phone-portrait-outline"></ion-icon>
+          Prévia de Dimensões no Mobile
+        </div>
+        <div class="spec-visual-preview">
+          <div class="preview-phone-frame">
+            <div class="preview-banner-area">
+              <span>Banner — 1080 × 400 px</span>
+              <span class="ratio-badge">Proporção 2.7:1</span>
+            </div>
           </div>
+        </div>
+      }
+    </div>
 
-          @if (banner.subtitle) {
-            <p class="banner-subtitle">{{ banner.subtitle }}</p>
-          }
+    <!-- LISTA DE BANNERS -->
+    <div class="banners-list-header">
+      <span>Banners Cadastrados ({{ (banners$ | async)?.length || 0 }})</span>
+    </div>
 
-          @if (banner.status === 'scheduled') {
-            <div class="schedule-info">
-              <ion-icon name="calendar-outline"></ion-icon>
-              <div>
-                @if (banner.scheduledStart) {
-                  <span>Início: {{ banner.scheduledStart | date:'dd/MM/yyyy HH:mm':'':' pt-BR' }}</span>
-                }
-                @if (banner.scheduledEnd) {
-                  <span>Fim: {{ banner.scheduledEnd | date:'dd/MM/yyyy HH:mm':'':' pt-BR' }}</span>
-                }
+    @if ((banners$ | async); as banners) {
+      @if (banners.length === 0) {
+        <div class="empty-state">
+          <ion-icon name="images-outline"></ion-icon>
+          <h3>Nenhum banner cadastrado</h3>
+          <p>Clique em "Novo Banner" para começar a criar banners para sua loja.</p>
+          <button class="btn-new-banner" (click)="openForm()">
+            <ion-icon name="add-outline"></ion-icon>
+            Criar Primeiro Banner
+          </button>
+        </div>
+      }
+
+      <div class="banners-grid">
+        @for (banner of banners; track banner.id) {
+          <div class="banner-card" [class.inactive]="banner.status === 'inactive'">
+
+            <!-- Preview do Banner -->
+            <div class="banner-preview" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
+              @if (banner.imageURL) {
+                <img [src]="banner.imageURL" [alt]="banner.title">
+              } @else {
+                <div class="banner-preview-text" [style.color]="banner.textColor">
+                  <strong>{{ banner.title }}</strong>
+                  @if (banner.subtitle) { <span>{{ banner.subtitle }}</span> }
+                </div>
+              }
+
+              <!-- Status Badge -->
+              <div class="status-badge" [class]="'status-' + banner.status">
+                <ion-icon [name]="getStatusIcon(banner.status)"></ion-icon>
+                {{ getStatusLabel(banner.status) }}
               </div>
             </div>
-          }
 
-          <!-- Ações -->
-          <div class="banner-actions">
-            <button class="btn-action btn-edit" (click)="openForm(banner)">
-              <ion-icon name="create-outline"></ion-icon>
-              Editar
+            <!-- Info do Banner -->
+            <div class="banner-info">
+              <div class="banner-title-row">
+                <h3>{{ banner.title }}</h3>
+                <span class="banner-order">#{{ banner.order }}</span>
+              </div>
+
+              @if (banner.subtitle) {
+                <p class="banner-subtitle">{{ banner.subtitle }}</p>
+              }
+
+              @if (banner.status === 'scheduled') {
+                <div class="schedule-info">
+                  <ion-icon name="calendar-outline"></ion-icon>
+                  <div>
+                    @if (banner.scheduledStart) {
+                      <span>Início: {{ banner.scheduledStart | date:'dd/MM/yyyy HH:mm':'':' pt-BR' }}</span>
+                    }
+                    @if (banner.scheduledEnd) {
+                      <span>Fim: {{ banner.scheduledEnd | date:'dd/MM/yyyy HH:mm':'':' pt-BR' }}</span>
+                    }
+                    @if (banner.scheduledDates && banner.scheduledDates.length > 0) {
+                      <span>Datas: {{ getSelectedDatesLabel(banner) }}</span>
+                    }
+                    @if (banner.scheduledDays && banner.scheduledDays.length > 0) {
+                      <span>Dias: {{ getScheduledDaysLabel(banner) }}</span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Ações -->
+              <div class="banner-actions">
+                <button class="btn-action btn-edit" (click)="openForm(banner)">
+                  <ion-icon name="create-outline"></ion-icon>
+                  Editar
+                </button>
+                <button class="btn-action btn-toggle"
+                  (click)="toggleStatus(banner)"
+                  [class.active]="banner.status === 'active'">
+                  <ion-icon [name]="banner.status === 'active' ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+                  {{ banner.status === 'active' ? 'Ativo' : 'Inativo' }}
+                </button>
+                <button class="btn-action btn-delete" (click)="deleteBanner(banner)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  } @else {
+    @if ((banners$ | async); as banners) {
+      <div class="schedule-calendar-view">
+        <div class="schedule-calendar-header">
+          <div>
+            <span class="calendar-eyebrow">Agenda mensal</span>
+            <h3>{{ calendarMonthLabel }}</h3>
+            <p>Veja os banners agendados em cada dia do mês.</p>
+          </div>
+          <button class="btn-new-banner compact" (click)="openForm()">
+            <ion-icon name="add-outline"></ion-icon>
+            Novo
+          </button>
+        </div>
+
+        <div class="calendar-card schedule-calendar-card">
+          <div class="calendar-toolbar">
+            <button type="button" class="calendar-nav" (click)="previousMonth()" aria-label="Mês anterior">
+              <ion-icon name="chevron-back-outline"></ion-icon>
             </button>
-            <button class="btn-action btn-toggle"
-              (click)="toggleStatus(banner)"
-              [class.active]="banner.status === 'active'">
-              <ion-icon [name]="banner.status === 'active' ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
-              {{ banner.status === 'active' ? 'Ativo' : 'Inativo' }}
-            </button>
-            <button class="btn-action btn-delete" (click)="deleteBanner(banner)">
-              <ion-icon name="trash-outline"></ion-icon>
+            <strong>{{ calendarMonthLabel }}</strong>
+            <button type="button" class="calendar-nav" (click)="nextMonth()" aria-label="Próximo mês">
+              <ion-icon name="chevron-forward-outline"></ion-icon>
             </button>
           </div>
+
+          <div class="calendar-weekdays">
+            @for (weekDay of calendarWeekDays; track weekDay) {
+              <span>{{ weekDay }}</span>
+            }
+          </div>
+
+          <div class="schedule-calendar-grid">
+            @for (day of getScheduledCalendarDays(banners); track day.dateKey) {
+              <div
+                class="schedule-calendar-day"
+                [class.outside-month]="!day.isCurrentMonth"
+                [class.today]="day.isToday"
+                [class.has-banners]="day.scheduledBanners && day.scheduledBanners.length > 0"
+                [class.past-day]="isPastCalendarDay(day)"
+                (click)="openDayPlanner(day, banners)">
+                <div class="schedule-day-top">
+                  <span class="schedule-day-number">{{ day.dayNumber }}</span>
+                  @if (day.scheduledBanners && day.scheduledBanners.length > 0) {
+                    <span class="schedule-day-count">{{ day.scheduledBanners.length }}</span>
+                  }
+                </div>
+
+                @if (day.scheduledBanners && day.scheduledBanners.length > 0) {
+                  <div class="schedule-day-banners">
+                    @for (banner of day.scheduledBanners; track banner.id; let index = $index) {
+                      @if (index < 2) {
+                        <button type="button" class="calendar-banner-pill" (click)="$event.stopPropagation(); openForm(banner)">
+                          <span>{{ banner.title }}</span>
+                        </button>
+                      }
+                    }
+                    @if (day.scheduledBanners.length > 2) {
+                      <span class="more-banners">+{{ day.scheduledBanners.length - 2 }} banner(s)</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
         </div>
+
+        <div class="calendar-planner-hint">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          <span>Clique em hoje ou em uma data futura para planejar o carrossel daquele dia.</span>
+        </div>
+
+        @if (banners.length === 0) {
+          <div class="empty-state compact-empty">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <h3>Nenhum banner cadastrado</h3>
+            <p>Crie um banner e escolha as datas para ele aparecer neste calendário.</p>
+          </div>
+        }
       </div>
     }
   }
@@ -165,10 +262,10 @@
 </ion-content>
 
 <!-- MODAL DE CRIAÇÃO / EDIÇÃO -->
-<ion-modal [isOpen]="isFormOpen" (didDismiss)="closeForm()" [breakpoints]="[0, 1]" [initialBreakpoint]="1">
+<ion-modal class="banner-form-modal" [isOpen]="isFormOpen" (didDismiss)="closeForm()" [breakpoints]="[0, 1]" [initialBreakpoint]="1">
   <ng-template>
     <ion-header>
-      <ion-toolbar color="primary">
+      <ion-toolbar class="banner-modal-toolbar">
         <ion-title>{{ editingBanner ? 'Editar Banner' : 'Novo Banner' }}</ion-title>
         <ion-buttons slot="end">
           <ion-button (click)="closeForm()">
@@ -224,20 +321,40 @@
           Textos
         </label>
         <ion-item class="form-item">
-          <ion-label position="floating">Título *</ion-label>
-          <ion-input [(ngModel)]="form.title" placeholder="Ex: Mega Promoção!" clearInput></ion-input>
+          <ion-input
+            label="Título *"
+            labelPlacement="stacked"
+            [(ngModel)]="form.title"
+            placeholder="Ex: Mega Promoção!"
+            clearInput>
+          </ion-input>
         </ion-item>
         <ion-item class="form-item">
-          <ion-label position="floating">Subtítulo</ion-label>
-          <ion-input [(ngModel)]="form.subtitle" placeholder="Ex: Descontos de até 60% OFF" clearInput></ion-input>
+          <ion-input
+            label="Subtítulo"
+            labelPlacement="stacked"
+            [(ngModel)]="form.subtitle"
+            placeholder="Ex: Descontos de até 60% OFF"
+            clearInput>
+          </ion-input>
         </ion-item>
         <ion-item class="form-item">
-          <ion-label position="floating">Texto do Botão</ion-label>
-          <ion-input [(ngModel)]="form.buttonText" placeholder="Ex: APROVEITE" clearInput></ion-input>
+          <ion-input
+            label="Texto do Botão"
+            labelPlacement="stacked"
+            [(ngModel)]="form.buttonText"
+            placeholder="Ex: APROVEITE"
+            clearInput>
+          </ion-input>
         </ion-item>
         <ion-item class="form-item">
-          <ion-label position="floating">Link do Botão</ion-label>
-          <ion-input [(ngModel)]="form.buttonLink" placeholder="Ex: /checkout ou URL" clearInput></ion-input>
+          <ion-input
+            label="Link do Botão"
+            labelPlacement="stacked"
+            [(ngModel)]="form.buttonLink"
+            placeholder="Ex: /checkout ou URL"
+            clearInput>
+          </ion-input>
         </ion-item>
       </div>
 
@@ -267,8 +384,11 @@
         </label>
 
         <ion-item class="form-item">
-          <ion-label position="floating">Status</ion-label>
-          <ion-select [(ngModel)]="form.status" interface="action-sheet">
+          <ion-select
+            label="Status"
+            labelPlacement="stacked"
+            [(ngModel)]="form.status"
+            interface="action-sheet">
             <ion-select-option value="active">✅ Ativo (Exibindo agora)</ion-select-option>
             <ion-select-option value="inactive">❌ Inativo (Oculto)</ion-select-option>
             <ion-select-option value="scheduled">📅 Agendado</ion-select-option>
@@ -277,18 +397,82 @@
 
         @if (form.status === 'scheduled') {
           <ion-item class="form-item">
-            <ion-label position="floating">Data/Hora de Início</ion-label>
-            <ion-input type="datetime-local" [(ngModel)]="form.scheduledStart"></ion-input>
+            <ion-input
+              label="Data/Hora de Início Geral"
+              labelPlacement="stacked"
+              type="datetime-local"
+              [(ngModel)]="form.scheduledStart">
+            </ion-input>
           </ion-item>
           <ion-item class="form-item">
-            <ion-label position="floating">Data/Hora de Fim (Opcional)</ion-label>
-            <ion-input type="datetime-local" [(ngModel)]="form.scheduledEnd"></ion-input>
+            <ion-input
+              label="Data/Hora de Fim Geral (Opcional)"
+              labelPlacement="stacked"
+              type="datetime-local"
+              [(ngModel)]="form.scheduledEnd">
+            </ion-input>
           </ion-item>
+
+          <div class="calendar-section">
+            <div class="calendar-heading">
+              <div>
+                <span class="calendar-label">Calendário do mês</span>
+                <small>Selecione os dias em que este banner deve aparecer</small>
+              </div>
+              <span class="selected-count">{{ selectedDatesCount }} selecionado(s)</span>
+            </div>
+
+            <div class="calendar-card">
+              <div class="calendar-toolbar">
+                <button type="button" class="calendar-nav" (click)="previousMonth()" aria-label="Mês anterior">
+                  <ion-icon name="chevron-back-outline"></ion-icon>
+                </button>
+                <strong>{{ calendarMonthLabel }}</strong>
+                <button type="button" class="calendar-nav" (click)="nextMonth()" aria-label="Próximo mês">
+                  <ion-icon name="chevron-forward-outline"></ion-icon>
+                </button>
+              </div>
+
+              <div class="calendar-weekdays">
+                @for (weekDay of calendarWeekDays; track weekDay) {
+                  <span>{{ weekDay }}</span>
+                }
+              </div>
+
+              <div class="calendar-grid">
+                @for (day of calendarDays; track day.dateKey) {
+                  <button
+                    type="button"
+                    class="calendar-day"
+                    [class.outside-month]="!day.isCurrentMonth"
+                    [class.today]="day.isToday"
+                    [class.selected]="day.isSelected"
+                    (click)="toggleCalendarDate(day)">
+                    {{ day.dayNumber }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="calendar-actions">
+              <button type="button" class="calendar-action" (click)="selectCurrentMonth()">
+                Selecionar mês todo
+              </button>
+              <button type="button" class="calendar-action muted" (click)="clearScheduledDates()">
+                Limpar datas
+              </button>
+            </div>
+          </div>
         }
 
         <ion-item class="form-item">
-          <ion-label position="floating">Ordem de exibição</ion-label>
-          <ion-input type="number" [(ngModel)]="form.order" placeholder="Ex: 1 (menor = primeiro)"></ion-input>
+          <ion-input
+            label="Ordem de exibição"
+            labelPlacement="stacked"
+            type="number"
+            [(ngModel)]="form.order"
+            placeholder="Ex: 1 (menor = primeiro)">
+          </ion-input>
         </ion-item>
       </div>
 
@@ -306,6 +490,88 @@
 
       <div style="height: 40px;"></div>
 
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- MODAL DE PLANEJAMENTO DIÁRIO -->
+<ion-modal class="day-planner-modal" [isOpen]="isDayPlannerOpen" (didDismiss)="closeDayPlanner()" [breakpoints]="[0, 1]" [initialBreakpoint]="1">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar class="banner-modal-toolbar">
+        <ion-title>Planejar Carrossel</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeDayPlanner()">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding day-planner-content">
+      <div class="day-planner-header">
+        <span>Data selecionada</span>
+        <h3>{{ selectedPlannerDateLabel }}</h3>
+        <p>Escolha quais banners entram no carrossel deste dia e defina horários e ordem de exibição.</p>
+      </div>
+
+      @if (plannerItems.length === 0) {
+        <div class="empty-state compact-empty">
+          <ion-icon name="images-outline"></ion-icon>
+          <h3>Nenhum banner disponível</h3>
+          <p>Cadastre um banner antes de montar o carrossel do dia.</p>
+        </div>
+      }
+
+      @for (item of plannerItems; track item.banner.id) {
+        <div class="planner-banner-card" [class.enabled]="item.enabled">
+          <div class="planner-banner-main">
+            <div class="planner-banner-thumb" [style.background]="item.banner.imageURL ? '' : item.banner.backgroundColor">
+              @if (item.banner.imageURL) {
+                <img [src]="item.banner.imageURL" [alt]="item.banner.title">
+              } @else {
+                <span [style.color]="item.banner.textColor">{{ item.banner.title }}</span>
+              }
+            </div>
+
+            <div class="planner-banner-info">
+              <strong>{{ item.banner.title }}</strong>
+              <span>{{ getStatusLabel(item.banner.status) }}</span>
+            </div>
+
+            <ion-toggle [(ngModel)]="item.enabled" aria-label="Incluir banner no dia"></ion-toggle>
+          </div>
+
+          @if (item.enabled) {
+            <div class="planner-fields">
+              <label>
+                <span>Início</span>
+                <input type="time" [(ngModel)]="item.startTime">
+              </label>
+              <label>
+                <span>Fim</span>
+                <input type="time" [(ngModel)]="item.endTime">
+              </label>
+              <label>
+                <span>Ordem</span>
+                <input type="number" min="1" [(ngModel)]="item.order">
+              </label>
+            </div>
+          }
+        </div>
+      }
+
+      <ion-button expand="block" class="btn-save" (click)="saveDayPlan()" [disabled]="isSavingDayPlan">
+        @if (isSavingDayPlan) {
+          <ion-spinner name="crescent" slot="start"></ion-spinner>
+          Salvando...
+        } @else {
+          <ion-icon name="calendar-outline" slot="start"></ion-icon>
+          Salvar Planejamento
+        }
+      </ion-button>
+
+      <div style="height: 40px;"></div>
     </ion-content>
   </ng-template>
 </ion-modal>
