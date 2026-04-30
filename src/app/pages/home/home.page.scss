@@ -75,4 +75,81 @@ ion-header, ion-toolbar {
     }
   }
 }
+
+/* ===== TABLET (>= 768px) ===== */
+@media (min-width: 768px) {
+  .menu-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 16px;
+    row-gap: 14px;
+    max-width: 760px;
+    padding: 16px 24px 120px;
+
+    .section-title {
+      grid-column: 1 / -1;
+      font-size: 11px;
+      margin: 20px 0 6px 2px;
+    }
+
+    .menu-item {
+      h2 {
+        font-size: 16px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+/* ===== DESKTOP (>= 1024px) ===== */
+@media (min-width: 1024px) {
+  .menu-list {
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 20px;
+    row-gap: 16px;
+    max-width: 1180px;
+    padding: 24px 40px 140px;
+
+    .section-title {
+      font-size: 12px;
+      margin: 28px 0 8px 2px;
+    }
+
+    .menu-item {
+      --padding-start: 22px;
+      --inner-padding-end: 22px;
+      --padding-top: 16px;
+      --padding-bottom: 16px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      }
+
+      .icon-green {
+        font-size: 28px;
+      }
+
+      h2 {
+        font-size: 16px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+/* ===== DESKTOP LARGE (>= 1440px) ===== */
+@media (min-width: 1440px) {
+  .menu-list {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 1400px;
+  }
+}
 

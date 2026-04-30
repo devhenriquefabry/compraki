@@ -13,7 +13,12 @@ import {
   rocketOutline, flaskOutline, logOutOutline,
   person, mail, documentText, phonePortrait, lockClosed, 
   map, location, business, addCircle, navigate, flag, checkmark,
-  serverOutline, closeOutline
+  serverOutline, closeOutline, logoWhatsapp, imagesOutline, images,
+  cube, chatbubbles, paperPlane, paperPlaneOutline, refreshOutline,
+  qrCodeOutline, phonePortraitOutline, sendOutline, scanOutline,
+  documentTextOutline, shieldCheckmarkOutline, flashOutline,
+  saveOutline, checkmarkCircleOutline, alertCircleOutline,
+  syncOutline, closeCircleOutline, helpCircleOutline, trashOutline
 } from 'ionicons/icons';
 
 import { NotificationService } from './services/notification.service';
@@ -76,7 +81,29 @@ export class AppComponent implements OnInit {
       'flag': flag,
       'checkmark': checkmark,
       'server-outline': serverOutline,
-      'close-outline': closeOutline
+      'close-outline': closeOutline,
+      'logo-whatsapp': logoWhatsapp,
+      'images-outline': imagesOutline,
+      'images': images,
+      'cube': cube,
+      'chatbubbles': chatbubbles,
+      'paper-plane': paperPlane,
+      'paper-plane-outline': paperPlaneOutline,
+      'refresh-outline': refreshOutline,
+      'qr-code-outline': qrCodeOutline,
+      'phone-portrait-outline': phonePortraitOutline,
+      'send-outline': sendOutline,
+      'scan-outline': scanOutline,
+      'document-text-outline': documentTextOutline,
+      'shield-checkmark-outline': shieldCheckmarkOutline,
+      'flash-outline': flashOutline,
+      'save-outline': saveOutline,
+      'checkmark-circle-outline': checkmarkCircleOutline,
+      'alert-circle-outline': alertCircleOutline,
+      'sync-outline': syncOutline,
+      'close-circle-outline': closeCircleOutline,
+      'help-circle-outline': helpCircleOutline,
+      'trash-outline': trashOutline
     });
     this.initializeApp();
     this.notifyService.initOrderListener();

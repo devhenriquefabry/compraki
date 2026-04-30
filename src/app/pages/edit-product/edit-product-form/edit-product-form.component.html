@@ -140,6 +140,52 @@
       <ion-toggle color="success" formControlName="acceptOffers"></ion-toggle>
     </div>
 
+    <!-- SEÇÃO LOGÍSTICA (MELHOR ENVIO) -->
+    <div class="section-title">
+      <div class="dot"></div>
+      <span>Logística e Dimensões (Frete)</span>
+    </div>
+
+    <div class="form-group">
+      <label>Forma de Entrega</label>
+      <div class="input-wrapper">
+        <select formControlName="shipping" class="custom-select">
+          <option value="A combinar">A combinar com vendedor</option>
+          <option value="Frete Grátis">Frete Grátis</option>
+          <option value="Entrega Expressa">Melhor Envio (Cálculo automático)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="form-group col">
+        <label>Peso (kg)</label>
+        <div class="input-wrapper">
+          <input type="number" formControlName="weight" placeholder="Ex: 0.5">
+        </div>
+      </div>
+      <div class="form-group col">
+        <label>Comprimento (cm)</label>
+        <div class="input-wrapper">
+          <input type="number" formControlName="length" placeholder="Ex: 16">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="form-group col">
+        <label>Largura (cm)</label>
+        <div class="input-wrapper">
+          <input type="number" formControlName="width" placeholder="Ex: 11">
+        </div>
+      </div>
+      <div class="form-group col">
+        <label>Altura (cm)</label>
+        <div class="input-wrapper">
+          <input type="number" formControlName="height" placeholder="Ex: 2">
+        </div>
+      </div>
+    </div>
+
     <!-- SEÇÃO DESCRIÇÃO -->
     <div class="section-title">
       <div class="dot"></div>

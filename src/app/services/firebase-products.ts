@@ -18,10 +18,11 @@ import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
 import { Product } from '../interfaces/product';
 import { Observable } from 'rxjs';
 import { AppAddress } from '../interfaces/app-user';
-import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider} from 'firebase/auth';
+import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, onAuthStateChanged} from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Router } from '@angular/router';
 import { FirebaseUsersService } from './firebase-users.service';
+import { WhatsappInstancesService } from './whatsapp-instances.service';
 
 // Copie sua config aqui para garantir que o SDK use o objeto puro
 const firebaseConfig = {
@@ -42,19 +43,27 @@ export class FirebaseProducts {
   private authenticator: Auth;
   private storage;
 
-  public usuarioLogado! : User | null
+  public usuarioLogado : User | null = null
   public carregando : boolean = false
 
 
 
-  constructor(private router : Router, private usersService: FirebaseUsersService) {
+  constructor(
+    private router : Router,
+    private usersService: FirebaseUsersService,
+    private whatsappService: WhatsappInstancesService
+  ) {
     // Inicializa ou recupera o App SEM passar pelo sistema de injeção do Angular 21
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     this.db = getFirestore(app);
     this.storage = getStorage(app);
     this.authenticator = getAuth(app)
 
-    this.usuarioLogado = this.getUser()
+    // Listener para manter o estado do usuário sempre sincronizado
+    onAuthStateChanged(this.authenticator, (user) => {
+      this.usuarioLogado = user;
+      console.log('Estado de autenticação alterado. Usuário:', user?.email);
+    });
   }
 
   getAll(): Observable<Product[]> {
@@ -154,6 +163,13 @@ export class FirebaseProducts {
           displayName: name,
           address: address || undefined
       });
+
+      void this.dispatchWhatsappTriggerSafe('account_created', {
+        nome: name,
+        email,
+        telefone: phone || '',
+        usuario: userCredential.user.uid
+      });
       
       alert('Cadastro realizado com sucesso!');
       console.log('O ID do usuário no sistema é: ' + userCredential.user.uid);
@@ -201,6 +217,13 @@ async signInWithGoogle(): Promise<boolean> {
     
     // 🔥 Espelhando/Atualizando o usuário vindo do Google no Firestore de forma segura
     await this.usersService.ensureAppUserDocument(user);
+
+    void this.dispatchWhatsappTriggerSafe('new_login', {
+      nome: user.displayName || 'Usuário Google',
+      email: user.email || '',
+      telefone: user.phoneNumber || '',
+      usuario: user.uid
+    });
     
     console.log('Bem-vindo, ' + user.displayName);
     this.router.navigate(['/tabs']);
@@ -246,10 +269,15 @@ async signInWithGoogle(): Promise<boolean> {
         this.carregando = true
 
     try {
-      await signInWithEmailAndPassword(this.authenticator, email, senha).then((usuario)=>{
+      const usuario = await signInWithEmailAndPassword(this.authenticator, email, senha);
       console.log('Bem-vindo, ' + usuario.user.email +  '.' + ' Você é o usuário de ID : ' + usuario.user.uid);
+      void this.dispatchWhatsappTriggerSafe('new_login', {
+        nome: usuario.user.displayName || 'Usuário',
+        email: usuario.user.email || email,
+        telefone: usuario.user.phoneNumber || '',
+        usuario: usuario.user.uid
+      });
       this.router.navigate(['/tabs'])
-      })
       return true
       
     } catch (error) {
@@ -262,5 +290,13 @@ async signInWithGoogle(): Promise<boolean> {
       this.carregando = false
     }
 
+  }
+
+  private async dispatchWhatsappTriggerSafe(eventType: 'account_created' | 'new_login', data: Record<string, unknown>): Promise<void> {
+    try {
+      await this.whatsappService.dispatchTrigger({ eventType, data });
+    } catch (error) {
+      console.warn('Falha ao disparar gatilho WhatsApp:', error);
+    }
   }
 }

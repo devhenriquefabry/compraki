@@ -64,4 +64,12 @@ export class SalesService {
     }
     return null;
   }
+
+  async updateSaleData(orderId: string, data: any): Promise<void> {
+    const orderRef = doc(this.db, 'orders', orderId);
+    await updateDoc(orderRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+  }
 }

@@ -9,6 +9,7 @@ import { CheckoutOrderSummaryComponent } from 'src/app/components/checkout/check
 import { CheckoutAddressComponent } from 'src/app/components/checkout/checkout-address/checkout-address.component';
 import { CheckoutPaymentComponent } from 'src/app/components/checkout/checkout-payment/checkout-payment.component';
 import { CheckoutTotalsComponent } from 'src/app/components/checkout/checkout-totals/checkout-totals.component';
+import { CheckoutShippingComponent } from 'src/app/components/checkout/checkout-shipping/checkout-shipping.component';
 
 @NgModule({
   imports: [
@@ -20,7 +21,8 @@ import { CheckoutTotalsComponent } from 'src/app/components/checkout/checkout-to
     CheckoutOrderSummaryComponent,
     CheckoutAddressComponent,
     CheckoutPaymentComponent,
-    CheckoutTotalsComponent
+    CheckoutTotalsComponent,
+    CheckoutShippingComponent
   ],
   declarations: [CheckoutPage]
 })

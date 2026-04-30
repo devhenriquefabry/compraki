@@ -18,6 +18,10 @@
       <ion-icon [name]="activeTab === 'whatsapp' ? 'logo-whatsapp' : 'logo-whatsapp'"></ion-icon>
       WhatsApp
     </button>
+    <button class="master-tab" [class.active]="activeTab === 'melhor-envio'" [routerLink]="['/admin/melhor-envio']">
+      <ion-icon [name]="activeTab === 'melhor-envio' ? 'paper-plane' : 'paper-plane-outline'"></ion-icon>
+      Melhor Envio
+    </button>
   </div>
 </div>
 
@@ -26,4 +30,5 @@
   <app-manage-chats *ngIf="activeTab === 'chats'"></app-manage-chats>
   <app-manage-banners *ngIf="activeTab === 'banners'"></app-manage-banners>
   <app-manage-whatsapp *ngIf="activeTab === 'whatsapp'"></app-manage-whatsapp>
+  <app-melhor-envio *ngIf="activeTab === 'melhor-envio'"></app-melhor-envio>
 </div>

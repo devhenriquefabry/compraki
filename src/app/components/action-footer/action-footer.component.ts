@@ -78,3 +78,4 @@ export class ActionFooterComponent {
     this.clicked.emit();
   }
 }
+    

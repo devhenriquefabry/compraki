@@ -51,7 +51,15 @@ export class EditProductFormComponent implements OnInit {
     acceptOffers: new FormControl(true),
     description: new FormControl('', [Validators.required]),
     categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
-    subcategoryIds: new FormControl<string[]>([])
+    subcategoryIds: new FormControl<string[]>([]),
+    shipping: new FormControl<'Frete Grátis' | 'A combinar' | 'Entrega Expressa'>('A combinar', [Validators.required]),
+    paymentMethods: new FormControl<('PIX' | 'CARTÃO' | 'DINHEIRO')[]>(['PIX'], [Validators.required, Validators.minLength(1)]),
+    
+    // Novos campos de dimensões para Melhor Envio
+    weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0.1)]),
+    width: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
+    height: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
+    length: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)])
   });
 
   constructor(

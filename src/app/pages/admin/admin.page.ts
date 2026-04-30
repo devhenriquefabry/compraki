@@ -9,8 +9,9 @@ import { DevProductsPage } from '../dev-products/dev-products.page';
 import { ManageChatsPage } from '../manage-chats/manage-chats.page';
 import { ManageBannersPage } from '../manage-banners/manage-banners.page';
 import { ManageWhatsappPage } from '../manage-whatsapp/manage-whatsapp.page';
+import { MelhorEnvioPage } from '../melhor-envio/melhor-envio.page';
 
-type AdminTab = 'products' | 'chats' | 'banners' | 'whatsapp';
+type AdminTab = 'products' | 'chats' | 'banners' | 'whatsapp' | 'melhor-envio';
 
 @Component({
   selector: 'app-admin',
@@ -26,13 +27,14 @@ type AdminTab = 'products' | 'chats' | 'banners' | 'whatsapp';
     DevProductsPage,
     ManageChatsPage,
     ManageBannersPage,
-    ManageWhatsappPage
+    ManageWhatsappPage,
+    MelhorEnvioPage
   ]
 })
 export class AdminPage implements OnInit, OnDestroy {
   activeTab: AdminTab = 'products';
   private routeSub?: Subscription;
-  private validTabs: AdminTab[] = ['products', 'chats', 'banners', 'whatsapp'];
+  private validTabs: AdminTab[] = ['products', 'chats', 'banners', 'whatsapp', 'melhor-envio'];
 
   constructor(
     private route: ActivatedRoute,

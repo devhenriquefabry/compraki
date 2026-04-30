@@ -18,10 +18,20 @@ export class CheckoutStateService {
   };
 
   addressData: any = {
-    // Para simplificar, poderíamos armazenar também o endereço, 
-    // mas no momento precisamos focar no pagamento e dados como CEP para o Asaas.
     postalCode: '01001-000',
-    addressNumber: '123'
+    addressNumber: '123',
+    street: '',
+    city: '',
+    state: '',
+    complement: '',
+    neighborhood: ''
+  };
+
+  shippingData: any = {
+    serviceId: null,
+    serviceName: '',
+    price: 0,
+    deliveryTime: 0
   };
 
   constructor() {}

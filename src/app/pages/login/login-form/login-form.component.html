@@ -48,7 +48,7 @@
     </ion-button>
 
     <!-- Modal de Usuários de Teste -->
-    <ion-modal #modal trigger="open-test-users-modal" [initialBreakpoint]="0.4" [breakpoints]="[0, 0.4, 0.6]">
+    <ion-modal #modal trigger="open-test-users-modal" [initialBreakpoint]="1" [breakpoints]="[0, 0.4, 0.6, 1]">
       <ng-template>
         <ion-header>
           <ion-toolbar color="primary">
@@ -60,17 +60,17 @@
         </ion-header>
         <ion-content class="ion-padding">
           <div class="modal-header-actions">
-            <p class="modal-info">Selecione um usuário para preencher as credenciais.</p>
+            <p class="modal-info">Selecione um usuário real do sistema para preencher as credenciais.</p>
             
             <ion-item lines="none" class="password-override">
               <ion-label position="stacked">Senha Padrão para Testes</ion-label>
-              <ion-input type="password" [(ngModel)]="defaultPassword" placeholder="Ex: password123"></ion-input>
+              <ion-input type="password" [(ngModel)]="defaultPassword" [ngModelOptions]="{standalone: true}" placeholder="Ex: password123"></ion-input>
             </ion-item>
           </div>
 
           <ion-list lines="full" class="test-user-list">
             @for (user of testUsers; track user.email) {
-              <ion-item button (click)="selectTestUser(user); modal.dismiss()">
+              <ion-item button (click)="loginWithTestUser(user); modal.dismiss()">
                 <ion-avatar slot="start">
                   <div class="user-avatar-placeholder">
                     {{ user.label.charAt(0) }}

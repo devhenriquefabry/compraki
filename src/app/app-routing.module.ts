@@ -35,7 +35,8 @@ const routes: Routes = [
   },
   {
     path: 'product-details/:id',
-    loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage)
+    loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage),
+    canActivate: [authGuard]
   },
   {
     path: 'home',

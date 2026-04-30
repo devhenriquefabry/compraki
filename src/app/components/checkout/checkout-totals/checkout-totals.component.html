@@ -11,7 +11,9 @@
     
     <div class="total-row">
       <span>Frete:</span>
-      <span class="value green-color">Grátis</span>
+      <span class="value" [class.green-color]="shipping === 0" [class.default-color]="shipping > 0">
+        {{ shipping === 0 ? 'Grátis' : (shipping | currency:'BRL':'R$ ':'1.2-2') }}
+      </span>
     </div>
     
     @if (discount > 0) {

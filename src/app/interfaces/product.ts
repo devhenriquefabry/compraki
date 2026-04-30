@@ -13,6 +13,13 @@ export interface Product {
     acceptOffers?: boolean;
     paymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[];
     shipping: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa';
+    
+    // Dimensões para Melhor Envio
+    weight?: number; // em kg
+    width?: number;  // em cm
+    height?: number; // em cm
+    length?: number; // em cm
+    
     rating?: number;
     location?: string;
     sellerId?: string;

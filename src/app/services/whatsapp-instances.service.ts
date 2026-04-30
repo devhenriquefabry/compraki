@@ -14,6 +14,27 @@ export interface WhatsappTestMessageRequest {
   message: string;
 }
 
+export type WhatsappTriggerEvent =
+  | 'account_created'
+  | 'product_uploaded'
+  | 'new_conversation'
+  | 'product_sold'
+  | 'new_login';
+
+export interface WhatsappTriggerConfig {
+  eventType: WhatsappTriggerEvent;
+  label: string;
+  enabled: boolean;
+  instanceName: string;
+  phoneNumber: string;
+  message: string;
+}
+
+export interface WhatsappTriggerDispatchRequest {
+  eventType: WhatsappTriggerEvent;
+  data?: Record<string, unknown>;
+}
+
 export interface WhatsappInstanceResponse {
   [key: string]: unknown;
 }
@@ -63,6 +84,25 @@ export class WhatsappInstancesService {
 
   sendTestMessage(payload: WhatsappTestMessageRequest): Promise<WhatsappInstanceResponse> {
     return this.callFunction<WhatsappInstanceResponse>('sendWhatsappTestMessage', {
+      method: 'POST',
+      body: payload
+    });
+  }
+
+  async getTriggers(): Promise<WhatsappTriggerConfig[]> {
+    const response = await this.callFunction<{ triggers?: WhatsappTriggerConfig[] }>('getWhatsappTriggers');
+    return response.triggers || [];
+  }
+
+  saveTrigger(payload: WhatsappTriggerConfig): Promise<{ trigger: WhatsappTriggerConfig }> {
+    return this.callFunction<{ trigger: WhatsappTriggerConfig }>('saveWhatsappTrigger', {
+      method: 'POST',
+      body: payload
+    });
+  }
+
+  dispatchTrigger(payload: WhatsappTriggerDispatchRequest): Promise<WhatsappInstanceResponse> {
+    return this.callFunction<WhatsappInstanceResponse>('dispatchWhatsappTrigger', {
       method: 'POST',
       body: payload
     });

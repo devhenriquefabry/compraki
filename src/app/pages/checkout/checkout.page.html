@@ -37,6 +37,7 @@
     <!-- Step 2: Entrega -->
     <div *ngSwitchCase="2" class="step-content animate-fade">
       <app-checkout-address></app-checkout-address>
+      <app-checkout-shipping></app-checkout-shipping>
       <app-checkout-totals [items]="cartItems"></app-checkout-totals>
     </div>
 
@@ -55,6 +56,7 @@
         </div>
         <div class="review-section">
           <app-checkout-address></app-checkout-address>
+          <app-checkout-shipping></app-checkout-shipping>
         </div>
         <div class="review-section">
           <app-checkout-payment></app-checkout-payment>

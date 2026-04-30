@@ -4,9 +4,11 @@
 }
 
 .admin-subtabs {
-  display: grid;
-  grid-template-columns: repeat(var(--admin-subtabs-count, 2), minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
   padding: 4px;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
@@ -14,23 +16,28 @@
 }
 
 .subtab-button {
-  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   min-height: 42px;
+  padding: 0 8px;
   border: none;
   border-radius: 10px;
   background: transparent;
   color: #64748b;
   font-family: 'Poppins', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 
   ion-icon {
-    font-size: 17px;
+    flex-shrink: 0;
+    font-size: 16px;
   }
 
   &.active {
@@ -49,12 +56,16 @@
   }
 
   .admin-subtabs {
-    grid-template-columns: repeat(var(--admin-subtabs-count, 2), minmax(180px, 240px));
-    justify-content: flex-start;
+    gap: 8px;
   }
 
   .subtab-button {
     min-height: 46px;
+    padding: 0 12px;
     font-size: 14px;
+
+    ion-icon {
+      font-size: 17px;
+    }
   }
 }

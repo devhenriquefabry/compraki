@@ -10,6 +10,7 @@ import { getDownloadURL, ref, getStorage, uploadBytes, FirebaseStorage } from 'f
 import { Observable } from 'rxjs';
 import { ChatRoom, ChatMessage, ChatParticipant, ChatReport } from '../interfaces/chat';
 import { AppUser } from '../interfaces/app-user';
+import { WhatsappInstancesService } from './whatsapp-instances.service';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
@@ -29,7 +30,7 @@ export class FirebaseChatService {
   private authenticator: Auth;
   private storage: FirebaseStorage;
 
-  constructor() {
+  constructor(private whatsappService: WhatsappInstancesService) {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     this.db = getFirestore(app);
     this.authenticator = getAuth(app);
@@ -123,6 +124,7 @@ export class FirebaseChatService {
     }
 
     const docRef = await addDoc(chatsCol, newChat);
+    void this.dispatchNewConversationTrigger(docRef.id, me, cleanOther, productContext);
     return docRef.id;
   }
 
@@ -373,5 +375,28 @@ export class FirebaseChatService {
     if (typeof timestamp === 'number') return new Date(timestamp);
     if (timestamp.seconds !== undefined) return new Date(timestamp.seconds * 1000);
     return new Date(timestamp);
+  }
+
+  private async dispatchNewConversationTrigger(
+    chatId: string,
+    starter: ChatParticipant,
+    recipient: ChatParticipant,
+    productContext?: { id: string, name: string, photo?: string }
+  ): Promise<void> {
+    try {
+      await this.whatsappService.dispatchTrigger({
+        eventType: 'new_conversation',
+        data: {
+          chat: chatId,
+          nome: starter.name,
+          cliente: starter.name,
+          vendedor: recipient.name,
+          produto: productContext?.name || 'Conversa direta',
+          produtoId: productContext?.id || ''
+        }
+      });
+    } catch (error) {
+      console.warn('Falha ao disparar gatilho de nova conversa:', error);
+    }
   }
 }

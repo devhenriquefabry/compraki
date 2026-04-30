@@ -74,12 +74,15 @@ export class CheckoutPage implements OnInit {
   }
 
   get cartTotal(): number {
-    return this.cartItems.reduce((acc, item) => {
+    const productsTotal = this.cartItems.reduce((acc, item) => {
       const p = item.productData.priceDiscounted 
         ? Math.min(item.productData.price, item.productData.priceDiscounted) 
         : item.productData.price;
       return acc + (p * item.quantity);
     }, 0);
+
+    const shippingTotal = this.stateService.shippingData?.price || 0;
+    return productsTotal + shippingTotal;
   }
 
   async finishOrder() {
@@ -176,11 +179,19 @@ export class CheckoutPage implements OnInit {
           email: customer.email || `${data.buyerCpf}@compraki.com.br`
         },
         addressData: {
-          street: 'Endereço Salvo', // No futuro pegar do stateService real
+          street: this.stateService.addressData.street || 'Endereço Salvo',
           number: this.stateService.addressData.addressNumber,
-          city: 'Cidade Exemplo',
-          state: 'Estado',
-          postalCode: this.stateService.addressData.postalCode
+          city: this.stateService.addressData.city || 'Cidade',
+          state: this.stateService.addressData.state || 'Estado',
+          postalCode: this.stateService.addressData.postalCode,
+          complement: this.stateService.addressData.complement,
+          neighborhood: this.stateService.addressData.neighborhood
+        },
+        shippingInfo: {
+          serviceId: this.stateService.shippingData.serviceId,
+          serviceName: this.stateService.shippingData.serviceName,
+          price: this.stateService.shippingData.price,
+          deliveryTime: this.stateService.shippingData.deliveryTime
         }
       });
 

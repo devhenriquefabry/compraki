@@ -1,4 +1,4 @@
-import { NgIf, NgFor } from '@angular/common';
+import { NgIf } from '@angular/common';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import {  RouterLink } from '@angular/router';
@@ -12,7 +12,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-login-form',
   templateUrl: './login-form.component.html',
   styleUrls: ['./login-form.component.scss'],
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, RouterLink, LoadingSpinnerOverlayComponent, NgIf, NgFor],
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, RouterLink, LoadingSpinnerOverlayComponent, NgIf],
   standalone: true,
 
 })  
@@ -64,8 +64,13 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
   selectTestUser(user: any) {
     this.loginForm.patchValue({
       email: user.email,
-      password: user.password
+      password: this.defaultPassword
     });
+  }
+
+  loginWithTestUser(user: any) {
+    this.selectTestUser(user);
+    this.login();
   }
 
   login(){

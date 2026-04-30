@@ -1,0 +1,248 @@
+<ion-content class="ion-padding">
+  <div class="melhor-envio-container">
+    
+    <!-- DASHBOARD HEADER -->
+    <div class="dashboard-header">
+      <div class="header-info">
+        <h1>Gestão Melhor Envio</h1>
+        <p>Integração oficial em tempo real para logística e fretes.</p>
+      </div>
+      <div class="header-actions">
+        <ion-button fill="outline" color="primary" (click)="checkAccount()" [disabled]="!hasConfig">
+          <ion-icon slot="start" name="person-circle-outline"></ion-icon>
+          Testar Conexão
+        </ion-button>
+        <ion-button fill="outline" color="medium" (click)="refreshData()" [disabled]="!hasConfig">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Atualizar Dados
+        </ion-button>
+        <ion-button color="success" (click)="saveSettings()">
+          <ion-icon slot="start" name="save-outline"></ion-icon>
+          Salvar no Sistema
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- INSTRUCTIONS ALERT -->
+    <div class="instruction-card" *ngIf="!hasConfig">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <div class="instruction-content">
+        <h3>Configuração Necessária</h3>
+        <p>Para ativar a integração, você precisa gerar um Token de Acesso no painel do Melhor Envio.</p>
+        <div class="instruction-links">
+          <a (click)="openLink('https://www.melhorenvio.com.br/painel/gerenciar/tokens')">
+            Gerar Token no Melhor Envio <ion-icon name="open-outline"></ion-icon>
+          </a>
+          <a (click)="openLink('https://docs.melhorenvio.com.br/')">
+            Documentação da API <ion-icon name="open-outline"></ion-icon>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      
+      <!-- LEFT COLUMN: CONFIGURATION -->
+      <div class="config-section">
+        <div class="card premium-card">
+          <div class="card-header">
+            <ion-icon name="settings-outline"></ion-icon>
+            <h2>Configurações de Produção</h2>
+          </div>
+          
+          <div class="card-body">
+            <div class="form-group">
+              <label>Token de Acesso (Bearer Token)</label>
+              <div class="input-with-icon">
+                <ion-icon name="key-outline"></ion-icon>
+                <input type="password" [(ngModel)]="config.accessToken" placeholder="Insira o token gerado no Melhor Envio">
+              </div>
+              <small class="helper-text">Mantenha seu token em segurança. Ele permite a emissão de etiquetas.</small>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Ambiente de Execução</label>
+                <ion-segment [value]="config.isSandbox ? 'sandbox' : 'producao'" (ionChange)="config.isSandbox = $event.detail.value === 'sandbox'" mode="ios" color="success">
+                  <ion-segment-button value="sandbox">
+                    <ion-label>Sandbox</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="producao">
+                    <ion-label>Produção</ion-label>
+                  </ion-segment-button>
+                </ion-segment>
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="card-header sub-header">
+              <ion-icon name="business-outline"></ion-icon>
+              <h3>Dados do Remetente (Origem)</h3>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nome / Razão Social</label>
+                <input type="text" [(ngModel)]="config.senderName">
+              </div>
+              <div class="form-group">
+                <label>CPF / CNPJ</label>
+                <input type="text" [(ngModel)]="config.senderCpfCnpj">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>CEP de Origem</label>
+                <input type="text" [(ngModel)]="config.address.zipCode" placeholder="00000-000">
+              </div>
+              <div class="form-group">
+                <label>Telefone</label>
+                <input type="text" [(ngModel)]="config.senderPhone">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUICK CALCULATOR -->
+        <div class="card premium-card mt-24">
+          <div class="card-header">
+            <ion-icon name="calculator-outline"></ion-icon>
+            <h2>Cotação Real de Frete</h2>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label>CEP de Destino</label>
+                <input type="text" [(ngModel)]="calcZipTo" placeholder="00000-000">
+              </div>
+              <div class="form-group">
+                <label>Peso Estimado (kg)</label>
+                <input type="number" [(ngModel)]="calcWeight" step="0.1">
+              </div>
+            </div>
+            <ion-button expand="block" color="secondary" (click)="calculateShipping()" [disabled]="!config.accessToken">
+              Consultar Tarifas Reais
+            </ion-button>
+
+            <div class="quotes-list" *ngIf="quotes.length > 0">
+              <div class="quote-item" *ngFor="let q of quotes">
+                <div class="carrier-logo">
+                  <img [src]="q.company.picture" [alt]="q.company.name">
+                </div>
+                <div class="quote-info">
+                  <span class="carrier-name">{{q.company.name}} - {{q.name}}</span>
+                  <span class="delivery-time">Entrega em {{q.delivery_time}} dias úteis</span>
+                </div>
+                <div class="quote-price">
+                  {{ q.price | currency:'BRL' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: ANALYTICS -->
+      <div class="analysis-section">
+        
+        <!-- SUMMARY CARDS -->
+        <div class="metrics-row">
+          <div class="metric-card">
+            <span class="label">Total em Fretes</span>
+            <span class="value">{{ analysis.totalSpent | currency:'BRL' }}</span>
+            <span class="sub-label">Volume total transacionado</span>
+          </div>
+          <div class="metric-card">
+            <span class="label">Etiquetas Ativas</span>
+            <span class="value">{{ analysis.totalLabelsGenerated }}</span>
+            <span class="sub-label">Sincronizadas com a conta</span>
+          </div>
+          <div class="metric-card">
+            <span class="label">Ticket Médio</span>
+            <span class="value">{{ analysis.averageCost | currency:'BRL' }}</span>
+            <span class="sub-label">Custo médio por envio</span>
+          </div>
+        </div>
+
+        <!-- STATUS CHART -->
+        <div class="card premium-card mt-24">
+          <div class="card-header">
+            <ion-icon name="stats-chart-outline"></ion-icon>
+            <h2>Status dos Envios (Conta)</h2>
+          </div>
+          <div class="card-body">
+            <div class="status-bars" *ngIf="analysis.totalLabelsGenerated > 0; else noData">
+              <div class="status-item">
+                <div class="status-info">
+                  <span>Pendente</span>
+                  <span>{{analysis.statusSummary.pending}}</span>
+                </div>
+                <div class="progress-bg"><div class="progress-fill pending" [style.width.%]="(analysis.statusSummary.pending / analysis.totalLabelsGenerated) * 100"></div></div>
+              </div>
+              <div class="status-item">
+                <div class="status-info">
+                  <span>Liberado</span>
+                  <span>{{analysis.statusSummary.released}}</span>
+                </div>
+                <div class="progress-bg"><div class="progress-fill released" [style.width.%]="(analysis.statusSummary.released / analysis.totalLabelsGenerated) * 100"></div></div>
+              </div>
+              <div class="status-item">
+                <div class="status-info">
+                  <span>Postado / Em Trânsito</span>
+                  <span>{{analysis.statusSummary.posted}}</span>
+                </div>
+                <div class="progress-bg"><div class="progress-fill posted" [style.width.%]="(analysis.statusSummary.posted / analysis.totalLabelsGenerated) * 100"></div></div>
+              </div>
+              <div class="status-item">
+                <div class="status-info">
+                  <span>Entregue</span>
+                  <span>{{analysis.statusSummary.delivered}}</span>
+                </div>
+                <div class="progress-bg"><div class="progress-fill delivered" [style.width.%]="(analysis.statusSummary.delivered / analysis.totalLabelsGenerated) * 100"></div></div>
+              </div>
+            </div>
+            <ng-template #noData>
+              <div class="no-data-placeholder">
+                <ion-icon name="information-circle-outline"></ion-icon>
+                <p>Configure seu token para carregar as análises de envio da sua conta.</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- CARRIER PERFORMANCE -->
+        <div class="card premium-card mt-24">
+          <div class="card-header">
+            <ion-icon name="pie-chart-outline"></ion-icon>
+            <h2>Utilização por Transportadora</h2>
+          </div>
+          <div class="card-body">
+            <table class="premium-table" *ngIf="analysis.carrierPerformance.length > 0; else noData">
+              <thead>
+                <tr>
+                  <th>Serviço</th>
+                  <th>Envios</th>
+                  <th>Custo Total</th>
+                  <th>% Gasto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of analysis.carrierPerformance">
+                  <td>{{c.carrier}}</td>
+                  <td>{{c.count}}</td>
+                  <td>{{c.totalCost | currency:'BRL'}}</td>
+                  <td>{{ (c.totalCost / analysis.totalSpent) * 100 | number:'1.0-1' }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</ion-content>

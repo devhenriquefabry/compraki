@@ -1,0 +1,173 @@
+.shipping-wrapper {
+  margin-top: 10px;
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+
+    ion-icon {
+      font-size: 24px;
+      color: var(--ion-color-success);
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #333;
+    }
+  }
+}
+
+.quotes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quote-card {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &.selected {
+    background: #f0fff4;
+    border-color: var(--ion-color-success);
+    
+    .radio-indicator {
+      border-color: var(--ion-color-success);
+      .inner-circle {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+  }
+
+  .carrier-logo {
+    width: 50px;
+    height: 50px;
+    background: white;
+    border-radius: 10px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-right: 15px;
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  .quote-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .carrier-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .service-name {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .delivery-time {
+      font-size: 0.75rem;
+      color: #22c55e;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      
+      ion-icon {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .quote-price {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+
+    .price-val {
+      font-weight: 800;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .radio-indicator {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #ddd;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      .inner-circle {
+        width: 10px;
+        height: 10px;
+        background: var(--ion-color-success);
+        border-radius: 50%;
+        transform: scale(0);
+        opacity: 0;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+    }
+  }
+}
+
+.error-container {
+  text-align: center;
+  padding: 20px;
+  color: var(--ion-color-danger);
+
+  ion-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.animate-fade {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { WhatsappInstancesService } from '../../services/whatsapp-instances.service';
+import { WhatsappInstancesService, WhatsappTriggerConfig } from '../../services/whatsapp-instances.service';
 import { AdminSubtabsComponent, AdminSubtabOption } from '../../components/admin-subtabs/admin-subtabs.component';
 
 interface WhatsappInstanceView {
@@ -19,9 +19,10 @@ interface WhatsappInstanceView {
   imports: [CommonModule, FormsModule, IonicModule, AdminSubtabsComponent]
 })
 export class ManageWhatsappPage implements OnInit {
-  public activeSubTab: 'instances' | 'docs' = 'instances';
+  public activeSubTab: 'instances' | 'triggers' | 'docs' = 'instances';
   public readonly subtabOptions: AdminSubtabOption[] = [
     { value: 'instances', label: 'Instâncias', icon: 'logo-whatsapp' },
+    { value: 'triggers', label: 'Gatilhos', icon: 'flash-outline' },
     { value: 'docs', label: 'Documentação', icon: 'document-text-outline' }
   ];
   public instanceName = '';
@@ -35,19 +36,58 @@ export class ManageWhatsappPage implements OnInit {
   public isLoading = false;
   public isCreating = false;
   public isSendingTest = false;
+  public isLoadingTriggers = false;
+  public savingTrigger = '';
+  public testingTrigger = '';
+  public triggers: WhatsappTriggerConfig[] = [];
   public errorMessage = '';
   public successMessage = '';
+  public readonly triggerVariables = ['{{nome}}', '{{email}}', '{{telefone}}', '{{produto}}', '{{valor}}', '{{pedido}}', '{{chat}}', '{{evento}}'];
+
+  /** Gatilhos com painel de edição aberto (eventType). */
+  public expandedTriggerKeys = new Set<string>();
+  public variablesHelpOpen = false;
 
   constructor(private whatsappService: WhatsappInstancesService) {}
 
   setActiveSubTab(tab: string) {
-    if (tab === 'instances' || tab === 'docs') {
+    if (tab === 'instances' || tab === 'triggers' || tab === 'docs') {
       this.activeSubTab = tab;
     }
   }
 
+  isTriggerExpanded(eventType: string): boolean {
+    return this.expandedTriggerKeys.has(eventType);
+  }
+
+  toggleTriggerExpand(eventType: string): void {
+    const next = new Set(this.expandedTriggerKeys);
+    if (next.has(eventType)) {
+      next.delete(eventType);
+    } else {
+      next.add(eventType);
+    }
+    this.expandedTriggerKeys = next;
+  }
+
+  triggerSummarySecondary(trigger: WhatsappTriggerConfig): string {
+    const inst = trigger.instanceName?.trim();
+    const phone = trigger.phoneNumber?.trim();
+    const parts: string[] = [];
+    if (inst) {
+      parts.push(inst);
+    } else {
+      parts.push('Sem instância');
+    }
+    if (phone) {
+      parts.push(phone);
+    }
+    return parts.join(' · ');
+  }
+
   ngOnInit() {
     void this.loadInstances();
+    void this.loadTriggers();
   }
 
   async loadInstances() {
@@ -88,6 +128,64 @@ export class ManageWhatsappPage implements OnInit {
       this.errorMessage = this.getErrorMessage(error);
     } finally {
       this.isCreating = false;
+    }
+  }
+
+  async loadTriggers() {
+    this.isLoadingTriggers = true;
+    this.errorMessage = '';
+
+    try {
+      this.triggers = await this.whatsappService.getTriggers();
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.isLoadingTriggers = false;
+    }
+  }
+
+  async saveTrigger(trigger: WhatsappTriggerConfig) {
+    this.savingTrigger = trigger.eventType;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    try {
+      const response = await this.whatsappService.saveTrigger(trigger);
+      this.triggers = this.triggers.map(item =>
+        item.eventType === trigger.eventType ? response.trigger : item
+      );
+      this.successMessage = `Gatilho "${trigger.label}" salvo.`;
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.savingTrigger = '';
+    }
+  }
+
+  async testTrigger(trigger: WhatsappTriggerConfig) {
+    this.testingTrigger = trigger.eventType;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    try {
+      await this.whatsappService.saveTrigger(trigger);
+      await this.whatsappService.dispatchTrigger({
+        eventType: trigger.eventType,
+        data: {
+          nome: 'Cliente Teste',
+          email: 'cliente@compraki.com.br',
+          telefone: trigger.phoneNumber,
+          produto: 'Produto Teste',
+          valor: 'R$ 99,90',
+          pedido: 'TESTE-001',
+          chat: 'CHAT-TESTE'
+        }
+      });
+      this.successMessage = `Mensagem teste do gatilho "${trigger.label}" enviada.`;
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.testingTrigger = '';
     }
   }
 

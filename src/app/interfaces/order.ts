@@ -27,5 +27,18 @@ export interface Order {
     city: string;
     state: string;
     postalCode: string;
+    complement?: string;
+    neighborhood?: string;
+  };
+
+  // Informações de frete (Melhor Envio)
+  shippingInfo?: {
+    serviceId: number;
+    serviceName: string;
+    price: number;
+    deliveryTime: number;
+    shipmentId?: string;
+    trackingCode?: string;
+    labelUrl?: string;
   };
 }

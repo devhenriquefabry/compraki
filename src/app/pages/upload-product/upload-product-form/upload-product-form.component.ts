@@ -10,6 +10,7 @@ import { NgFor, NgIf, AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
+import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.service';
 
 @Component({
   selector: 'app-upload-product-form',
@@ -50,13 +51,20 @@ export class UploadProductFormComponent  implements OnInit {
     subcategoryIds: new FormControl<string[]>([]),
     priceDiscounted: new FormControl<number | null>(null),
     shipping: new FormControl<'Frete Grátis' | 'A combinar' | 'Entrega Expressa'>('A combinar', [Validators.required]),
-    paymentMethods: new FormControl<('PIX' | 'CARTÃO' | 'DINHEIRO')[]>(['PIX'], [Validators.required, Validators.minLength(1)])
+    paymentMethods: new FormControl<('PIX' | 'CARTÃO' | 'DINHEIRO')[]>(['PIX'], [Validators.required, Validators.minLength(1)]),
+    
+    // Novos campos de dimensões
+    weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0.1)]),
+    width: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
+    height: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
+    length: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)])
   });
 
   constructor(
     private servicoFirebase : FirebaseProducts,
     private servicoCategorias : FirebaseCategories,
-    private router : Router
+    private router : Router,
+    private whatsappService: WhatsappInstancesService
   ) { }
 
   ngOnInit() {
@@ -207,12 +215,17 @@ export class UploadProductFormComponent  implements OnInit {
           subcategoryIds: data.subcategoryIds || [],
           paymentMethods: data.paymentMethods as any,
           shipping: data.shipping as any,
+          weight: data.weight!,
+          width: data.width!,
+          height: data.height!,
+          length: data.length!,
           sellerId: currentUser.uid,
           createdAt: new Date(),
           updatedAt: new Date()
         } as Product;
 
-        await this.servicoFirebase.add(novoProduto);
+        const productRef = await this.servicoFirebase.add(novoProduto);
+        void this.dispatchProductUploadTrigger(novoProduto, productRef.id, currentUser.displayName || currentUser.email || 'Vendedor');
         await new Promise(r => setTimeout(r, 2000));
         
         this.isLoading = false;
@@ -242,5 +255,29 @@ export class UploadProductFormComponent  implements OnInit {
       this.filesToUpload = [];
       this.router.navigate(['/home']);
     }
+  }
+
+  private async dispatchProductUploadTrigger(product: Product, productId: string, sellerName: string): Promise<void> {
+    try {
+      await this.whatsappService.dispatchTrigger({
+        eventType: 'product_uploaded',
+        data: {
+          produto: product.name,
+          produtoId: productId,
+          nome: sellerName,
+          valor: this.formatCurrency(product.price),
+          estoque: product.stock
+        }
+      });
+    } catch (error) {
+      console.warn('Falha ao disparar gatilho de upload de produto:', error);
+    }
+  }
+
+  private formatCurrency(value: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value || 0);
   }
 }

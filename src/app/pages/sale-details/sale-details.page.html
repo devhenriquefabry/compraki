@@ -64,6 +64,53 @@
       </ion-button>
     </ion-card>
 
+    <!-- Melhor Envio Label Section -->
+    <div class="section-title" *ngIf="sale.shippingInfo">Logística Melhor Envio</div>
+    <ion-card class="info-card shipping-card" *ngIf="sale.shippingInfo">
+      <div class="shipping-header">
+        <div class="carrier-info">
+          <ion-icon name="cube-outline" color="primary"></ion-icon>
+          <div>
+            <h3>{{ sale.shippingInfo.serviceName }}</h3>
+            <p>Valor pago pelo frete: {{ formatPrice(sale.shippingInfo.price) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="shipping-actions ion-padding">
+        <!-- Se não tiver etiqueta gerada -->
+        <ion-button 
+          *ngIf="!sale.shippingInfo.shipmentId" 
+          expand="block" 
+          color="success" 
+          (click)="generateShippingLabel()"
+          [disabled]="sale.status === 'PENDING'"
+        >
+          <ion-icon name="barcode-outline" slot="start"></ion-icon>
+          Gerar Etiqueta de Envio
+        </ion-button>
+
+        <!-- Se tiver etiqueta gerada -->
+        <div *ngIf="sale.shippingInfo.shipmentId" class="label-info">
+          <div class="tracking-box">
+            <span class="label">Rastreio:</span>
+            <span class="value">{{ sale.shippingInfo.trackingCode || 'Processando...' }}</span>
+          </div>
+          
+          <div class="action-buttons">
+            <ion-button expand="block" fill="outline" color="primary" (click)="printLabel()">
+              <ion-icon name="print-outline" slot="start"></ion-icon>
+              Imprimir Etiqueta
+            </ion-button>
+            <ion-button expand="block" fill="clear" color="secondary" (click)="trackShipment()">
+              <ion-icon name="search-outline" slot="start"></ion-icon>
+              Rastrear Encomenda
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    </ion-card>
+
     <!-- Items -->
     <div class="section-title">Produtos Vendidos</div>
     <div class="items-list">
