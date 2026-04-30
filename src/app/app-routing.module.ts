@@ -129,7 +129,7 @@ const routes: Routes = [
   },
   {
     path: 'admin',
-    redirectTo: 'admin/products',
+    redirectTo: 'admin/metrics',
     pathMatch: 'full'
   },
   {

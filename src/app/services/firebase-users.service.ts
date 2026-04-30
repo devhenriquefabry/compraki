@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore, doc, setDoc, serverTimestamp, Firestore, collection, onSnapshot } from 'firebase/firestore';
 import { User } from 'firebase/auth';
+import { EmailAuthProvider, getAuth, reauthenticateWithCredential, updatePassword, updateProfile } from 'firebase/auth';
+import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { AppUser } from '../interfaces/app-user';
 import { Observable } from 'rxjs';
 
@@ -20,10 +22,12 @@ const firebaseConfig = {
 })
 export class FirebaseUsersService {
   private db: Firestore;
+  private storage;
 
   constructor() {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     this.db = getFirestore(app);
+    this.storage = getStorage(app);
   }
 
   /**
@@ -69,6 +73,51 @@ export class FirebaseUsersService {
       return snap.data() as AppUser;
     }
     return null;
+  }
+
+  async uploadProfilePhoto(uid: string, file: File): Promise<string> {
+    const extension = file.name.split('.').pop() || 'jpg';
+    const filePath = `profile-photos/${uid}/${Date.now()}.${extension}`;
+    const storageRef = ref(this.storage, filePath);
+
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  }
+
+  async updateCurrentUserProfile(data: Partial<AppUser>): Promise<void> {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('Usuário precisa estar autenticado para atualizar o perfil.');
+    }
+
+    const authPayload: { displayName?: string; photoURL?: string } = {};
+    if (typeof data.displayName === 'string') authPayload.displayName = data.displayName;
+    if (typeof data.photoURL === 'string') authPayload.photoURL = data.photoURL;
+
+    if (Object.keys(authPayload).length > 0) {
+      await updateProfile(currentUser, authPayload);
+    }
+
+    const userRef = doc(this.db, 'users', currentUser.uid);
+    await setDoc(userRef, {
+      uid: currentUser.uid,
+      email: currentUser.email,
+      ...data,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  async changeCurrentUserPassword(currentPassword: string, newPassword: string): Promise<void> {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser?.email) {
+      throw new Error('Usuário precisa estar autenticado com e-mail para alterar a senha.');
+    }
+
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+    await updatePassword(currentUser, newPassword);
   }
 
   /**

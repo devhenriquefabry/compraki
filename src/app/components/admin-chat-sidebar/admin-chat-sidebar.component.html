@@ -105,7 +105,7 @@
 </div>
 
 <!-- MODAL DE LISTAGEM DE CONVERSAS (INBOX) - MOBILE -->
-<ion-modal [isOpen]="isInboxOpen" (didDismiss)="onInboxDismissed()" class="inbox-modal">
+<ion-modal id="admin-chat-inbox-modal" [isOpen]="isInboxOpen" (didDismiss)="onInboxDismissed()" class="inbox-modal">
   <ng-template>
     <ion-header class="ion-no-border">
       <ion-toolbar>
@@ -140,7 +140,7 @@
 </ion-modal>
 
 <!-- MODAL DE CHAT DETALHADO (MOBILE) -->
-<ion-modal [isOpen]="isChatOpen && !isInboxOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="onCloseChat()" class="mobile-chat-modal">
+<ion-modal id="admin-mobile-chat-modal" [isOpen]="isChatOpen && !isInboxOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="onCloseChat()" class="mobile-chat-modal">
   <ng-template>
     <ion-header class="ion-no-border">
       <ion-toolbar>

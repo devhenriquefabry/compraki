@@ -1,0 +1,319 @@
+<ion-content class="metrics-bg" [scrollY]="true">
+  <div class="dashboard-wrapper">
+    <section class="dashboard-hero">
+      <div>
+        <span class="eyebrow">Dashboard Métrico do Sistema</span>
+        <h1 class="poppins">Métricas</h1>
+        <p>Relatórios em tempo real para acompanhar operação, receita, produtos, usuários e alertas críticos.</p>
+      </div>
+
+      <div class="hero-actions">
+        <div class="period-filter">
+          <button
+            *ngFor="let option of periodOptions; trackBy: trackByLabel"
+            type="button"
+            [class.active]="filters.period === option.value"
+            (click)="setPeriod(option.value)">
+            {{ option.label }}
+          </button>
+        </div>
+
+        <div class="custom-range" *ngIf="filters.period === 'custom'">
+          <input type="date" [(ngModel)]="filters.startDate" (ngModelChange)="onCustomDateChange()">
+          <span>até</span>
+          <input type="date" [(ngModel)]="filters.endDate" (ngModelChange)="onCustomDateChange()">
+        </div>
+
+        <button class="refresh-button" type="button" (click)="refresh()">
+          <ion-icon name="refresh-outline"></ion-icon>
+          Atualizar
+        </button>
+      </div>
+    </section>
+
+    <div class="loading-grid" *ngIf="isLoading">
+      <div class="skeleton-card" *ngFor="let item of [1,2,3,4,5,6,7,8]"></div>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading && errorMessage">
+      <ion-icon name="warning-outline"></ion-icon>
+      <h2>Falha ao carregar métricas</h2>
+      <p>{{ errorMessage }}</p>
+      <ion-button color="success" fill="clear" (click)="refresh()">Tentar novamente</ion-button>
+    </div>
+
+    <ng-container *ngIf="!isLoading && !errorMessage && metrics as data">
+      <div class="live-status">
+        <div>
+          <span class="pulse"></span>
+          Dados em tempo real
+        </div>
+        <span>{{ data.rangeLabel }} · atualizado {{ data.updatedAt | date:'shortTime' }}</span>
+      </div>
+
+      <section class="metrics-grid overview-grid">
+        <article class="metric-card success">
+          <div class="icon-bubble"><ion-icon name="radio-outline"></ion-icon></div>
+          <span>Usuários online</span>
+          <strong>{{ data.overview.onlineUsers }}</strong>
+          <small>Presença sincronizada via Firebase</small>
+        </article>
+
+        <article class="metric-card info">
+          <div class="icon-bubble"><ion-icon name="people-outline"></ion-icon></div>
+          <span>Total de usuários</span>
+          <strong>{{ data.overview.totalUsers }}</strong>
+          <small>Hoje {{ data.overview.newUsersToday }} · semana {{ data.overview.newUsersWeek }} · mês {{ data.overview.newUsersMonth }}</small>
+        </article>
+
+        <article class="metric-card neutral">
+          <div class="icon-bubble"><ion-icon name="storefront-outline"></ion-icon></div>
+          <span>Vendedores ativos</span>
+          <strong>{{ data.overview.activeSellers }}</strong>
+          <small>Com produtos publicados na plataforma</small>
+        </article>
+
+        <article class="metric-card warning">
+          <div class="icon-bubble"><ion-icon name="bag-check-outline"></ion-icon></div>
+          <span>Compradores ativos</span>
+          <strong>{{ data.overview.activeBuyers }}</strong>
+          <small>Usuários com pedidos registrados</small>
+        </article>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <div>
+            <span>Financeiro</span>
+            <h2>Receita e comissões</h2>
+          </div>
+          <strong>{{ data.finance.revenueTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+        </div>
+
+        <div class="finance-layout">
+          <div class="metrics-grid compact-grid">
+            <article class="metric-card success">
+              <span>Faturamento do dia</span>
+              <strong>{{ data.finance.revenueToday | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              <small>Pedidos válidos de hoje</small>
+            </article>
+            <article class="metric-card success">
+              <span>Faturamento da semana</span>
+              <strong>{{ data.finance.revenueWeek | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              <small>Últimos 7 dias</small>
+            </article>
+            <article class="metric-card success">
+              <span>Faturamento do mês</span>
+              <strong>{{ data.finance.revenueMonth | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              <small>Últimos 30 dias</small>
+            </article>
+            <article class="metric-card info">
+              <span>Ticket médio</span>
+              <strong>{{ data.finance.averageTicket | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              <small>{{ data.finance.totalOrders }} pedidos realizados</small>
+            </article>
+            <article class="metric-card warning">
+              <span>Comissões da plataforma</span>
+              <strong>{{ data.finance.platformCommissions | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              <small>Estimativa com take rate configurado</small>
+            </article>
+          </div>
+
+          <article class="chart-card revenue-card">
+            <div class="card-title">
+              <div>
+                <span>Gráfico de receita</span>
+                <h3>Linha temporal</h3>
+              </div>
+              <ion-icon name="trending-up-outline"></ion-icon>
+            </div>
+            <svg viewBox="0 0 100 46" preserveAspectRatio="none" class="line-chart">
+              <path [attr.d]="getAreaPath(data.finance.revenueSeries)"></path>
+              <polyline [attr.points]="getLinePoints(data.finance.revenueSeries)"></polyline>
+            </svg>
+            <div class="chart-labels">
+              <span *ngFor="let point of data.finance.revenueSeries; trackBy: trackByLabel">{{ point.label }}</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="two-column-layout">
+        <article class="chart-card">
+          <div class="card-title">
+            <div>
+              <span>Vendas</span>
+              <h3>Volume por período</h3>
+            </div>
+            <strong>{{ data.sales.salesInPeriod }}</strong>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-item" *ngFor="let point of data.sales.salesSeries; trackBy: trackByLabel">
+              <div class="bar-track">
+                <span [style.height.%]="getBarHeight(point.value, data.sales.salesSeries)"></span>
+              </div>
+              <small>{{ point.label }}</small>
+            </div>
+          </div>
+          <div class="mini-metrics">
+            <span><b>{{ data.sales.salesToday }}</b> vendas hoje</span>
+            <span><b>{{ data.sales.conversionRate }}%</b> conversão estimada</span>
+          </div>
+        </article>
+
+        <article class="chart-card status-card">
+          <div class="card-title">
+            <div>
+              <span>Pedidos</span>
+              <h3>Status operacional</h3>
+            </div>
+            <ion-icon name="pie-chart-outline"></ion-icon>
+          </div>
+          <div class="donut-layout">
+            <div class="donut" [style.background]="getDonutBackground(data.sales.statusDistribution)">
+              <span>{{ data.finance.totalOrders }}</span>
+            </div>
+            <div class="legend-list">
+              <div *ngFor="let point of data.sales.statusDistribution; let i = index; trackBy: trackByLabel">
+                <span class="legend-dot" [class.pending]="i === 0" [class.done]="i === 1" [class.cancelled]="i === 2"></span>
+                <p>{{ point.label }}</p>
+                <strong>{{ point.value }} · {{ getPointPercent(point, data.sales.statusDistribution) }}%</strong>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="three-column-layout">
+        <article class="list-card">
+          <div class="card-title">
+            <div>
+              <span>Produtos</span>
+              <h3>Mais vendidos</h3>
+            </div>
+            <strong>{{ data.products.totalProducts }}</strong>
+          </div>
+          <div class="list-row" *ngFor="let product of data.products.bestSellers; trackBy: trackByLabel">
+            <img *ngIf="product.image; else productIcon" [src]="product.image" [alt]="product.name">
+            <ng-template #productIcon><ion-icon name="cube-outline"></ion-icon></ng-template>
+            <div>
+              <strong>{{ product.name }}</strong>
+              <span>{{ product.value }} {{ product.helper }} · {{ product.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="list-card">
+          <div class="card-title">
+            <div>
+              <span>Estoque</span>
+              <h3>Atenção imediata</h3>
+            </div>
+            <ion-icon name="alert-circle-outline"></ion-icon>
+          </div>
+          <div class="list-row danger-row" *ngFor="let product of data.products.outOfStock; trackBy: trackByLabel">
+            <ion-icon name="close-circle-outline"></ion-icon>
+            <div>
+              <strong>{{ product.name }}</strong>
+              <span>{{ product.status }}</span>
+            </div>
+          </div>
+          <div class="soft-empty" *ngIf="data.products.outOfStock.length === 0">Nenhum produto sem estoque.</div>
+        </article>
+
+        <article class="list-card">
+          <div class="card-title">
+            <div>
+              <span>Baixo desempenho</span>
+              <h3>Oportunidades</h3>
+            </div>
+            <ion-icon name="analytics-outline"></ion-icon>
+          </div>
+          <div class="list-row" *ngFor="let product of data.products.lowPerformers; trackBy: trackByLabel">
+            <ion-icon name="trending-down-outline"></ion-icon>
+            <div>
+              <strong>{{ product.name }}</strong>
+              <span>{{ product.value }} {{ product.helper }}</span>
+            </div>
+          </div>
+          <div class="soft-empty" *ngIf="data.products.lowPerformers.length === 0">Sem produtos críticos no período.</div>
+        </article>
+      </section>
+
+      <section class="two-column-layout">
+        <article class="list-card">
+          <div class="card-title">
+            <div>
+              <span>Usuários</span>
+              <h3>Atividade e retenção</h3>
+            </div>
+            <strong>{{ data.users.retentionRate }}%</strong>
+          </div>
+          <div class="retention-grid">
+            <div>
+              <span>Ativos agora</span>
+              <strong>{{ data.users.activeNow }}</strong>
+            </div>
+            <div>
+              <span>Retenção</span>
+              <strong>{{ data.users.retentionRate }}%</strong>
+            </div>
+            <div>
+              <span>Abandono</span>
+              <strong>{{ data.users.abandonmentRate }}%</strong>
+            </div>
+          </div>
+          <div class="list-row" *ngFor="let user of data.users.latestUsers; trackBy: trackByLabel">
+            <img *ngIf="user.image; else userIcon" [src]="user.image" [alt]="user.name">
+            <ng-template #userIcon><ion-icon name="person-circle-outline"></ion-icon></ng-template>
+            <div>
+              <strong>{{ user.name }}</strong>
+              <span>{{ user.helper }} · {{ user.status }}</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="list-card">
+          <div class="card-title">
+            <div>
+              <span>Alertas inteligentes</span>
+              <h3>Riscos e oportunidades</h3>
+            </div>
+            <ion-icon name="sparkles-outline"></ion-icon>
+          </div>
+          <div class="alert-row" *ngFor="let alert of data.alerts; trackBy: trackByLabel" [class]="alert.severity">
+            <ion-icon [name]="alert.icon"></ion-icon>
+            <div>
+              <strong>{{ alert.title }}</strong>
+              <span>{{ alert.description }}</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="metrics-grid compact-grid">
+        <article class="metric-card shipping">
+          <span>Pedidos em envio</span>
+          <strong>{{ data.logistics.shippingOrders }}</strong>
+          <small>Confirmados aguardando entrega</small>
+        </article>
+        <article class="metric-card success">
+          <span>Pedidos entregues</span>
+          <strong>{{ data.logistics.deliveredOrders }}</strong>
+          <small>Marcados como recebidos</small>
+        </article>
+        <article class="metric-card danger">
+          <span>Pedidos atrasados</span>
+          <strong>{{ data.logistics.delayedOrders }}</strong>
+          <small>Mais de 7 dias sem baixa</small>
+        </article>
+        <article class="metric-card info" *ngFor="let metric of data.smartMetrics; trackBy: trackByLabel" [ngClass]="metric.tone">
+          <div class="icon-bubble"><ion-icon [name]="metric.icon"></ion-icon></div>
+          <span>{{ metric.label }}</span>
+          <strong>{{ metric.value }}</strong>
+          <small>{{ metric.helper }}</small>
+        </article>
+      </section>
+    </ng-container>
+  </div>
+</ion-content>

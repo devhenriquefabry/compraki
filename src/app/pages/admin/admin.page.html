@@ -2,6 +2,10 @@
 
 <div class="admin-master-tabs">
   <div class="tabs-container">
+    <button class="master-tab" [class.active]="activeTab === 'metrics'" [routerLink]="['/admin/metrics']">
+      <ion-icon [name]="activeTab === 'metrics' ? 'analytics' : 'analytics-outline'"></ion-icon>
+      Métricas
+    </button>
     <button class="master-tab" [class.active]="activeTab === 'products'" [routerLink]="['/admin/products']">
       <ion-icon [name]="activeTab === 'products' ? 'cube' : 'cube-outline'"></ion-icon>
       Produtos
@@ -26,6 +30,7 @@
 </div>
 
 <div class="admin-tab-content">
+  <app-admin-metrics *ngIf="activeTab === 'metrics'"></app-admin-metrics>
   <app-dev-products *ngIf="activeTab === 'products'"></app-dev-products>
   <app-manage-chats *ngIf="activeTab === 'chats'"></app-manage-chats>
   <app-manage-banners *ngIf="activeTab === 'banners'"></app-manage-banners>

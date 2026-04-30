@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AdminHeaderComponent } from '../../components/admin-header/admin-header.component';
@@ -10,8 +10,15 @@ import { ManageChatsPage } from '../manage-chats/manage-chats.page';
 import { ManageBannersPage } from '../manage-banners/manage-banners.page';
 import { ManageWhatsappPage } from '../manage-whatsapp/manage-whatsapp.page';
 import { MelhorEnvioPage } from '../melhor-envio/melhor-envio.page';
+import { AdminMetricsPage } from '../admin-metrics/admin-metrics.page';
 
-type AdminTab = 'products' | 'chats' | 'banners' | 'whatsapp' | 'melhor-envio';
+type AdminTab =
+  | 'metrics'
+  | 'products'
+  | 'chats'
+  | 'banners'
+  | 'whatsapp'
+  | 'melhor-envio';
 
 @Component({
   selector: 'app-admin',
@@ -24,6 +31,7 @@ type AdminTab = 'products' | 'chats' | 'banners' | 'whatsapp' | 'melhor-envio';
     IonicModule,
     RouterModule,
     AdminHeaderComponent,
+    AdminMetricsPage,
     DevProductsPage,
     ManageChatsPage,
     ManageBannersPage,
@@ -32,13 +40,21 @@ type AdminTab = 'products' | 'chats' | 'banners' | 'whatsapp' | 'melhor-envio';
   ]
 })
 export class AdminPage implements OnInit, OnDestroy {
-  activeTab: AdminTab = 'products';
+  activeTab: AdminTab = 'metrics';
   private routeSub?: Subscription;
-  private validTabs: AdminTab[] = ['products', 'chats', 'banners', 'whatsapp', 'melhor-envio'];
+  private validTabs: AdminTab[] = [
+    'metrics',
+    'products',
+    'chats',
+    'banners',
+    'whatsapp',
+    'melhor-envio',
+  ];
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private modalCtrl: ModalController
   ) {}
 
   ngOnInit() {
@@ -46,15 +62,25 @@ export class AdminPage implements OnInit, OnDestroy {
       const tab = params.get('tab') as AdminTab | null;
 
       if (tab && this.validTabs.includes(tab)) {
+        if (tab !== 'products') {
+          this.dismissProductChatModals();
+        }
+
         this.activeTab = tab;
         return;
       }
 
-      this.router.navigate(['/admin/products'], { replaceUrl: true });
+      this.router.navigate(['/admin/metrics'], { replaceUrl: true });
     });
   }
 
   ngOnDestroy() {
     this.routeSub?.unsubscribe();
+  }
+
+  private dismissProductChatModals() {
+    localStorage.setItem('compraki_chat_open', 'false');
+    void this.modalCtrl.dismiss(undefined, 'admin-tab-change', 'admin-mobile-chat-modal').catch(() => undefined);
+    void this.modalCtrl.dismiss(undefined, 'admin-tab-change', 'admin-chat-inbox-modal').catch(() => undefined);
   }
 }

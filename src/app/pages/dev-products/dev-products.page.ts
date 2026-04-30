@@ -132,6 +132,8 @@ export class DevProductsPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.isChatOpen = false;
+    this.isInboxOpen = false;
     this.productSub?.unsubscribe();
     this.userSub?.unsubscribe();
     this.chatListSub?.unsubscribe();
@@ -410,6 +412,8 @@ export class DevProductsPage implements OnInit, OnDestroy {
   public closeChat() {
     this.isChatOpen = false;
     this.activeChatId = '';
+    this.activeSellerFallbackName = '';
+    this.saveChatState();
   }
 
   public getActiveSellerName(): string {

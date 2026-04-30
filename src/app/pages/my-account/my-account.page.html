@@ -2,85 +2,472 @@
   <app-mini-header [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
 </ion-header>
 
-<ion-content class="ion-padding custom-bg">
-  
-  <h1 class="page-title">Minha Conta</h1>
+<ion-content class="account-content">
+  <input
+    #profileImageInput
+    type="file"
+    accept="image/*"
+    hidden
+    (change)="onProfilePhotoSelected($event)">
 
-  <app-profile-card [usuario]="usuario"></app-profile-card>
+  <ng-container *ngIf="activeView === 'overview'; else editProfileTpl">
+  <section class="account-hero">
+    <div class="hero-top">
+      <h1>Minha Conta</h1>
+      <button type="button" class="notification-button" (click)="goToNotifications()" aria-label="Notificações">
+        <ion-icon name="notifications-outline"></ion-icon>
+        <span></span>
+      </button>
+    </div>
 
-  <!-- Lista de Opções (Menus) -->
-  <div class="menu-list">
-    
-    <ion-item lines="none" class="menu-item" button>
-      <ion-icon name="bag-handle" slot="start" class="icon-green"></ion-icon>
-      <ion-label>
-        <h2>Minhas Compras</h2>
-        <p>Acompanhe seus pedidos</p>
-      </ion-label>
-      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
-    </ion-item>
+    <div class="profile-row">
+      <div class="avatar-wrap">
+        <img
+          [src]="currentPhotoUrl"
+          referrerpolicy="no-referrer"
+          alt="Foto do usuário"
+          (error)="image.src='https://ionicframework.com/docs/img/demos/avatar.svg'"
+          #image>
+        <button
+          type="button"
+          class="camera-button"
+          aria-label="Alterar foto"
+          [disabled]="isSavingProfile"
+          (click)="profileImageInput.click()">
+          <ion-icon name="camera-outline"></ion-icon>
+        </button>
+      </div>
 
-    <ion-item lines="none" class="menu-item" button>
-      <ion-icon name="megaphone" slot="start" class="icon-green"></ion-icon>
-      <ion-label>
-        <h2>Meus Anúncios</h2>
-        <p>Gerencie seus produtos à venda</p>
-      </ion-label>
-      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
-    </ion-item>
+      <div class="profile-info">
+        <h2>{{ usuario?.displayName || 'Usuário Compraki' }}</h2>
+        <p>{{ usuario?.email || 'Entre para acessar sua conta' }}</p>
+        <div class="verified-badge">
+          <ion-icon [name]="usuario?.emailVerified ? 'shield-checkmark' : 'shield-outline'"></ion-icon>
+          {{ usuario?.emailVerified ? 'Conta verificada' : 'Conta protegida' }}
+        </div>
+      </div>
 
-    <ion-item lines="none" class="menu-item" button>
-      <ion-icon name="heart" slot="start" class="icon-green"></ion-icon>
-      <ion-label>
-        <h2>Favoritos</h2>
-        <p>Lista de itens favoritos</p>
-      </ion-label>
-      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
-    </ion-item>
+      <button type="button" class="logout-pill" (click)="logout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+        Sair
+      </button>
+    </div>
+  </section>
 
-    <ion-item lines="none" class="menu-item" button (click)="goToAddress()">
-      <ion-icon name="location" slot="start" class="icon-green"></ion-icon>
-      <ion-label>
-        <h2>Meu Endereço</h2>
-        <p>Gerencie seu endereço de entrega</p>
-      </ion-label>
-      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
-    </ion-item>
+  <main class="account-shell">
+    <section class="summary-card">
+      <div class="summary-item">
+        <span class="summary-icon">
+          <ion-icon name="ribbon-outline"></ion-icon>
+        </span>
+        <div>
+          <small>Membro desde</small>
+          <strong>{{ memberSinceLabel }}</strong>
+        </div>
+      </div>
 
-    <ion-item lines="none" class="menu-item" button (click)="goToPayments()">
-      <ion-icon name="card" slot="start" class="icon-green"></ion-icon>
-      <ion-label>
-        <h2>Pagamentos</h2>
-        <p>Gerencie seus cartões e formas de pagamento</p>
-      </ion-label>
-      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
-    </ion-item>
+      <div class="summary-divider"></div>
 
-    <ion-item lines="none" class="menu-item">
-      <ion-icon name="notifications" slot="start" class="icon-green"></ion-icon>
-      <ion-label>
-        <h2>Notificações</h2>
-        <p>Personalize suas notificações</p>
-      </ion-label>
-      <ion-toggle slot="end" color="success" checked="true"></ion-toggle>
-    </ion-item>
+      <button type="button" class="summary-item level-item">
+        <span class="summary-icon">
+          <ion-icon name="trophy-outline"></ion-icon>
+        </span>
+        <div>
+          <small>Nível</small>
+          <strong>Comprador Premium</strong>
+        </div>
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+      </button>
+    </section>
 
-    <ion-item lines="none" class="menu-item" button>
-      <ion-icon name="help-circle" slot="start" class="icon-green"></ion-icon>
-      <ion-label>
-        <h2>Ajuda</h2>
-        <p>Central de ajudas e suporte</p>
-      </ion-label>
-      <ion-icon name="chevron-forward" slot="end" color="medium"></ion-icon>
-    </ion-item>
+    <section class="account-section">
+      <h3>Compras</h3>
+      <div class="shortcut-card">
+        <button type="button" class="shortcut-item" (click)="goToCart()">
+          <span class="shortcut-icon with-badge">
+            <ion-icon name="bag-handle-outline"></ion-icon>
+            <em>3</em>
+          </span>
+          <strong>Carrinho</strong>
+        </button>
 
-    <ion-item lines="none" class="menu-item" button (click)="logout()">
-      <ion-icon name="power" slot="start" color="danger"></ion-icon>
-      <ion-label color="danger">
-        <h2>Sair</h2>
-      </ion-label>
-    </ion-item>
+        <button type="button" class="shortcut-item" (click)="goToOrders()">
+          <span class="shortcut-icon">
+            <ion-icon name="cube-outline"></ion-icon>
+          </span>
+          <strong>Meus Pedidos</strong>
+        </button>
 
-  </div>
+        <button type="button" class="shortcut-item">
+          <span class="shortcut-icon">
+            <ion-icon name="cash-outline"></ion-icon>
+          </span>
+          <strong>Histórico de Compras</strong>
+        </button>
 
+        <button type="button" class="shortcut-item" (click)="goToSaved()">
+          <span class="shortcut-icon">
+            <ion-icon name="heart-outline"></ion-icon>
+          </span>
+          <strong>Favoritos</strong>
+        </button>
+      </div>
+    </section>
+
+    <section class="account-section">
+      <h3>Vendas</h3>
+      <div class="seller-card">
+        <div class="shortcut-card seller-shortcuts">
+          <button type="button" class="shortcut-item" (click)="goToMyProducts()">
+            <span class="shortcut-icon">
+              <ion-icon name="storefront-outline"></ion-icon>
+            </span>
+            <strong>Meus Produtos</strong>
+          </button>
+
+          <button type="button" class="shortcut-item" (click)="goToMyProducts()">
+            <span class="shortcut-icon">
+              <ion-icon name="pricetag-outline"></ion-icon>
+            </span>
+            <strong>Meus Anúncios</strong>
+          </button>
+
+          <button type="button" class="shortcut-item" (click)="goToMySales()">
+            <span class="shortcut-icon with-badge">
+              <ion-icon name="bar-chart-outline"></ion-icon>
+              <em>12</em>
+            </span>
+            <strong>Vendas</strong>
+          </button>
+
+          <button type="button" class="shortcut-item" (click)="goToMySales()">
+            <span class="shortcut-icon">
+              <ion-icon name="wallet-outline"></ion-icon>
+            </span>
+            <strong>Ganhos</strong>
+          </button>
+        </div>
+
+        <button type="button" class="performance-banner" (click)="goToMySales()">
+          <span class="performance-icon">
+            <ion-icon name="trending-up-outline"></ion-icon>
+          </span>
+          <span>
+            <small>Desempenho da loja</small>
+            <strong>Ótimo! Você vendeu 32% mais este mês.</strong>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </div>
+    </section>
+
+    <section class="account-section">
+      <h3>Minha Conta</h3>
+      <div class="settings-card">
+        <button type="button" class="settings-row" (click)="goToAddress()">
+          <ion-icon name="location-outline"></ion-icon>
+          <span>
+            <strong>Endereços</strong>
+            <small>Gerencie seus endereços de entrega</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+
+        <button type="button" class="settings-row" (click)="openProfileEditor()">
+          <ion-icon name="person-outline"></ion-icon>
+          <span>
+            <strong>Dados Pessoais</strong>
+            <small>Atualize suas informações</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+
+        <button type="button" class="settings-row" (click)="goToPayments()">
+          <ion-icon name="card-outline"></ion-icon>
+          <span>
+            <strong>Formas de Pagamento</strong>
+            <small>Cartões, PIX e mais</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+
+        <button type="button" class="settings-row">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          <span>
+            <strong>Segurança</strong>
+            <small>Senha, verificação em duas etapas</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+
+        <button type="button" class="settings-row">
+          <ion-icon name="help-circle-outline"></ion-icon>
+          <span>
+            <strong>Ajuda e Suporte</strong>
+            <small>Dúvidas, termos e políticas</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </div>
+    </section>
+  </main>
+  </ng-container>
+
+  <ng-template #editProfileTpl>
+    <section class="edit-hero">
+      <div class="edit-topbar">
+        <button type="button" class="back-button" (click)="closeProfileEditor()" aria-label="Voltar">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <h1>Editar Perfil</h1>
+        <button type="button" class="save-chip" (click)="saveProfile()" [disabled]="isSavingProfile">
+          @if (isSavingProfile) {
+            <ion-spinner name="crescent"></ion-spinner>
+            Salvando
+          } @else {
+            <ion-icon name="checkmark-outline"></ion-icon>
+            Salvar
+          }
+        </button>
+      </div>
+
+      <div class="edit-profile-row">
+        <div class="avatar-wrap edit-avatar">
+          <img
+            [src]="currentPhotoUrl"
+            referrerpolicy="no-referrer"
+            alt="Foto do usuário"
+            (error)="editImage.src='https://ionicframework.com/docs/img/demos/avatar.svg'"
+            #editImage>
+          <button
+            type="button"
+            class="camera-button"
+            aria-label="Alterar foto"
+            [disabled]="isSavingProfile"
+            (click)="profileImageInput.click()">
+            <ion-icon name="camera-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="edit-profile-info">
+          <h2>{{ profileForm.displayName || 'Usuário Compraki' }}</h2>
+          <p>Membro desde {{ memberSinceLabel }}</p>
+          <span>Perfil {{ profileCompletion }}% completo</span>
+          <div class="profile-progress">
+            <div [style.width]="profileCompletionWidth"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main class="edit-shell">
+      <section class="edit-card">
+        <div class="edit-card-title">
+          <span>
+            <ion-icon name="person-outline"></ion-icon>
+          </span>
+          <h3>Informações Pessoais</h3>
+        </div>
+
+        <label class="edit-field">
+          <small>Nome completo</small>
+          <div class="edit-input">
+            <ion-icon name="person-outline"></ion-icon>
+            <input type="text" [(ngModel)]="profileForm.displayName" placeholder="Seu nome completo">
+          </div>
+        </label>
+
+        <label class="edit-field">
+          <small>Nome de usuário</small>
+          <div class="edit-input">
+            <ion-icon name="at-outline"></ion-icon>
+            <input type="text" [(ngModel)]="profileForm.username" placeholder="usuario.compraki">
+            <ion-icon name="checkmark-circle-outline" class="valid-icon"></ion-icon>
+          </div>
+        </label>
+
+        <label class="edit-field">
+          <small>E-mail</small>
+          <div class="edit-input disabled">
+            <ion-icon name="mail-outline"></ion-icon>
+            <input type="email" [(ngModel)]="profileForm.email" readonly>
+            <ion-icon name="checkmark-circle-outline" class="valid-icon"></ion-icon>
+          </div>
+        </label>
+
+        <label class="edit-field">
+          <small>Telefone</small>
+          <div class="edit-input">
+            <ion-icon name="call-outline"></ion-icon>
+            <input type="tel" [(ngModel)]="profileForm.phoneNumber" placeholder="(11) 98765-4321">
+            @if (profileForm.phoneNumber) {
+              <ion-icon name="checkmark-circle-outline" class="valid-icon"></ion-icon>
+            }
+          </div>
+        </label>
+
+        <label class="edit-field">
+          <small>CPF</small>
+          <div class="edit-input">
+            <ion-icon name="document-text-outline"></ion-icon>
+            <input type="text" [(ngModel)]="profileForm.cpf" placeholder="000.000.000-00">
+          </div>
+        </label>
+      </section>
+
+      <section class="edit-card">
+        <div class="edit-card-title split-title">
+          <div>
+            <span>
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+            </span>
+            <h3>Segurança</h3>
+          </div>
+          <em>
+            <ion-icon name="lock-closed-outline"></ion-icon>
+            Protegido
+          </em>
+        </div>
+
+        <button type="button" class="edit-row" (click)="togglePasswordPanel()">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <span>
+            <strong>Alterar senha</strong>
+            <small>{{ isPasswordPanelOpen ? 'Informe sua senha atual e a nova senha' : 'Gerencie sua senha de acesso' }}</small>
+          </span>
+          <ion-icon [name]="isPasswordPanelOpen ? 'chevron-up-outline' : 'chevron-forward-outline'"></ion-icon>
+        </button>
+
+        @if (isPasswordPanelOpen) {
+          <div class="password-panel">
+            <label class="edit-field">
+              <small>Senha atual</small>
+              <div class="edit-input">
+                <ion-icon name="lock-closed-outline"></ion-icon>
+                <input
+                  type="password"
+                  [(ngModel)]="passwordForm.currentPassword"
+                  autocomplete="current-password"
+                  placeholder="Digite sua senha atual">
+              </div>
+            </label>
+
+            <label class="edit-field">
+              <small>Nova senha</small>
+              <div class="edit-input">
+                <ion-icon name="key-outline"></ion-icon>
+                <input
+                  type="password"
+                  [(ngModel)]="passwordForm.newPassword"
+                  autocomplete="new-password"
+                  placeholder="Mínimo 6 caracteres">
+              </div>
+            </label>
+
+            <label class="edit-field">
+              <small>Confirmar nova senha</small>
+              <div class="edit-input">
+                <ion-icon name="shield-checkmark-outline"></ion-icon>
+                <input
+                  type="password"
+                  [(ngModel)]="passwordForm.confirmPassword"
+                  autocomplete="new-password"
+                  placeholder="Repita a nova senha">
+              </div>
+            </label>
+
+            <button
+              type="button"
+              class="password-save-button"
+              (click)="changePassword()"
+              [disabled]="isChangingPassword">
+              @if (isChangingPassword) {
+                <ion-spinner name="crescent"></ion-spinner>
+                Alterando...
+              } @else {
+                <ion-icon name="checkmark-outline"></ion-icon>
+                Alterar senha
+              }
+            </button>
+          </div>
+        }
+
+        <div class="edit-row toggle-row">
+          <ion-icon name="shield-outline"></ion-icon>
+          <span>
+            <strong>Verificação em duas etapas</strong>
+            <small>Sua conta está protegida</small>
+          </span>
+          <ion-toggle color="success" checked="true"></ion-toggle>
+        </div>
+      </section>
+
+      <section class="edit-card">
+        <div class="edit-card-title">
+          <span>
+            <ion-icon name="location-outline"></ion-icon>
+          </span>
+          <h3>Endereço</h3>
+        </div>
+        <button type="button" class="edit-row" (click)="goToAddress()">
+          <ion-icon name="home-outline"></ion-icon>
+          <span>
+            <strong>Endereço principal</strong>
+            <small>Gerencie seu endereço de entrega</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </section>
+
+      <section class="edit-card">
+        <div class="edit-card-title">
+          <span>
+            <ion-icon name="card-outline"></ion-icon>
+          </span>
+          <h3>Pagamentos</h3>
+        </div>
+        <button type="button" class="edit-row" (click)="goToPayments()">
+          <ion-icon name="wallet-outline"></ion-icon>
+          <span>
+            <strong>Formas de pagamento</strong>
+            <small>Cartões, PIX e mais</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </section>
+
+      <section class="edit-card danger-card">
+        <div class="edit-card-title">
+          <span>
+            <ion-icon name="trash-outline"></ion-icon>
+          </span>
+          <h3>Ações da conta</h3>
+        </div>
+        <button type="button" class="edit-row danger-row">
+          <ion-icon name="trash-outline"></ion-icon>
+          <span>
+            <strong>Excluir minha conta</strong>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+        <button type="button" class="edit-row" (click)="logout()">
+          <ion-icon name="log-out-outline"></ion-icon>
+          <span>
+            <strong>Sair da conta</strong>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </section>
+
+      <button type="button" class="bottom-save-button" (click)="saveProfile()" [disabled]="isSavingProfile">
+        @if (isSavingProfile) {
+          <ion-spinner name="crescent"></ion-spinner>
+          Salvando alterações
+        } @else {
+          <ion-icon name="save-outline"></ion-icon>
+          Salvar alterações
+        }
+      </button>
+    </main>
+  </ng-template>
 </ion-content>

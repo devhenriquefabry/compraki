@@ -80,6 +80,7 @@
     overflow: hidden;
 
     /* Garante que páginas filhas ocupem 100% */
+    app-admin-metrics,
     app-dev-products,
     app-manage-chats,
     app-manage-banners,
@@ -97,4 +98,16 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+}
+
+@media (min-width: 641px) {
+    :host {
+        /*
+         * Escala global do painel admin em desktop/tablet.
+         * Mantem o container em 100% para nao cortar conteudo na direita.
+         */
+        zoom: 0.85;
+        width: 100%;
+        height: 100%;
+    }
 }
