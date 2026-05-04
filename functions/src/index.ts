@@ -5,6 +5,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { onRequest, type Request } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import { createHash } from 'node:crypto';
+import * as nodemailer from 'nodemailer';
 
 initializeApp();
 
@@ -2025,3 +2026,274 @@ function isAdminEmail(email?: string): boolean {
 
   return adminEmails.includes(email.toLowerCase());
 }
+
+/**
+ * RESET DE SENHA PERSONALIZADO
+ */
+
+interface ResetPasswordRequest {
+  email?: string;
+  method?: 'email' | 'whatsapp';
+}
+
+interface CompleteResetRequest {
+  email?: string;
+  code?: string;
+  newPassword?: string;
+}
+
+export const requestPasswordResetCode = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const { email, method } = req.body as ResetPasswordRequest;
+  if (!email) {
+    res.status(400).json({ error: 'Email é obrigatório' });
+    return;
+  }
+
+  try {
+    const auth = getAuth();
+    const db = getFirestore();
+
+    // 1. Verificar se o usuário existe
+    const userRecord = await auth.getUserByEmail(email).catch(() => null);
+    if (!userRecord) {
+      // Por segurança, não informamos que o e-mail não existe
+      res.status(200).json({ success: true, message: 'Se o e-mail existir, um código foi enviado.' });
+      return;
+    }
+
+    // 2. Gerar código e salvar no Firestore
+    const code = generateNumericCode(6);
+    const expiresAt = Date.now() + (15 * 60 * 1000); // 15 minutos
+
+    await db.collection('passwordResets').doc(email.toLowerCase().trim()).set({
+      email,
+      code,
+      expiresAt,
+      createdAt: FieldValue.serverTimestamp()
+    });
+
+    // 3. Tentar pegar o telefone do usuário no Firestore
+    const userDoc = await db.collection('users').doc(userRecord.uid).get();
+    const userData = userDoc.data();
+    const phoneNumber = userData?.['phoneNumber'] || userData?.['phone'] || userData?.['telefone'];
+
+    let whatsappSent = false;
+    let emailSent = false;
+    let whatsappFailReason = '';
+
+    // --- DISPARO WHATSAPP ---
+    if (method === 'whatsapp' || !method) {
+      if (phoneNumber) {
+        try {
+          // O campo `status` guarda o último evento do webhook, não o status de conexão.
+          // O status real de conexão está em evolutionData.connectionStatus.
+          const instancesSnap = await db.collection('whatsappInstances').get();
+          const activeInstance = instancesSnap.docs.find(d => {
+            const data = d.data();
+            return data['evolutionData']?.['connectionStatus'] === 'open';
+          });
+
+          if (activeInstance) {
+            // O ID do documento é encodeURIComponent(name), mas precisamos do name real.
+            const instanceData = activeInstance.data();
+            const instanceName = String(instanceData['name'] || '') || decodeURIComponent(activeInstance.id);
+            const digitsOnly = String(phoneNumber).replace(/\D/g, '');
+            const normalizedPhone = digitsOnly.startsWith('55') ? digitsOnly : `55${digitsOnly}`;
+
+            await requestEvolution(`/message/sendText/${encodeURIComponent(instanceName)}`, {
+              method: 'POST',
+              body: {
+                number: normalizedPhone,
+                text: `Compraki: Seu código de recuperação de senha é *${code}*. Válido por 15 minutos.`
+              }
+            });
+            whatsappSent = true;
+            logger.info('Reset code sent via WhatsApp', { email, phoneNumber, instanceName });
+          } else {
+            whatsappFailReason = 'no_active_instance';
+            logger.warn('No active WhatsApp instance found for password reset', { email });
+          }
+        } catch (err) {
+          whatsappFailReason = 'send_error';
+          logger.error('Error sending reset code via WhatsApp', err);
+        }
+      } else {
+        whatsappFailReason = 'no_phone';
+        logger.warn('User has no phoneNumber registered for WhatsApp password reset', {
+          email,
+          uid: userRecord.uid,
+          userDocFields: Object.keys(userData || {})
+        });
+      }
+    }
+
+    // --- DISPARO E-MAIL ---
+    if (method === 'email' || !method) {
+      const smtpConfig = {
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      };
+
+      if (smtpConfig.auth.user && smtpConfig.auth.pass) {
+        try {
+          logger.info('Iniciando envio de e-mail...', { to: email });
+          const transporter = nodemailer.createTransport(smtpConfig);
+          await transporter.sendMail({
+            from: `"Compraki" <${smtpConfig.auth.user}>`,
+            to: email,
+            subject: 'Seu código de recuperação de senha - Compraki',
+            text: `Seu código de recuperação é: ${code}`,
+            html: `
+              <div style="font-family: sans-serif; padding: 20px; color: #182E3C;">
+                <h2 style="color: #2ECC71;">Recuperação de Senha</h2>
+                <p>Olá,</p>
+                <p>Recebemos uma solicitação de redefinição de senha para sua conta na <b>Compraki</b>.</p>
+                <p style="font-size: 1.2rem; margin: 20px 0;">Seu código de segurança é: <b style="letter-spacing: 2px; color: #2ECC71; font-size: 1.5rem;">${code}</b></p>
+                <p>Este código é válido por 15 minutos.</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 0.8rem; color: #999;">Se você não solicitou esta alteração, ignore este e-mail.</p>
+              </div>
+            `
+          });
+          emailSent = true;
+          logger.info('Reset code sent via Email', { email });
+        } catch (err) {
+          logger.error('Error sending reset code via Email', {
+            message: (err as Error).message,
+            code: (err as NodeJS.ErrnoException).code
+          });
+        }
+      }
+    }
+
+    if (method === 'whatsapp' && !whatsappSent) {
+      const reasonMsg = whatsappFailReason === 'no_phone'
+        ? 'Seu número de telefone não está cadastrado na conta. Tente por e-mail.'
+        : whatsappFailReason === 'no_active_instance'
+          ? 'O serviço de WhatsApp está indisponível no momento. Tente por e-mail.'
+          : 'Não foi possível enviar via WhatsApp. Tente por e-mail.';
+      res.status(400).json({ error: reasonMsg });
+      return;
+    }
+    if (method === 'email' && !emailSent) {
+      res.status(400).json({ error: 'Não foi possível enviar via e-mail no momento. Tente via WhatsApp.' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      whatsapp: whatsappSent,
+      email: emailSent,
+      // Debug only: remove for production
+      code: (!whatsappSent && !emailSent) ? code : undefined
+    });
+
+  } catch (error) {
+    logger.error('Error in requestPasswordResetCode', error);
+    res.status(500).json({ error: 'Erro interno ao processar solicitação.' });
+  }
+});
+
+export const validateResetCode = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const { email, code } = req.body as { email?: string; code?: string };
+  if (!email || !code) {
+    res.status(400).json({ error: 'Email e código são obrigatórios' });
+    return;
+  }
+
+  try {
+    const db = getFirestore();
+    const resetDoc = await db.collection('passwordResets').doc(email.toLowerCase().trim()).get();
+
+    if (!resetDoc.exists) {
+      res.status(400).json({ error: 'Código não encontrado ou expirado.' });
+      return;
+    }
+
+    const resetData = resetDoc.data();
+    const storedCode = String(resetData?.['code'] || '').trim();
+    const receivedCode = String(code || '').trim();
+    const now = Date.now();
+    const expiresAt = resetData?.['expiresAt'] || 0;
+
+    logger.info('Validating reset code', {
+      email: email.toLowerCase().trim(),
+      now,
+      expiresAt,
+      isExpired: now > expiresAt,
+      isMatch: storedCode === receivedCode
+    });
+
+    if (storedCode !== receivedCode || now > expiresAt) {
+      res.status(400).json({ error: 'Código inválido ou expirado.' });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: 'Código válido.' });
+  } catch (error) {
+    logger.error('Error in validateResetCode', error);
+    res.status(500).json({ error: 'Erro ao validar código.' });
+  }
+});
+
+export const completePasswordReset = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const { email, code, newPassword } = req.body as CompleteResetRequest;
+  if (!email || !code || !newPassword) {
+    res.status(400).json({ error: 'Email, código e nova senha são obrigatórios' });
+    return;
+  }
+
+  try {
+    const auth = getAuth();
+    const db = getFirestore();
+
+    const resetDoc = await db.collection('passwordResets').doc(email.toLowerCase().trim()).get();
+    if (!resetDoc.exists) {
+      res.status(400).json({ error: 'Código não encontrado ou expirado.' });
+      return;
+    }
+
+    const resetData = resetDoc.data();
+    const storedCode = String(resetData?.['code'] || '').trim();
+    const receivedCode = String(code || '').trim();
+    const now = Date.now();
+    const expiresAt = resetData?.['expiresAt'] || 0;
+
+    logger.info('Completing password reset', {
+      email: email.toLowerCase().trim(),
+      now,
+      expiresAt,
+      isExpired: now > expiresAt,
+      isMatch: storedCode === receivedCode
+    });
+
+    if (storedCode !== receivedCode || now > expiresAt) {
+      res.status(400).json({ error: 'Código inválido ou expirado.' });
+      return;
+    }
+
+    const userRecord = await auth.getUserByEmail(email);
+    await auth.updateUser(userRecord.uid, { password: newPassword });
+    await db.collection('passwordResets').doc(email.toLowerCase().trim()).delete();
+
+    logger.info('Password successfully updated for user', { email });
+    res.status(200).json({ success: true, message: 'Senha atualizada com sucesso!' });
+  } catch (error) {
+    logger.error('Error in completePasswordReset', error);
+    res.status(500).json({ error: 'Erro ao atualizar a senha.' });
+  }
+});
