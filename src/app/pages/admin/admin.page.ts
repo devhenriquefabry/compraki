@@ -11,6 +11,8 @@ import { ManageBannersPage } from '../manage-banners/manage-banners.page';
 import { ManageWhatsappPage } from '../manage-whatsapp/manage-whatsapp.page';
 import { MelhorEnvioPage } from '../melhor-envio/melhor-envio.page';
 import { AdminMetricsPage } from '../admin-metrics/admin-metrics.page';
+import { BotsPage } from '../bots/bots.page';
+import { ManageUsersPage } from '../manage-users/manage-users.page';
 
 type AdminTab =
   | 'metrics'
@@ -18,7 +20,9 @@ type AdminTab =
   | 'chats'
   | 'banners'
   | 'whatsapp'
-  | 'melhor-envio';
+  | 'melhor-envio'
+  | 'bots'
+  | 'users';
 
 @Component({
   selector: 'app-admin',
@@ -36,7 +40,9 @@ type AdminTab =
     ManageChatsPage,
     ManageBannersPage,
     ManageWhatsappPage,
-    MelhorEnvioPage
+    MelhorEnvioPage,
+    BotsPage,
+    ManageUsersPage
   ]
 })
 export class AdminPage implements OnInit, OnDestroy {
@@ -49,6 +55,8 @@ export class AdminPage implements OnInit, OnDestroy {
     'banners',
     'whatsapp',
     'melhor-envio',
+    'bots',
+    'users'
   ];
 
   constructor(

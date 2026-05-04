@@ -1,0 +1,22 @@
+<div class="wm-image-viewer" (click)="onClose($event)">
+  <div class="wm-image-viewer-content" (click)="onContentClick($event)">
+    <a
+      class="wm-image-viewer-download"
+      [href]="imageUrl"
+      download="imagem-whatsapp.jpg"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Baixar imagem"
+      title="Baixar imagem">
+      <ion-icon name="download-outline"></ion-icon>
+    </a>
+    <button
+      type="button"
+      class="wm-image-viewer-close"
+      (click)="onClose($event)"
+      aria-label="Fechar visualizador">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+    <img [src]="imageUrl" alt="Visualização da imagem">
+  </div>
+</div>

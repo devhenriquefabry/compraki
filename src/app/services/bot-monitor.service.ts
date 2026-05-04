@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { interval, BehaviorSubject, Subscription, of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Subscription } from 'rxjs';
 
 export interface BotStatus {
   status: 'idle' | 'running' | 'offline';
@@ -26,26 +25,18 @@ export class BotMonitorService {
   public status$ = this.statusSubject.asObservable();
   private pollingSub?: Subscription;
 
-  constructor(private http: HttpClient) {
-    this.startPolling();
-  }
+  constructor(private http: HttpClient) {}
 
   startPolling() {
+    // Compat: o monitor local não é mais iniciado automaticamente.
+    // A gestão oficial agora usa fila cloud no painel admin.
     if (this.pollingSub) return;
-
-    this.pollingSub = interval(2000).pipe(
-      switchMap(() => this.http.get<BotStatus>(`${this.apiUrl}/status`).pipe(
-        catchError(() => of({
-          status: 'offline',
-          message: 'Servidor Offline (3001)',
-          logs: [],
-          queueLength: 0
-        } as BotStatus))
-      )),
-      tap(status => {
-        this.statusSubject.next(status);
-      })
-    ).subscribe();
+    this.statusSubject.next({
+      status: 'idle',
+      message: 'Gestão de bots migrada para fila cloud.',
+      logs: [],
+      queueLength: 0
+    });
   }
 
   stopPolling() {

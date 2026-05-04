@@ -1,4 +1,5 @@
-<!-- PAINEL LATERAL DE CHAT (SEMPRE VISÍVEL EM DESKTOP) -->
+<!-- PAINEL LATERAL DE CHAT (desktop; omitido em páginas que usam só modais) -->
+<ng-container *ngIf="!hideDesktopPane">
 <div class="desktop-chat-pane">
   <div class="pane-header">
      <div class="header-titles">
@@ -103,6 +104,7 @@
     </ion-button>
   </div>
 </div>
+</ng-container>
 
 <!-- MODAL DE LISTAGEM DE CONVERSAS (INBOX) - MOBILE -->
 <ion-modal id="admin-chat-inbox-modal" [isOpen]="isInboxOpen" (didDismiss)="onInboxDismissed()" class="inbox-modal">

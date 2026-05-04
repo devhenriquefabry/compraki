@@ -4,6 +4,7 @@
   </ion-toolbar>
 
   <ion-toolbar class="search-toolbar">
+    <div class="search-toolbar-inner">
     <div class="search-row">
       <div class="search-bar">
         <ion-icon name="search-outline"></ion-icon>
@@ -14,11 +15,13 @@
         <ion-icon name="options-outline"></ion-icon>
       </button>
     </div>
+    </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="bg-light">
-  
+  <div class="explore-shell">
+
   <!-- CONTEÚDO ORIGINAL (Só aparece se NÃO estiver buscando) -->
   <ng-container *ngIf="!searchTerm">
     <!-- BANNER TOPO (Snap Nativo + Drag) -->
@@ -75,19 +78,19 @@
       </div>
     </div>
 
-    <!-- GRID DE PRODUTOS (Estilo OLX/Marketplace) -->
-    <div class="products-marketplace-grid">
-      <div class="marketplace-card" *ngFor="let prod of filteredProducts" (click)="selectProduct(prod)" [attr.data-id]="prod.id">
-        <div class="card-img">
-          <img [src]="(prod.photoURL && prod.photoURL.length > 0) ? prod.photoURL[0] : 'assets/imagens/imagem-placeholder.png'" alt="Produto">
-        </div>
-        <div class="card-info">
-          <span class="card-price">R${{ (prod.priceDiscounted || prod.price) | number:'1.0-0':'pt-BR' }}</span>
-          <span class="card-name">{{ prod.name }}</span>
-          <span class="card-location" *ngIf="prod.location">{{ prod.location }}</span>
-          <span class="card-location" *ngIf="!prod.location">Manhuaçu, MG</span>
-        </div>
+    <div class="products-section-head market-head" *ngIf="filteredProducts.length > 0">
+      <div class="market-head-text">
+        <h2 class="products-section-title">Ofertas para você</h2>
+        <p class="market-head-sub">Preços, frete e localização como num grande marketplace</p>
       </div>
+      <span class="products-section-count">{{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'produto' : 'produtos' }}</span>
+    </div>
+
+    <!-- GRID DE PRODUTOS (Estilo Marketplace) -->
+    <div class="products-marketplace-grid">
+      <ng-container *ngFor="let prod of filteredProducts">
+        <ng-container *ngTemplateOutlet="marketplaceProductCard; context: { product: prod }"></ng-container>
+      </ng-container>
     </div>
   </ng-container>
 
@@ -105,21 +108,61 @@
     </div>
 
     <div class="products-marketplace-grid">
-      <div class="marketplace-card" *ngFor="let prod of filteredProducts" (click)="selectProduct(prod)">
-        <div class="card-img">
-          <img [src]="(prod.photoURL && prod.photoURL.length > 0) ? prod.photoURL[0] : 'assets/imagens/imagem-placeholder.png'" alt="Produto">
-        </div>
-        <div class="card-info">
-          <span class="card-price">R${{ (prod.priceDiscounted || prod.price) | number:'1.0-0':'pt-BR' }}</span>
-          <span class="card-name">{{ prod.name }}</span>
-          <span class="card-location" *ngIf="prod.location">{{ prod.location }}</span>
-          <span class="card-location" *ngIf="!prod.location">Manhuaçu, MG</span>
-        </div>
-      </div>
+      <ng-container *ngFor="let prod of filteredProducts">
+        <ng-container *ngTemplateOutlet="marketplaceProductCard; context: { product: prod }"></ng-container>
+      </ng-container>
     </div>
   </div>
 
+  </div>
 </ion-content>
+
+<ng-template #marketplaceProductCard let-product="product">
+  <article
+    class="marketplace-card"
+    (click)="selectProduct(product)"
+    [attr.data-id]="product.id">
+    <div class="card-img">
+      <span class="card-img-badge card-img-badge--off" *ngIf="hasDiscount(product)">
+        {{ discountPercent(product) }}% OFF
+      </span>
+      <span class="card-img-badge card-img-badge--full" *ngIf="product.shipping === 'Frete Grátis'">
+        Frete grátis
+      </span>
+      <img
+        [src]="(product.photoURL && product.photoURL.length > 0) ? product.photoURL[0] : 'assets/imagens/imagem-placeholder.png'"
+        [alt]="product.name"
+        loading="lazy" />
+    </div>
+    <div class="card-info">
+      <h3 class="card-name">{{ product.name }}</h3>
+      <div class="card-price-block">
+        <div class="card-price-main">
+          <span class="card-price-prefix">R$</span>
+          <span class="card-price-value">{{ priceMain(product) | number:'1.2-2':'pt-BR' }}</span>
+        </div>
+        <span class="card-price-old" *ngIf="hasDiscount(product)">
+          R$ {{ product.price | number:'1.2-2':'pt-BR' }}
+        </span>
+      </div>
+      <div class="card-installment" *ngIf="installmentHint(product)">
+        {{ installmentHint(product) }}
+      </div>
+      <div class="card-meta-row">
+        <span class="card-shipping-tag" [class.card-shipping-tag--highlight]="product.shipping === 'Frete Grátis'">
+          {{ product.shipping }}
+        </span>
+        <span class="card-location">
+          <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+          {{ product.location || 'Manhuaçu, MG' }}
+        </span>
+      </div>
+      <div class="card-sales-row" *ngIf="(product.soldCount ?? 0) > 0">
+        <span>{{ product.soldCount }} vendido{{ (product.soldCount ?? 0) !== 1 ? 's' : '' }}</span>
+      </div>
+    </div>
+  </article>
+</ng-template>
 
 <!-- MODAL DE FILTROS (DRAWER PREMIUM) -->
 <ion-modal trigger="open-filters" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.5, 0.75, 1]" class="filter-modal">

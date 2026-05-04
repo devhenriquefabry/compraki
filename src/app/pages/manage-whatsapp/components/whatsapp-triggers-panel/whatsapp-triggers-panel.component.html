@@ -1,0 +1,144 @@
+<section class="triggers-card">
+  <div class="card-title triggers-intro">
+    <ion-icon name="flash-outline"></ion-icon>
+    <div>
+      <h3>Gatilhos automáticos</h3>
+      <span>Mensagens disparadas por eventos do sistema. Toque num card para editar.</span>
+    </div>
+  </div>
+
+  @if (errorMessage) {
+    <div class="feedback error">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  @if (successMessage) {
+    <div class="feedback success">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+
+  <button type="button" class="variables-toggle" (click)="variablesHelpOpen = !variablesHelpOpen">
+    <ion-icon [name]="variablesHelpOpen ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+    <span>Variáveis nos textos</span>
+    <ion-badge color="medium">{{ triggerVariables.length }}</ion-badge>
+  </button>
+  @if (variablesHelpOpen) {
+    <div class="variables-chips" aria-live="polite">
+      @for (v of triggerVariables; track v) {
+        <code class="var-chip">{{ v }}</code>
+      }
+    </div>
+  }
+
+  @if (isLoadingTriggers) {
+    <div class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Carregando gatilhos...</span>
+    </div>
+  } @else {
+    <div class="triggers-list">
+      @for (trigger of triggers; track trigger.eventType) {
+        <article class="trigger-item" [class.trigger-item--open]="isTriggerExpanded(trigger.eventType)">
+          <div class="trigger-row">
+            <button
+              type="button"
+              class="trigger-expand-hit"
+              (click)="toggleTriggerExpand(trigger.eventType)"
+              [attr.aria-expanded]="isTriggerExpanded(trigger.eventType)">
+              <ion-icon
+                class="trigger-chevron"
+                name="chevron-forward-outline"
+                aria-hidden="true">
+              </ion-icon>
+              <div class="trigger-summary-text">
+                <span class="trigger-label">{{ trigger.label }}</span>
+                <span class="trigger-meta">{{ triggerSummarySecondary(trigger) }}</span>
+              </div>
+            </button>
+            <div class="trigger-row-tools" (click)="$event.stopPropagation()">
+              <span class="trigger-status-pill" [class.on]="trigger.enabled">
+                {{ trigger.enabled ? 'Ativo' : 'Off' }}
+              </span>
+              <ion-toggle [(ngModel)]="trigger.enabled" color="success" aria-label="Ativar gatilho"></ion-toggle>
+            </div>
+          </div>
+
+          @if (isTriggerExpanded(trigger.eventType)) {
+            <div class="trigger-panel">
+              <div class="trigger-grid">
+                <ion-item class="form-item form-item--compact">
+                  <ion-select
+                    label="Instância"
+                    labelPlacement="stacked"
+                    interface="popover"
+                    placeholder="Selecione"
+                    [(ngModel)]="trigger.instanceName">
+                    @for (instance of instances; track instance.name) {
+                      <ion-select-option [value]="instance.name">{{ instance.name }}</ion-select-option>
+                    }
+                  </ion-select>
+                </ion-item>
+
+                <ion-item class="form-item form-item--compact">
+                  <ion-input
+                    label="Destino (WhatsApp)"
+                    labelPlacement="stacked"
+                    [(ngModel)]="trigger.phoneNumber"
+                    inputmode="tel"
+                    placeholder="5599999999999">
+                  </ion-input>
+                </ion-item>
+              </div>
+
+              <ion-item class="form-item textarea-item form-item--compact trigger-message">
+                <ion-textarea
+                  label="Mensagem"
+                  labelPlacement="stacked"
+                  [(ngModel)]="trigger.message"
+                  [autoGrow]="true"
+                  rows="3"
+                  placeholder="Mensagem enviada no disparo; use as variáveis da lista acima.">
+                </ion-textarea>
+              </ion-item>
+
+              <div class="trigger-actions">
+                <ion-button
+                  size="small"
+                  class="btn-trigger-save"
+                  (click)="saveTrigger(trigger)"
+                  [disabled]="savingTrigger === trigger.eventType">
+                  @if (savingTrigger === trigger.eventType) {
+                    <ion-spinner name="crescent" slot="start"></ion-spinner>
+                    Salvando...
+                  } @else {
+                    <ion-icon name="save-outline" slot="start"></ion-icon>
+                    Salvar
+                  }
+                </ion-button>
+
+                <ion-button
+                  size="small"
+                  fill="outline"
+                  class="btn-trigger-test"
+                  (click)="testTrigger(trigger)"
+                  [disabled]="testingTrigger === trigger.eventType || !trigger.enabled">
+                  @if (testingTrigger === trigger.eventType) {
+                    <ion-spinner name="crescent" slot="start"></ion-spinner>
+                    Testando...
+                  } @else {
+                    <ion-icon name="send-outline" slot="start"></ion-icon>
+                    Testar
+                  }
+                </ion-button>
+              </div>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

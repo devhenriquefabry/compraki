@@ -1,19 +1,14 @@
 <ion-content class="manage-banners-content">
 
-  <!-- HEADER DA SEÇÃO -->
-  <div class="section-header">
-    <div class="header-title">
-      <ion-icon name="images-outline"></ion-icon>
-      <div>
-        <h2>Gestão de Banners</h2>
-        <p>Gerencie os banners exibidos na página inicial</p>
-      </div>
-    </div>
-    <button class="btn-new-banner" (click)="openForm()">
-      <ion-icon name="add-outline"></ion-icon>
-      Novo Banner
-    </button>
-  </div>
+  <app-admin-panel-hero
+    eyebrow="Marketing na home"
+    title="Gestão de Banners"
+    description="Gerencie os banners exibidos na página inicial e na exploração de produtos."
+    [showRefreshButton]="false"
+    [primaryActionLabel]="'Novo Banner'"
+    primaryActionIcon="add-outline"
+    (primaryActionClick)="openForm()">
+  </app-admin-panel-hero>
 
   <app-admin-subtabs
     [options]="subtabOptions"

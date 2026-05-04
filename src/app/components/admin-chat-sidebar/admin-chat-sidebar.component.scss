@@ -1,5 +1,16 @@
 .poppins { font-family: 'Poppins', sans-serif; }
 
+/* Só modais: não reserva coluna no flex da página pai */
+:host.modals-only {
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0;
+  padding: 0;
+  border: none;
+  overflow: visible;
+}
+
 /* DESKTOP CHAT PANE - escondido no mobile, sempre visível no desktop */
 .desktop-chat-pane {
     display: none;

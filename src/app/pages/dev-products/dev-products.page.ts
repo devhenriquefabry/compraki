@@ -17,6 +17,8 @@ import { AdminChatSidebarComponent } from '../../components/admin-chat-sidebar/a
 import { AdminHeaderComponent } from '../../components/admin-header/admin-header.component';
 import { ProductDetailModalComponent } from '../../components/product-detail-modal/product-detail-modal.component';
 
+import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
+
 @Component({
   selector: 'app-dev-products',
   templateUrl: './dev-products.page.html',
@@ -31,7 +33,8 @@ import { ProductDetailModalComponent } from '../../components/product-detail-mod
     AdminProductCardComponent,
     AdminChatSidebarComponent,
     AdminHeaderComponent,
-    ProductDetailModalComponent
+    ProductDetailModalComponent,
+    AdminPanelHeroComponent
   ]
 })
 export class DevProductsPage implements OnInit, OnDestroy {

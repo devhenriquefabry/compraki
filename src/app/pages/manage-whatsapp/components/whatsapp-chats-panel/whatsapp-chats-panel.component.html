@@ -1,0 +1,423 @@
+<section class="chats-card wm-chats">
+  @if (errorMessage) {
+    <div class="feedback error">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <div class="wm-split">
+    <div class="wm-chat-list" role="list">
+      <div class="wm-list-topbar">
+        <div class="wm-list-topbar-main">
+          <div class="wm-avatar wm-avatar--system">C</div>
+          <div class="wm-list-title">
+            <strong>Conversas</strong>
+            <span>{{ filteredChatRows.length }} contato(s)</span>
+          </div>
+        </div>
+        <ion-button fill="clear" size="small" (click)="loadChats()" [disabled]="!chatsInstanceName || loadingChats">
+          @if (loadingChats) {
+            <ion-spinner name="crescent"></ion-spinner>
+          } @else {
+            <ion-icon name="refresh-outline"></ion-icon>
+          }
+        </ion-button>
+      </div>
+
+      <div class="wm-list-filters">
+        <ion-item class="wm-inline-field">
+          <ion-select
+            interface="popover"
+            placeholder="Instância"
+            [(ngModel)]="chatsInstanceName"
+            (ionChange)="onChatsInstanceChange()">
+            @for (instance of instances; track instance.name) {
+              @if (isInstanceConnected(instance.status)) {
+                <ion-select-option [value]="instance.name">{{ instance.name }}</ion-select-option>
+              }
+            }
+          </ion-select>
+        </ion-item>
+        <ion-item class="wm-inline-field">
+          <ion-input
+            placeholder="Buscar conversa"
+            [(ngModel)]="chatSearchTerm"
+            clearInput="true">
+          </ion-input>
+        </ion-item>
+        <button
+          type="button"
+          class="wm-lock-btn"
+          (click)="onLockInstanceClick()"
+          [disabled]="!chatsInstanceName || lockActionLoading">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <span>Trancar</span>
+        </button>
+      </div>
+
+      @if (checkingChatLock) {
+        <div class="wm-list-state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Validando segurança da instância...</span>
+        </div>
+      } @else if (loadingChats && chatRows.length === 0) {
+        <div class="wm-list-state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Carregando conversas...</span>
+        </div>
+      } @else if (!chatsInstanceName) {
+        <div class="wm-list-state muted">
+          <ion-icon name="phone-portrait-outline"></ion-icon>
+          <span>Selecione uma instância acima.</span>
+        </div>
+      } @else if (filteredChatRows.length === 0) {
+        <div class="wm-list-state muted">
+          <ion-icon name="chatbox-outline"></ion-icon>
+          <span>Nenhuma conversa encontrada para este filtro.</span>
+        </div>
+      } @else {
+        @for (chat of filteredChatRows; track chat.remoteJid) {
+          <button
+            type="button"
+            class="wm-chat-row"
+            [class.wm-chat-row--active]="selectedChatJid === chat.remoteJid"
+            (click)="selectChat(chat)">
+            <div class="wm-avatar" aria-hidden="true">
+              @if (chat.avatarUrl) {
+                <img [src]="chat.avatarUrl" [alt]="'Foto de ' + chat.title">
+              } @else {
+                {{ chat.initial }}
+              }
+            </div>
+            <div class="wm-chat-meta">
+              <div class="wm-chat-meta-top">
+                <span class="wm-chat-name">{{ chat.title }}</span>
+              </div>
+              <span class="wm-chat-preview">{{ chat.preview }}</span>
+            </div>
+          </button>
+        }
+      }
+    </div>
+
+    <div class="wm-thread">
+      @if (!selectedChatJid) {
+        <div class="wm-thread-empty">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+          <span>Escolha uma conversa à esquerda para ver as mensagens.</span>
+        </div>
+      } @else {
+        <header class="wm-thread-header">
+          <div class="wm-thread-contact">
+            <div class="wm-avatar">
+              @if (selectedChatAvatarUrl) {
+                <img [src]="selectedChatAvatarUrl" [alt]="'Foto de ' + selectedChatTitle">
+              } @else {
+                {{ selectedChatTitle.charAt(0) || '?' }}
+              }
+            </div>
+            <div class="wm-thread-contact-text">
+              <span class="wm-thread-title">{{ selectedChatTitle }}</span>
+              <small>{{ selectedChatSubtitle }}</small>
+            </div>
+          </div>
+          <div class="wm-thread-actions">
+            <ion-button fill="clear" size="small" (click)="openGallery()" [disabled]="galleryMediaRows.length === 0">
+              <ion-icon name="images-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" size="small">
+              <ion-icon name="search-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button
+              fill="clear"
+              size="small"
+              (click)="loadMessagesForSelectedChat()"
+              [disabled]="loadingMessages">
+              @if (loadingMessages) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+              }
+            </ion-button>
+          </div>
+        </header>
+        <div class="wm-messages" #threadMessages (scroll)="onThreadScroll($event)">
+          @if (loadingMessages) {
+            <div class="wm-messages-loading-overlay" aria-busy="true">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>Carregando mensagens...</span>
+            </div>
+          } @else {
+            @if (loadingOlderMessages) {
+              <div class="wm-load-older">
+                <ion-spinner name="crescent"></ion-spinner>
+                <span>Carregando mensagens antigas...</span>
+              </div>
+            } @else if (currentMessagesPage >= totalMessagesPages && messageRows.length > 0) {
+              <div class="wm-load-older wm-load-older--muted">
+                <span>Início da conversa</span>
+              </div>
+            }
+
+            @if (messageRows.length === 0) {
+              <div class="wm-list-state muted">
+                <span>Nenhuma mensagem de texto neste histórico (mídias podem aparecer como placeholders).</span>
+              </div>
+            } @else {
+              @for (m of messageRows; track trackMessageRow(m)) {
+              <div class="wm-bubble-wrap" [class.wm-bubble-wrap--out]="m.fromMe">
+                <div class="wm-bubble" [class.wm-bubble--out]="m.fromMe">
+                  @if (m.mediaType === 'image' && m.mediaUrl) {
+                    <a
+                      class="wm-media-link wm-media-image-wrap"
+                      [href]="m.mediaUrl"
+                      (click)="openImageViewer(m.mediaUrl, $event)">
+                      @if (getImageLoadState(m.id) === 'loading') {
+                        <div class="wm-media-placeholder" aria-live="polite">
+                          <ion-icon name="sync-outline" class="wm-media-placeholder-icon"></ion-icon>
+                          <span>Carregando imagem...</span>
+                        </div>
+                      } @else if (getImageLoadState(m.id) === 'error') {
+                        <div class="wm-media-placeholder wm-media-placeholder--error" aria-live="polite">
+                          <ion-icon name="alert-circle-outline"></ion-icon>
+                          <span>Falha ao carregar imagem.</span>
+                          <button type="button" class="wm-media-retry-btn" (click)="retryImageLoad(m); $event.preventDefault(); $event.stopPropagation()">
+                            Tentar novamente
+                          </button>
+                        </div>
+                      }
+                      <img
+                        class="wm-media wm-media--image"
+                        [class.wm-media--hidden]="getImageLoadState(m.id) !== 'loaded'"
+                        [src]="m.mediaUrl"
+                        alt="Imagem da conversa"
+                        loading="lazy"
+                        (load)="onImageLoaded(m.id)"
+                        (error)="onImageError(m.id)">
+                    </a>
+                  } @else if (m.mediaType === 'sticker' && m.mediaUrl) {
+                    <a
+                      class="wm-media-link wm-media-image-wrap"
+                      [href]="m.mediaUrl"
+                      (click)="openImageViewer(m.mediaUrl, $event)">
+                      @if (getImageLoadState(m.id) === 'loading') {
+                        <div class="wm-media-placeholder wm-media-placeholder--sticker" aria-live="polite">
+                          <ion-icon name="sync-outline" class="wm-media-placeholder-icon"></ion-icon>
+                          <span>Carregando figurinha...</span>
+                        </div>
+                      } @else if (getImageLoadState(m.id) === 'error') {
+                        <div class="wm-media-placeholder wm-media-placeholder--error" aria-live="polite">
+                          <ion-icon name="alert-circle-outline"></ion-icon>
+                          <span>Falha ao carregar figurinha.</span>
+                          <button type="button" class="wm-media-retry-btn" (click)="retryImageLoad(m); $event.preventDefault(); $event.stopPropagation()">
+                            Tentar novamente
+                          </button>
+                        </div>
+                      }
+                      <img
+                        class="wm-media wm-media--sticker"
+                        [class.wm-media--hidden]="getImageLoadState(m.id) !== 'loaded'"
+                        [src]="m.mediaUrl"
+                        alt="Figurinha"
+                        loading="lazy"
+                        (load)="onImageLoaded(m.id)"
+                        (error)="onImageError(m.id)">
+                    </a>
+                  } @else if (m.mediaType === 'video' && m.mediaUrl) {
+                    @if ((videoLoadStateById[m.id] || 'loading') !== 'loaded') {
+                      <div class="wm-media-placeholder" aria-live="polite">
+                        <ion-icon name="sync-outline" class="wm-media-placeholder-icon"></ion-icon>
+                        <span>Carregando vídeo...</span>
+                      </div>
+                    }
+                    <video
+                      class="wm-media wm-media--video"
+                      [class.wm-media--hidden]="(videoLoadStateById[m.id] || 'loading') !== 'loaded'"
+                      controls
+                      preload="metadata"
+                      (loadeddata)="onVideoLoaded(m.id)"
+                      (error)="onVideoError(m.id)">
+                      <source [src]="m.mediaUrl">
+                    </video>
+                  } @else if (m.mediaType === 'audio' && m.mediaUrl) {
+                    <div class="wm-audio-card" [class.wm-audio-card--out]="m.fromMe">
+                      @if (getAudioDecodeState(m.id) === 'loading') {
+                        <div class="wm-audio-status" aria-live="polite">
+                          <ion-icon name="sync-outline" class="wm-media-placeholder-icon"></ion-icon>
+                          <span>Carregando e decodificando áudio...</span>
+                        </div>
+                      } @else if (getAudioDecodeState(m.id) === 'error') {
+                        <div class="wm-audio-status wm-audio-status--error" aria-live="polite">
+                          <ion-icon name="alert-circle-outline"></ion-icon>
+                          <span>Não foi possível carregar o áudio.</span>
+                        </div>
+                      }
+                      <div class="wm-audio-controls">
+                        <button
+                          type="button"
+                          class="wm-audio-play"
+                          [class.wm-audio-play--disabled]="getAudioDecodeState(m.id) !== 'ready'"
+                          (click)="toggleAudioPlayback(m.id, audioEl)"
+                          [disabled]="getAudioDecodeState(m.id) !== 'ready'"
+                          [attr.aria-label]="isAudioPlaying(m.id) ? 'Pausar áudio' : 'Reproduzir áudio'">
+                          <ion-icon [name]="isAudioPlaying(m.id) ? 'pause' : 'play'"></ion-icon>
+                        </button>
+                        <div class="wm-audio-meta">
+                          <input
+                            class="wm-audio-progress"
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            [value]="getAudioProgressPercent(m.id)"
+                            [disabled]="getAudioDecodeState(m.id) !== 'ready'"
+                            (input)="onAudioSeek(m.id, audioEl, $event)">
+                          <div class="wm-audio-time">
+                            <span>{{ getAudioCurrentLabel(m.id) }}</span>
+                            <span>{{ getAudioDurationLabel(m.id) }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <audio
+                        #audioEl
+                        class="wm-audio-native"
+                        preload="auto"
+                        [src]="m.mediaUrl"
+                        (loadstart)="onAudioLoadStart(m.id)"
+                        (loadedmetadata)="onAudioLoadedMetadata(m.id, audioEl)"
+                        (canplay)="onAudioCanPlay(m.id, audioEl)"
+                        (canplaythrough)="onAudioCanPlayThrough(m.id, audioEl)"
+                        (timeupdate)="onAudioTimeUpdate(m.id, audioEl)"
+                        (ended)="onAudioEnded(m.id)"
+                        (error)="onAudioError(m.id)">
+                      </audio>
+                    </div>
+                  }
+                  @if (
+                    m.text &&
+                    !(m.mediaType === 'image' && m.text === '[Imagem]') &&
+                    !(m.mediaType === 'sticker' && m.text === '[Figurinha]' && m.mediaUrl)
+                  ) {
+                    <p class="wm-bubble-text">{{ m.text }}</p>
+                  }
+                  @if (m.timeLabel) {
+                    <time class="wm-bubble-time">
+                      {{ m.timeLabel }}
+                      @if (m.fromMe) {
+                        <ion-icon name="checkmark-done-outline"></ion-icon>
+                      }
+                    </time>
+                  }
+                </div>
+              </div>
+            }
+            }
+          }
+        </div>
+        <div class="wm-composer">
+          <div class="wm-composer-tools">
+            <button
+              type="button"
+              class="wm-tool-btn"
+              (click)="onComposerFeature('audio')"
+              [disabled]="isComposerSending"
+              aria-label="Áudio">
+              <ion-icon name="mic-outline"></ion-icon>
+            </button>
+            <button
+              type="button"
+              class="wm-tool-btn"
+              (click)="onComposerFeature('image')"
+              [disabled]="isComposerSending"
+              aria-label="Imagem">
+              <ion-icon name="image-outline"></ion-icon>
+            </button>
+            <button
+              type="button"
+              class="wm-tool-btn"
+              (click)="onComposerFeature('attach')"
+              [disabled]="isComposerSending"
+              aria-label="Anexo">
+              <ion-icon name="attach-outline"></ion-icon>
+            </button>
+            <input
+              #composerAudioInput
+              type="file"
+              accept="audio/*"
+              hidden
+              (change)="onComposerAudioSelected($event)">
+            <input
+              #composerImageInput
+              type="file"
+              accept="image/*"
+              hidden
+              (change)="onComposerImageSelected($event)">
+            <input
+              #composerFileInput
+              type="file"
+              hidden
+              (change)="onComposerFileSelected($event)">
+          </div>
+          <div class="wm-composer-input">
+            <textarea
+              [(ngModel)]="composerText"
+              rows="1"
+              placeholder="Digite uma mensagem"
+              (keydown.enter)="onComposerEnter($event)"></textarea>
+          </div>
+          <button
+            type="button"
+            class="wm-send-btn"
+            (click)="sendComposerMessage()"
+            [disabled]="isComposerSending || !composerText.trim()"
+            aria-label="Enviar">
+            @if (isComposerSending) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="paper-plane-outline"></ion-icon>
+            }
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+@if (imageViewerUrl) {
+  <app-whatsapp-image-viewer
+    [imageUrl]="imageViewerUrl"
+    (close)="closeImageViewer()">
+  </app-whatsapp-image-viewer>
+}
+
+@if (galleryOpen) {
+  <app-whatsapp-gallery-modal
+    [rows]="galleryMediaRows"
+    [loadingOlder]="galleryLoadingOlder"
+    [hasMore]="galleryHasMore"
+    [imageLoadStateById]="imageLoadStateById"
+    [videoLoadStateById]="videoLoadStateById"
+    (close)="closeGallery()"
+    (loadOlder)="loadOlderGalleryMedia()"
+    (openImage)="onGalleryOpenImage($event)"
+    (retryImage)="retryImageLoad($event)"
+    (imageLoaded)="onImageLoaded($event)"
+    (imageError)="onImageError($event)"
+    (videoLoaded)="onVideoLoaded($event)"
+    (videoError)="onVideoError($event)">
+  </app-whatsapp-gallery-modal>
+}
+
+@if (lockModalOpen) {
+  <app-whatsapp-lock-modal
+    [intent]="lockModalIntent"
+    [maskedNumber]="lockMaskedNumber"
+    [loading]="lockActionLoading"
+    [message]="lockModalMessage"
+    [code]="lockCodeInput"
+    (codeChange)="lockCodeInput = $event"
+    (confirm)="submitLockCode()"
+    (close)="closeLockModal()">
+  </app-whatsapp-lock-modal>
+}

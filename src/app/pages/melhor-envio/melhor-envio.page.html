@@ -1,13 +1,12 @@
 <ion-content class="ion-padding">
   <div class="melhor-envio-container">
     
-    <!-- DASHBOARD HEADER -->
-    <div class="dashboard-header">
-      <div class="header-info">
-        <h1>Gestão Melhor Envio</h1>
-        <p>Integração oficial em tempo real para logística e fretes.</p>
-      </div>
-      <div class="header-actions">
+    <app-admin-panel-hero
+      eyebrow="Logística integrada"
+      title="Gestão Melhor Envio"
+      description="Integração oficial em tempo real para logística, fretes e rotinas do Melhor Envio."
+      [useCustomActionsColumn]="true">
+      <div panelHeroActions class="melhor-panel-hero-actions">
         <ion-button fill="outline" color="primary" (click)="checkAccount()" [disabled]="!hasConfig">
           <ion-icon slot="start" name="person-circle-outline"></ion-icon>
           Testar Conexão
@@ -21,7 +20,7 @@
           Salvar no Sistema
         </ion-button>
       </div>
-    </div>
+    </app-admin-panel-hero>
 
     <!-- INSTRUCTIONS ALERT -->
     <div class="instruction-card" *ngIf="!hasConfig">

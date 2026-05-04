@@ -8,18 +8,22 @@ import {
   AdminChartPoint,
   AdminDashboardMetrics,
   AdminMetricsFilters,
-  AdminMetricsPeriod
+  AdminMetricsPeriod,
+  AdminNamedMetric
 } from '../../services/admin-analytics.service';
+import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 
 @Component({
   selector: 'app-admin-metrics',
   templateUrl: './admin-metrics.page.html',
   styleUrls: ['./admin-metrics.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule]
+  imports: [CommonModule, FormsModule, IonicModule, AdminPanelHeroComponent]
 })
 export class AdminMetricsPage implements OnInit, OnDestroy {
   public metrics?: AdminDashboardMetrics;
+  /** Painel de lista ao passar o mouse no card “Usuários online” */
+  public onlineUsersPanelOpen = false;
   public isLoading = true;
   public errorMessage = '';
   public filters: AdminMetricsFilters = {
@@ -36,6 +40,9 @@ export class AdminMetricsPage implements OnInit, OnDestroy {
   ];
 
   private metricsSub?: Subscription;
+  /** Atualiza textos “online há …” enquanto o painel estiver aberto */
+  private onlinePanelInterval?: ReturnType<typeof setInterval>;
+  private onlineDurationTick = 0;
 
   constructor(private analyticsService: AdminAnalyticsService) {}
 
@@ -45,10 +52,63 @@ export class AdminMetricsPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.metricsSub?.unsubscribe();
+    this.clearOnlinePanelInterval();
   }
 
-  public setPeriod(period: AdminMetricsPeriod): void {
-    this.filters = { ...this.filters, period };
+  /** Abre/fecha painel de usuários online e agenda atualização do relativo “há X tempo” */
+  public setOnlineUsersPanelOpen(open: boolean): void {
+    this.onlineUsersPanelOpen = open;
+    if (open) {
+      this.onlineDurationTick++;
+      if (!this.onlinePanelInterval) {
+        this.onlinePanelInterval = setInterval(() => {
+          this.onlineDurationTick++;
+        }, 10000);
+      }
+    } else {
+      this.clearOnlinePanelInterval();
+    }
+  }
+
+  /** Tempo nesta sessão online (`onlineSince` no Firestore quando existir). */
+  public formatOnlineSessionDuration(user: AdminNamedMetric): string {
+    void this.onlineDurationTick;
+    const since = user.onlineSince;
+    if (!since || !(since instanceof Date) || Number.isNaN(since.getTime())) {
+      return 'Tempo nesta sessão indisponível';
+    }
+    const ms = Date.now() - since.getTime();
+    if (ms < 0) {
+      return 'agora';
+    }
+    const sec = Math.floor(ms / 1000);
+    if (sec < 50) {
+      return 'online há poucos segundos';
+    }
+    const min = Math.floor(sec / 60);
+    if (min < 1) {
+      return `online há ${sec} s`;
+    }
+    if (min < 60) {
+      return min === 1 ? 'online há 1 minuto' : `online há ${min} minutos`;
+    }
+    const h = Math.floor(min / 60);
+    if (h < 24) {
+      return h === 1 ? 'online há 1 hora' : `online há ${h} horas`;
+    }
+    const d = Math.floor(h / 24);
+    return d === 1 ? 'online há 1 dia' : `online há ${d} dias`;
+  }
+
+  private clearOnlinePanelInterval(): void {
+    if (this.onlinePanelInterval) {
+      clearInterval(this.onlinePanelInterval);
+      this.onlinePanelInterval = undefined;
+    }
+  }
+
+  public setPeriod(period: string): void {
+    this.filters = { ...this.filters, period: period as AdminMetricsPeriod };
     this.loadMetrics();
   }
 

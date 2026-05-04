@@ -1,0 +1,47 @@
+<section class="admin-panel-hero">
+  <div class="admin-panel-hero__text">
+    <span class="admin-panel-hero__eyebrow">{{ eyebrow }}</span>
+    <h1 class="admin-panel-hero__title">{{ title }}</h1>
+    <p class="admin-panel-hero__desc" *ngIf="description">{{ description }}</p>
+  </div>
+
+  <div class="admin-panel-hero__actions">
+    <ng-content select="[panelHeroActions]"></ng-content>
+
+    <ng-container *ngIf="!useCustomActionsColumn">
+      <div class="admin-panel-hero__segmented" *ngIf="showSegmentedControl && segmentOptions.length > 0">
+        <button
+          *ngFor="let option of segmentOptions; trackBy: trackSegment"
+          type="button"
+          [class.active]="selectedSegment === option.value"
+          (click)="onSegmentClick(option.value)">
+          {{ option.label }}
+        </button>
+      </div>
+
+      <div class="admin-panel-hero__custom-range" *ngIf="showCustomDateRange">
+        <ng-content select="[panelHeroCustomRange]"></ng-content>
+      </div>
+
+      <div class="admin-panel-hero__buttons-row">
+        <button
+          *ngIf="primaryActionLabel"
+          type="button"
+          class="admin-panel-hero__primary"
+          (click)="onPrimaryClick()">
+          <ion-icon *ngIf="primaryActionIcon" [name]="primaryActionIcon"></ion-icon>
+          {{ primaryActionLabel }}
+        </button>
+
+        <button
+          *ngIf="showRefreshButton"
+          type="button"
+          class="admin-panel-hero__refresh"
+          (click)="onRefreshClick()">
+          <ion-icon [name]="refreshButtonIcon"></ion-icon>
+          {{ refreshButtonLabel }}
+        </button>
+      </div>
+    </ng-container>
+  </div>
+</section>

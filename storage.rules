@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Cache compartilhado de mídias do WhatsApp.
+    // Leitura aberta (URLs sao SHA-1 dificil de adivinhar e listing eh proibido).
+    // Escrita exclusiva via Admin SDK em Cloud Functions.
+    match /whatsapp-media/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

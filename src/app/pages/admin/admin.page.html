@@ -18,13 +18,21 @@
       <ion-icon [name]="activeTab === 'banners' ? 'images' : 'images-outline'"></ion-icon>
       Banners
     </button>
-    <button class="master-tab" [class.active]="activeTab === 'whatsapp'" [routerLink]="['/admin/whatsapp']">
-      <ion-icon [name]="activeTab === 'whatsapp' ? 'logo-whatsapp' : 'logo-whatsapp'"></ion-icon>
-      WhatsApp
+    <button class="master-tab" [class.active]="activeTab === 'bots'" [routerLink]="['/admin/bots']">
+      <ion-icon [name]="activeTab === 'bots' ? 'hardware-chip' : 'hardware-chip-outline'"></ion-icon>
+      Bots
+    </button>
+    <button class="master-tab" [class.active]="activeTab === 'users'" [routerLink]="['/admin/users']">
+      <ion-icon [name]="activeTab === 'users' ? 'people' : 'people-outline'"></ion-icon>
+      Usuários
     </button>
     <button class="master-tab" [class.active]="activeTab === 'melhor-envio'" [routerLink]="['/admin/melhor-envio']">
       <ion-icon [name]="activeTab === 'melhor-envio' ? 'paper-plane' : 'paper-plane-outline'"></ion-icon>
       Melhor Envio
+    </button>
+    <button class="master-tab master-tab--isolated" [class.active]="activeTab === 'whatsapp'" [routerLink]="['/admin/whatsapp']">
+      <ion-icon [name]="activeTab === 'whatsapp' ? 'logo-whatsapp' : 'logo-whatsapp'"></ion-icon>
+      WhatsApp
     </button>
   </div>
 </div>
@@ -35,5 +43,7 @@
   <app-manage-chats *ngIf="activeTab === 'chats'"></app-manage-chats>
   <app-manage-banners *ngIf="activeTab === 'banners'"></app-manage-banners>
   <app-manage-whatsapp *ngIf="activeTab === 'whatsapp'"></app-manage-whatsapp>
+  <app-bots *ngIf="activeTab === 'bots'"></app-bots>
+  <app-manage-users *ngIf="activeTab === 'users'"></app-manage-users>
   <app-melhor-envio *ngIf="activeTab === 'melhor-envio'"></app-melhor-envio>
 </div>

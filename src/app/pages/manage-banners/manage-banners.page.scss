@@ -9,40 +9,6 @@
   --padding-bottom: 24px;
 }
 
-/* ===================== SECTION HEADER ===================== */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 16px 12px;
-  gap: 12px;
-  flex-wrap: wrap;
-
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    ion-icon {
-      font-size: 28px;
-      color: #4a9c2b;
-    }
-
-    h2 {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1e293b;
-      margin: 0;
-    }
-
-    p {
-      font-size: 12px;
-      color: #64748b;
-      margin: 2px 0 0;
-    }
-  }
-}
-
 .btn-new-banner {
   display: flex;
   align-items: center;
@@ -1181,7 +1147,6 @@
 }
 
 @media (min-width: 768px) {
-  .section-header,
   .spec-card,
   .banners-list-header,
   .banners-grid,
@@ -1189,24 +1154,6 @@
     width: min(100% - 48px, 1180px);
     margin-left: auto;
     margin-right: auto;
-  }
-
-  .section-header {
-    padding: 28px 0 16px;
-
-    .header-title {
-      ion-icon {
-        font-size: 34px;
-      }
-
-      h2 {
-        font-size: 24px;
-      }
-
-      p {
-        font-size: 14px;
-      }
-    }
   }
 
   .spec-card {

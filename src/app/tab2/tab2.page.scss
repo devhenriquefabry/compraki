@@ -31,13 +31,53 @@ ion-toolbar {
   --border-width: 0;
   --padding-top: 5px;
   --padding-bottom: 15px;
-  --padding-start: 15px;
-  --padding-end: 15px;
+  --padding-start: 0;
+  --padding-end: 0;
+
+  .search-toolbar-inner {
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding-left: 15px;
+    padding-right: 15px;
+    box-sizing: border-box;
+  }
 
   .search-row {
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+
+  @media (min-width: 768px) {
+    --padding-bottom: 18px;
+
+    .search-toolbar-inner {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+
+    .search-bar {
+      padding: 14px 20px;
+      border-radius: 14px;
+
+      input {
+        font-size: 15px;
+      }
+    }
+
+    .btn-filter {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .search-toolbar-inner {
+      padding-left: 32px;
+      padding-right: 32px;
+    }
   }
 
   .search-bar {
@@ -91,6 +131,28 @@ ion-toolbar {
   --background: #f8f9fa;
 }
 
+/* Largura máxima alinhada à busca (desktop) */
+.explore-shell {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .explore-shell {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .explore-shell {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+}
+
 /* BANNERS (SNAP NATIVO + DRAG) */
 .banner-scroll-container {
   overflow-x: auto;
@@ -102,7 +164,14 @@ ion-toolbar {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(30, 45, 62, 0.2);
+    border-radius: 4px;
+  }
 
   .scroll-track {
     display: flex;
@@ -155,6 +224,44 @@ ion-toolbar {
       z-index: 1;
     }
   }
+
+  @media (min-width: 768px) {
+    padding: 20px 0 12px;
+
+    .banner-slide {
+      padding: 0 8px;
+    }
+
+    .promo-banner {
+      height: 200px;
+      border-radius: 22px;
+      padding: 24px 28px;
+
+      .promo-text {
+        h3 { font-size: 22px; }
+        p { font-size: 15px; }
+      }
+
+      img {
+        height: 140px;
+      }
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .promo-banner {
+      height: 228px;
+      box-shadow: 0 14px 36px rgba(121, 157, 80, 0.18);
+
+      .promo-text h3 {
+        font-size: 26px;
+      }
+
+      img {
+        height: 160px;
+      }
+    }
+  }
 }
 
 /* CATEGORIAS */
@@ -199,15 +306,146 @@ ion-toolbar {
       white-space: nowrap;
     }
   }
+
+  @media (min-width: 768px) {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+    gap: 18px 20px;
+    padding: 20px 16px 22px;
+    border-radius: 0 0 18px 18px;
+    box-shadow: 0 6px 24px rgba(30, 45, 62, 0.06);
+
+    .cat-item {
+      min-width: 72px;
+
+      .cat-circle {
+        width: 64px;
+        height: 64px;
+      }
+
+      span {
+        font-size: 12px;
+      }
+    }
+  }
+
+  @media (min-width: 1200px) {
+    gap: 22px 28px;
+    padding: 24px 20px 28px;
+
+    .cat-item .cat-circle {
+      width: 68px;
+      height: 68px;
+
+      ion-icon {
+        font-size: 30px;
+      }
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .cat-item .cat-circle:hover {
+      border-color: #799d50;
+      background: rgba(121, 157, 80, 0.08);
+      transform: translateY(-2px);
+    }
+  }
 }
 
-/* ===== GRID DE PRODUTOS ESTILO MARKETPLACE (OLX) ===== */
+/* Título estilo vitrine / marketplace */
+.market-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 4px 12px;
+  border-bottom: 1px solid #e8eaed;
+  margin-bottom: 0;
+  background: #fff;
+  border-radius: 12px 12px 0 0;
+  margin-top: 4px;
+}
+
+.market-head-text {
+  min-width: 0;
+}
+
+.market-head .products-section-title {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #1e2d3e;
+  letter-spacing: -0.02em;
+}
+
+.market-head-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  line-height: 1.35;
+  max-width: 42ch;
+}
+
+.products-section-count {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #00a650;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .market-head {
+    padding: 18px 6px 14px;
+  }
+
+  .market-head .products-section-title {
+    font-size: 1.35rem;
+  }
+
+  .market-head-sub {
+    font-size: 0.85rem;
+  }
+}
+
+/* ===== GRID DE PRODUTOS ESTILO MARKETPLACE ===== */
 .products-marketplace-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1px;
-  padding: 0;
-  background: #f0f0f0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 8px 28px;
+  background: #ebebeb;
+
+  @media (min-width: 480px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px 12px 32px;
+  }
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px 12px 36px;
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    padding: 16px 8px 40px;
+  }
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    padding: 18px 4px 48px;
+  }
+
+  @media (min-width: 1440px) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+  }
 }
 
 .marketplace-card {
@@ -215,57 +453,203 @@ ion-toolbar {
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 
   &:active {
-    opacity: 0.85;
+    transform: scale(0.99);
   }
 
   .card-img {
+    position: relative;
     width: 100%;
     aspect-ratio: 1 / 1;
     overflow: hidden;
-    background: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: #fff;
+    border-bottom: 1px solid #f3f4f6;
 
     img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      transition: transform 0.35s ease;
+    }
+  }
+
+  .card-img-badge {
+    position: absolute;
+    z-index: 2;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    line-height: 1;
+    max-width: calc(50% - 6px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &--off {
+      top: 8px;
+      left: 8px;
+      background: #ffe600;
+      color: #333;
+    }
+
+    &--full {
+      top: 8px;
+      right: 8px;
+      background: #00a650;
+      color: #fff;
     }
   }
 
   .card-info {
-    padding: 12px 14px 16px;
+    padding: 10px 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    flex: 1;
+    text-align: left;
+  }
 
-    .card-price {
-      font-size: 18px;
-      font-weight: 800;
-      color: #1e2d3e;
-      letter-spacing: -0.3px;
+  .card-name {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.85);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.7em;
+  }
+
+  .card-price-block {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+  }
+
+  .card-price-main {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    color: #00a650;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .card-price-prefix {
+    font-size: 13px;
+    font-weight: 700;
+    margin-right: 1px;
+  }
+
+  .card-price-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .card-price-old {
+    font-size: 12px;
+    color: #999;
+    text-decoration: line-through;
+    font-weight: 600;
+  }
+
+  .card-installment {
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+  }
+
+  .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-top: auto;
+    padding-top: 2px;
+  }
+
+  .card-shipping-tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: #666;
+    background: #f5f5f5;
+    padding: 3px 8px;
+    border-radius: 4px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--highlight {
+      color: #00a650;
+      background: #e6f7ed;
+    }
+  }
+
+  .card-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #888;
+    font-weight: 600;
+    min-width: 0;
+
+    ion-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      color: #aaa;
+    }
+  }
+
+  .card-sales-row {
+    font-size: 11px;
+    color: #999;
+    font-weight: 600;
+  }
+
+  @media (min-width: 560px) {
+    border-radius: 10px;
+
+    .card-img {
+      aspect-ratio: 1 / 1;
     }
 
     .card-name {
       font-size: 13px;
-      font-weight: 600;
-      color: #444;
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      min-height: 2.6em;
     }
 
-    .card-location {
-      font-size: 11px;
-      color: #999;
-      margin-top: 4px;
+    .card-price-value {
+      font-size: 24px;
+    }
+
+    .card-info {
+      padding: 12px 12px 14px;
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      border-color: #ddd;
+      z-index: 1;
+
+      .card-img img {
+        transform: scale(1.03);
+      }
     }
   }
 }
@@ -318,6 +702,25 @@ ion-toolbar {
     p {
       font-size: 14px;
       color: #888;
+    }
+  }
+
+  @media (min-width: 768px) {
+    padding: 20px 0 120px;
+
+    .results-header {
+      padding: 0 4px 14px;
+      margin-bottom: 14px;
+
+      .results-count {
+        font-size: 15px;
+      }
+    }
+
+    .no-results {
+      padding: 100px 40px;
+      max-width: 520px;
+      margin: 0 auto;
     }
   }
 }
@@ -445,4 +848,12 @@ ion-toolbar {
   font-size: 14px;
   letter-spacing: 1px;
   margin-top: 10px;
+}
+
+/* Modal de filtros mais confortável em telas grandes */
+:host ::ng-deep ion-modal.filter-modal {
+  @media (min-width: 900px) {
+    --width: min(520px, 92vw);
+    --border-radius: 20px;
+  }
 }

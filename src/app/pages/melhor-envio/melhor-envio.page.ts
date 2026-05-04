@@ -10,13 +10,14 @@ import {
 } from 'ionicons/icons';
 import { MelhorEnvioService } from '../../services/melhor-envio.service';
 import { MelhorEnvioConfig, ShippingAnalysis, ShippingQuote } from '../../interfaces/shipping';
+import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 
 @Component({
   selector: 'app-melhor-envio',
   templateUrl: './melhor-envio.page.html',
   styleUrls: ['./melhor-envio.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule]
+  imports: [CommonModule, FormsModule, IonicModule, AdminPanelHeroComponent]
 })
 export class MelhorEnvioPage implements OnInit {
   public config: MelhorEnvioConfig = {

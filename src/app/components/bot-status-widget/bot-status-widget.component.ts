@@ -35,6 +35,6 @@ export class BotStatusWidgetComponent implements OnInit {
   }
 
   goToBots() {
-    this.router.navigate(['/bots']);
+    this.router.navigate(['/admin/bots']);
   }
 }

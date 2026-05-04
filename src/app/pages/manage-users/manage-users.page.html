@@ -1,0 +1,245 @@
+<ion-content class="users-bg">
+  <div class="users-wrapper">
+    <app-admin-panel-hero
+      eyebrow="Governança administrativa"
+      title="Gestão de Usuários"
+      description="Visão completa da base de usuários com filtros avançados, ações administrativas e dados operacionais."
+      [showSegmentedControl]="true"
+      [segmentOptions]="periodOptions"
+      [selectedSegment]="period"
+      (segmentChange)="setPeriod($event)"
+      [showCustomDateRange]="period === 'custom'"
+      (refreshClick)="refresh()">
+      <div panelHeroCustomRange class="users-custom-range" *ngIf="period === 'custom'">
+        <input type="date" [(ngModel)]="customStart" (ngModelChange)="onCustomDateChange()" />
+        <span>até</span>
+        <input type="date" [(ngModel)]="customEnd" (ngModelChange)="onCustomDateChange()" />
+      </div>
+    </app-admin-panel-hero>
+
+    <div class="users-loading-grid" *ngIf="loading">
+      <div class="users-skeleton" *ngFor="let item of [1,2,3,4,5,6]"></div>
+    </div>
+
+    <div class="users-empty-state" *ngIf="!loading && errorMessage">
+      <ion-icon name="warning-outline"></ion-icon>
+      <h2>Falha ao carregar usuários</h2>
+      <p>{{ errorMessage }}</p>
+      <ion-button color="success" fill="clear" (click)="refresh()">Tentar novamente</ion-button>
+    </div>
+
+    <ng-container *ngIf="!loading && !errorMessage">
+      <section class="overview-grid">
+        <article class="metric-card success">
+          <div class="icon-bubble"><ion-icon name="people-outline"></ion-icon></div>
+          <span>Total de usuários</span>
+          <strong>{{ overview.total }}</strong>
+          <small>Base total cadastrada no Firestore</small>
+        </article>
+        <article class="metric-card info">
+          <div class="icon-bubble"><ion-icon name="radio-outline"></ion-icon></div>
+          <span>Online agora</span>
+          <strong>{{ overview.online }}</strong>
+          <small>Status de presença em tempo real</small>
+        </article>
+        <article class="metric-card neutral">
+          <div class="icon-bubble"><ion-icon name="storefront-outline"></ion-icon></div>
+          <span>Vendedores</span>
+          <strong>{{ overview.sellers }}</strong>
+          <small>Usuários com perfil vendedor ativo</small>
+        </article>
+        <article class="metric-card warning">
+          <div class="icon-bubble"><ion-icon name="ban-outline"></ion-icon></div>
+          <span>Chat bloqueado</span>
+          <strong>{{ overview.banned }}</strong>
+          <small>Usuários com bloqueio de conversa</small>
+        </article>
+      </section>
+
+      <section class="filters-card">
+        <div class="filters-grid">
+          <ion-item class="filter-item">
+            <ion-input
+              label="Busca"
+              labelPlacement="stacked"
+              placeholder="Nome, e-mail, telefone ou UID"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="onFiltersChange()">
+            </ion-input>
+          </ion-item>
+
+          <ion-item class="filter-item">
+            <ion-select
+              label="Status"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="statusFilter"
+              (ngModelChange)="onFiltersChange()">
+              <ion-select-option value="all">Todos</ion-select-option>
+              <ion-select-option value="online">Online</ion-select-option>
+              <ion-select-option value="offline">Offline</ion-select-option>
+              <ion-select-option value="unknown">Indefinido</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item class="filter-item">
+            <ion-select
+              label="Perfil"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="roleFilter"
+              (ngModelChange)="onFiltersChange()">
+              <ion-select-option value="all">Todos</ion-select-option>
+              <ion-select-option value="seller">Vendedor</ion-select-option>
+              <ion-select-option value="buyer">Comprador</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item class="filter-item">
+            <ion-select
+              label="Bloqueio"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="banFilter"
+              (ngModelChange)="onFiltersChange()">
+              <ion-select-option value="all">Todos</ion-select-option>
+              <ion-select-option value="banned">Bloqueados</ion-select-option>
+              <ion-select-option value="unbanned">Não bloqueados</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item class="filter-item">
+            <ion-select
+              label="Ordenação"
+              labelPlacement="stacked"
+              interface="popover"
+              [(ngModel)]="sortBy"
+              (ngModelChange)="onFiltersChange()">
+              <ion-select-option value="recent-login">Último login</ion-select-option>
+              <ion-select-option value="recent-created">Cadastro recente</ion-select-option>
+              <ion-select-option value="name">Nome A-Z</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <button type="button" class="export-btn" (click)="exportCsv()">
+            <ion-icon name="download-outline"></ion-icon>
+            Exportar CSV ({{ filteredUsers.length }})
+          </button>
+        </div>
+        <div class="batch-toolbar">
+          <span>{{ selectedCount }} selecionado(s)</span>
+          <button type="button" class="batch-btn" (click)="selectAllVisibleUsers()" [disabled]="visibleUsers.length === 0 || actionLoading">
+            Selecionar visíveis
+          </button>
+          <button type="button" class="batch-btn warning" (click)="bulkSetChatBan(true)" [disabled]="selectedCount === 0 || actionLoading">
+            Bloquear chat em lote
+          </button>
+          <button type="button" class="batch-btn success" (click)="bulkSetChatBan(false)" [disabled]="selectedCount === 0 || actionLoading">
+            Liberar chat em lote
+          </button>
+          <button type="button" class="batch-btn neutral" (click)="clearSelectedUsers()" [disabled]="selectedCount === 0 || actionLoading">
+            Limpar seleção
+          </button>
+        </div>
+      </section>
+
+      <div class="feedback success" *ngIf="successMessage">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <span>{{ successMessage }}</span>
+      </div>
+
+      <section class="users-layout">
+        <article class="users-list-card">
+          <div class="card-title">
+            <div>
+              <span>Usuários filtrados</span>
+              <h3>Base operacional</h3>
+            </div>
+            <strong>{{ filteredUsers.length }}</strong>
+          </div>
+
+          <div class="users-list" *ngIf="filteredUsers.length > 0; else emptyUsers">
+            <button
+              type="button"
+              class="user-row"
+              *ngFor="let user of visibleUsers; trackBy: trackByUser"
+              [class.active]="selectedUser?.uid === user.uid"
+              (click)="selectUser(user)">
+              <ion-checkbox
+                class="user-checkbox"
+                [checked]="isUserSelected(user)"
+                (click)="$event.stopPropagation()"
+                (ionChange)="toggleUserSelection(user, !!$event.detail.checked)">
+              </ion-checkbox>
+              <div class="avatar-wrap">
+                <img *ngIf="user.photoURL; else noPhoto" [src]="user.photoURL" [alt]="getUserName(user)" />
+                <ng-template #noPhoto>{{ getUserInitial(user) }}</ng-template>
+              </div>
+              <div class="user-main">
+                <strong>{{ getUserName(user) }}</strong>
+                <span>{{ user.email || 'E-mail não informado' }}</span>
+                <small>{{ user.phoneNumber || 'Sem telefone' }} · {{ user.uid }}</small>
+              </div>
+              <div class="user-tags">
+                <span class="tag" [class.success]="getStatusTone(user) === 'success'">{{ getStatusLabel(user) }}</span>
+                <span class="tag info" *ngIf="user.isSeller">Vendedor</span>
+                <span class="tag warning" *ngIf="user.isChatBanned">Chat bloqueado</span>
+                <span class="tag risk" *ngFor="let risk of getRiskBadges(user)" [ngClass]="risk.tone">{{ risk.label }}</span>
+              </div>
+            </button>
+            <button type="button" class="load-more-btn" *ngIf="hasMoreUsers" (click)="loadMoreUsers()">
+              Carregar mais usuários ({{ visibleUsers.length }}/{{ filteredUsers.length }})
+            </button>
+          </div>
+
+          <ng-template #emptyUsers>
+            <div class="soft-empty">Nenhum usuário encontrado para os filtros atuais.</div>
+          </ng-template>
+        </article>
+
+        <article class="user-detail-card" *ngIf="selectedUser as user; else noUserSelected">
+          <div class="card-title">
+            <div>
+              <span>Detalhes do usuário</span>
+              <h3>{{ getUserName(user) }}</h3>
+            </div>
+            <strong>{{ getStatusLabel(user) }}</strong>
+          </div>
+
+          <div class="detail-grid">
+            <div><span>UID</span><strong>{{ user.uid }}</strong></div>
+            <div><span>E-mail</span><strong>{{ user.email || '—' }}</strong></div>
+            <div><span>Telefone</span><strong>{{ user.phoneNumber || '—' }}</strong></div>
+            <div><span>Perfil</span><strong>{{ user.isSeller ? 'Vendedor' : 'Comprador' }}</strong></div>
+            <div><span>Chat bloqueado</span><strong>{{ user.isChatBanned ? 'Sim' : 'Não' }}</strong></div>
+            <div><span>Último login</span><strong>{{ formatDateTime(user.lastLoginAt) }}</strong></div>
+            <div><span>Criado em</span><strong>{{ formatDateTime(user.createdAt) }}</strong></div>
+            <div><span>Status presença</span><strong>{{ getStatusLabel(user) }}</strong></div>
+          </div>
+
+          <div class="action-list">
+            <button type="button" class="action-btn warning" (click)="toggleChatBan(user)" [disabled]="actionLoading">
+              <ion-icon [name]="user.isChatBanned ? 'lock-open-outline' : 'lock-closed-outline'"></ion-icon>
+              {{ user.isChatBanned ? 'Liberar chat' : 'Bloquear chat' }}
+            </button>
+            <button type="button" class="action-btn info" (click)="toggleSeller(user)" [disabled]="actionLoading">
+              <ion-icon name="swap-horizontal-outline"></ion-icon>
+              {{ user.isSeller ? 'Mudar para comprador' : 'Promover para vendedor' }}
+            </button>
+            <button type="button" class="action-btn danger" (click)="removeUserDocument(user)" [disabled]="actionLoading">
+              <ion-icon name="trash-outline"></ion-icon>
+              Remover registro Firestore
+            </button>
+          </div>
+        </article>
+
+        <ng-template #noUserSelected>
+          <article class="user-detail-card">
+            <div class="soft-empty">Selecione um usuário na lista para ver detalhes e ações administrativas.</div>
+          </article>
+        </ng-template>
+      </section>
+    </ng-container>
+  </div>
+</ion-content>
+

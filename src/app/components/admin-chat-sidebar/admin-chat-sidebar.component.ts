@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, HostBinding, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -26,6 +26,14 @@ import { FirebaseChatService } from '../../services/firebase-chat.service';
   imports: [CommonModule, IonicModule, ChatBoxComponent]
 })
 export class AdminChatSidebarComponent {
+
+  /** Quando true, não renderiza o painel desktop “Mensagens” (só modais FAB / overlay). */
+  @Input() hideDesktopPane = false;
+
+  @HostBinding('class.modals-only')
+  get hostModalsOnly(): boolean {
+    return this.hideDesktopPane;
+  }
 
   @Input() activeChatId: string = '';
   @Input() activeChats: ChatRoom[] = [];

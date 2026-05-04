@@ -6,6 +6,7 @@ import { Subscription, Observable } from 'rxjs';
 import { Banner, BannerDailySchedule } from '../../interfaces/banner';
 import { BannerService } from '../../services/banner.service';
 import { AdminSubtabsComponent, AdminSubtabOption } from '../../components/admin-subtabs/admin-subtabs.component';
+import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 
 interface CalendarDay {
   dateKey: string;
@@ -29,7 +30,7 @@ interface DayPlannerItem {
   templateUrl: './manage-banners.page.html',
   styleUrls: ['./manage-banners.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, DatePipe, AdminSubtabsComponent]
+  imports: [CommonModule, FormsModule, IonicModule, DatePipe, AdminSubtabsComponent, AdminPanelHeroComponent]
 })
 export class ManageBannersPage implements OnInit, OnDestroy {
 

@@ -54,6 +54,23 @@
             }
         }
     }
+
+    .master-tab--isolated {
+        position: relative;
+        margin-left: 18px;
+        padding-left: 26px;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1px;
+            height: 22px;
+            background: #dbe5ef;
+        }
+    }
 }
 
 @media (max-width: 640px) {
@@ -67,6 +84,16 @@
 
             ion-icon {
                 font-size: 16px;
+            }
+        }
+
+        .master-tab--isolated {
+            margin-left: 12px;
+            padding-left: 18px;
+
+            &::before {
+                left: 2px;
+                height: 18px;
             }
         }
     }
@@ -85,6 +112,8 @@
     app-manage-chats,
     app-manage-banners,
     app-manage-whatsapp,
+    app-manage-users,
+    app-bots,
     app-melhor-envio {
         display: flex;
         flex-direction: column;

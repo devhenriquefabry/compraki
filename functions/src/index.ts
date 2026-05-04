@@ -1,10 +1,16 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { onRequest, type Request } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
+import { createHash } from 'node:crypto';
 
 initializeApp();
+
+const WHATSAPP_MEDIA_CACHE_COLLECTION = 'whatsappMediaCache';
+const WHATSAPP_MEDIA_CACHE_STATS_DOC = 'whatsappMediaCacheStats/global';
+const WHATSAPP_MEDIA_STORAGE_PREFIX = 'whatsapp-media';
 
 const region = 'us-central1';
 
@@ -23,6 +29,86 @@ interface EvolutionTestMessageRequest {
   instanceName?: string;
   phoneNumber?: string;
   message?: string;
+}
+
+interface EvolutionMediaMessageRequest {
+  instanceName?: string;
+  phoneNumber?: string;
+  mediaBase64?: string;
+  mimetype?: string;
+  fileName?: string;
+  caption?: string;
+  mediaType?: 'image' | 'video' | 'audio' | 'document';
+}
+
+interface EvolutionChatMessagesRequest {
+  instanceName?: string;
+  remoteJid?: string;
+  limit?: number;
+  page?: number;
+}
+
+interface EvolutionResolveMediaRequest {
+  instanceName?: string;
+  message?: Record<string, unknown>;
+}
+
+interface WhatsappInstanceAccessCodeRequest {
+  instanceName?: string;
+  intent?: 'lock' | 'unlock';
+}
+
+interface WhatsappInstanceAccessCodeConfirmRequest {
+  instanceName?: string;
+  code?: string;
+  intent?: 'lock' | 'unlock';
+}
+
+interface StoredWhatsappInstanceLock {
+  instanceName: string;
+  locked: boolean;
+  pendingCode?: string | null;
+  pendingCodeExpiresAt?: number | null;
+  lastCodeSentAt?: number | null;
+  failedAttempts?: number;
+  updatedBy?: string;
+  updatedAt?: unknown;
+}
+
+type BotJobStatus =
+  | 'queued'
+  | 'running'
+  | 'success'
+  | 'failed'
+  | 'cancelled';
+
+interface BotJobPayload {
+  keyword?: string;
+  count?: number | null;
+  headless?: boolean;
+  mode?: 'batch' | 'alternate';
+  [key: string]: unknown;
+}
+
+interface CreateBotJobRequest {
+  botType?: string;
+  botLabel?: string;
+  script?: string;
+  priority?: number;
+  payload?: BotJobPayload;
+}
+
+interface UpdateBotJobStateRequest {
+  jobId?: string;
+  status?: BotJobStatus;
+  result?: Record<string, unknown>;
+  errorMessage?: string;
+}
+
+interface AppendBotJobLogRequest {
+  jobId?: string;
+  message?: string;
+  level?: 'info' | 'warn' | 'error';
 }
 
 type WhatsappTriggerEvent =
@@ -292,6 +378,495 @@ export const sendWhatsappTestMessage = onRequest({ region, cors: false }, async 
   }
 });
 
+export const sendWhatsappMediaMessage = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const payload = req.body as EvolutionMediaMessageRequest;
+  const instanceName = payload.instanceName?.trim();
+  const phoneNumber = payload.phoneNumber?.replace(/\D/g, '');
+  const mimetype = payload.mimetype?.trim();
+  const mediaBase64Raw = payload.mediaBase64?.trim() || '';
+  const mediaType = payload.mediaType || 'document';
+  const fileName = (payload.fileName || 'arquivo').trim();
+  const caption = (payload.caption || '').trim();
+  const mediaBase64 = mediaBase64Raw.replace(/^data:[^;]+;base64,/, '');
+
+  if (!instanceName || !phoneNumber || !mimetype || !mediaBase64) {
+    res.status(400).json({ error: 'instanceName, phoneNumber, mimetype and mediaBase64 are required' });
+    return;
+  }
+
+  const candidatePayloads: Array<Record<string, unknown>> = [
+    {
+      number: phoneNumber,
+      mediatype: mediaType,
+      media: mediaBase64,
+      mimetype,
+      fileName,
+      caption
+    },
+    {
+      number: phoneNumber,
+      mediaType,
+      media: mediaBase64,
+      mimeType: mimetype,
+      fileName,
+      caption
+    },
+    {
+      number: phoneNumber,
+      base64: mediaBase64,
+      mimetype,
+      fileName,
+      caption
+    }
+  ];
+
+  const candidatePaths = [
+    `/message/sendMedia/${encodeURIComponent(instanceName)}`,
+    `/message/sendFile/${encodeURIComponent(instanceName)}`
+  ];
+
+  const attempts: Array<{ path: string; variant: number; ok: boolean; error?: string }> = [];
+  let lastError = 'Falha ao enviar mídia';
+
+  for (const path of candidatePaths) {
+    for (let i = 0; i < candidatePayloads.length; i++) {
+      try {
+        const result = await requestEvolution(path, {
+          method: 'POST',
+          body: candidatePayloads[i]
+        });
+        attempts.push({ path, variant: i + 1, ok: true });
+        res.status(200).json({ ok: true, result, attempts });
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'Falha ao enviar mídia';
+        attempts.push({ path, variant: i + 1, ok: false, error: lastError });
+      }
+    }
+  }
+
+  logger.error('sendWhatsappMediaMessage failed', { instanceName, attempts });
+  res.status(502).json({ error: lastError, attempts });
+});
+
+export const listWhatsappEvolutionChats = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const { instanceName } = req.body as { instanceName?: string };
+  const inst = instanceName?.trim();
+  if (!inst) {
+    res.status(400).json({ error: 'instanceName is required' });
+    return;
+  }
+
+  try {
+    const result = await requestEvolution(`/chat/findChats/${encodeURIComponent(inst)}`, {
+      method: 'POST',
+      body: {}
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : 'Falha ao listar conversas.';
+    if (messageText.includes('EVOLUTION_API_URL and EVOLUTION_API_KEY must be configured')) {
+      res.status(503).json({
+        error: 'Evolution API não configurada nas Functions (defina EVOLUTION_API_URL e EVOLUTION_API_KEY em functions/.env e faça deploy).'
+      });
+      return;
+    }
+    if (messageText.includes('Evolution API request failed')) {
+      res.status(502).json({ error: messageText });
+      return;
+    }
+    logger.error('listWhatsappEvolutionChats failed', error);
+    res.status(500).json({ error: messageText });
+  }
+});
+
+export const listWhatsappEvolutionMessages = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const body = req.body as EvolutionChatMessagesRequest;
+  const inst = body.instanceName?.trim();
+  let jid = body.remoteJid?.trim();
+  const limit = typeof body.limit === 'number' && body.limit > 0 ? Math.min(body.limit, 200) : 80;
+  const page = typeof body.page === 'number' && body.page > 0 ? Math.floor(body.page) : 1;
+
+  if (!inst || !jid) {
+    res.status(400).json({ error: 'instanceName and remoteJid are required' });
+    return;
+  }
+
+  if (!jid.includes('@')) {
+    const normalizedDigits = jid.replace(/\D/g, '');
+    const isGroupLike = jid.includes('-');
+    jid = `${normalizedDigits || jid}@${isGroupLike ? 'g.us' : 's.whatsapp.net'}`;
+  }
+
+  const jidCandidates = Array.from(new Set([
+    jid,
+    normalizeRemoteJid(jid)
+  ].filter(Boolean)));
+
+  try {
+    let bestResult: unknown = null;
+    let bestCount = -1;
+
+    for (const candidate of jidCandidates) {
+      const queryBodies = buildEvolutionMessageQueries(candidate, limit, page);
+      for (const bodyCandidate of queryBodies) {
+        let result: unknown = null;
+        try {
+          result = await requestEvolution(`/chat/findMessages/${encodeURIComponent(inst)}`, {
+            method: 'POST',
+            body: bodyCandidate
+          });
+        } catch (innerError) {
+          logger.warn('findMessages attempt failed', { inst, candidate, bodyCandidate, innerError });
+          continue;
+        }
+
+        const count = getEvolutionMessageCount(result);
+        if (count > bestCount) {
+          bestCount = count;
+          bestResult = result;
+        }
+        if (count > 1) break;
+      }
+
+      if (bestCount > 1) {
+        break;
+      }
+    }
+
+    res.status(200).json(bestResult || { messages: [] });
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : 'Falha ao carregar mensagens.';
+    if (messageText.includes('EVOLUTION_API_URL and EVOLUTION_API_KEY must be configured')) {
+      res.status(503).json({
+        error: 'Evolution API não configurada nas Functions (defina EVOLUTION_API_URL e EVOLUTION_API_KEY em functions/.env e faça deploy).'
+      });
+      return;
+    }
+    if (messageText.includes('Evolution API request failed')) {
+      res.status(502).json({ error: messageText });
+      return;
+    }
+    logger.error('listWhatsappEvolutionMessages failed', error);
+    res.status(500).json({ error: messageText });
+  }
+});
+
+export const resolveWhatsappEvolutionMedia = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  try {
+    const payload = req.body as EvolutionResolveMediaRequest;
+    const inst = payload.instanceName?.trim();
+    const message = payload.message;
+    const fallbackMimeType = extractMimeTypeFromMessagePayload(message);
+
+    if (!inst || !message || typeof message !== 'object') {
+      res.status(400).json({ error: 'instanceName and message are required' });
+      return;
+    }
+
+    const mediaId = computeWhatsappMediaId(inst, message);
+
+    // Camada 2: Firestore lookup (compartilhado entre admins/dispositivos).
+    if (mediaId) {
+      try {
+        const cached = await readWhatsappMediaCache(mediaId);
+        if (cached?.url) {
+          logger.info('whatsappMediaCache hit', {
+            mediaId,
+            source: 'firestore',
+            instanceName: inst,
+            mimetype: cached.mimetype
+          });
+          void incrementWhatsappMediaCacheStats({ hits: 1 });
+          res.status(200).json({
+            mediaId,
+            url: cached.url,
+            mimetype: cached.mimetype || fallbackMimeType || 'application/octet-stream',
+            fromCache: true,
+            cacheLayer: 'firestore'
+          });
+          return;
+        }
+      } catch (error) {
+        logger.warn('whatsappMediaCache lookup failed', {
+          mediaId,
+          instanceName: inst,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
+    const candidateRequests: Array<{ path: string; body: Record<string, unknown> }> = [
+      { path: `/chat/getBase64FromMediaMessage/${encodeURIComponent(inst)}`, body: { message } },
+      { path: `/chat/getBase64FromMediaMessage/${encodeURIComponent(inst)}`, body: message },
+      { path: `/chat/getBase64FromMediaMessage/${encodeURIComponent(inst)}`, body: { ...message } }
+    ];
+
+    let resolved: { base64: string; mimetype: string } | null = null;
+    let lastError = '';
+    const attempts: Array<{ path: string; error?: string; resolved: boolean }> = [];
+
+    for (const candidate of candidateRequests) {
+      try {
+        const result = await requestEvolution(candidate.path, {
+          method: 'POST',
+          body: candidate.body
+        });
+        const media = extractBase64Media(result);
+        if (media) {
+          if (media.mimetype === 'application/octet-stream' && fallbackMimeType) {
+            media.mimetype = fallbackMimeType;
+          }
+          resolved = media;
+          attempts.push({ path: candidate.path, resolved: true });
+          break;
+        }
+        attempts.push({
+          path: candidate.path,
+          error: 'Resposta sem base64 de mídia',
+          resolved: false
+        });
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'failed';
+        attempts.push({
+          path: candidate.path,
+          error: lastError,
+          resolved: false
+        });
+      }
+    }
+
+    if (!resolved) {
+      const direct = extractDirectMediaUrlFromMessagePayload(message);
+      if (direct?.url) {
+        logger.warn('resolveWhatsappEvolutionMedia fallback to direct url', {
+          instanceName: inst,
+          mediaId,
+          attempts
+        });
+        res.status(200).json({
+          mediaId: mediaId || null,
+          url: direct.url,
+          mimetype: direct.mimetype || fallbackMimeType || 'application/octet-stream',
+          fromCache: false,
+          cacheLayer: 'origin-url',
+          attempts
+        });
+        return;
+      }
+      res.status(502).json({
+        error: lastError || 'Não foi possível resolver a mídia no provedor Evolution',
+        attempts
+      });
+      return;
+    }
+
+    // Camada 1: upload para Storage (compartilhado) com cabeçalho immutable de 1 ano.
+    let storageUrl: string | null = null;
+    let storageSize = 0;
+    if (mediaId) {
+      try {
+        const uploaded = await uploadWhatsappMediaToStorage({
+          mediaId,
+          instanceName: inst,
+          mimetype: resolved.mimetype,
+          base64: resolved.base64
+        });
+        storageUrl = uploaded.url;
+        storageSize = uploaded.sizeBytes;
+
+        await writeWhatsappMediaCache(mediaId, {
+          url: uploaded.url,
+          mimetype: resolved.mimetype,
+          sizeBytes: uploaded.sizeBytes,
+          instanceName: inst,
+          storagePath: uploaded.storagePath
+        });
+        logger.info('whatsappMediaCache miss -> stored', {
+          mediaId,
+          source: 'evolution',
+          instanceName: inst,
+          mimetype: resolved.mimetype,
+          sizeBytes: uploaded.sizeBytes
+        });
+        void incrementWhatsappMediaCacheStats({ misses: 1, bytesStored: uploaded.sizeBytes });
+      } catch (error) {
+        logger.warn('whatsappMediaCache upload failed', {
+          mediaId,
+          instanceName: inst,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
+    // Resposta retrocompatível: clientes novos usam `url`; antigos continuam lendo `dataUrl`.
+    const dataUrl = `data:${resolved.mimetype};base64,${resolved.base64}`;
+    res.status(200).json({
+      mediaId: mediaId || null,
+      url: storageUrl || dataUrl,
+      mimetype: resolved.mimetype,
+      fromCache: false,
+      cacheLayer: storageUrl ? 'storage' : 'inline',
+      sizeBytes: storageSize || null,
+      dataUrl
+    });
+  } catch (error) {
+    logger.error('resolveWhatsappEvolutionMedia internal error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    res.status(502).json({
+      error: error instanceof Error ? error.message : 'Falha interna ao resolver mídia.'
+    });
+  }
+});
+
+export const getWhatsappInstanceLockStatus = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'GET') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const instanceName = getRequiredQuery(req, res, 'instanceName');
+  if (!instanceName) return;
+
+  const lock = await getWhatsappInstanceLock(instanceName);
+  res.status(200).json({
+    instanceName,
+    locked: lock?.locked === true
+  });
+});
+
+export const requestWhatsappInstanceAccessCode = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const payload = req.body as WhatsappInstanceAccessCodeRequest;
+  const instanceName = payload.instanceName?.trim();
+  const intent = payload.intent === 'lock' ? 'lock' : 'unlock';
+  if (!instanceName) {
+    res.status(400).json({ error: 'instanceName is required' });
+    return;
+  }
+
+  const destinationNumber = await resolveInstanceOwnNumber(instanceName);
+  if (!destinationNumber) {
+    res.status(400).json({ error: 'Não foi possível identificar o número da própria instância.' });
+    return;
+  }
+
+  const code = generateNumericCode(6);
+  const expiresAt = Date.now() + (5 * 60 * 1000);
+  await saveWhatsappInstanceLock(instanceName, {
+    instanceName,
+    pendingCode: code,
+    pendingCodeExpiresAt: expiresAt,
+    lastCodeSentAt: Date.now(),
+    failedAttempts: 0,
+    updatedBy: user.uid,
+    updatedAt: FieldValue.serverTimestamp()
+  });
+
+  const actionLabel = intent === 'lock' ? 'bloquear' : 'desbloquear';
+  await requestEvolution(`/message/sendText/${encodeURIComponent(instanceName)}`, {
+    method: 'POST',
+    body: {
+      number: destinationNumber,
+      text: `Código de confirmação Compraki (${actionLabel} conversas): ${code}. Válido por 5 minutos.`
+    }
+  });
+
+  res.status(200).json({
+    instanceName,
+    expiresAt,
+    maskedNumber: maskPhoneNumber(destinationNumber)
+  });
+});
+
+export const confirmWhatsappInstanceAccessCode = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const payload = req.body as WhatsappInstanceAccessCodeConfirmRequest;
+  const instanceName = payload.instanceName?.trim();
+  const code = payload.code?.trim();
+  const intent = payload.intent === 'lock' ? 'lock' : 'unlock';
+  if (!instanceName || !code) {
+    res.status(400).json({ error: 'instanceName and code are required' });
+    return;
+  }
+
+  const lock = await getWhatsappInstanceLock(instanceName);
+  if (!lock?.pendingCode || !lock.pendingCodeExpiresAt) {
+    res.status(400).json({ error: 'Nenhum código pendente para esta instância.' });
+    return;
+  }
+
+  if (Date.now() > lock.pendingCodeExpiresAt) {
+    await saveWhatsappInstanceLock(instanceName, {
+      pendingCode: null,
+      pendingCodeExpiresAt: null
+    });
+    res.status(400).json({ error: 'Código expirado. Solicite um novo código.' });
+    return;
+  }
+
+  if (lock.pendingCode !== code) {
+    const nextFailures = (lock.failedAttempts || 0) + 1;
+    await saveWhatsappInstanceLock(instanceName, {
+      failedAttempts: nextFailures
+    });
+    res.status(400).json({ error: 'Código inválido.' });
+    return;
+  }
+
+  const nextLocked = intent === 'lock';
+  await saveWhatsappInstanceLock(instanceName, {
+    instanceName,
+    locked: nextLocked,
+    pendingCode: null,
+    pendingCodeExpiresAt: null,
+    failedAttempts: 0,
+    updatedBy: user.uid,
+    updatedAt: FieldValue.serverTimestamp()
+  });
+
+  res.status(200).json({
+    instanceName,
+    locked: nextLocked
+  });
+});
+
 export const getWhatsappTriggers = onRequest({ region, cors: false }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
@@ -399,6 +974,334 @@ export const dispatchWhatsappTrigger = onRequest({ region, cors: false }, async 
   res.status(200).json({ sent: true, result });
 });
 
+export const createBotJob = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const payload = req.body as CreateBotJobRequest;
+  const botType = payload.botType?.trim();
+  const botLabel = payload.botLabel?.trim() || 'Bot';
+  const script = payload.script?.trim() || '';
+  const priority = Number.isFinite(payload.priority) ? Number(payload.priority) : 0;
+  const config = payload.payload || {};
+
+  if (!botType) {
+    res.status(400).json({ error: 'botType is required' });
+    return;
+  }
+
+  const queueLimitByType = Number(process.env.BOT_MAX_QUEUE_PER_TYPE || '60');
+  const db = getFirestore();
+  const queuedByTypeSnap = await db.collection('botJobs')
+    .where('botType', '==', botType)
+    .where('status', '==', 'queued')
+    .get();
+
+  if (queuedByTypeSnap.size >= queueLimitByType) {
+    res.status(429).json({ error: `Limite de fila atingido para ${botType} (${queueLimitByType})` });
+    return;
+  }
+
+  const docRef = db.collection('botJobs').doc();
+  const nowIso = new Date().toISOString();
+
+  await docRef.set({
+    id: docRef.id,
+    botType,
+    botLabel,
+    script,
+    priority,
+    payload: config,
+    status: 'queued',
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    createdAtIso: nowIso,
+    updatedAtIso: nowIso,
+    createdBy: user.uid,
+    createdByEmail: user.email || null,
+    worker: null,
+    result: null,
+    errorMessage: null
+  });
+
+  await db.collection('botJobLogs').add({
+    jobId: docRef.id,
+    level: 'info',
+    message: 'Job criado e enfileirado.',
+    at: FieldValue.serverTimestamp(),
+    atIso: nowIso,
+    actor: user.uid
+  });
+
+  res.status(200).json({ jobId: docRef.id, status: 'queued' });
+});
+
+export const listBotJobs = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'GET') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const status = (req.query['status'] as string | undefined)?.trim();
+  const limitRaw = Number(req.query['limit'] || 40);
+  const limit = Math.min(Math.max(limitRaw, 1), 100);
+
+  let query = getFirestore().collection('botJobs').limit(limit);
+  if (status) {
+    query = query.where('status', '==', status);
+  }
+
+  const snap = await query.get();
+  const jobs = snap.docs
+    .map(doc => doc.data() as Record<string, unknown>)
+    .sort((a, b) => String(b['createdAtIso'] || '').localeCompare(String(a['createdAtIso'] || '')));
+
+  res.status(200).json({ jobs });
+});
+
+export const cancelBotJob = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const jobId = getString((req.body as { jobId?: string }).jobId);
+  if (!jobId) {
+    res.status(400).json({ error: 'jobId is required' });
+    return;
+  }
+
+  const db = getFirestore();
+  const docRef = db.collection('botJobs').doc(jobId);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    res.status(404).json({ error: 'Job não encontrado' });
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  await docRef.set({
+    status: 'cancelled',
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedAtIso: nowIso,
+    errorMessage: null
+  }, { merge: true });
+
+  await db.collection('botJobLogs').add({
+    jobId,
+    level: 'warn',
+    message: `Job cancelado por ${user.email || user.uid}.`,
+    at: FieldValue.serverTimestamp(),
+    atIso: nowIso,
+    actor: user.uid
+  });
+
+  res.status(200).json({ ok: true, status: 'cancelled' });
+});
+
+export const retryBotJob = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const jobId = getString((req.body as { jobId?: string }).jobId);
+  if (!jobId) {
+    res.status(400).json({ error: 'jobId is required' });
+    return;
+  }
+
+  const db = getFirestore();
+  const docRef = db.collection('botJobs').doc(jobId);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    res.status(404).json({ error: 'Job não encontrado' });
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  await docRef.set({
+    status: 'queued',
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedAtIso: nowIso,
+    worker: null,
+    errorMessage: null,
+    result: null
+  }, { merge: true });
+
+  await db.collection('botJobLogs').add({
+    jobId,
+    level: 'info',
+    message: `Job reenfileirado por ${user.email || user.uid}.`,
+    at: FieldValue.serverTimestamp(),
+    atIso: nowIso,
+    actor: user.uid
+  });
+
+  res.status(200).json({ ok: true, status: 'queued' });
+});
+
+export const claimBotJob = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+  if (!requireWorkerToken(req, res)) return;
+
+  const workerId = getString((req.body as { workerId?: string }).workerId) || 'cloud-run-worker';
+  const db = getFirestore();
+  const queuedSnap = await db.collection('botJobs')
+    .where('status', '==', 'queued')
+    .limit(40)
+    .get();
+
+  if (queuedSnap.empty) {
+    res.status(200).json({ job: null });
+    return;
+  }
+
+  const queuedItems: Array<Record<string, unknown> & { id: string }> = queuedSnap.docs
+    .map(doc => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }));
+
+  const picked = queuedItems
+    .sort((a, b) => {
+      const pa = Number(a['priority'] || 0);
+      const pb = Number(b['priority'] || 0);
+      if (pa !== pb) return pb - pa;
+      return String(a['createdAtIso'] || '').localeCompare(String(b['createdAtIso'] || ''));
+    })[0];
+
+  const nowIso = new Date().toISOString();
+  await db.collection('botJobs').doc(String(picked['id'])).set({
+    status: 'running',
+    worker: workerId,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedAtIso: nowIso
+  }, { merge: true });
+
+  await db.collection('botJobLogs').add({
+    jobId: picked['id'],
+    level: 'info',
+    message: `Job assumido pelo worker ${workerId}.`,
+    at: FieldValue.serverTimestamp(),
+    atIso: nowIso,
+    actor: workerId
+  });
+
+  res.status(200).json({ job: picked });
+});
+
+export const updateBotJobState = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+  if (!requireWorkerToken(req, res)) return;
+
+  const payload = req.body as UpdateBotJobStateRequest;
+  const jobId = payload.jobId?.trim();
+  const status = payload.status;
+  const allowedStatus: BotJobStatus[] = ['running', 'success', 'failed', 'cancelled'];
+
+  if (!jobId || !status || !allowedStatus.includes(status)) {
+    res.status(400).json({ error: 'jobId and valid status are required' });
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  await getFirestore().collection('botJobs').doc(jobId).set({
+    status,
+    result: payload.result || null,
+    errorMessage: payload.errorMessage || null,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedAtIso: nowIso
+  }, { merge: true });
+
+  await getFirestore().collection('botJobLogs').add({
+    jobId,
+    level: status === 'failed' ? 'error' : 'info',
+    message: `Worker atualizou status para ${status}.`,
+    at: FieldValue.serverTimestamp(),
+    atIso: nowIso,
+    actor: 'worker'
+  });
+
+  res.status(200).json({ ok: true });
+});
+
+export const appendBotJobLog = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+  if (!requireWorkerToken(req, res)) return;
+
+  const payload = req.body as AppendBotJobLogRequest;
+  const jobId = payload.jobId?.trim();
+  const message = payload.message?.trim();
+  const level = payload.level || 'info';
+
+  if (!jobId || !message) {
+    res.status(400).json({ error: 'jobId and message are required' });
+    return;
+  }
+
+  await getFirestore().collection('botJobLogs').add({
+    jobId,
+    level,
+    message,
+    at: FieldValue.serverTimestamp(),
+    atIso: new Date().toISOString(),
+    actor: 'worker'
+  });
+
+  res.status(200).json({ ok: true });
+});
+
+export const listBotJobLogs = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'GET') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const jobId = getRequiredQuery(req, res, 'jobId');
+  if (!jobId) return;
+
+  const logsSnap = await getFirestore().collection('botJobLogs')
+    .where('jobId', '==', jobId)
+    .limit(200)
+    .get();
+
+  const logs = logsSnap.docs
+    .map(doc => doc.data() as Record<string, unknown>)
+    .sort((a, b) => String(a['atIso'] || '').localeCompare(String(b['atIso'] || '')));
+
+  res.status(200).json({ logs });
+});
+
+export const getBotOpsSummary = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'GET') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const jobsSnap = await getFirestore().collection('botJobs').limit(300).get();
+  const jobs = jobsSnap.docs.map(doc => doc.data() as Record<string, unknown>);
+
+  const summary = {
+    queued: jobs.filter(j => j['status'] === 'queued').length,
+    running: jobs.filter(j => j['status'] === 'running').length,
+    success: jobs.filter(j => j['status'] === 'success').length,
+    failed: jobs.filter(j => j['status'] === 'failed').length,
+    cancelled: jobs.filter(j => j['status'] === 'cancelled').length,
+    total: jobs.length
+  };
+
+  res.status(200).json({ summary });
+});
+
 export const evolutionWebhook = onRequest({ region, cors: false }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -479,6 +1382,22 @@ async function requireAuthenticated(req: Request, res: HttpResponse): Promise<Au
     res.status(401).json({ error: 'Invalid Firebase ID token' });
     return null;
   }
+}
+
+function requireWorkerToken(req: Request, res: HttpResponse): boolean {
+  const configuredToken = (process.env.BOT_WORKER_TOKEN || '').trim();
+  if (!configuredToken) {
+    res.status(503).json({ error: 'BOT_WORKER_TOKEN not configured' });
+    return false;
+  }
+
+  const provided = (req.header('x-bot-worker-token') || '').trim();
+  if (!provided || provided !== configuredToken) {
+    res.status(401).json({ error: 'Invalid worker token' });
+    return false;
+  }
+
+  return true;
 }
 
 async function requestEvolution(path: string, options: EvolutionRequestOptions = {}): Promise<unknown> {
@@ -571,6 +1490,289 @@ function getInstanceName(req: Request, res: HttpResponse): string | null {
 
 function getString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function normalizeRemoteJid(jid: string): string {
+  const trimmed = jid.trim();
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex <= 0) return trimmed;
+  const local = trimmed.slice(0, atIndex);
+  const domain = trimmed.slice(atIndex + 1);
+  const normalizedLocal = local.split(':')[0] || local;
+  return `${normalizedLocal}@${domain}`;
+}
+
+function buildEvolutionMessageQueries(remoteJid: string, limit: number, page: number): Array<Record<string, unknown>> {
+  const offset = Math.max(0, (page - 1) * limit);
+  return [
+    {
+      where: { key: { remoteJid } },
+      limit,
+      page,
+      offset
+    },
+    {
+      where: { key: { remoteJid } },
+      take: limit,
+      page
+    },
+    {
+      where: { remoteJid },
+      limit,
+      page,
+      offset
+    },
+    {
+      where: { remoteJid },
+      take: limit,
+      page
+    },
+    {
+      remoteJid,
+      limit,
+      page,
+      offset
+    }
+  ];
+}
+
+function getEvolutionMessageCount(result: unknown): number {
+  if (Array.isArray(result)) return result.length;
+  const r = result as Record<string, unknown>;
+  if (!r || typeof r !== 'object') return 0;
+  if (Array.isArray(r['messages'])) return (r['messages'] as unknown[]).length;
+  if (Array.isArray(r['data'])) return (r['data'] as unknown[]).length;
+  if (Array.isArray(r['records'])) return (r['records'] as unknown[]).length;
+  if (r['response'] && typeof r['response'] === 'object') {
+    const response = r['response'] as Record<string, unknown>;
+    if (Array.isArray(response['messages'])) return (response['messages'] as unknown[]).length;
+    if (Array.isArray(response['data'])) return (response['data'] as unknown[]).length;
+    if (Array.isArray(response['records'])) return (response['records'] as unknown[]).length;
+  }
+  return 0;
+}
+
+function extractBase64Media(result: unknown): { base64: string; mimetype: string } | null {
+  const record = result as Record<string, unknown>;
+  if (!record || typeof record !== 'object') return null;
+
+  const directBase64 = getString(record['base64']) || getString(record['data']);
+  const directMimetype = getString(record['mimetype']) || 'application/octet-stream';
+  if (directBase64 && !directBase64.startsWith('data:')) {
+    return { base64: directBase64, mimetype: directMimetype };
+  }
+
+  if (directBase64 && directBase64.startsWith('data:')) {
+    const match = directBase64.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) {
+      return { mimetype: match[1], base64: match[2] };
+    }
+  }
+
+  const dataObj = record['data'] && typeof record['data'] === 'object'
+    ? (record['data'] as Record<string, unknown>)
+    : null;
+  if (dataObj) {
+    const base64 = getString(dataObj['base64']) || getString(dataObj['data']);
+    const mimetype = getString(dataObj['mimetype']) || directMimetype;
+    if (base64) return { base64, mimetype };
+  }
+
+  return null;
+}
+
+function extractMimeTypeFromMessagePayload(message: unknown): string | null {
+  if (!message || typeof message !== 'object') return null;
+  const rec = message as Record<string, unknown>;
+
+  const direct = getString(rec['mimetype']) || getString(rec['mimeType']);
+  if (direct) return direct;
+
+  const msg = rec['message'] && typeof rec['message'] === 'object'
+    ? (rec['message'] as Record<string, unknown>)
+    : rec;
+
+  const mediaCandidates = [
+    msg['audioMessage'],
+    msg['pttMessage'],
+    msg['videoMessage'],
+    msg['imageMessage'],
+    msg['documentMessage']
+  ];
+
+  for (const candidate of mediaCandidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const media = candidate as Record<string, unknown>;
+    const mime = getString(media['mimetype']) || getString(media['mimeType']);
+    if (mime) return mime;
+  }
+
+  return null;
+}
+
+function extractDirectMediaUrlFromMessagePayload(message: unknown): { url: string; mimetype?: string } | null {
+  if (!message || typeof message !== 'object') return null;
+  const root = message as Record<string, unknown>;
+  const msg = root['message'] && typeof root['message'] === 'object'
+    ? (root['message'] as Record<string, unknown>)
+    : root;
+
+  const mediaCandidates = [
+    msg['imageMessage'],
+    msg['videoMessage'],
+    msg['audioMessage'],
+    msg['pttMessage'],
+    msg['documentMessage']
+  ];
+
+  for (const candidate of mediaCandidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const media = candidate as Record<string, unknown>;
+    const url = getString(media['url']) || getString(media['directPath']);
+    if (!url) continue;
+    const mimetype = getString(media['mimetype']) || getString(media['mimeType']) || undefined;
+    return { url, mimetype };
+  }
+
+  return null;
+}
+
+interface WhatsappMediaCacheRecord {
+  url: string;
+  mimetype: string;
+  sizeBytes: number;
+  instanceName: string;
+  storagePath: string;
+  createdAt?: unknown;
+}
+
+function computeWhatsappMediaId(instanceName: string, message: unknown): string | null {
+  if (!message || typeof message !== 'object') return null;
+  const rec = message as Record<string, unknown>;
+  const key = rec['key'] && typeof rec['key'] === 'object'
+    ? (rec['key'] as Record<string, unknown>)
+    : null;
+
+  const id = getString(key?.['id']) || getString(rec['id']);
+  const remoteJid = getString(key?.['remoteJid']) || getString(rec['remoteJid']);
+  if (!id) return null;
+
+  const fromMe = key?.['fromMe'] === true || rec['fromMe'] === true ? '1' : '0';
+  const seed = `${instanceName.trim().toLowerCase()}|${remoteJid || ''}|${id}|${fromMe}`;
+  return createHash('sha1').update(seed).digest('hex');
+}
+
+function inferExtensionFromMimetype(mimetype: string): string {
+  const mime = mimetype.toLowerCase();
+  if (mime.includes('png')) return 'png';
+  if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+  if (mime.includes('webp')) return 'webp';
+  if (mime.includes('gif')) return 'gif';
+  if (mime.includes('mp4')) return 'mp4';
+  if (mime.includes('quicktime')) return 'mov';
+  if (mime.includes('webm')) return 'webm';
+  if (mime.includes('ogg')) return 'ogg';
+  if (mime.includes('mpeg') && mime.includes('audio')) return 'mp3';
+  if (mime.includes('wav')) return 'wav';
+  if (mime.includes('aac')) return 'aac';
+  if (mime.includes('pdf')) return 'pdf';
+  return 'bin';
+}
+
+async function readWhatsappMediaCache(mediaId: string): Promise<WhatsappMediaCacheRecord | null> {
+  const snap = await getFirestore()
+    .collection(WHATSAPP_MEDIA_CACHE_COLLECTION)
+    .doc(mediaId)
+    .get();
+  if (!snap.exists) return null;
+  const data = snap.data() as Partial<WhatsappMediaCacheRecord> | undefined;
+  if (!data || !data.url) return null;
+  return {
+    url: String(data.url),
+    mimetype: String(data.mimetype || 'application/octet-stream'),
+    sizeBytes: typeof data.sizeBytes === 'number' ? data.sizeBytes : 0,
+    instanceName: String(data.instanceName || ''),
+    storagePath: String(data.storagePath || ''),
+    createdAt: data.createdAt
+  };
+}
+
+async function writeWhatsappMediaCache(
+  mediaId: string,
+  data: Omit<WhatsappMediaCacheRecord, 'createdAt'>
+): Promise<void> {
+  await getFirestore()
+    .collection(WHATSAPP_MEDIA_CACHE_COLLECTION)
+    .doc(mediaId)
+    .set({
+      ...data,
+      createdAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+async function uploadWhatsappMediaToStorage(params: {
+  mediaId: string;
+  instanceName: string;
+  mimetype: string;
+  base64: string;
+}): Promise<{ url: string; sizeBytes: number; storagePath: string }> {
+  const { mediaId, instanceName, mimetype, base64 } = params;
+  const buffer = Buffer.from(base64, 'base64');
+  const safeInstance = instanceName.replace(/[^a-zA-Z0-9._-]+/g, '_');
+  const ext = inferExtensionFromMimetype(mimetype);
+  const storagePath = `${WHATSAPP_MEDIA_STORAGE_PREFIX}/${safeInstance}/${mediaId}.${ext}`;
+
+  const bucket = getStorage().bucket();
+  const file = bucket.file(storagePath);
+
+  await file.save(buffer, {
+    contentType: mimetype || 'application/octet-stream',
+    resumable: false,
+    metadata: {
+      cacheControl: 'public, max-age=31536000, immutable',
+      contentType: mimetype || 'application/octet-stream'
+    }
+  });
+
+  try {
+    await file.makePublic();
+  } catch (error) {
+    logger.warn('whatsappMediaCache makePublic failed (continuing with uniform-access URL)', {
+      storagePath,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
+  const url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(storagePath)}`;
+  return { url, sizeBytes: buffer.byteLength, storagePath };
+}
+
+async function incrementWhatsappMediaCacheStats(delta: {
+  hits?: number;
+  misses?: number;
+  bytesStored?: number;
+}): Promise<void> {
+  try {
+    const db = getFirestore();
+    const ref = db.doc(WHATSAPP_MEDIA_CACHE_STATS_DOC);
+    const update: Record<string, unknown> = {
+      updatedAt: FieldValue.serverTimestamp()
+    };
+    if (typeof delta.hits === 'number' && delta.hits) {
+      update['hits'] = FieldValue.increment(delta.hits);
+    }
+    if (typeof delta.misses === 'number' && delta.misses) {
+      update['misses'] = FieldValue.increment(delta.misses);
+    }
+    if (typeof delta.bytesStored === 'number' && delta.bytesStored) {
+      update['bytesStored'] = FieldValue.increment(delta.bytesStored);
+    }
+    await ref.set(update, { merge: true });
+  } catch (error) {
+    logger.warn('whatsappMediaCacheStats increment failed', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 }
 
 async function saveWhatsappInstance(instanceName: string, data: Partial<StoredWhatsappInstance>): Promise<void> {
@@ -666,6 +1868,99 @@ function getNormalizedInstanceStatus(value: unknown): string | null {
 
 function getWhatsappInstanceDocId(instanceName: string): string {
   return encodeURIComponent(instanceName.trim());
+}
+
+function getWhatsappInstanceLockDocId(instanceName: string): string {
+  return encodeURIComponent(instanceName.trim());
+}
+
+async function getWhatsappInstanceLock(instanceName: string): Promise<StoredWhatsappInstanceLock | null> {
+  const snap = await getFirestore().collection('whatsappInstanceLocks').doc(getWhatsappInstanceLockDocId(instanceName)).get();
+  if (!snap.exists) return null;
+  return snap.data() as StoredWhatsappInstanceLock;
+}
+
+async function saveWhatsappInstanceLock(instanceName: string, data: Partial<StoredWhatsappInstanceLock>): Promise<void> {
+  await getFirestore().collection('whatsappInstanceLocks').doc(getWhatsappInstanceLockDocId(instanceName)).set({
+    ...data,
+    instanceName,
+    updatedAt: data.updatedAt || FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+async function resolveInstanceOwnNumber(instanceName: string): Promise<string | null> {
+  const result = await requestEvolution('/instance/fetchInstances');
+  const list = Array.isArray(result)
+    ? result
+    : Array.isArray((result as Record<string, unknown>)?.['instances'])
+      ? (result as Record<string, unknown>)['instances'] as unknown[]
+      : Array.isArray((result as Record<string, unknown>)?.['data'])
+        ? (result as Record<string, unknown>)['data'] as unknown[]
+        : [];
+
+  const byName = list.find(item => {
+    if (!item || typeof item !== 'object') return false;
+    const rec = item as Record<string, unknown>;
+    const candidateName = getString(rec['name'])
+      || getString(rec['instanceName'])
+      || getString(rec['instance']);
+    return candidateName === instanceName;
+  });
+
+  if (!byName || typeof byName !== 'object') return null;
+  return extractPhoneFromInstanceRecord(byName as Record<string, unknown>);
+}
+
+function extractPhoneFromInstanceRecord(record: Record<string, unknown>): string | null {
+  const candidates: unknown[] = [
+    record['owner'],
+    record['ownerJid'],
+    record['number'],
+    record['wuid'],
+    record['phone'],
+    record['profileName'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['owner'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['ownerJid'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['number'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['wuid'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['phone'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['me'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['meId'],
+    (record['instance'] as Record<string, unknown> | undefined)?.['meJid']
+  ];
+
+  for (const raw of candidates) {
+    if (!raw) continue;
+    if (typeof raw === 'string') {
+      const digits = raw.replace(/\D/g, '');
+      if (digits.length >= 10) return digits;
+      continue;
+    }
+    if (typeof raw === 'object') {
+      const rec = raw as Record<string, unknown>;
+      const id = getString(rec['id']) || getString(rec['jid']) || getString(rec['_serialized']) || getString(rec['user']);
+      if (id) {
+        const digits = id.replace(/\D/g, '');
+        if (digits.length >= 10) return digits;
+      }
+    }
+  }
+
+  return null;
+}
+
+function generateNumericCode(length: number): string {
+  let value = '';
+  for (let i = 0; i < length; i++) {
+    value += Math.floor(Math.random() * 10).toString();
+  }
+  return value;
+}
+
+function maskPhoneNumber(phoneNumber: string): string {
+  const digits = phoneNumber.replace(/\D/g, '');
+  if (digits.length <= 4) return digits;
+  return `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
 }
 
 async function getWhatsappTriggerConfigs(): Promise<WhatsappTriggerConfig[]> {

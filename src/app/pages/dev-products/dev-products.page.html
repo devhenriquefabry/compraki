@@ -20,7 +20,14 @@
     
     <!-- ÁREA DE LISTAGEM DE PRODUTOS -->
     <div class="dashboard-wrapper main-scroll-content">
-      
+    
+      <app-admin-panel-hero
+        eyebrow="Catálogo e estoque"
+        title="Gestão de produtos"
+        description="Visualize, filtre e audite o inventário publicado pelos vendedores, com suporte a chat e detalhes por item."
+        (refreshClick)="loadProducts()">
+      </app-admin-panel-hero>
+
       <!-- DASHBOARD STATS HERO -->
       <app-admin-stats-grid 
         [stats]="stats" 

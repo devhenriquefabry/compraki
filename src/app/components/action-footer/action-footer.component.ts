@@ -75,7 +75,7 @@ export class ActionFooterComponent {
   @Output() clicked = new EventEmitter<void>();
 
   onAction() {
-    this.clicked.emit();
+    this.clicked.emit(); 
   }
 }
     

@@ -1,35 +1,21 @@
 <ion-content class="metrics-bg" [scrollY]="true">
   <div class="dashboard-wrapper">
-    <section class="dashboard-hero">
-      <div>
-        <span class="eyebrow">Dashboard Métrico do Sistema</span>
-        <h1 class="poppins">Métricas</h1>
-        <p>Relatórios em tempo real para acompanhar operação, receita, produtos, usuários e alertas críticos.</p>
+    <app-admin-panel-hero
+      eyebrow="Dashboard Métrico do Sistema"
+      title="Métricas"
+      description="Relatórios em tempo real para acompanhar operação, receita, produtos, usuários e alertas críticos."
+      [showSegmentedControl]="true"
+      [segmentOptions]="periodOptions"
+      [selectedSegment]="filters.period"
+      (segmentChange)="setPeriod($event)"
+      [showCustomDateRange]="filters.period === 'custom'"
+      (refreshClick)="refresh()">
+      <div panelHeroCustomRange class="metrics-custom-range" *ngIf="filters.period === 'custom'">
+        <input type="date" [(ngModel)]="filters.startDate" (ngModelChange)="onCustomDateChange()" />
+        <span>até</span>
+        <input type="date" [(ngModel)]="filters.endDate" (ngModelChange)="onCustomDateChange()" />
       </div>
-
-      <div class="hero-actions">
-        <div class="period-filter">
-          <button
-            *ngFor="let option of periodOptions; trackBy: trackByLabel"
-            type="button"
-            [class.active]="filters.period === option.value"
-            (click)="setPeriod(option.value)">
-            {{ option.label }}
-          </button>
-        </div>
-
-        <div class="custom-range" *ngIf="filters.period === 'custom'">
-          <input type="date" [(ngModel)]="filters.startDate" (ngModelChange)="onCustomDateChange()">
-          <span>até</span>
-          <input type="date" [(ngModel)]="filters.endDate" (ngModelChange)="onCustomDateChange()">
-        </div>
-
-        <button class="refresh-button" type="button" (click)="refresh()">
-          <ion-icon name="refresh-outline"></ion-icon>
-          Atualizar
-        </button>
-      </div>
-    </section>
+    </app-admin-panel-hero>
 
     <div class="loading-grid" *ngIf="isLoading">
       <div class="skeleton-card" *ngFor="let item of [1,2,3,4,5,6,7,8]"></div>
@@ -52,12 +38,46 @@
       </div>
 
       <section class="metrics-grid overview-grid">
-        <article class="metric-card success">
-          <div class="icon-bubble"><ion-icon name="radio-outline"></ion-icon></div>
-          <span>Usuários online</span>
-          <strong>{{ data.overview.onlineUsers }}</strong>
-          <small>Presença sincronizada via Firebase</small>
-        </article>
+        <div
+          class="online-users-hover-wrap"
+          (mouseenter)="setOnlineUsersPanelOpen(true)"
+          (mouseleave)="setOnlineUsersPanelOpen(false)">
+          <article class="metric-card success online-users-card" tabindex="0">
+            <div class="icon-bubble"><ion-icon name="radio-outline"></ion-icon></div>
+            <span>Usuários online</span>
+            <strong>{{ data.overview.onlineUsers }}</strong>
+            <small>Presença sincronizada via Firebase</small>
+          </article>
+
+          <div
+            class="online-users-dropdown"
+            *ngIf="onlineUsersPanelOpen"
+            role="region"
+            aria-label="Usuários online no momento">
+            <div class="online-dropdown-inner">
+              <div class="online-dropdown-head">
+                <span>Usuários online</span>
+                <strong>{{ data.overview.onlineUsers }}</strong>
+                <small>Presença sincronizada via Firebase</small>
+              </div>
+              <ul class="online-dropdown-list" *ngIf="data.overview.onlineUsersList.length > 0">
+                <li *ngFor="let u of data.overview.onlineUsersList; trackBy: trackByLabel">
+                  <img *ngIf="u.image" [src]="u.image" [alt]="u.name" />
+                  <ion-icon *ngIf="!u.image" name="person-circle-outline" aria-hidden="true"></ion-icon>
+                  <div class="online-user-text">
+                    <strong>{{ u.name }}</strong>
+                    <span class="online-duration">{{ formatOnlineSessionDuration(u) }}</span>
+                    <span class="online-contact">{{ u.helper }}</span>
+                  </div>
+                  <span class="online-pill">online</span>
+                </li>
+              </ul>
+              <div class="online-dropdown-empty" *ngIf="data.overview.onlineUsersList.length === 0">
+                Ninguém com presença ativa no momento.
+              </div>
+            </div>
+          </div>
+        </div>
 
         <article class="metric-card info">
           <div class="icon-bubble"><ion-icon name="people-outline"></ion-icon></div>

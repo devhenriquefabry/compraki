@@ -21,6 +21,8 @@ export interface AppUser {
   createdAt?: any;
   lastLoginAt?: any;
   status?: 'online' | 'offline';
+  /** Início da sessão atual online (Firestore); usado para “há quanto tempo” no admin */
+  onlineSince?: any;
   lastActive?: any;
   isChatBanned?: boolean;
 }

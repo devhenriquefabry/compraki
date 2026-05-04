@@ -141,6 +141,45 @@ export class Tab2Page implements OnInit, OnDestroy {
     this.router.navigate(['/product-details', product.id]);
   }
 
+  /** Preço exibido (promo ou cheio) */
+  public priceMain(product: Product): number {
+    const d = product.priceDiscounted;
+    if (d != null && d > 0 && d < product.price) {
+      return d;
+    }
+    return product.price;
+  }
+
+  public hasDiscount(product: Product): boolean {
+    return (
+      product.priceDiscounted != null &&
+      product.priceDiscounted > 0 &&
+      product.price > 0 &&
+      product.priceDiscounted < product.price
+    );
+  }
+
+  public discountPercent(product: Product): number {
+    if (!this.hasDiscount(product)) {
+      return 0;
+    }
+    return Math.round((1 - (product.priceDiscounted as number) / product.price) * 100);
+  }
+
+  /** Texto tipo Mercado Livre: parcela sugerida (informativo) */
+  public installmentHint(product: Product): string | null {
+    const total = this.priceMain(product);
+    if (total < 30) {
+      return null;
+    }
+    const per12 = total / 12;
+    const formatted = per12.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    return `12x R$ ${formatted}`;
+  }
+
   public getIcon(icon: any): string {
     if (typeof icon === 'string' && icon.trim() !== '') {
       return icon;

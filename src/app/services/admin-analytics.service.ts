@@ -36,6 +36,8 @@ export interface AdminNamedMetric {
   amount?: number;
   image?: string;
   status?: string;
+  /** Início da sessão online (para exibir duração no painel admin) */
+  onlineSince?: Date | null;
 }
 
 export interface AdminAlert {
@@ -50,6 +52,8 @@ export interface AdminDashboardMetrics {
   rangeLabel: string;
   overview: {
     onlineUsers: number;
+    /** Usuários com `status === 'online'` (presença Firebase), ordenados por nome */
+    onlineUsersList: AdminNamedMetric[];
     totalUsers: number;
     newUsersToday: number;
     newUsersWeek: number;
@@ -169,7 +173,8 @@ export class AdminAnalyticsService {
     orders.forEach(order => activeBuyerIds.add(order.userId));
 
     const userActivity = this.buildUserActivity(users, orders);
-    const onlineUsers = users.filter(user => user.status === 'online').length;
+    const onlineUsersList = this.mapOnlineUsersList(users);
+    const onlineUsers = onlineUsersList.length;
     const activeUsers30d = users.filter(user => this.isRecentlyActive(user, now, 30)).length;
     const retentionRate = users.length > 0 ? Math.round((activeUsers30d / users.length) * 100) : 0;
     const abandonmentRate = users.length > 0 ? Math.max(0, 100 - retentionRate) : 0;
@@ -207,6 +212,7 @@ export class AdminAnalyticsService {
       rangeLabel: range.label,
       overview: {
         onlineUsers,
+        onlineUsersList,
         totalUsers: users.length,
         newUsersToday: this.countUsersCreatedSince(users, todayStart, now),
         newUsersWeek: this.countUsersCreatedSince(users, weekStart, now),
@@ -339,6 +345,24 @@ export class AdminAnalyticsService {
       })
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
+  }
+
+  private mapOnlineUsersList(users: (AppUser & { id?: string })[]): AdminNamedMetric[] {
+    return users
+      .filter(user => user.status === 'online')
+      .map(user => {
+        const onlineSince = this.toDate(user.onlineSince);
+        return {
+          id: user.uid || user.id || '',
+          name: user.displayName || user.username || user.email || 'Usuário sem nome',
+          helper: user.email || user.phoneNumber || 'Sem contato',
+          value: 1,
+          image: user.photoURL || undefined,
+          status: 'online',
+          onlineSince
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }
 
   private mapLatestUsers(users: (AppUser & { id?: string })[]): AdminNamedMetric[] {

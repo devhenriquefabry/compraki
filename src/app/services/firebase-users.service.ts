@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc, serverTimestamp, Firestore, collection, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, Firestore, collection, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { EmailAuthProvider, getAuth, reauthenticateWithCredential, updatePassword, updateProfile } from 'firebase/auth';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
@@ -138,5 +138,26 @@ export class FirebaseUsersService {
            observer.error(err);
        });
     });
+  }
+
+  async updateUserPartial(uid: string, data: Partial<AppUser>): Promise<void> {
+    const userRef = doc(this.db, 'users', uid);
+    await setDoc(userRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  async toggleUserChatBan(uid: string, isBanned: boolean): Promise<void> {
+    await this.updateUserPartial(uid, { isChatBanned: isBanned });
+  }
+
+  async toggleUserSeller(uid: string, isSeller: boolean): Promise<void> {
+    await this.updateUserPartial(uid, { isSeller });
+  }
+
+  async deleteUserDocument(uid: string): Promise<void> {
+    const userRef = doc(this.db, 'users', uid);
+    await deleteDoc(userRef);
   }
 }

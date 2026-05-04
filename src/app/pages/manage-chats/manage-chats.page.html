@@ -1,17 +1,3 @@
-<!-- TOOLBAR DE AÇÕES (SEM HEADER — VIVE NA PÁGINA MESTRA) -->
-<div class="chats-action-bar">
-  <ion-button (click)="openNewChatModal()" color="success" fill="solid" class="btn-new-chat-top ion-hide-sm-down">
-    <ion-icon name="add" slot="start"></ion-icon>
-    Nova Conversa
-  </ion-button>
-  <ion-button (click)="openNewChatModal()" color="success" fill="clear" class="ion-hide-sm-up">
-    <ion-icon name="add-circle" slot="icon-only"></ion-icon>
-  </ion-button>
-  <ion-button (click)="loadData()" color="medium">
-    <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
-  </ion-button>
-</div>
-
 <div class="admin-tabs-nav ion-no-border" *ngIf="!selectedChatId">
   <div class="tabs-container">
     <button class="nav-tab" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">
@@ -31,15 +17,31 @@
 
 </div>
 
-<ion-content color="light" [scrollY]="false">
+<ion-content color="light" [scrollY]="false" class="manage-chats-ion-content">
   <div class="page-split-container">
     
-    <div class="main-scroll-content">
+    <div class="main-scroll-content" [class.main-scroll--inspection]="selectedChatId">
       
       <!-- MODO 1: DASHBOARD HUB (GRID) -->
       <div class="dashboard-wrapper" *ngIf="!selectedChatId">
-        <div class="main-panel-header">
-          <h2 class="poppins">Hub de Auditoria Central</h2>
+        <app-admin-panel-hero
+          eyebrow="Moderação e auditoria"
+          title="Central de conversas"
+          description="Hub de auditoria para moderar chats, denúncias e restrições em tempo real."
+          [useCustomActionsColumn]="true">
+          <div panelHeroActions class="chats-panel-hero-actions">
+            <ion-button color="success" class="btn-new-chat-hero" (click)="openNewChatModal()">
+              <ion-icon name="add" slot="start"></ion-icon>
+              Nova Conversa
+            </ion-button>
+            <ion-button fill="outline" color="medium" (click)="loadData()">
+              <ion-icon slot="start" name="refresh-outline"></ion-icon>
+              Atualizar
+            </ion-button>
+          </div>
+        </app-admin-panel-hero>
+
+        <div class="main-panel-header chats-main-toolbar">
           <div class="hub-header-actions">
             <div class="selection-control" *ngIf="filteredChats.length > 0">
                <ion-checkbox (ionChange)="toggleSelectAll($event)" [checked]="isAllSelected" mode="md"></ion-checkbox>
@@ -185,120 +187,98 @@
         
         <!-- COLUNA 1: PAINEL ANALÍTICO (ANTIGO ESPAÇO DA LISTA) -->
         <div class="col-audit-panel">
-          <!-- CABEÇALHO DE CONTEXTO (FIXO) -->
-          <div class="audit-header-premium">
-             <div class="ah-top">
-                <ion-button fill="clear" color="medium" (click)="clearSelection()" class="btn-back-hub-minimal">
-                  <ion-icon name="arrow-back-outline"></ion-icon>
-                </ion-button>
-                <div class="ah-product-meta" *ngIf="activeChatRoom">
-                   <div class="ah-product-header-info">
-                      <img [src]="activeChatRoom.productPhoto || 'assets/imagens/app-logo.png'" class="ah-product-thumb">
-                      <div class="ah-text">
-                        <span class="ah-label">AUDITANDO CONVERSA SOBRE</span>
-                        <h3 class="ah-product-name">{{ activeChatRoom.productName || 'Conversa Geral' }}</h3>
-                      </div>
-                   </div>
-                </div>
-             </div>
-             
-             <div class="ah-connection-bar" *ngIf="activeChatRoom?.participants?.length === 2">
-                <div class="user-chip">
-                   <img [src]="activeChatRoom?.participants?.[0]?.photoUrl || 'assets/icon/favicon.png'">
-                   <span>{{ activeChatRoom?.participants?.[0]?.name }}</span>
-                </div>
-                <div class="connection-line">
-                   <ion-icon name="swap-horizontal-outline"></ion-icon>
-                </div>
-                <div class="user-chip">
-                   <img [src]="activeChatRoom?.participants?.[1]?.photoUrl || 'assets/icon/favicon.png'">
-                   <span>{{ activeChatRoom?.participants?.[1]?.name }}</span>
-                </div>
-             </div>
-          </div>
+          <div class="inspection-audit-inner">
+            <div class="inspection-toolbar">
+              <ion-button fill="clear" color="dark" (click)="clearSelection()" class="btn-inspection-back">
+                <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+                Voltar
+              </ion-button>
+            </div>
+
+            <!-- Cabeçalho único: anúncio (miniatura + título); Pessoas ficam só no Resumo -->
+            <div class="inspection-compact-head" *ngIf="activeChatRoom">
+              <img
+                class="inspection-compact-head__thumb"
+                [src]="activeChatRoom.productPhoto || 'assets/imagens/app-logo.png'"
+                [alt]="" />
+              <div class="inspection-compact-head__main">
+                <span class="inspection-compact-head__label">Anúncio</span>
+                <h2 class="inspection-compact-head__title">{{ activeChatRoom.productName || 'Conversa geral' }}</h2>
+                <p class="inspection-compact-head__meta" *ngIf="activeChatRoom.productId">
+                  ID {{ activeChatRoom.productId.substring(0, 8) }}…
+                </p>
+              </div>
+            </div>
 
           <div class="audit-scroll">
             
-            <!-- PRIORIDADE 1: REFERÊNCIA DO PRODUTO (CONTEXTO IMEDIATO) -->
-            <div class="audit-section-hub" *ngIf="activeChatRoom?.productName">
-               <h4 class="section-label-hub">Contexto do Item</h4>
-               <div class="summary-card product-card highlight-card" style="margin-bottom: 20px;">
-                  <div class="mini-product-info">
-                     <img [src]="activeChatRoom?.productPhoto || 'assets/imagens/app-logo.png'">
-                     <div class="pi-details">
-                        <span class="pi-name">{{ activeChatRoom?.productName || 'Conversa Geral' }}</span>
-                        <span class="pi-ref">ID: {{ activeChatRoom?.productId?.substring(0,8) || 'N/A' }}</span>
-                     </div>
+            <!-- Resumo: participantes + risco num só cartão -->
+            <section class="audit-block" *ngIf="activeChatRoom">
+              <h3 class="audit-block__title">Resumo</h3>
+              <div class="audit-card audit-card--merged">
+                <div class="audit-merged__people">
+                  <span class="audit-inline-label">Pessoas</span>
+                  <ul class="audit-people-list">
+                    <li *ngFor="let p of activeChatRoom.participants || []">
+                      <span class="audit-people-list__name">{{ p.name }}</span>
+                      <code class="audit-people-list__uid">{{ (p.uid || '—').substring(0, 8) }}…</code>
+                    </li>
+                  </ul>
+                </div>
+                <div class="audit-merged__risk" aria-label="Risco de moderação">
+                  <span class="audit-inline-label">Risco</span>
+                  <div class="audit-risk-inline">
+                    <strong class="audit-risk-inline__n">8.4</strong>
+                    <span class="audit-risk-inline__txt">baixo</span>
                   </div>
-               </div>
-            </div>
+                </div>
+              </div>
+            </section>
 
-            <!-- PRIORIDADE 2: DOSSIÊ TÉCNICO (PARTICIPANTES E MÉTRICAS) -->
-            <div class="audit-hub-summary-grid">
-               <div class="summary-card participants-card">
-                  <h4 class="mini-label">Metadados de Usuários</h4>
-                  <div class="mini-participants">
-                     <div class="p-pair" *ngFor="let p of activeChatRoom?.participants">
-                        <ion-avatar class="mini-avatar">
-                           <img [src]="p.photoUrl || 'assets/icon/favicon.png'">
-                        </ion-avatar>
-                        <div class="p-meta">
-                           <span class="p-name">{{ p.name }}</span>
-                           <span class="p-role">UID: {{ p.uid.substring(0,6) }}</span>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-               
-               <div class="summary-card analysis-card">
-                  <h4 class="mini-label">Score de Moderação</h4>
-                  <div class="mod-score">
-                     <span class="score-value">8.4</span>
-                     <span class="score-desc">Risco Baixo</span>
-                  </div>
-               </div>
-            </div>
+            <!-- Primeira mensagem (sem caixas extras) -->
+            <section class="audit-block" *ngIf="inspectedMessages.length > 0">
+              <h3 class="audit-block__title">Como começou</h3>
+              <p class="audit-first-line">
+                <strong>{{ getParticipantName(inspectedMessages[0].senderId) }}</strong>
+                <span class="audit-first-line__sep">—</span>
+                <span class="audit-first-line__msg">"{{ inspectedMessages[0].text }}"</span>
+              </p>
+            </section>
 
-            <!-- PRIORIDADE 3: ORIGEM E TONALIDADE -->
-            <div class="audit-section-hub" *ngIf="inspectedMessages.length > 0">
-               <h4 class="section-label-hub">Origem e Tom da Conversa</h4>
-               <div class="insight-badge">
-                  <ion-icon name="time-outline"></ion-icon>
-                  <span>Iniciado por <strong>{{ getParticipantName(inspectedMessages[0].senderId) }}</strong></span>
-               </div>
-               <div class="origin-quote">
-                  <p>"{{ inspectedMessages[0].text }}"</p>
-                  <span class="quote-author">— Mensagem Inicial</span>
-               </div>
-            </div>
+            <!-- Atividade: faixa única de 14 dias (largura total, sem “quadradões” soltos) -->
+            <section class="audit-block">
+              <h3 class="audit-block__title">Atividade · últimos 14 dias</h3>
+              <p class="audit-activity__hint">Toque no dia para listar mensagens e ir ao chat.</p>
+              <div class="audit-activity">
+                <div class="audit-activity__track" role="list">
+                  <button
+                    type="button"
+                    class="audit-day"
+                    *ngFor="let day of heatmap; trackBy: trackHeatDay"
+                    role="listitem"
+                    [class.audit-day--active]="selectedHeatmapDay?.fullDate === day.fullDate"
+                    [attr.aria-pressed]="selectedHeatmapDay?.fullDate === day.fullDate"
+                    (click)="toggleHeatmapDay(day)"
+                    [title]="(day.fullDate | date:'dd/MM/yyyy') + ' · ' + day.count + ' msg(s)'">
+                    <span class="audit-day__dot" [attr.data-intensity]="day.intensity"></span>
+                    <span class="audit-day__num">{{ day.dayNum }}</span>
+                    <span class="audit-day__wday">{{ day.day | slice:0:3 }}</span>
+                    <span class="audit-day__count" *ngIf="day.count > 0">{{ day.count }}</span>
+                  </button>
+                </div>
+                <div class="audit-activity__legend">
+                  <span>mais antigo</span>
+                  <span>hoje</span>
+                </div>
+              </div>
 
-            <!-- PRIORIDADE 4: ANÁLISE GENÉTICA (HISTÓRICO) -->
-            <div class="audit-section-hub">
-               <h4 class="section-label-hub">Análise Genética de Atividade</h4>
-               <div class="activity-pulse-container">
-                  <div class="pulse-grid">
-                    <div *ngFor="let day of heatmap" 
-                         class="pulse-cell" 
-                         [attr.data-intensity]="day.intensity"
-                         [class.active]="selectedHeatmapDay?.fullDate === day.fullDate"
-                         (click)="toggleHeatmapDay(day)"
-                         title="{{day.day}}: {{day.count}} msgs">
-                    </div>
-                  </div>
-                  <div class="pulse-legend">
-                    <span>Início do Intervalo</span>
-                    <span>Hoje</span>
-                  </div>
-               </div>
-
-               <!-- DOSSIÊ DIÁRIO INTEGRADO (INTERATIVO) -->
-               <div class="dossier-overlay animate-pop" *ngIf="selectedHeatmapDay">
+               <div class="dossier-overlay dossier-overlay--compact animate-pop" *ngIf="selectedHeatmapDay">
                  <div class="dossier-header-hub">
                    <div class="dh-info">
                       <span class="dh-date">{{ selectedHeatmapDay.fullDate | date:'dd/MM' }}</span>
-                      <span class="dh-stats">{{ selectedHeatmapDay.count }} interações</span>
+                      <span class="dh-stats">{{ selectedHeatmapDay.count }} mensagens</span>
                    </div>
-                   <ion-button fill="clear" size="small" (click)="selectedHeatmapDay = null">
+                   <ion-button fill="clear" size="small" (click)="selectedHeatmapDay = null" aria-label="Fechar">
                      <ion-icon name="close-circle-outline"></ion-icon>
                    </ion-button>
                  </div>
@@ -317,16 +297,16 @@
                     </div>
                  </div>
                </div>
-            </div>
+            </section>
 
-            <!-- AÇÃO DE MODERAÇÃO -->
             <div class="audit-footer-actions">
               <ion-button expand="block" color="danger" fill="outline" (click)="toggleBan(activeChatTargetUser!)" *ngIf="activeChatTargetUser" class="btn-audit-ban">
                 <ion-icon name="ban-outline" slot="start"></ion-icon>
-                Restringir Acesso do Alvo
+                Restringir participante
               </ion-button>
             </div>
 
+          </div>
           </div>
         </div>
 
@@ -335,10 +315,10 @@
           <div class="console-header-premium">
              <div class="live-status">
                <div class="status-pulse-green"></div>
-               <span>MONITORAMENTO AO VIVO</span>
+               <span>Chat ao vivo</span>
              </div>
              <div class="console-meta" *ngIf="activeChatRoom">
-                AUDITORIA DE CANAL CRIPTOGRAFADO
+                Canal cifrado
              </div>
           </div>
           <div class="chat-container">
@@ -349,8 +329,9 @@
       </div>
     </div>
 
-    <!-- PAINEL LATERAL DE CHAT + MODAIS MOBILE -->
+    <!-- Modais: inbox do admin + chat (FAB); sem coluna “Mensagens” à direita -->
     <app-admin-chat-sidebar
+      [hideDesktopPane]="true"
       [activeChatId]="activeChatId"
       [activeChats]="activeChats"
       [activeSellerName]="getActiveSellerName()"

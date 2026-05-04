@@ -124,8 +124,8 @@ const routes: Routes = [
     canActivate: [authGuard]
   },  {
     path: 'bots',
-    loadChildren: () => import('./pages/bots/bots.module').then( m => m.BotsPageModule),
-    canActivate: [authGuard]
+    redirectTo: 'admin/bots',
+    pathMatch: 'full'
   },
   {
     path: 'admin',

@@ -14,6 +14,16 @@ export interface WhatsappTestMessageRequest {
   message: string;
 }
 
+export interface WhatsappMediaMessageRequest {
+  instanceName: string;
+  phoneNumber: string;
+  mediaBase64: string;
+  mimetype: string;
+  fileName?: string;
+  caption?: string;
+  mediaType?: 'image' | 'video' | 'audio' | 'document';
+}
+
 export type WhatsappTriggerEvent =
   | 'account_created'
   | 'product_uploaded'
@@ -37,6 +47,28 @@ export interface WhatsappTriggerDispatchRequest {
 
 export interface WhatsappInstanceResponse {
   [key: string]: unknown;
+}
+
+export interface WhatsappInstanceLockStatus {
+  instanceName: string;
+  locked: boolean;
+}
+
+export interface WhatsappInstanceCodeRequestResponse {
+  instanceName: string;
+  expiresAt: number;
+  maskedNumber: string;
+}
+
+export interface EvolutionMediaResolutionResponse {
+  mediaId?: string | null;
+  url?: string;
+  mimetype?: string;
+  fromCache?: boolean;
+  cacheLayer?: 'storage' | 'firestore' | 'inline' | string;
+  sizeBytes?: number | null;
+  /** Mantido temporariamente para compatibilidade durante o rollout do cache. */
+  dataUrl?: string;
 }
 
 @Injectable({
@@ -86,6 +118,69 @@ export class WhatsappInstancesService {
     return this.callFunction<WhatsappInstanceResponse>('sendWhatsappTestMessage', {
       method: 'POST',
       body: payload
+    });
+  }
+
+  sendMediaMessage(payload: WhatsappMediaMessageRequest): Promise<WhatsappInstanceResponse> {
+    return this.callFunction<WhatsappInstanceResponse>('sendWhatsappMediaMessage', {
+      method: 'POST',
+      body: payload
+    });
+  }
+
+  /** Lista conversas (chats) na instância Evolution (admin). */
+  listEvolutionChats(instanceName: string): Promise<WhatsappInstanceResponse> {
+    return this.callFunction<WhatsappInstanceResponse>('listWhatsappEvolutionChats', {
+      method: 'POST',
+      body: { instanceName }
+    });
+  }
+
+  /** Carrega histórico de mensagens de um JID (contato ou grupo) na instância. */
+  listEvolutionMessages(
+    instanceName: string,
+    remoteJid: string,
+    limit = 80,
+    page = 1
+  ): Promise<WhatsappInstanceResponse> {
+    return this.callFunction<WhatsappInstanceResponse>('listWhatsappEvolutionMessages', {
+      method: 'POST',
+      body: { instanceName, remoteJid, limit, page }
+    });
+  }
+
+  resolveEvolutionMedia(
+    instanceName: string,
+    message: unknown
+  ): Promise<EvolutionMediaResolutionResponse> {
+    return this.callFunction<EvolutionMediaResolutionResponse>('resolveWhatsappEvolutionMedia', {
+      method: 'POST',
+      body: { instanceName, message }
+    });
+  }
+
+  getInstanceLockStatus(instanceName: string): Promise<WhatsappInstanceLockStatus> {
+    return this.callFunction<WhatsappInstanceLockStatus>(`getWhatsappInstanceLockStatus?instanceName=${encodeURIComponent(instanceName)}`);
+  }
+
+  requestInstanceAccessCode(
+    instanceName: string,
+    intent: 'lock' | 'unlock'
+  ): Promise<WhatsappInstanceCodeRequestResponse> {
+    return this.callFunction<WhatsappInstanceCodeRequestResponse>('requestWhatsappInstanceAccessCode', {
+      method: 'POST',
+      body: { instanceName, intent }
+    });
+  }
+
+  confirmInstanceAccessCode(
+    instanceName: string,
+    code: string,
+    intent: 'lock' | 'unlock'
+  ): Promise<WhatsappInstanceLockStatus> {
+    return this.callFunction<WhatsappInstanceLockStatus>('confirmWhatsappInstanceAccessCode', {
+      method: 'POST',
+      body: { instanceName, code, intent }
     });
   }
 

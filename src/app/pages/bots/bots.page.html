@@ -1,112 +1,142 @@
-<ion-header class="ion-no-border">
-  <ion-toolbar color="dark">
-    <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
-    <ion-title class="poppins">Central de Bots</ion-title>
-    <ion-badge slot="end" [color]="currentStatus.status === 'running' ? 'success' : 'medium'" class="ion-margin-end">
-      {{ currentStatus.status | uppercase }}
-    </ion-badge>
-  </ion-toolbar>
-</ion-header>
+<ion-content class="bots-content">
+  <app-admin-panel-hero
+    eyebrow="Operação cloud de automações"
+    title="Gestão de Bots"
+    description="Orquestre execuções, acompanhe fila e monitore resultados no padrão do painel de gestão."
+    (refreshClick)="refreshDashboard()">
+  </app-admin-panel-hero>
 
-<ion-content class="ion-padding bots-bg">
+  <app-admin-subtabs
+    [options]="subtabOptions"
+    [activeTab]="activeSubTab"
+    (activeTabChange)="setActiveSubTab($event)">
+  </app-admin-subtabs>
 
-  <div class="bots-grid">
-    <!-- DISPONÍVEIS -->
-    <div class="section-container">
-      <h3>ROBÔS DISPONÍVEIS</h3>
-      <div class="bot-cards">
-        <ion-card *ngFor="let bot of availableBots" class="bot-card">
-          <ion-item lines="none" class="bot-card-header">
-            <ion-icon [name]="bot.icon" slot="start" color="success"></ion-icon>
-            <ion-label>
-              <h2 class="poppins">{{ bot.name }}</h2>
-              <p>AGENTE AUTÔNOMO V1.2</p>
-            </ion-label>
-          </ion-item>
-          <ion-card-content>
-            <p>{{ bot.description }}</p>
-            <div class="config-params" *ngIf="bot.config.keyword !== undefined">
-              <ion-input label="Palavra-chave (Vazio = Aleatório IA)" placeholder="Ex: iPhone 15" [(ngModel)]="bot.config.keyword" fill="solid" label-placement="floating"></ion-input>
+  <section class="bot-summary-grid">
+    <article class="metric-card"><span class="metric-label">Fila</span><strong>{{ summary.queued }}</strong></article>
+    <article class="metric-card running"><span class="metric-label">Executando</span><strong>{{ summary.running }}</strong></article>
+    <article class="metric-card success"><span class="metric-label">Concluídos</span><strong>{{ summary.success }}</strong></article>
+    <article class="metric-card danger"><span class="metric-label">Falhas</span><strong>{{ summary.failed }}</strong></article>
+  </section>
+
+  @if (errorMessage) {
+    <div class="feedback error"><ion-icon name="alert-circle-outline"></ion-icon><span>{{ errorMessage }}</span></div>
+  }
+  @if (successMessage) {
+    <div class="feedback success"><ion-icon name="checkmark-circle-outline"></ion-icon><span>{{ successMessage }}</span></div>
+  }
+
+  @if (activeSubTab === 'catalog') {
+    <section class="panel-card">
+      <div class="section-title section-title--catalog">
+        <div>
+          <h3>Catálogo de bots</h3>
+          <span>Configure e envie jobs para a fila cloud.</span>
+        </div>
+        <ion-button
+          size="small"
+          fill="outline"
+          class="btn-queue-all"
+          (click)="enqueueCatalogQueue()"
+          [disabled]="runningQueueAll || catalog.length === 0">
+          @if (runningQueueAll) {
+            <ion-spinner name="crescent" slot="start"></ion-spinner>
+            Executando queue...
+          } @else {
+            <ion-icon name="layers-outline" slot="start"></ion-icon>
+            Executar minha queue
+          }
+        </ion-button>
+      </div>
+      <div class="catalog-grid">
+        @for (bot of catalog; track bot.type) {
+          <article class="catalog-item">
+            <div class="catalog-head">
+              <ion-icon [name]="bot.icon"></ion-icon>
+              <div><h4>{{ bot.name }}</h4><p>{{ bot.description }}</p></div>
             </div>
-            <div class="config-params">
-              <ion-input label="Repetições (Vazio = Auto)" type="number" placeholder="Digite a quantidade" [(ngModel)]="bot.config.count" fill="solid" label-placement="floating"></ion-input>
-            </div>
-            <ion-button expand="block" color="success" (click)="addToQueue(bot)" class="btn-premium">
-              ADICIONAR À FILA
+            @if (draftByType[bot.type] && draftByType[bot.type]['keyword'] !== undefined) {
+              <ion-item class="form-item"><ion-input label="Palavra-chave" labelPlacement="stacked" placeholder="Opcional" [(ngModel)]="draftByType[bot.type]['keyword']"></ion-input></ion-item>
+            }
+            <ion-item class="form-item"><ion-input label="Repetições" labelPlacement="stacked" inputmode="numeric" type="number" placeholder="Auto" [(ngModel)]="draftByType[bot.type]['count']"></ion-input></ion-item>
+            <ion-item class="form-item">
+              <ion-select label="Sequenciamento" labelPlacement="stacked" interface="popover" [(ngModel)]="draftByType[bot.type]['mode']">
+                <ion-select-option value="batch">Lote</ion-select-option>
+                <ion-select-option value="alternate">Alternado</ion-select-option>
+              </ion-select>
+            </ion-item>
+            <ion-item class="form-item"><ion-toggle [(ngModel)]="draftByType[bot.type]['headless']" justify="space-between" labelPlacement="start">Headless</ion-toggle></ion-item>
+            <ion-button expand="block" class="btn-submit" (click)="enqueueBot(bot)" [disabled]="submittingByType === bot.type">
+              @if (submittingByType === bot.type) { <ion-spinner name="crescent" slot="start"></ion-spinner>Enfileirando... }
+              @else { <ion-icon name="rocket-outline" slot="start"></ion-icon>Enviar para fila cloud }
             </ion-button>
-          </ion-card-content>
-        </ion-card>
+          </article>
+        }
       </div>
-    </div>
-
-    <!-- FILA E STATUS -->
-    <div class="section-container sticky-panel">
-      
-      <div class="status-panel" [class.running]="currentStatus.status === 'running'">
-        <div class="status-header">
-          <ion-spinner *ngIf="currentStatus.status === 'running'" name="crescent"></ion-spinner>
-          <span class="poppins">{{ currentStatus.message }}</span>
+    </section>
+  } @else if (activeSubTab === 'queue') {
+    <section class="panel-card">
+      <div class="section-title"><h3>Fila e execução</h3><span>Jobs pendentes e em andamento.</span></div>
+      @if (loadingJobs) {
+        <div class="loading-state"><ion-spinner name="crescent"></ion-spinner><span>Carregando jobs...</span></div>
+      } @else if (jobs.length === 0) {
+        <div class="empty-state"><ion-icon name="list-outline"></ion-icon><p>Nenhum job encontrado na fila.</p></div>
+      } @else {
+        <div class="jobs-list">
+          @for (job of jobs; track job.id) {
+            <article class="job-row">
+              <div class="job-main">
+                <div class="job-top"><strong>{{ job.botLabel }}</strong><span class="status-pill" [class]="getStatusPillClass(job.status)">{{ statusLabel(job.status) }}</span></div>
+                <span class="job-meta">{{ job.script }} · prioridade {{ job.priority || 0 }}</span>
+                <span class="job-meta">Criado: {{ job.createdAtIso || '---' }}</span>
+              </div>
+              <div class="job-actions">
+                <ion-button fill="clear" size="small" (click)="loadLogs(job.id)">Logs</ion-button>
+                @if (job.status === 'queued' || job.status === 'running') { <ion-button fill="clear" size="small" color="danger" (click)="cancel(job.id)">Cancelar</ion-button> }
+                @if (job.status === 'failed' || job.status === 'cancelled') { <ion-button fill="clear" size="small" color="success" (click)="retry(job.id)">Reenfileirar</ion-button> }
+              </div>
+            </article>
+          }
         </div>
-        
-        <div class="queue-list-container" *ngIf="queue.length > 0">
-          <h4><ion-icon name="list-outline"></ion-icon> FILA DE EXECUÇÃO</h4>
-          
-          <div class="queue-list">
-            <ion-item *ngFor="let item of queue; let i = index" lines="full">
-              <ion-icon [name]="item.icon" slot="start" size="small"></ion-icon>
-              <ion-label>
-                <span style="font-weight: 700;">{{ item.name }}</span>
-                <p style="font-size: 0.7rem;">{{ item.config.count || 1 }} repetições</p>
-              </ion-label>
-              <ion-button slot="end" fill="clear" color="danger" (click)="removeFromQueue(i)">
-                <ion-icon name="trash-outline"></ion-icon>
-              </ion-button>
-            </ion-item>
+      }
+    </section>
+  } @else {
+    <section class="panel-card history-grid">
+      <div class="history-list">
+        <div class="section-title"><h3>Histórico de execuções</h3><span>Selecione um job para inspecionar logs estruturados.</span></div>
+        @if (loadingJobs) {
+          <div class="loading-state"><ion-spinner name="crescent"></ion-spinner><span>Carregando histórico...</span></div>
+        } @else {
+          <div class="history-rows">
+            @for (job of jobs; track job.id) {
+              <button type="button" class="history-row" [class.active]="selectedJobId === job.id" (click)="loadLogs(job.id)">
+                <span>{{ job.botLabel }}</span><small>{{ statusLabel(job.status) }}</small>
+              </button>
+            }
           </div>
-
-          <div class="execution-options">
-            <ion-item lines="none" class="headless-toggle">
-              <ion-icon name="eye-off-outline" slot="start"></ion-icon>
-              <ion-label>Executar em segundo plano (Invisível)</ion-label>
-              <ion-toggle slot="end" [(ngModel)]="isHeadless" color="success"></ion-toggle>
-            </ion-item>
-          </div>
-
-          <div class="execution-mode-container">
-            <ion-label>MODO DE SEQUENCIAMENTO</ion-label>
-            <ion-segment [(ngModel)]="executionMode" mode="ios">
-              <ion-segment-button value="batch">
-                <ion-label>Lote</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="alternate">
-                <ion-label>Alternado</ion-label>
-              </ion-segment-button>
-            </ion-segment>
-          </div>
-
-          <ion-button expand="block" color="success" (click)="runCascade()" class="btn-premium">
-            <ion-icon name="play-outline" slot="start"></ion-icon>
-            INICIAR CASCATA
-          </ion-button>
-        </div>
+        }
       </div>
-
-      <div class="logs-container">
-        <div class="logs-header">
-          <h3>TERMINAL INTERATIVO</h3>
-          <ion-button fill="clear" size="small" color="success" (click)="clearLogs()">LIMPAR</ion-button>
-        </div>
-        <div class="logs-window" #scrollMe [scrollTop]="scrollMe.scrollHeight">
-          <div *ngFor="let log of logs" class="log-line">
-            {{ log }}
+      <div class="history-log">
+        <div class="section-title"><h3>Terminal estruturado</h3><span>{{ selectedJobId || 'Selecione um job' }}</span></div>
+        @if (!selectedJobId) {
+          <div class="empty-state"><ion-icon name="terminal-outline"></ion-icon><p>Escolha um job na coluna da esquerda.</p></div>
+        } @else if (loadingLogs) {
+          <div class="loading-state"><ion-spinner name="crescent"></ion-spinner><span>Carregando logs...</span></div>
+        } @else if (jobLogs.length === 0) {
+          <div class="empty-state"><ion-icon name="document-text-outline"></ion-icon><p>Sem logs para este job.</p></div>
+        } @else {
+          <div class="log-window">
+            @for (line of jobLogs; track line.atIso + line.message) {
+              <div class="log-line" [class]="'level-' + line.level">
+                <span class="log-at">{{ line.atIso }}</span>
+                <p>{{ line.message }}</p>
+              </div>
+            }
           </div>
-          <div *ngIf="logs.length === 0" class="empty-logs">O robô está aguardando ordens...</div>
-        </div>
+        }
       </div>
+    </section>
+  }
 
-    </div>
-  </div>
-
+  <div style="height: 40px"></div>
 </ion-content>

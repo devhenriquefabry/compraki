@@ -62,28 +62,22 @@
   color: #94a3b8;
 }
 
-.dashboard-header {
+.melhor-panel-hero-actions {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 32px;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
 
-  .header-info {
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: #1e293b;
-      margin: 0;
-    }
-    p {
-      color: #64748b;
-      margin: 4px 0 0;
-    }
-  }
+  @media (max-width: 720px) {
+    flex-direction: column;
+    align-items: stretch;
 
-  .header-actions {
-    display: flex;
-    gap: 12px;
+    ion-button {
+      width: 100%;
+    }
   }
 }
 

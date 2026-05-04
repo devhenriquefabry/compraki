@@ -13,8 +13,8 @@ import { BotsPage } from './bots.page';
     CommonModule,
     FormsModule,
     IonicModule,
+    BotsPage,
     BotsPageRoutingModule
-  ],
-  declarations: [BotsPage]
+  ]
 })
 export class BotsPageModule {}

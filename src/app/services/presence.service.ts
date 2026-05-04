@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getDatabase, ref, onValue, onDisconnect, set, Database } from 'firebase/database';
-import { getFirestore, doc, setDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp, deleteField, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, onAuthStateChanged } from 'firebase/auth';
 import { environment } from 'src/environments/environment';
 
@@ -76,12 +76,30 @@ export class PresenceService {
   private async setFirestorePresence(uid: string, state: 'online' | 'offline') {
     try {
       const userRef = doc(this.db, 'users', uid);
-      await setDoc(userRef, {
-        status: state,
-        lastActive: serverTimestamp()
-      }, { merge: true });
+      if (state === 'online') {
+        const snap = await getDoc(userRef);
+        const prev = snap.exists() ? snap.data() : {};
+        const updates: Record<string, unknown> = {
+          status: 'online',
+          lastActive: serverTimestamp()
+        };
+        if (prev['status'] !== 'online') {
+          updates['onlineSince'] = serverTimestamp();
+        }
+        await setDoc(userRef, updates, { merge: true });
+      } else {
+        await setDoc(
+          userRef,
+          {
+            status: 'offline',
+            lastActive: serverTimestamp(),
+            onlineSince: deleteField()
+          },
+          { merge: true }
+        );
+      }
     } catch (e) {
-      console.error("Erro ao sincronizar presença no Firestore:", e);
+      console.error('Erro ao sincronizar presença no Firestore:', e);
     }
   }
 }

@@ -1,0 +1,75 @@
+<div class="wm-gallery-modal" (click)="onClose($event)">
+  <div class="wm-gallery-panel" (click)="onPanelClick($event)">
+    <div class="wm-gallery-head">
+      <div>
+        <h3>Galeria da conversa</h3>
+        <p>
+          {{ rows.length }} mídia(s)
+          @if (loadingOlder) {
+            · carregando antigas...
+          }
+        </p>
+      </div>
+      <button type="button" class="wm-gallery-close" (click)="onClose($event)" aria-label="Fechar galeria">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+    <div class="wm-gallery-grid">
+      @for (media of rows; track media.id) {
+        <article class="wm-gallery-item">
+          @if ((media.mediaType === 'image' || media.mediaType === 'sticker') && media.mediaUrl) {
+            @if (getItemState(media) === 'loading') {
+              <div class="wm-gallery-loading">
+                <ion-icon name="sync-outline" class="wm-media-placeholder-icon"></ion-icon>
+                <span>Carregando...</span>
+              </div>
+            } @else if (getItemState(media) === 'error') {
+              <div class="wm-gallery-loading wm-gallery-loading--error">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                <span>Falha ao carregar</span>
+                <button type="button" class="wm-media-retry-btn" (click)="onRetryImage(media)">
+                  Tentar novamente
+                </button>
+              </div>
+            }
+            <img
+              [class.wm-media--hidden]="getItemState(media) !== 'loaded'"
+              [src]="media.mediaUrl"
+              [alt]="media.mediaType === 'sticker' ? 'Figurinha na galeria' : 'Imagem da galeria'"
+              loading="lazy"
+              (click)="onOpenImage(media.mediaUrl, $event)"
+              (load)="imageLoaded.emit(media.id)"
+              (error)="imageError.emit(media.id)">
+          } @else if (media.mediaType === 'video' && media.mediaUrl) {
+            @if (getItemState(media) !== 'loaded') {
+              <div class="wm-gallery-loading">
+                <ion-icon name="sync-outline" class="wm-media-placeholder-icon"></ion-icon>
+                <span>Carregando...</span>
+              </div>
+            }
+            <video
+              [class.wm-media--hidden]="getItemState(media) !== 'loaded'"
+              controls
+              preload="metadata"
+              (loadeddata)="videoLoaded.emit(media.id)"
+              (error)="videoError.emit(media.id)">
+              <source [src]="media.mediaUrl">
+            </video>
+          }
+          <time class="wm-gallery-time">{{ media.timeLabel || '--:--' }}</time>
+        </article>
+      }
+    </div>
+    @if (hasMore) {
+      <div class="wm-gallery-footer">
+        <button type="button" class="wm-gallery-more-btn" (click)="loadOlder.emit()" [disabled]="loadingOlder">
+          @if (loadingOlder) {
+            <ion-spinner name="crescent"></ion-spinner>
+          } @else {
+            Carregar mídias mais antigas
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>

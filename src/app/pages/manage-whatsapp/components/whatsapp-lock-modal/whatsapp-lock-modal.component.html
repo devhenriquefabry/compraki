@@ -1,0 +1,38 @@
+<div class="wm-lock-modal" (click)="onClose()">
+  <div class="wm-lock-modal-card" (click)="onContentClick($event)">
+    <div class="wm-lock-modal-head">
+      <ion-icon [name]="intent === 'lock' ? 'shield-checkmark-outline' : 'key-outline'"></ion-icon>
+      <div>
+        <h3>{{ intent === 'lock' ? 'Confirmar bloqueio' : 'Instância protegida' }}</h3>
+        <p>
+          Código enviado para {{ maskedNumber || 'o número da instância' }}.
+          {{ intent === 'lock' ? 'Digite para trancar as conversas.' : 'Digite para liberar o acesso às conversas.' }}
+        </p>
+      </div>
+    </div>
+    <ion-item class="wm-lock-input">
+      <ion-input
+        label="Código de confirmação"
+        labelPlacement="stacked"
+        inputmode="numeric"
+        maxlength="6"
+        [ngModel]="code"
+        (ngModelChange)="onCodeChange($event)"
+        placeholder="000000">
+      </ion-input>
+    </ion-item>
+    @if (message) {
+      <div class="wm-lock-feedback">{{ message }}</div>
+    }
+    <div class="wm-lock-actions">
+      <button type="button" class="wm-lock-cancel" (click)="onClose()">Cancelar</button>
+      <button type="button" class="wm-lock-confirm" (click)="onConfirm()" [disabled]="loading || !code.trim()">
+        @if (loading) {
+          <ion-spinner name="crescent"></ion-spinner>
+        } @else {
+          Confirmar
+        }
+      </button>
+    </div>
+  </div>
+</div>

@@ -15,13 +15,14 @@ import { AdminHeaderComponent } from '../../components/admin-header/admin-header
 import { AdminChatSidebarComponent } from '../../components/admin-chat-sidebar/admin-chat-sidebar.component';
 import { AdminChatFilterModalComponent } from '../../components/admin-chat-filter-modal/admin-chat-filter-modal.component';
 import { AdminMetricCardComponent } from '../../components/admin-metric-card/admin-metric-card.component';
+import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 
 @Component({
   selector: 'app-manage-chats',
   templateUrl: './manage-chats.page.html',
   styleUrls: ['./manage-chats.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatBoxComponent, IonicModule, AdminHeaderComponent, AdminChatSidebarComponent, AdminChatFilterModalComponent, AdminMetricCardComponent]
+  imports: [CommonModule, FormsModule, ChatBoxComponent, IonicModule, AdminHeaderComponent, AdminChatSidebarComponent, AdminChatFilterModalComponent, AdminMetricCardComponent, AdminPanelHeroComponent]
 })
 export class ManageChatsPage implements OnInit, OnDestroy {
   @ViewChild(ChatBoxComponent) chatBox?: ChatBoxComponent; 
@@ -75,7 +76,7 @@ export class ManageChatsPage implements OnInit, OnDestroy {
 
   // -- DASHBOARD AUDIT 360 --
   public inspectedMessages: ChatMessage[] = [];
-  public heatmap: { day: string, fullDate: string, count: number, intensity: number, messages: ChatMessage[] }[] = [];
+  public heatmap: { day: string; dayNum: number; fullDate: string; count: number; intensity: number; messages: ChatMessage[] }[] = [];
   public selectedHeatmapDay: any = null;
   private chatSub?: Subscription;
 
@@ -418,6 +419,10 @@ export class ManageChatsPage implements OnInit, OnDestroy {
     }
   }
 
+  trackHeatDay(_i: number, d: { fullDate: string }): string {
+    return d.fullDate;
+  }
+
 
   generateHeatmap(msgs: ChatMessage[]) {
     const days = 14;
@@ -445,6 +450,7 @@ export class ManageChatsPage implements OnInit, OnDestroy {
       
       result.push({
         day: d.toLocaleDateString('pt-BR', { weekday: 'short' }),
+        dayNum: d.getDate(),
         fullDate: key,
         count: dayMsgs.length,
         intensity: dayMsgs.length > 0 ? Math.min(Math.floor((dayMsgs.length / (max * 0.4 || 1)) * 4), 4) : 0,
@@ -452,11 +458,6 @@ export class ManageChatsPage implements OnInit, OnDestroy {
       });
     }
     this.heatmap = result;
-
-    // Abrir automaticamente o dossiê do dia mais recente na primeira carga
-    if (!this.selectedHeatmapDay && result.length > 0) {
-      this.selectedHeatmapDay = result[result.length - 1];
-    }
   }
 
 
@@ -507,12 +508,9 @@ export class ManageChatsPage implements OnInit, OnDestroy {
   }
 
   public openInbox() {
-    if (window.innerWidth >= 992) {
-      this.isChatOpen = true;
-      this.activeChatId = '';
-    } else {
-      this.isInboxOpen = true;
-    }
+    this.activeChatId = '';
+    this.isChatOpen = false;
+    this.isInboxOpen = true;
   }
 
   public goBackToInbox() {

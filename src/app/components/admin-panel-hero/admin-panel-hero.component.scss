@@ -1,0 +1,222 @@
+.admin-panel-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbf3 100%);
+  border: 1px solid #edf3e7;
+  border-radius: 22px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+}
+
+.admin-panel-hero__text {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-panel-hero__eyebrow {
+  display: inline-flex;
+  color: #799d50;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+
+.admin-panel-hero__title {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  color: #172033;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1.15;
+}
+
+.admin-panel-hero__desc {
+  margin: 8px 0 0;
+  max-width: 680px;
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.admin-panel-hero__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+::ng-deep [panelHeroActions] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.admin-panel-hero__segmented {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  background: #eef4e8;
+  border-radius: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  button {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 13px;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.2s ease;
+    font-family: inherit;
+
+    &.active {
+      background: #fff;
+      color: #799d50;
+      box-shadow: 0 6px 16px rgba(121, 157, 80, 0.12);
+    }
+
+    &:hover:not(.active) {
+      color: #475569;
+    }
+  }
+}
+
+.admin-panel-hero__custom-range {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+
+  ::ng-deep {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+    font-size: 0.74rem;
+    font-weight: 800;
+
+    input[type='date'] {
+      height: 38px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0 10px;
+      background: #fff;
+      color: #334155;
+      font-size: 0.78rem;
+      font-weight: 700;
+      outline: none;
+      font-family: inherit;
+    }
+  }
+}
+
+.admin-panel-hero__buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-panel-hero__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #799d50 0%, #6b8f45 100%);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(121, 157, 80, 0.25);
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  ion-icon {
+    font-size: 17px;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(121, 157, 80, 0.32);
+  }
+}
+
+.admin-panel-hero__refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0 14px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  ion-icon {
+    color: #799d50;
+    font-size: 17px;
+  }
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-panel-hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .admin-panel-hero__actions {
+    align-items: stretch;
+  }
+
+  .admin-panel-hero__segmented {
+    justify-content: flex-start;
+  }
+
+  .admin-panel-hero__custom-range {
+    justify-content: flex-start;
+  }
+
+  .admin-panel-hero__buttons-row {
+    justify-content: stretch;
+
+    .admin-panel-hero__primary,
+    .admin-panel-hero__refresh {
+      flex: 1;
+      justify-content: center;
+      min-width: 0;
+    }
+  }
+
+  ::ng-deep [panelHeroActions] {
+    align-items: stretch;
+  }
+}
