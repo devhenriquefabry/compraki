@@ -210,8 +210,11 @@ export class AppComponent implements OnInit {
 
   initializeApp() {
     this.platform.ready().then(() => {
-      // Inicializa Google Auth para Web/Native
-      GoogleAuth.initialize();
+      // Inicializa Google Auth para Web/Native de forma segura
+      // Usamos .catch() porque initialize() retorna uma Promise que pode rejeitar no navegador
+      GoogleAuth.initialize().catch(e => {
+        console.warn('Google Auth não inicializado (uso limitado ao celular ou se origin autorizada):', e);
+      });
 
       // Fake Splash Screen Logic — só roda se a splash estiver visível
       if (this.showSplash) {
