@@ -12,50 +12,72 @@
     </div>
   </div>
 
-  <ion-list mode="ios" class="category-list">
-    <div *ngFor="let cat of (categories$ | async); trackBy: trackCategory" class="category-group">
-      <ion-item-sliding #slidingItem>
-        <ion-item lines="none" class="category-item">
-          <ion-icon [name]="getIcon(cat.icon)" slot="start" class="category-icon"></ion-icon>
-          <ion-label>
-            <h2 class="category-title">{{ cat.name || 'Nova Categoria' }}</h2>
-            <span class="sub-count">{{ cat.subcategories.length || 0 }} subcategorias</span>
-          </ion-label>
-          <ion-buttons slot="end">
-             <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
-          </ion-buttons>
-        </ion-item>
-        
-        <ion-item-options side="end">
-          <ion-item-option color="success" (click)="addSubcategory(cat); slidingItem.close()" class="option-btn">
-            <ion-icon name="add-circle" slot="top"></ion-icon>
-            Sub
-          </ion-item-option>
-          <ion-item-option color="primary" (click)="editCategory(cat, slidingItem)" class="option-btn">
-            <ion-icon name="create" slot="top"></ion-icon>
-            Editar
-          </ion-item-option>
-          <ion-item-option color="danger" (click)="deleteCategory(cat.id, slidingItem)" class="option-btn">
-            <ion-icon name="trash" slot="top"></ion-icon>
-            Excluir
-          </ion-item-option>
-        </ion-item-options>
-      </ion-item-sliding>
-
-      <div class="sub-list">
-        <div *ngFor="let sub of cat.subcategories; trackBy: trackSubcategory" class="sub-item">
-          <span (click)="editSubcategory(cat, sub)">{{ sub.name }}</span>
-          <ion-button fill="clear" size="small" color="medium" (click)="deleteSubcategory(cat, sub.id)">
-            <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
-          </ion-button>
-        </div>
-        <div class="add-sub-chip" (click)="addSubcategory(cat)">
-          <ion-icon name="add-outline"></ion-icon>
-          <span>Novo</span>
+  <ng-container *ngIf="(categories$ | async) as cats; else loading">
+    <ion-list mode="ios" class="category-list" *ngIf="cats.length > 0; else emptyCats">
+      <div *ngFor="let cat of cats; trackBy: trackCategory" class="category-group">
+        <ion-item-sliding #slidingItem>
+          <ion-item lines="none" class="category-item">
+            <ion-icon [name]="getIcon(cat.icon)" slot="start" class="category-icon"></ion-icon>
+            <ion-label>
+              <h2 class="category-title">{{ cat.name || 'Nova Categoria' }}</h2>
+              <span class="sub-count">{{ cat.subcategories.length || 0 }} subcategorias</span>
+            </ion-label>
+            <ion-buttons slot="end">
+               <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+            </ion-buttons>
+          </ion-item>
+          
+          <ion-item-options side="end">
+            <ion-item-option color="success" (click)="addSubcategory(cat); slidingItem.close()" class="option-btn">
+              <ion-icon name="add-circle" slot="top"></ion-icon>
+              Sub
+            </ion-item-option>
+            <ion-item-option color="primary" (click)="editCategory(cat, slidingItem)" class="option-btn">
+              <ion-icon name="create" slot="top"></ion-icon>
+              Editar
+            </ion-item-option>
+            <ion-item-option color="danger" (click)="deleteCategory(cat.id, slidingItem)" class="option-btn">
+              <ion-icon name="trash" slot="top"></ion-icon>
+              Excluir
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+  
+        <div class="sub-list">
+          <div *ngFor="let sub of cat.subcategories; trackBy: trackSubcategory" class="sub-item">
+            <span (click)="editSubcategory(cat, sub)">{{ sub.name }}</span>
+            <ion-button fill="clear" size="small" color="medium" (click)="deleteSubcategory(cat, sub.id)">
+              <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="add-sub-chip" (click)="addSubcategory(cat)">
+            <ion-icon name="add-outline"></ion-icon>
+            <span>Novo</span>
+          </div>
         </div>
       </div>
+    </ion-list>
+
+    <ng-template #emptyCats>
+      <div class="empty-cats-state animate-fade">
+        <div class="icon-wrap">
+          <ion-icon name="grid-outline"></ion-icon>
+        </div>
+        <h3>Nenhuma Categoria</h3>
+        <p>A base de categorias está vazia. Comece criando uma nova para organizar seus produtos.</p>
+        <ion-button color="success" fill="outline" (click)="showAddCategory = true" class="mt-12">
+          <ion-icon name="add-outline" slot="start"></ion-icon>
+          Criar Primeira Categoria
+        </ion-button>
+      </div>
+    </ng-template>
+  </ng-container>
+
+  <ng-template #loading>
+    <div class="ion-text-center ion-padding">
+       <ion-spinner color="success"></ion-spinner>
     </div>
-  </ion-list>
+  </ng-template>
 
   <!-- Modal/Form para adicionar -->
   <ion-modal [isOpen]="showAddCategory" (didDismiss)="showAddCategory = false" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85]">

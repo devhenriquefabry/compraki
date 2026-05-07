@@ -4,44 +4,23 @@ import { Observable, from, map, of } from 'rxjs';
 import { MelhorEnvioConfig, ShippingAnalysis, ShippingQuote } from '../interfaces/shipping';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MelhorEnvioService {
-  // URLs reais para produção/celular
-  private productionUrl = 'https://www.melhorenvio.com.br';
-  private sandboxUrl = 'https://sandbox.melhorenvio.com.br';
-  
-  // URLs de proxy para evitar CORS no navegador (localhost)
-  private proxyProductionUrl = '/melhor-envio-prod';
-  private proxySandboxUrl = '/melhor-envio-sandbox';
-
   private db: Firestore;
-
-  private firebaseConfig = {
-    apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
-    authDomain: "compraki-mcu.firebaseapp.com",
-    projectId: "compraki-mcu",
-    storageBucket: "compraki-mcu.firebasestorage.app",
-    messagingSenderId: "2028715763",
-    appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-    measurementId: "G-92Q7R0CQR0"
-  };
+  private auth: Auth;
+  private functionsBaseUrl = `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
 
   constructor(private http: HttpClient) {
-    const app = getApps().length === 0 ? initializeApp(this.firebaseConfig) : getApp();
+    const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
     this.db = getFirestore(app);
+    this.auth = getAuth(app);
   }
 
-  private getBaseUrl(isSandbox: boolean): string {
-    // Se estiver no navegador (localhost), usa o proxy. Se for app nativo, usa a URL real.
-    const isLocal = window.location.hostname === 'localhost';
-    if (isLocal) {
-      return isSandbox ? this.proxySandboxUrl : this.proxyProductionUrl;
-    }
-    return isSandbox ? this.sandboxUrl : this.productionUrl;
-  }
 
   getConfig(): Observable<MelhorEnvioConfig | null> {
     const configRef = doc(this.db, 'settings', 'melhor_envio');
@@ -56,23 +35,13 @@ export class MelhorEnvioService {
   }
 
   getUserInfo(config: MelhorEnvioConfig): Observable<any> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me`;
-    return this.http.get<any>(url, { headers: this.getHeaders(config.accessToken) });
+    return from(this.callFunction<any>('getMelhorEnvioMe'));
   }
 
-  private getHeaders(token: string) {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    });
-  }
 
   getQuotes(config: MelhorEnvioConfig, zipTo: string, products: any[]): Observable<ShippingQuote[]> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me/shipment/calculate`;
     const payload = {
-      from: { postal_code: config.address.zipCode },
-      to: { postal_code: zipTo },
+      zipTo: zipTo,
       products: products.map(p => ({
         id: p.id || 'prod',
         width: p.width || 10,
@@ -84,7 +53,10 @@ export class MelhorEnvioService {
       }))
     };
 
-    return this.http.post<any[]>(url, payload, { headers: this.getHeaders(config.accessToken) }).pipe(
+    return from(this.callFunction<any[]>('calculateMelhorEnvioShipping', {
+      method: 'POST',
+      body: payload
+    })).pipe(
       map(res => {
         if (!Array.isArray(res)) return [];
         return res.filter(q => !q.error).map(q => ({
@@ -102,10 +74,9 @@ export class MelhorEnvioService {
   }
 
   addToCart(config: MelhorEnvioConfig, order: any): Observable<any> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me/cart`;
     const payload = {
       service: order.shippingInfo?.serviceId,
-      agency: 1, // Algumas transportadoras exigem agência, padronizamos 1 ou pegamos da config
+      agency: 1, 
       from: {
         name: config.senderName,
         phone: config.senderPhone.replace(/\D/g, ''),
@@ -147,37 +118,77 @@ export class MelhorEnvioService {
         receipt: false,
         own_hand: false,
         reverse: false,
-        non_commercial: true // Usando declaração de conteúdo em vez de NF
+        non_commercial: true 
       }
     };
 
-    return this.http.post<any>(url, payload, { headers: this.getHeaders(config.accessToken) });
+    return from(this.callFunction<any>('createMelhorEnvioShipment', {
+      method: 'POST',
+      body: payload
+    }));
   }
 
   checkout(config: MelhorEnvioConfig, shipmentIds: string[]): Observable<any> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me/shipment/checkout`;
-    return this.http.post<any>(url, { orders: shipmentIds }, { headers: this.getHeaders(config.accessToken) });
+    return from(this.callFunction<any>('checkoutMelhorEnvioShipment', {
+      method: 'POST',
+      body: { shipmentIds }
+    }));
   }
 
   generateLabel(config: MelhorEnvioConfig, shipmentIds: string[]): Observable<any> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me/shipment/generate`;
-    return this.http.post<any>(url, { orders: shipmentIds }, { headers: this.getHeaders(config.accessToken) });
+    return from(this.callFunction<any>('generateMelhorEnvioLabel', {
+      method: 'POST',
+      body: { shipmentIds }
+    }));
   }
 
   getLabelUrl(config: MelhorEnvioConfig, shipmentIds: string[]): Observable<any> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me/shipment/print`;
-    return this.http.post<any>(url, { orders: shipmentIds }, { headers: this.getHeaders(config.accessToken) });
+    return from(this.callFunction<any>('printMelhorEnvioLabel', {
+      method: 'POST',
+      body: { shipmentIds }
+    }));
   }
 
   getTracking(config: MelhorEnvioConfig, shipmentId: string): Observable<any> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me/shipment/tracking`;
-    return this.http.post<any>(url, { orders: [shipmentId] }, { headers: this.getHeaders(config.accessToken) });
+    return from(this.callFunction<any>('trackMelhorEnvioShipment', {
+      method: 'POST',
+      body: { shipmentIds: [shipmentId] }
+    }));
+  }
+
+  private async callFunction<T>(
+    functionName: string,
+    options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {}
+  ): Promise<T> {
+    const token = await this.auth.currentUser?.getIdToken();
+    
+    const headers: any = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.functionsBaseUrl}/${functionName}`, {
+      method: options.method || 'GET',
+      headers: headers,
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const errorMessage = typeof data?.error === 'string'
+        ? data.error
+        : 'Erro ao chamar serviço do Melhor Envio.';
+      throw new Error(errorMessage);
+    }
+
+    return data as T;
   }
 
   getAnalysis(config: MelhorEnvioConfig): Observable<ShippingAnalysis> {
-    const url = `${this.getBaseUrl(config.isSandbox)}/api/v2/me/shipment/list`;
-    
-    return this.http.get<any>(url, { headers: this.getHeaders(config.accessToken) }).pipe(
+    return from(this.callFunction<any>('listMelhorEnvioShipments')).pipe(
       map(res => {
         const orders = res.data || [];
         const analysis: ShippingAnalysis = {

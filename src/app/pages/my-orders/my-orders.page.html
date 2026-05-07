@@ -62,8 +62,53 @@
             <small>Total:</small> <span>{{ order.total | currency:'BRL':'R$ ':'1.2-2' }}</span>
           </div>
         </div>
+
+        <!-- Botões de Ação para Devolução -->
+        <div class="order-actions" *ngIf="canRequestRefund(order) || order.refundInfo?.status">
+          <ion-button *ngIf="canRequestRefund(order)" expand="block" color="danger" fill="outline" size="small" (click)="openRefundModal(order)">
+            Solicitar Devolução / Disputa
+          </ion-button>
+
+          <div *ngIf="order.refundInfo?.status" class="refund-status-indicator" [ngClass]="(order.refundInfo?.status || '').toLowerCase()">
+            <ion-icon name="information-circle"></ion-icon>
+            Status da Devolução: {{ order.refundInfo?.status }}
+          </div>
+        </div>
       </ion-card>
     </div>
 
   </div>
 </ion-content>
+
+<!-- MODAL DE SOLICITAÇÃO DE DEVOLUÇÃO -->
+<ion-modal [isOpen]="isRefundModalOpen" (didDismiss)="closeRefundModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="light">
+        <ion-title>Solicitar Devolução</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeRefundModal()">Cancelar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding custom-bg">
+      <div class="modal-body" *ngIf="refundOrder">
+        <div class="warning-box">
+          <ion-icon name="shield-half-outline"></ion-icon>
+          <p>Você tem até 7 dias corridos após a compra para solicitar a devolução e receber o estorno integral, conforme o Código de Defesa do Consumidor.</p>
+        </div>
+
+        <h4 class="product-title">Pedido #{{ refundOrder.id?.substring(0,8)?.toUpperCase() }}</h4>
+        
+        <ion-item class="reason-input">
+          <ion-label position="stacked">Motivo da Devolução *</ion-label>
+          <ion-textarea [(ngModel)]="refundReason" rows="5" placeholder="Descreva por que deseja devolver o produto..."></ion-textarea>
+        </ion-item>
+
+        <ion-button expand="block" color="primary" class="ion-margin-top" (click)="submitRefundRequest()">
+          Enviar Solicitação
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

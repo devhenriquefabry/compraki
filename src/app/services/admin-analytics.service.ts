@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, combineLatest, map } from 'rxjs';
-import { collection, getFirestore, onSnapshot } from 'firebase/firestore';
+import { collection, getFirestore, onSnapshot, getDocs, deleteDoc, writeBatch, doc } from 'firebase/firestore';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { environment } from 'src/environments/environment';
 import { AppUser } from '../interfaces/app-user';
@@ -119,6 +119,35 @@ export class AdminAnalyticsService {
     ]).pipe(
       map(([users, products, orders]) => this.buildMetrics(users, products, orders, filters))
     );
+  }
+
+  async resetAllData(): Promise<void> {
+    const collections = [
+      'users', 
+      'products', 
+      'orders', 
+      'notifications', 
+      'categories', 
+      'banners', 
+      'chats', 
+      'messages',
+      'withdrawals',
+      'refunds',
+      'stats',
+      'address'
+    ];
+
+    for (const colName of collections) {
+      try {
+        const snap = await getDocs(collection(this.db, colName));
+        const batch = writeBatch(this.db);
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        console.log(`Coleção ${colName} limpa.`);
+      } catch (e) {
+        console.warn(`Erro ao limpar ${colName}:`, e);
+      }
+    }
   }
 
   private listenCollection<T extends object>(collectionName: string): Observable<(T & { id?: string })[]> {

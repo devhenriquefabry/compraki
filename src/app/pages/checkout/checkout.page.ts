@@ -160,9 +160,13 @@ export class CheckoutPage implements OnInit {
 
       await loading.dismiss();
 
-      // 4. Salvar Pedido no Firestore como PENDING
+      // 4. Salvar Pedido no Firestore como PENDING com Escrow Automático
       const user = getAuth().currentUser;
       const sellerIds = [...new Set(this.cartItems.map(item => item.productData.sellerId || 'unknown'))];
+
+      // Calcular data de liberação do escrow (7 dias a partir de agora)
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() + 7);
 
       const orderId = await this.ordersService.createOrder({
         userId: user?.uid || 'guest',
@@ -172,6 +176,10 @@ export class CheckoutPage implements OnInit {
         paymentMethod: data.method as any,
         asaasPaymentId: paymentResult.id,
         sellerIds: sellerIds,
+        escrowInfo: {
+          status: 'HOLDING',
+          releaseDate: releaseDate
+        },
         customerData: {
           name: data.buyerName,
           cpf: data.buyerCpf,

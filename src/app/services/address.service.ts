@@ -1,5 +1,11 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { initializeApp, getApp, getApps } from 'firebase/app';
+
+import { environment } from '../../environments/environment';
+const firebaseConfig = environment.firebase;
 
 export interface Address {
   id: string;
@@ -18,6 +24,8 @@ export interface Address {
   providedIn: 'root'
 })
 export class AddressService {
+  private db;
+  private auth = getAuth();
   private initialAddresses: Address[] = [
     {
       id: '1',
@@ -44,10 +52,29 @@ export class AddressService {
     }
   ];
 
-  private addressesSubject = new BehaviorSubject<Address[]>(this.loadFromStorage() || this.initialAddresses);
+  private addressesSubject = new BehaviorSubject<Address[]>(this.loadFromStorage() || []);
   addresses$ = this.addressesSubject.asObservable();
 
-  constructor() { }
+  constructor() {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    this.db = getFirestore(app);
+    this.initSync();
+  }
+
+  private initSync() {
+    this.auth.onAuthStateChanged(user => {
+      if (user) {
+        const addrCol = collection(this.db, 'users', user.uid, 'addresses');
+        onSnapshot(addrCol, (snapshot) => {
+          const cloudAddresses: Address[] = [];
+          snapshot.forEach(d => cloudAddresses.push({ id: d.id, ...d.data() } as Address));
+          if (cloudAddresses.length > 0) {
+            this.saveToStorage(cloudAddresses);
+          }
+        });
+      }
+    });
+  }
 
   private loadFromStorage(): Address[] | null {
     const data = localStorage.getItem('compraki_addresses');
@@ -73,6 +100,29 @@ export class AddressService {
     }
     
     this.saveToStorage(newList);
+    this.syncToCloud(address);
+  }
+
+  private async syncToCloud(address: Address) {
+    const user = this.auth.currentUser;
+    if (!user) return;
+    try {
+      const addrRef = doc(this.db, 'users', user.uid, 'addresses', address.id);
+      await setDoc(addrRef, address);
+    } catch (e) {
+      console.error('Error syncing to cloud:', e);
+    }
+  }
+
+  private async removeFromCloud(id: string) {
+    const user = this.auth.currentUser;
+    if (!user) return;
+    try {
+      const addrRef = doc(this.db, 'users', user.uid, 'addresses', id);
+      await deleteDoc(addrRef);
+    } catch (e) {
+      console.error('Error removing from cloud:', e);
+    }
   }
 
   updateAddress(address: Address) {
@@ -81,6 +131,7 @@ export class AddressService {
     if (index !== -1) {
       current[index] = address;
       this.saveToStorage([...current]);
+      this.syncToCloud(address);
     }
   }
 
@@ -94,6 +145,7 @@ export class AddressService {
     }
     
     this.saveToStorage(newList);
+    this.removeFromCloud(id);
   }
 
   setDefault(id: string) {
@@ -103,6 +155,8 @@ export class AddressService {
       isDefault: a.id === id
     }));
     this.saveToStorage(newList);
+    // Sincroniza todos para garantir que a flag isDefault está correta no Firestore
+    newList.forEach(a => this.syncToCloud(a));
   }
 
   async getCEP(cep: string): Promise<any> {

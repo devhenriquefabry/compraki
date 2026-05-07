@@ -13,6 +13,7 @@ import { MelhorEnvioPage } from '../melhor-envio/melhor-envio.page';
 import { AdminMetricsPage } from '../admin-metrics/admin-metrics.page';
 import { BotsPage } from '../bots/bots.page';
 import { ManageUsersPage } from '../manage-users/manage-users.page';
+import { ManageRefundsPage } from '../manage-refunds/manage-refunds.page';
 
 type AdminTab =
   | 'metrics'
@@ -22,7 +23,8 @@ type AdminTab =
   | 'whatsapp'
   | 'melhor-envio'
   | 'bots'
-  | 'users';
+  | 'users'
+  | 'refunds';
 
 @Component({
   selector: 'app-admin',
@@ -42,7 +44,8 @@ type AdminTab =
     ManageWhatsappPage,
     MelhorEnvioPage,
     BotsPage,
-    ManageUsersPage
+    ManageUsersPage,
+    ManageRefundsPage
   ]
 })
 export class AdminPage implements OnInit, OnDestroy {
@@ -56,7 +59,8 @@ export class AdminPage implements OnInit, OnDestroy {
     'whatsapp',
     'melhor-envio',
     'bots',
-    'users'
+    'users',
+    'refunds'
   ];
 
   constructor(

@@ -1,7 +1,8 @@
 import { Component, QueryList, ViewChildren, OnInit, inject } from '@angular/core';
 import { IonRouterOutlet, Platform, NavController } from '@ionic/angular';
 import { App } from '@capacitor/app';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { FirebaseProducts } from './services/firebase-products';
 import { User } from 'firebase/auth';
 import { AppUser } from './interfaces/app-user';
@@ -112,6 +113,7 @@ export class AppComponent implements OnInit {
     });
     this.initializeApp();
     this.notifyService.initOrderListener();
+    this.setupRouteTracking();
   }
 
   ngOnInit() {
@@ -120,14 +122,85 @@ export class AppComponent implements OnInit {
       const user = this.fbProducts.getUser();
       if (user) {
         this.usuario = user;
+        const freshAppUser = await this.usersService.getUserById(user.uid);
+        
+        if (!freshAppUser) {
+          // Documento não encontrado no Firestore (provável reset de base)
+          // Redireciona para o login para evitar inconsistências
+          console.warn('Usuário autenticado mas sem registro no banco. Redirecionando...');
+          this.logout();
+          return;
+        }
+
         if (!this.appUser || this.appUser.uid !== user.uid) {
-           this.appUser = await this.usersService.getUserById(user.uid);
+           this.appUser = freshAppUser;
         }
       } else {
         this.usuario = null;
         this.appUser = null;
       }
-    }, 1000);
+    }, 1500);
+
+    this.restoreLastRoute();
+  }
+
+  private setupRouteTracking() {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: any) => {
+      const url = event.urlAfterRedirects;
+      // Não salva páginas de login ou públicas se quisermos voltar para o "dashboard"
+      const skipUrls = ['/login', '/sign-in', '/forgot-password', '/password-recovery'];
+      if (!skipUrls.some(s => url.includes(s))) {
+        localStorage.setItem('compraki_last_url', url);
+      }
+    });
+  }
+
+  private async restoreLastRoute() {
+    const lastUrl = localStorage.getItem('compraki_last_url');
+    
+    // Pequeno delay para garantir que a plataforma e o roteador estão prontos
+    setTimeout(() => {
+      const currentUrl = this.router.url;
+      
+      // Se não houver URL salva, define o padrão (Login ou Tab2)
+      if (!lastUrl) {
+        if (currentUrl === '/' || currentUrl === '/tabs' || currentUrl === '/tabs/tab2') {
+          const user = this.fbProducts.getUser();
+          if (user) {
+            this.navCtrl.navigateRoot('/tabs/tab2');
+          } else {
+            this.navCtrl.navigateRoot('/login');
+          }
+        }
+        return;
+      }
+
+      // Se estiver na raiz e tiver uma URL salva, tenta restaurar
+      if (currentUrl === '/' || currentUrl === '/tabs' || currentUrl === '/tabs/tab2') {
+        const user = this.fbProducts.getUser();
+        
+        // Se não tem usuário, manda pro login independente do que estiver salvo
+        if (!user) {
+          this.navCtrl.navigateRoot('/login');
+          return;
+        }
+
+        // Verifica permissões se for admin
+        if (lastUrl.includes('/admin') || lastUrl.includes('manage-')) {
+          this.usersService.getUserById(user.uid).then(appUser => {
+            if (appUser?.isAdmin || appUser?.super_admin) {
+              this.navCtrl.navigateRoot(lastUrl);
+            } else {
+              this.navCtrl.navigateRoot('/tabs/tab2');
+            }
+          });
+        } else {
+          this.navCtrl.navigateRoot(lastUrl);
+        }
+      }
+    }, 800);
   }
 
   logout() {

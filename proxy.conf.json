@@ -6,29 +6,5 @@
     "pathRewrite": {
       "^/asaas-api": ""
     }
-  },
-  "/melhor-envio-prod": {
-    "target": "https://www.melhorenvio.com.br",
-    "secure": true,
-    "changeOrigin": true,
-    "pathRewrite": {
-      "^/melhor-envio-prod": ""
-    },
-    "headers": {
-      "User-Agent": "Compraki/1.0 (contato@compraki.com.br)"
-    },
-    "logLevel": "debug"
-  },
-  "/melhor-envio-sandbox": {
-    "target": "https://sandbox.melhorenvio.com.br",
-    "secure": true,
-    "changeOrigin": true,
-    "pathRewrite": {
-      "^/melhor-envio-sandbox": ""
-    },
-    "headers": {
-      "User-Agent": "Compraki/1.0 (contato@compraki.com.br)"
-    },
-    "logLevel": "debug"
   }
 }

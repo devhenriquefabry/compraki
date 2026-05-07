@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { IonModal } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { Product } from '../interfaces/product';
 import { ProductSelectionService } from '../services/product-selection-service';
@@ -18,6 +19,7 @@ import { Subscription, Observable } from 'rxjs';
 export class Tab2Page implements OnInit, OnDestroy {
 
   @ViewChild('bannerContainer', { static: false }) bannerContainer!: ElementRef;
+  @ViewChild(IonModal) modal!: IonModal;
 
   public categories$!: Observable<Category[]>;
 
@@ -83,7 +85,7 @@ export class Tab2Page implements OnInit, OnDestroy {
     }
   }
 
-  public applyFilters() {
+  public applyFilters(closeAfter: boolean = false) {
     let result = [...this.allProducts];
 
     // Busca por texto
@@ -111,9 +113,14 @@ export class Tab2Page implements OnInit, OnDestroy {
     if (this.sortOrder === 'preco-maior') result.sort((a, b) => b.price - a.price);
 
     this.filteredProducts = result;
+    
+    // Fecha o modal se solicitado
+    if (closeAfter && this.modal) {
+      this.modal.dismiss();
+    }
   }
 
-  public clearFilters() {
+  public clearFilters(closeAfter: boolean = false) {
     this.searchTerm = '';
     this.minPrice = null;
     this.maxPrice = null;
@@ -121,6 +128,11 @@ export class Tab2Page implements OnInit, OnDestroy {
     this.sortOrder = 'relevancia';
     this.onlyFreeShipping = false;
     this.applyFilters();
+
+    // Fecha o modal se solicitado
+    if (closeAfter && this.modal) {
+      this.modal.dismiss();
+    }
   }
 
   public filterByCategory(id: string) {

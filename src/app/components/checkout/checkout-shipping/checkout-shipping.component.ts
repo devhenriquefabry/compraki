@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Input } from '@angular/core';
 import { IonicModule, LoadingController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { MelhorEnvioService } from 'src/app/services/melhor-envio.service';
@@ -15,6 +15,8 @@ import { CartItem } from 'src/app/interfaces/cart-item';
   imports: [IonicModule, CommonModule]
 })
 export class CheckoutShippingComponent implements OnInit {
+  @Input() readOnly: boolean = false;
+
 
   private melhorEnvioService = inject(MelhorEnvioService);
   private stateService = inject(CheckoutStateService);

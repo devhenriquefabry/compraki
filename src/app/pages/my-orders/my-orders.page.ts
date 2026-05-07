@@ -5,19 +5,24 @@ import { Subscription } from 'rxjs';
 import { getAuth } from 'firebase/auth';
 
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
+import { FormsModule } from '@angular/forms';
+import { IonicModule, ToastController, LoadingController } from '@ionic/angular';
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
+import { RefundsService } from 'src/app/services/refunds.service';
 
 @Component({
   selector: 'app-my-orders',
   templateUrl: './my-orders.page.html',
   styleUrls: ['./my-orders.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule, MiniHeaderComponent]
+  imports: [CommonModule, FormsModule, IonicModule, MiniHeaderComponent]
 })
 export class MyOrdersPage implements OnInit, OnDestroy {
 
   private ordersService = inject(OrdersService);
+  private refundsService = inject(RefundsService);
+  private toastCtrl = inject(ToastController);
+  private loadingCtrl = inject(LoadingController);
   
   public allOrders: Order[] = [];
   public filteredOrders: Order[] = [];
@@ -25,6 +30,11 @@ export class MyOrdersPage implements OnInit, OnDestroy {
   public filter: 'ALL' | 'PAID' | 'PENDING' = 'PAID'; // Default to Paid as requested
 
   private sub?: Subscription;
+
+  // Modal de devolução
+  public isRefundModalOpen = false;
+  public refundOrder: Order | null = null;
+  public refundReason = '';
 
   constructor() { }
 
@@ -84,4 +94,68 @@ export class MyOrdersPage implements OnInit, OnDestroy {
     return d.toLocaleDateString('pt-BR');
   }
 
+  canRequestRefund(order: Order): boolean {
+    if (order.status !== 'CONFIRMED' && order.status !== 'RECEIVED' && order.status !== 'DELIVERED') return false;
+    if (order.refundInfo?.status) return false; // Já solicitou
+    if (order.escrowInfo?.status !== 'HOLDING') return false; // Já liberou ou estornou
+    
+    // Verifica se ainda está dentro dos 7 dias
+    const releaseDate = this.toDate(order.escrowInfo?.releaseDate);
+    if (!releaseDate) return false;
+    
+    return releaseDate.getTime() > new Date().getTime();
+  }
+
+  private toDate(value: any): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value.toDate === 'function') return value.toDate();
+    return new Date(value);
+  }
+
+  openRefundModal(order: Order) {
+    this.refundOrder = order;
+    this.refundReason = '';
+    this.isRefundModalOpen = true;
+  }
+
+  closeRefundModal() {
+    this.isRefundModalOpen = false;
+    this.refundOrder = null;
+    this.refundReason = '';
+  }
+
+  async submitRefundRequest() {
+    if (!this.refundOrder?.id) return;
+    if (this.refundReason.trim().length < 10) {
+      this.showToast('Por favor, explique o motivo em pelo menos 10 caracteres.', 'warning');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({ message: 'Enviando solicitação...' });
+    await loading.present();
+
+    try {
+      const user = getAuth().currentUser;
+      await this.refundsService.requestRefund(this.refundOrder.id, user?.uid || 'unknown', this.refundReason);
+      
+      this.showToast('Solicitação de devolução enviada com sucesso.', 'success');
+      this.closeRefundModal();
+    } catch (err: any) {
+      console.error(err);
+      this.showToast('Erro ao enviar solicitação.', 'danger');
+    } finally {
+      loading.dismiss();
+    }
+  }
+
+  async showToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 3000,
+      color,
+      position: 'bottom'
+    });
+    toast.present();
+  }
 }

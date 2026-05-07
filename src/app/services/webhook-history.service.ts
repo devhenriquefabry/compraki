@@ -25,8 +25,9 @@ export interface WebhookEvent {
 }
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
+  apiKey: "AIzaSyBD5AH1b1_p6AghhPx3Nr0fBVab8djRbkI",
   authDomain: "compraki-mcu.firebaseapp.com",
+  databaseURL: "https://compraki-mcu-default-rtdb.firebaseio.com",
   projectId: "compraki-mcu",
   storageBucket: "compraki-mcu.firebasestorage.app",
   messagingSenderId: "2028715763",

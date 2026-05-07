@@ -26,6 +26,10 @@
       <ion-icon [name]="activeTab === 'users' ? 'people' : 'people-outline'"></ion-icon>
       Usuários
     </button>
+    <button class="master-tab" [class.active]="activeTab === 'refunds'" [routerLink]="['/admin/refunds']">
+      <ion-icon [name]="activeTab === 'refunds' ? 'swap-horizontal' : 'swap-horizontal-outline'"></ion-icon>
+      Devoluções
+    </button>
     <button class="master-tab" [class.active]="activeTab === 'melhor-envio'" [routerLink]="['/admin/melhor-envio']">
       <ion-icon [name]="activeTab === 'melhor-envio' ? 'paper-plane' : 'paper-plane-outline'"></ion-icon>
       Melhor Envio
@@ -45,5 +49,6 @@
   <app-manage-whatsapp *ngIf="activeTab === 'whatsapp'"></app-manage-whatsapp>
   <app-bots *ngIf="activeTab === 'bots'"></app-bots>
   <app-manage-users *ngIf="activeTab === 'users'"></app-manage-users>
+  <app-manage-refunds *ngIf="activeTab === 'refunds'"></app-manage-refunds>
   <app-melhor-envio *ngIf="activeTab === 'melhor-envio'"></app-melhor-envio>
 </div>

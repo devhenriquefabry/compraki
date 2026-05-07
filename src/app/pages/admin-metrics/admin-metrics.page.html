@@ -334,6 +334,29 @@
           <small>{{ metric.helper }}</small>
         </article>
       </section>
+
+      <!-- DANGER ZONE -->
+      <section class="section-block danger-zone-section mt-24">
+        <div class="section-heading">
+          <div>
+            <span>Zona de Perigo</span>
+            <h2>Gerenciamento de Dados</h2>
+          </div>
+        </div>
+        <article class="danger-card">
+          <div class="danger-info">
+            <ion-icon name="warning-outline"></ion-icon>
+            <div>
+              <strong>Resetar Base de Dados</strong>
+              <p>Esta ação apagará permanentemente todos os registros de usuários, produtos, pedidos e mensagens. Não há como desfazer.</p>
+            </div>
+          </div>
+          <button class="reset-db-btn" (click)="confirmResetDatabase()">
+            <ion-icon name="trash-outline"></ion-icon>
+            Resetar Tudo
+          </button>
+        </article>
+      </section>
     </ng-container>
   </div>
 </ion-content>

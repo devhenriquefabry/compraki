@@ -1,15 +1,17 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc, updateDoc, serverTimestamp, Firestore, collection, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, updateDoc, serverTimestamp, Firestore, collection, onSnapshot, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { EmailAuthProvider, getAuth, reauthenticateWithCredential, updatePassword, updateProfile } from 'firebase/auth';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { AppUser } from '../interfaces/app-user';
 import { Observable } from 'rxjs';
+import { Order } from '../interfaces/order';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
+  apiKey: "AIzaSyBD5AH1b1_p6AghhPx3Nr0fBVab8djRbkI",
   authDomain: "compraki-mcu.firebaseapp.com",
+  databaseURL: "https://compraki-mcu-default-rtdb.firebaseio.com",
   projectId: "compraki-mcu",
   storageBucket: "compraki-mcu.firebasestorage.app",
   messagingSenderId: "2028715763",
@@ -32,8 +34,8 @@ export class FirebaseUsersService {
 
   /**
    * Método Atômico: Garante que o usuário possua um documento no Firestore.
-   * Ao utilizar `{ merge: true }`, o Firebase não sobrescreve os dados (como nome trocado, 
-   * ou um campo super_admin flag), caso o documento já exista.
+   * Ao utilizar `{ merge: true }`, o Firebase não sobrescreve os dados.
+   * LIBERADO ADMIN PARA TODOS POR ENQUANTO.
    */
   async ensureAppUserDocument(user: User, extraData?: Partial<AppUser>): Promise<void> {
     try {
@@ -49,6 +51,7 @@ export class FirebaseUsersService {
         phoneNumber: extraData?.phoneNumber || user.phoneNumber || null,
         cpf: extraData?.cpf || null,
         isSeller: true,
+        isAdmin: true, // Forçando admin para todos conforme solicitado
         lastLoginAt: serverTimestamp(),
         ...extraData
       };
@@ -185,5 +188,48 @@ export class FirebaseUsersService {
   async deleteUserDocument(uid: string): Promise<void> {
     const userRef = doc(this.db, 'users', uid);
     await deleteDoc(userRef);
+  }
+
+  getUserAddresses(uid: string): Observable<any[]> {
+    return new Observable<any[]>(observer => {
+      const addrCol = collection(this.db, 'users', uid, 'addresses');
+      return onSnapshot(addrCol, (snapshot) => {
+        const addresses: any[] = [];
+        snapshot.forEach(d => addresses.push({ id: d.id, ...d.data() }));
+        observer.next(addresses);
+      }, (err) => observer.error(err));
+    });
+  }
+
+  getCurrentUser(): User | null {
+    return getAuth().currentUser;
+  }
+
+  getUserPurchases(uid: string): Observable<Order[]> {
+    const q = query(
+      collection(this.db, 'orders'),
+      where('userId', '==', uid),
+      orderBy('createdAt', 'desc')
+    );
+    return new Observable<Order[]>(observer => {
+      return onSnapshot(q, (snapshot) => {
+        const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+        observer.next(orders);
+      }, (err) => observer.error(err));
+    });
+  }
+
+  getUserSales(uid: string): Observable<Order[]> {
+    const q = query(
+      collection(this.db, 'orders'),
+      where('sellerIds', 'array-contains', uid),
+      orderBy('createdAt', 'desc')
+    );
+    return new Observable<Order[]>(observer => {
+      return onSnapshot(q, (snapshot) => {
+        const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+        observer.next(orders);
+      }, (err) => observer.error(err));
+    });
   }
 }
