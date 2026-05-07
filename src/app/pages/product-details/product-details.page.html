@@ -63,34 +63,18 @@
         </div>
       </ion-card>
 
-      <!-- SEÇÃO VENDEDOR -->
-      <div class="section-label">Vendedor</div>
-      <ion-card class="seller-card-premium" *ngIf="seller$ | async as seller">
-        <div class="seller-header">
-          <img class="seller-avatar" [src]="seller.photoURL || 'assets/imagens/foto-henrique.jpeg'" alt="">
-          <div class="seller-meta">
-            <div class="seller-name-row">
-              <span class="seller-name">{{ seller.displayName || 'Loja do Henricão' }}</span>
-              <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
-              <span class="verified-text">Verificado</span>
-            </div>
-          </div>
+      <!-- CHIP DO VENDEDOR (compacto, logo abaixo do produto) -->
+      <div class="seller-chip" *ngIf="seller$ | async as seller">
+        <img class="chip-avatar" [src]="seller.photoURL || 'assets/imagens/foto-henrique.jpeg'" alt="">
+        <div class="chip-info">
+          <span class="chip-name">{{ seller.displayName || 'Loja Compraki' }}</span>
+          <span class="chip-sub">
+            <ion-icon name="checkmark-circle" class="chip-verified"></ion-icon>
+            Vendedor verificado
+          </span>
         </div>
-        
-        <div class="seller-actions" style="display: flex; gap: 8px; margin-top: 10px;">
-          <ion-button class="btn-seller" fill="outline" style="flex: 1;">Perfil</ion-button>
-          <ion-button class="btn-chat" color="success" style="flex: 2;" (click)="startChat(p)">
-            <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-            Falar com Vendedor
-          </ion-button>
-        </div>
-        
-        <div class="seller-stats">
-          <span><ion-icon name="bag-handle-outline"></ion-icon> 392 vendas</span>
-          <span class="separator">&bull;</span>
-          <span>100% avaliações positivas</span>
-        </div>
-      </ion-card>
+        <ion-icon name="chevron-forward-outline" class="chip-arrow"></ion-icon>
+      </div>
 
       <!-- ABAS E DESCRIÇÃO -->
       <div class="tabs-container">
@@ -104,6 +88,146 @@
           {{p.description || 'Produto em ótimo estado, pouco tempo de uso. Equipado com processador de alto desempenho, ideal para produtividade e lazer sem travamentos.' }}
         </p>
       </ion-card>
+
+      <!-- =============================================
+           PERFIL EXPANDIDO DO VENDEDOR
+           ============================================= -->
+      <div class="seller-profile-section" *ngIf="seller$ | async as seller" id="seller-profile">
+
+        <!-- Banner de capa -->
+        <div class="seller-banner" [style.background-image]="seller.shopBanner ? 'url(' + seller.shopBanner + ')' : 'linear-gradient(135deg, #1e1e2d, #2d2d44)'">
+          <div class="seller-banner-overlay"></div>
+          <img 
+            class="seller-avatar-hero"
+            [src]="seller.photoURL || 'assets/imagens/foto-henrique.jpeg'" 
+            alt="">
+        </div>
+
+        <!-- Corpo do perfil -->
+        <div class="seller-profile-body" [style.--shop-primary]="seller.shopPrimaryColor || '#7c4dff'">
+
+          <!-- Nome + Botão Seguir -->
+          <div class="seller-name-follow-row">
+            <div class="seller-name-block">
+              <h2 class="seller-hero-name">{{ seller.shopName || seller.displayName || 'Loja Compraki' }}</h2>
+              <span class="seller-official-label">
+                <ion-icon name="checkmark-circle" class="hero-verified-icon"></ion-icon>
+                Vendedor verificado
+              </span>
+            </div>
+            <ion-button class="btn-follow" fill="outline" size="small" [style.--color]="seller.shopPrimaryColor">Seguir</ion-button>
+          </div>
+
+          <!-- Bio customizada -->
+          <p class="seller-bio" *ngIf="seller.shopDescription">
+            {{ seller.shopDescription }}
+          </p>
+
+          <!-- Seguidores e Produtos -->
+          <div class="seller-followers-row">
+            <span><strong>+1 mil</strong> Seguidores</span>
+            <span class="dot-sep">·</span>
+            <span><strong>+10</strong> Produtos</span>
+          </div>
+
+          <!-- Badge Premium -->
+          <div class="seller-badge-card">
+            <div class="badge-icon-wrap" [style.background]="seller.shopPrimaryColor">
+              <ion-icon name="ribbon" class="ribbon-icon"></ion-icon>
+            </div>
+            <div class="badge-text-block">
+              <span class="badge-title">Vendedor Premium</span>
+              <span class="badge-sub">É um dos melhores do site!</span>
+            </div>
+          </div>
+
+          <!-- Métricas -->
+          <div class="seller-metrics-row">
+            <div class="metric-item">
+              <span class="metric-val">+392</span>
+              <span class="metric-label">Vendas</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <ion-icon name="chatbubble-ellipses-outline" class="metric-icon"></ion-icon>
+              <span class="metric-label">Bom atendimento</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <ion-icon name="bicycle-outline" class="metric-icon"></ion-icon>
+              <span class="metric-label">Entrega no prazo</span>
+            </div>
+          </div>
+
+          <!-- Botão Chat -->
+          <ion-button 
+            expand="block" 
+            class="btn-chat-seller"
+            [style.--background]="seller.shopPrimaryColor || '#2dd36f'"
+            (click)="startChat(p)">
+            <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+            Falar com Vendedor
+          </ion-button>
+
+        </div>
+      </div>
+
+
+      <!-- SEÇÃO PRODUTOS RELACIONADOS -->
+      <div class="related-section" *ngIf="(relatedProducts$ | async) as related">
+        <div class="related-header">
+          <span class="related-title">Produtos relacionados</span>
+          <span class="related-ad-badge">Ad</span>
+        </div>
+
+        <div class="related-scroll-track">
+          <div 
+            class="related-product-card" 
+            *ngFor="let rp of related"
+            (click)="goToProduct(rp)">
+            
+            <div class="related-img-wrap">
+              <img 
+                [src]="rp.photoURL?.[0] || 'https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg'" 
+                [alt]="rp.name">
+              <span 
+                class="discount-badge" 
+                *ngIf="getDiscountPercent(rp.price, rp.priceDiscounted) as disc">
+                {{ disc }}% OFF
+              </span>
+            </div>
+
+            <div class="related-info">
+              <p class="related-name">{{ rp.name }}</p>
+
+              <div class="related-rating">
+                <ion-icon name="star" class="star-icon"></ion-icon>
+                <span class="rating-val">{{ rp.rating || '4.8' }}</span>
+                <span class="sold-count">+10mil vendidos</span>
+              </div>
+
+              <div class="related-prices">
+                <span class="original-price" *ngIf="rp.priceDiscounted">
+                  R$ {{ rp.priceDiscounted | number:'1.2-2' }}
+                </span>
+                <div class="final-price-row">
+                  <span class="final-price">R$ {{ rp.price | number:'1.2-2' }}</span>
+                  <span 
+                    class="off-label" 
+                    *ngIf="getDiscountPercent(rp.price, rp.priceDiscounted) as disc">
+                    {{ disc }}% OFF
+                  </span>
+                </div>
+              </div>
+
+              <div class="full-badge">
+                <ion-icon name="flash" class="flash-icon"></ion-icon>
+                FULL
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div>
 

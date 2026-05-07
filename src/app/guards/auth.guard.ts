@@ -21,7 +21,8 @@ export const authGuard: CanActivateFn = (route, state) => {
   const auth = getFirebaseAuth();
 
   return new Promise((resolve) => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe(); // Unsubscribe immediately after the first check
       if (user) {
         resolve(true);
       } else {
@@ -42,7 +43,8 @@ export const noAuthGuard: CanActivateFn = (route, state) => {
   const auth = getFirebaseAuth();
 
   return new Promise((resolve) => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe(); // Unsubscribe immediately after the first check
       if (user) {
         router.navigate(['/tabs']);
         resolve(false);

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc, serverTimestamp, Firestore, collection, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, updateDoc, serverTimestamp, Firestore, collection, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { EmailAuthProvider, getAuth, reauthenticateWithCredential, updatePassword, updateProfile } from 'firebase/auth';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
@@ -84,6 +84,15 @@ export class FirebaseUsersService {
     return getDownloadURL(storageRef);
   }
 
+  async uploadShowcaseBanner(uid: string, file: File): Promise<string> {
+    const extension = file.name.split('.').pop() || 'jpg';
+    const filePath = `showcase-banners/${uid}/${Date.now()}.${extension}`;
+    const storageRef = ref(this.storage, filePath);
+
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  }
+
   async updateCurrentUserProfile(data: Partial<AppUser>): Promise<void> {
     const auth = getAuth();
     const currentUser = auth.currentUser;
@@ -153,7 +162,24 @@ export class FirebaseUsersService {
   }
 
   async toggleUserSeller(uid: string, isSeller: boolean): Promise<void> {
-    await this.updateUserPartial(uid, { isSeller });
+    const userDoc = doc(this.db, 'users', uid);
+    return updateDoc(userDoc, { isSeller });
+  }
+
+  /**
+   * Promove ou remove privilégios de administrador de um usuário.
+   */
+  toggleUserAdmin(uid: string, isAdmin: boolean): Promise<void> {
+    const userDoc = doc(this.db, 'users', uid);
+    return updateDoc(userDoc, { isAdmin });
+  }
+
+  /**
+   * Promove um usuário a Super Admin (Uso restrito).
+   */
+  setSuperAdmin(uid: string, status: boolean): Promise<void> {
+    const userDoc = doc(this.db, 'users', uid);
+    return updateDoc(userDoc, { super_admin: status, isAdmin: status });
   }
 
   async deleteUserDocument(uid: string): Promise<void> {

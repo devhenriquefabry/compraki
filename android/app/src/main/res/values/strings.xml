@@ -6,4 +6,5 @@
     <string name="custom_url_scheme">io.ionic.starter</string>
     <string name="server_client_id">2028715763-p879a7gv1u0u3in5n0t5k3f87r5i7sib.apps.googleusercontent.com</string>
     <string name="google_client_id">2028715763-p879a7gv1u0u3in5n0t5k3f87r5i7sib.apps.googleusercontent.com</string>
+    <string name="web_client_id">2028715763-p879a7gv1u0u3in5n0t5k3f87r5i7sib.apps.googleusercontent.com</string>
 </resources>

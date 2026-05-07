@@ -4,6 +4,8 @@ import { App } from '@capacitor/app';
 import { Router } from '@angular/router';
 import { FirebaseProducts } from './services/firebase-products';
 import { User } from 'firebase/auth';
+import { AppUser } from './interfaces/app-user';
+import { FirebaseUsersService } from './services/firebase-users.service';
 import { addIcons } from 'ionicons';
 import { 
   openOutline, heart, heartOutline, searchOutline, 
@@ -23,6 +25,7 @@ import {
 
 import { NotificationService } from './services/notification.service';
 import { PresenceService } from './services/presence.service';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 @Component({
   selector: 'app-root',
@@ -32,9 +35,11 @@ import { PresenceService } from './services/presence.service';
 })
 export class AppComponent implements OnInit {
   public usuario! : User | null;
+  public appUser: AppUser | null = null;
   private fbProducts = inject(FirebaseProducts);
+  private usersService = inject(FirebaseUsersService);
   private notifyService = inject(NotificationService);
-  private presenceService = inject(PresenceService); // Inicializa o rastreamento global
+  private presenceService = inject(PresenceService); 
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
   
   showSplash: boolean;
@@ -111,10 +116,16 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     // Atualização constante do usuário para a sidebar
-    setInterval(() => {
+    setInterval(async () => {
       const user = this.fbProducts.getUser();
       if (user) {
         this.usuario = user;
+        if (!this.appUser || this.appUser.uid !== user.uid) {
+           this.appUser = await this.usersService.getUserById(user.uid);
+        }
+      } else {
+        this.usuario = null;
+        this.appUser = null;
       }
     }, 1000);
   }
@@ -126,6 +137,9 @@ export class AppComponent implements OnInit {
 
   initializeApp() {
     this.platform.ready().then(() => {
+      // Inicializa Google Auth para Web/Native
+      GoogleAuth.initialize();
+
       // Fake Splash Screen Logic — só roda se a splash estiver visível
       if (this.showSplash) {
         setTimeout(() => {

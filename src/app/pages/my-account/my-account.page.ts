@@ -303,6 +303,10 @@ export class MyAccountPage implements OnInit, OnDestroy {
     this.navCtrl.navigateForward('/my-sales');
   }
 
+  goToMyShowcase() {
+    this.navCtrl.navigateForward('/my-showcase');
+  }
+
   logout() {
     this.firebaseService.signOut();
   }

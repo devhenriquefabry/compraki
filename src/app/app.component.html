@@ -111,28 +111,32 @@
         </ion-menu-toggle>
 
 
-        <ion-list-header>ADMINISTRAÇÃO</ion-list-header>
-        <ion-menu-toggle auto-hide="false">
-          <ion-item button [routerLink]="['/admin']" routerLinkActive="active-item">
-            <ion-icon name="grid-outline" slot="start"></ion-icon>
-            <ion-label>Painel de Gestão</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
+        <ng-container *ngIf="appUser?.isAdmin">
+          <ion-list-header>ADMINISTRAÇÃO</ion-list-header>
+          <ion-menu-toggle auto-hide="false">
+            <ion-item button [routerLink]="['/admin']" routerLinkActive="active-item">
+              <ion-icon name="grid-outline" slot="start"></ion-icon>
+              <ion-label>Painel de Gestão</ion-label>
+            </ion-item>
+          </ion-menu-toggle>
+        </ng-container>
 
-        <ion-list-header>AUTOMAÇÃO</ion-list-header>
-        <ion-menu-toggle auto-hide="false">
-          <ion-item button [routerLink]="['/admin/bots']" routerLinkActive="active-item">
-            <ion-icon name="rocket-outline" slot="start"></ion-icon>
-            <ion-label>Gestão de Bots</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
+        <ng-container *ngIf="appUser?.isAdmin">
+          <ion-list-header>AUTOMAÇÃO</ion-list-header>
+          <ion-menu-toggle auto-hide="false">
+            <ion-item button [routerLink]="['/admin/bots']" routerLinkActive="active-item">
+              <ion-icon name="rocket-outline" slot="start"></ion-icon>
+              <ion-label>Gestão de Bots</ion-label>
+            </ion-item>
+          </ion-menu-toggle>
 
-        <ion-menu-toggle auto-hide="false">
-          <ion-item button [routerLink]="['/webhook-tester']" routerLinkActive="active-item">
-            <ion-icon name="flask-outline" slot="start"></ion-icon>
-            <ion-label>Laboratório Webhook</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
+          <ion-menu-toggle auto-hide="false">
+            <ion-item button [routerLink]="['/webhook-tester']" routerLinkActive="active-item">
+              <ion-icon name="flask-outline" slot="start"></ion-icon>
+              <ion-label>Laboratório Webhook</ion-label>
+            </ion-item>
+          </ion-menu-toggle>
+        </ng-container>
 
         <div class="divider"></div>
 

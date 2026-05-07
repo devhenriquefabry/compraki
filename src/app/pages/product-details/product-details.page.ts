@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, Subject, combineLatest, from, of } from 'rxjs';
-import { map, switchMap, takeUntil } from 'rxjs/operators';
+import { map, switchMap, takeUntil, take } from 'rxjs/operators';
 import { 
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, 
   IonFooter, IonButton, IonIcon, IonModal, IonCard, IonSpinner, IonImg, IonText, IonThumbnail, IonLabel, IonItem
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart } from 'ionicons/icons';
+import { heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart, flash, chevronForwardOutline, ribbon, chatbubbleEllipsesOutline, bicycleOutline } from 'ionicons/icons';
 
 import { Product } from 'src/app/interfaces/product';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
@@ -41,6 +41,7 @@ import { ChatBoxComponent } from 'src/app/components/chat-box/chat-box.component
 export class ProductDetailsPage implements OnInit, OnDestroy {
   public product$: Observable<Product | null>;
   public allProducts$: Observable<Product[]>;
+  public relatedProducts$: Observable<Product[]>;
   public seller$: Observable<AppUser | null>;
   public cartQuantity$: Observable<number>;
   public isSaved = false;
@@ -59,7 +60,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     private fbUsers: FirebaseUsersService,
     private route: ActivatedRoute
   ) {
-    addIcons({ heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart });
+    addIcons({ heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart, flash, chevronForwardOutline, ribbon, chatbubbleEllipsesOutline, bicycleOutline });
     
     this.product$ = this.route.params.pipe(
       switchMap(params => {
@@ -72,6 +73,16 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     );
 
     this.allProducts$ = this.fbProducts.getAll();
+
+    this.relatedProducts$ = combineLatest([
+      this.product$,
+      this.allProducts$
+    ]).pipe(
+      map(([current, all]) => {
+        if (!current) return all.slice(0, 10);
+        return all.filter(p => p.id !== current.id).slice(0, 10);
+      })
+    );
 
     this.seller$ = this.product$.pipe(
       switchMap(p => {
@@ -173,6 +184,16 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     const transformedNumber = number.toFixed(2);
     const parts = transformedNumber.split('.');
     return parts[1];
+  }
+
+  public goToProduct(product: Product) {
+    this.selectionService.setSelectedProduct(product);
+    this.router.navigate(['/product-details', product.id]);
+  }
+
+  public getDiscountPercent(price: number, priceDiscounted?: number): number | null {
+    if (!priceDiscounted || priceDiscounted <= price) return null;
+    return Math.round((1 - price / priceDiscounted) * 100);
   }
 
   public priceOrganize(price:any, priceDiscounted:any) : number {

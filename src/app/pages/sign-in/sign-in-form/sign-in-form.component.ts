@@ -1,7 +1,7 @@
 import { NgIf } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
@@ -21,6 +21,7 @@ export class SignInFormComponent implements OnInit {
   public currentStep: number = 1;
   public totalSteps: number = 3;
   public formularioValido: boolean = false;
+  public registrationSuccess: boolean = false;
 
   signInForm = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -40,7 +41,7 @@ export class SignInFormComponent implements OnInit {
     state: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   })
 
-  constructor(public firebaseProducts: FirebaseProducts, private addressService: AddressService) { }
+  constructor(public firebaseProducts: FirebaseProducts, private addressService: AddressService, private router: Router) { }
 
 
   ngOnInit() {
@@ -127,7 +128,12 @@ export class SignInFormComponent implements OnInit {
           address
         ).then((salvouNoFirebaseMesmo) => {
           if (salvouNoFirebaseMesmo === true) {
-            this.signInForm.reset()
+            this.registrationSuccess = true;
+            this.signInForm.reset();
+            
+            setTimeout(() => {
+              this.router.navigate(['/tabs']);
+            }, 2000);
           }
         })
       }
@@ -137,8 +143,13 @@ export class SignInFormComponent implements OnInit {
   public callSignInGoogleFunction () {
     this.firebaseProducts.signInWithGoogle().then((salvouNoFirebaseMesmo)=> {
       if (salvouNoFirebaseMesmo === true) {
-            this.signInForm.reset()
-          }
+        this.registrationSuccess = true;
+        this.signInForm.reset();
+        
+        setTimeout(() => {
+          this.router.navigate(['/tabs']);
+        }, 2000);
+      }
     })
   }
 }

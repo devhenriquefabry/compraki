@@ -183,6 +183,8 @@
               <div class="user-tags">
                 <span class="tag" [class.success]="getStatusTone(user) === 'success'">{{ getStatusLabel(user) }}</span>
                 <span class="tag info" *ngIf="user.isSeller">Vendedor</span>
+                <span class="tag success" *ngIf="user.isAdmin">Admin</span>
+                <span class="tag danger" *ngIf="user.super_admin">Super Admin</span>
                 <span class="tag warning" *ngIf="user.isChatBanned">Chat bloqueado</span>
                 <span class="tag risk" *ngFor="let risk of getRiskBadges(user)" [ngClass]="risk.tone">{{ risk.label }}</span>
               </div>
@@ -225,6 +227,10 @@
             <button type="button" class="action-btn info" (click)="toggleSeller(user)" [disabled]="actionLoading">
               <ion-icon name="swap-horizontal-outline"></ion-icon>
               {{ user.isSeller ? 'Mudar para comprador' : 'Promover para vendedor' }}
+            </button>
+            <button type="button" class="action-btn success" (click)="toggleAdmin(user)" [disabled]="actionLoading">
+              <ion-icon [name]="user.isAdmin ? 'person-remove-outline' : 'person-add-outline'"></ion-icon>
+              {{ user.isAdmin ? 'Remover Admin' : 'Tornar Admin' }}
             </button>
             <button type="button" class="action-btn danger" (click)="removeUserDocument(user)" [disabled]="actionLoading">
               <ion-icon name="trash-outline"></ion-icon>

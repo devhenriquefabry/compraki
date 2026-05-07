@@ -144,30 +144,245 @@
   }
 }
 
-/* SEÇÃO VENDEDOR */
-.section-label { font-size: 0.85rem; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 0.8px; padding: 24px 24px 12px; }
+/* SEÇÃO VENDEDOR - CHIP COMPACTO */
+.seller-chip {
+  display: flex;
+  align-items: center;
+  background: white;
+  margin: 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
 
-.seller-card-premium {
-  background: white; margin: 0 16px 24px; border-radius: 24px; padding: 20px; border: 1px solid #f1f5f9;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.03);
-
-  .seller-header {
-    display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
-    .seller-avatar { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; }
-    .seller-name { font-weight: 800; font-size: 1rem; color: #1e293b; }
-    .verified-icon { color: #3b82f6; font-size: 14px; }
-    .verified-text { font-size: 0.7rem; color: #3b82f6; font-weight: 700; margin-left: 2px; }
+  .chip-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    object-fit: cover;
+    margin-right: 12px;
   }
 
-  .seller-actions { border-top: 1px solid #f1f5f9; padding-top: 20px; }
-  .btn-chat { --border-radius: 14px; font-weight: 800; letter-spacing: 0.5px; height: 48px; }
-  .btn-seller { --border-radius: 14px; font-weight: 700; height: 48px; color: #64748b; border-color: #e2e8f0; }
+  .chip-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 
-  .seller-stats {
-    display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px;
-    font-size: 0.75rem; color: #64748b; font-weight: 600;
-    ion-icon { color: var(--green-main); }
-    .separator { color: #cbd5e1; }
+    .chip-name {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .chip-sub {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #3b82f6;
+
+      .chip-verified {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .chip-arrow {
+    color: #94a3b8;
+    font-size: 18px;
+  }
+}
+
+/* =============================================
+   PERFIL EXPANDIDO DO VENDEDOR (ESTILO ML)
+   ============================================= */
+
+.seller-profile-section {
+  background: #fff;
+  margin: 0 0 32px;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  overflow: hidden;
+
+  .seller-banner {
+    position: relative;
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+
+    .seller-banner-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.6));
+    }
+
+    .seller-avatar-hero {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      position: relative;
+      bottom: -40px;
+      z-index: 2;
+      object-fit: cover;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  }
+
+  .seller-profile-body {
+    padding: 50px 24px 24px;
+    text-align: center;
+
+    .seller-name-follow-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      text-align: left;
+
+      .seller-name-block {
+        .seller-hero-name {
+          margin: 0;
+          font-size: 1.3rem;
+          font-weight: 900;
+          color: #1e293b;
+          letter-spacing: -0.5px;
+        }
+        .seller-official-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #3b82f6;
+          margin-top: 2px;
+          .hero-verified-icon { font-size: 14px; }
+        }
+      }
+
+      .btn-follow {
+        --border-radius: 8px;
+        --border-color: #e2e8f0;
+        --color: #1e293b;
+        font-weight: 800;
+        text-transform: none;
+        height: 32px;
+        margin: 0;
+      }
+    }
+
+    .seller-bio {
+      margin: 0 0 16px;
+      font-size: 0.85rem;
+      color: #64748b;
+      line-height: 1.5;
+      font-weight: 500;
+      text-align: left;
+    }
+
+    .seller-followers-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 24px;
+      
+      .dot-sep { color: #cbd5e1; }
+      strong { color: #1e293b; }
+    }
+
+    .seller-badge-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #f8fafc;
+      border: 1px solid #f1f5f9;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+
+      .badge-icon-wrap {
+        width: 40px;
+        height: 40px;
+        background: rgba(121, 157, 80, 0.1);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        .ribbon-icon { color: var(--green-main); font-size: 24px; }
+      }
+
+      .badge-text-block {
+        .badge-title {
+          display: block;
+          font-size: 0.9rem;
+          font-weight: 800;
+          color: var(--green-main);
+        }
+        .badge-sub {
+          display: block;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+      }
+    }
+
+    .seller-metrics-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      margin-bottom: 24px;
+
+      .metric-divider {
+        width: 1px;
+        height: 30px;
+        background: #f1f5f9;
+      }
+
+      .metric-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+
+        .metric-val {
+          font-size: 1.1rem;
+          font-weight: 900;
+          color: #1e293b;
+        }
+
+        .metric-icon {
+          font-size: 20px;
+          color: #1e293b;
+        }
+
+        .metric-label {
+          font-size: 0.65rem;
+          font-weight: 700;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          text-align: center;
+        }
+      }
+    }
+
+    .btn-chat-seller {
+      --border-radius: 16px;
+      --box-shadow: 0 8px 20px rgba(121, 157, 80, 0.25);
+      font-weight: 800;
+      height: 54px;
+      margin-top: 8px;
+    }
   }
 }
 
@@ -196,3 +411,193 @@
 }
 
 .poppins { font-family: 'Poppins', sans-serif; }
+
+/* =============================================
+   SEÇÃO PRODUTOS RELACIONADOS
+   ============================================= */
+
+.related-section {
+  margin: 0 0 32px;
+}
+
+.related-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 14px;
+
+  .related-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.3px;
+  }
+
+  .related-ad-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 2px 8px;
+    letter-spacing: 0.5px;
+  }
+}
+
+.related-scroll-track {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 24px 12px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+
+  // Hide scrollbar
+  &::-webkit-scrollbar { display: none; }
+  scrollbar-width: none;
+}
+
+.related-product-card {
+  flex: 0 0 160px;
+  scroll-snap-align: start;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .related-img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #f8f9fa;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .discount-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+    }
+  }
+
+  .related-info {
+    padding: 10px 12px 12px;
+
+    .related-name {
+      margin: 0 0 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1.3;
+      // 2-line clamp
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .related-rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 6px;
+
+      .star-icon {
+        color: #fbbf24;
+        font-size: 11px;
+      }
+
+      .rating-val {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      .sold-count {
+        font-size: 0.65rem;
+        color: #94a3b8;
+        font-weight: 600;
+      }
+    }
+
+    .related-prices {
+      margin-bottom: 6px;
+
+      .original-price {
+        font-size: 0.65rem;
+        color: #94a3b8;
+        font-weight: 500;
+        text-decoration: line-through;
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .final-price-row {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        flex-wrap: wrap;
+
+        .final-price {
+          font-size: 0.95rem;
+          font-weight: 900;
+          color: #1e293b;
+          letter-spacing: -0.5px;
+        }
+
+        .off-label {
+          font-size: 0.65rem;
+          font-weight: 800;
+          color: var(--green-main);
+          background: rgba(121, 157, 80, 0.1);
+          padding: 1px 5px;
+          border-radius: 4px;
+        }
+      }
+    }
+
+    .full-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(121, 157, 80, 0.08);
+      border: 1px solid rgba(121, 157, 80, 0.2);
+      color: var(--green-main);
+      font-size: 0.6rem;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 5px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+
+      .flash-icon {
+        font-size: 10px;
+        color: var(--green-main);
+      }
+    }
+  }
+}

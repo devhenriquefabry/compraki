@@ -204,6 +204,25 @@ export class ManageUsersPage implements OnInit, OnDestroy {
     }
   }
 
+  async toggleAdmin(user: AppUser): Promise<void> {
+    const uid = this.getUserId(user);
+    if (!uid) return;
+    this.actionLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    try {
+      const next = !(user.isAdmin === true);
+      await this.firebaseUsersService.toggleUserAdmin(uid, next);
+      this.successMessage = next
+        ? `${this.getUserName(user)} agora é um administrador.`
+        : `${this.getUserName(user)} removido dos administradores.`;
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.actionLoading = false;
+    }
+  }
+
   async removeUserDocument(user: AppUser): Promise<void> {
     const uid = this.getUserId(user);
     if (!uid) return;

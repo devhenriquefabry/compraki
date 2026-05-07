@@ -6,91 +6,106 @@
 <div class="containerLogin">
   <img class="logoCompraki" src="assets/imagens/logoCompraki.png" alt="logoCompraki">
   
-  <form class="formuLogin" [formGroup]="loginForm">
-    <h2>FAZER LOGIN</h2>
+  @if (!loginSuccess) {
+    <form class="formuLogin" [formGroup]="loginForm">
+      <h2>FAZER LOGIN</h2>
 
-    <div class="input-container">
-      <ion-icon name="mail"></ion-icon>
-      <ion-input formControlName="email" inputmode="email" label="E-mail" label-placement="floating" mode="md" fill="outline"
-        placeholder="seu@email.com">
-      </ion-input>
-    </div>
+      <div class="input-container">
+        <ion-icon name="mail"></ion-icon>
+        <ion-input formControlName="email" inputmode="email" label="E-mail" label-placement="floating" mode="md" fill="outline"
+          placeholder="seu@email.com">
+        </ion-input>
+      </div>
 
-    <div class="input-container">
-      <ion-icon name="lock-closed"></ion-icon>
-      <ion-input formControlName="password" type="password" label="Senha" label-placement="floating" mode="md" fill="outline"
-        placeholder="Sua senha aqui">
-      </ion-input>
-    </div>
+      <div class="input-container">
+        <ion-icon name="lock-closed"></ion-icon>
+        <ion-input formControlName="password" type="password" label="Senha" label-placement="floating" mode="md" fill="outline"
+          placeholder="Sua senha aqui">
+        </ion-input>
+      </div>
 
-    <ion-button class="submitButton" (click)="login()">ENTRAR</ion-button>
-    
-    <ion-button class="submitButtonGoogle" type="button" (click)="loginWithGoogle()">
-      <img class="imgGoogle" src="assets/imagens/google.png" alt=""> LOGIN COM GOOGLE
-    </ion-button>
+      <ion-button class="submitButton" (click)="login()">ENTRAR</ion-button>
+      
+      <ion-button class="submitButtonGoogle" type="button" (click)="loginWithGoogle()">
+        <img class="imgGoogle" src="assets/imagens/google.png" alt=""> LOGIN COM GOOGLE
+      </ion-button>
 
-    <ion-label class="textos" [routerLink]="['/forgot-password']">Esqueceu sua senha?</ion-label>
-    
-    <hr>
-
-    <ion-label class="textos">Ainda não tem uma conta?</ion-label>
-    <ion-button fill="outline" class="signInButton" [routerLink]="['/sign-in']">CADASTRE-SE</ion-button>
-    
-    <div class="test-accounts-divider">
+      <ion-label class="textos" [routerLink]="['/forgot-password']">Esqueceu sua senha?</ion-label>
+      
       <hr>
-      <span>OU ACESSO RÁPIDO</span>
-      <hr>
-    </div>
 
-    <ion-button id="open-test-users-modal" fill="clear" class="testUsersButton">
-      <ion-icon name="flask-outline" slot="start"></ion-icon>
-      CONTAS DE TESTE (DEV)
-    </ion-button>
+      <ion-label class="textos">Ainda não tem uma conta?</ion-label>
+      <ion-button fill="outline" class="signInButton" [routerLink]="['/sign-in']">CADASTRE-SE</ion-button>
+      
+      <div class="test-accounts-divider">
+        <hr>
+        <span>OU ACESSO RÁPIDO</span>
+        <hr>
+      </div>
 
-    <!-- Modal de Usuários de Teste -->
-    <ion-modal #modal trigger="open-test-users-modal" [initialBreakpoint]="1" [breakpoints]="[0, 0.4, 0.6, 1]">
-      <ng-template>
-        <ion-header>
-          <ion-toolbar color="primary">
-            <ion-title>Contas de Teste</ion-title>
-            <ion-buttons slot="end">
-              <ion-button (click)="modal.dismiss()">Fechar</ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <div class="modal-header-actions">
-            <p class="modal-info">Selecione um usuário real do sistema para preencher as credenciais.</p>
-            
-            <ion-item lines="none" class="password-override">
-              <ion-label position="stacked">Senha Padrão para Testes</ion-label>
-              <ion-input type="password" [(ngModel)]="defaultPassword" [ngModelOptions]="{standalone: true}" placeholder="Ex: password123"></ion-input>
-            </ion-item>
-          </div>
+      <ion-button id="open-test-users-modal" fill="clear" class="testUsersButton">
+        <ion-icon name="flask-outline" slot="start"></ion-icon>
+        CONTAS DE TESTE (DEV)
+      </ion-button>
 
-          <ion-list lines="full" class="test-user-list">
-            @for (user of testUsers; track user.email) {
-              <ion-item button (click)="loginWithTestUser(user); modal.dismiss()">
-                <ion-avatar slot="start">
-                  <div class="user-avatar-placeholder">
-                    {{ user.label.charAt(0) }}
-                  </div>
-                </ion-avatar>
-                <ion-label>
-                  <h2>{{ user.label }}</h2>
-                  <p>{{ user.email }}</p>
-                </ion-label>
-                <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+      <!-- Modal de Usuários de Teste -->
+      <ion-modal #modal trigger="open-test-users-modal" [initialBreakpoint]="1" [breakpoints]="[0, 0.4, 0.6, 1]">
+        <ng-template>
+          <ion-header>
+            <ion-toolbar color="primary">
+              <ion-title>Contas de Teste</ion-title>
+              <ion-buttons slot="end">
+                <ion-button (click)="modal.dismiss()">Fechar</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding">
+            <div class="modal-header-actions">
+              <p class="modal-info">Selecione um usuário real do sistema para preencher as credenciais.</p>
+              
+              <ion-item lines="none" class="password-override">
+                <ion-label position="stacked">Senha Padrão para Testes</ion-label>
+                <ion-input type="password" [(ngModel)]="defaultPassword" [ngModelOptions]="{standalone: true}" placeholder="Ex: password123"></ion-input>
               </ion-item>
-            } @empty {
-              <div class="empty-users">
-                <ion-spinner name="crescent"></ion-spinner>
-                <p>Carregando usuários do sistema...</p>
-              </div>
-            }
-          </ion-list>
-        </ion-content>
-      </ng-template>
-    </ion-modal>
-  </form>
-</div>
+            </div>
+
+            <ion-list lines="full" class="test-user-list">
+              @for (user of testUsers; track user.email) {
+                <ion-item button (click)="loginWithTestUser(user); modal.dismiss()" [class.is-dev]="user.email === 'dev.henriquefabry@gmail.com'">
+                  <ion-avatar slot="start">
+                    <div class="user-avatar-placeholder">
+                      @if (user.icon) {
+                        <ion-icon [name]="user.icon"></ion-icon>
+                      } @else {
+                        {{ user.label.charAt(0) }}
+                      }
+                    </div>
+                  </ion-avatar>
+                  <ion-label>
+                    <h2>{{ user.label }}</h2>
+                    <p>{{ user.email }}</p>
+                  </ion-label>
+                  <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+                </ion-item>
+              } @empty {
+                <div class="empty-users">
+                  <ion-spinner name="crescent"></ion-spinner>
+                  <p>Carregando usuários do sistema...</p>
+                </div>
+              }
+            </ion-list>
+          </ion-content>
+        </ng-template>
+      </ion-modal>
+    </form>
+  } @else {
+    <div class="success-container">
+      <div class="success-icon-box">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+      </div>
+      <h2>Login Realizado!</h2>
+      <p>Bem-vindo de volta à Compraki.</p>
+      <div class="success-loader"></div>
+    </div>
+  }
+</div>

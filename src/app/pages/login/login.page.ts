@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { LoginFormComponent } from './login-form/login-form.component';
 
 @Component({
   selector: 'app-login',
@@ -7,10 +8,16 @@ import { Component, OnInit } from '@angular/core';
   standalone: false
 })
 export class LoginPage implements OnInit {
+  @ViewChild(LoginFormComponent) loginForm!: LoginFormComponent;
 
   constructor() { }
 
   ngOnInit() {
   }
 
+  ionViewWillEnter() {
+    if (this.loginForm) {
+      this.loginForm.resetState();
+    }
+  }
 }

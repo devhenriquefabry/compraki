@@ -1,0 +1,165 @@
+<ion-header class="ion-no-border">
+  <div class="header-content">
+    <button type="button" class="back-button" (click)="goBack()">
+      <ion-icon name="arrow-back-outline"></ion-icon>
+    </button>
+    <h1>Minha Vitrine</h1>
+    <button type="button" class="save-pill" (click)="saveShowcase()" [disabled]="isSaving">
+      @if (isSaving) {
+        <ion-spinner name="crescent"></ion-spinner>
+      } @else {
+        <ion-icon name="cloud-upload-outline"></ion-icon>
+        Salvar
+      }
+    </button>
+  </div>
+</ion-header>
+
+<ion-content class="showcase-content">
+  <div class="setup-container">
+    <!-- Live Preview Section -->
+    <section class="preview-section">
+      <div class="section-header">
+        <ion-icon name="eye-outline"></ion-icon>
+        <span>Prévia da sua Vitrine</span>
+      </div>
+      
+      <div class="mockup-phone">
+        <div class="shop-preview" [style.--primary-color]="showcaseForm.shopPrimaryColor">
+          <div class="preview-banner" [style.background-image]="showcaseForm.shopBanner ? 'url(' + showcaseForm.shopBanner + ')' : 'linear-gradient(135deg, #1e1e2d, #2d2d44)'">
+            <div class="banner-overlay"></div>
+            @if (isUploadingBanner) {
+              <div class="banner-loader">
+                <ion-spinner name="lines-sharp"></ion-spinner>
+              </div>
+            }
+          </div>
+          
+          <div class="preview-info">
+            <div class="preview-avatar">
+              <img [src]="usuario?.photoURL || 'assets/imagens/default-avatar.png'" alt="Avatar">
+            </div>
+            <div class="preview-text">
+              <h3>{{ showcaseForm.shopName || 'Nome da sua Loja' }}</h3>
+              <p>{{ showcaseForm.shopDescription || 'Uma breve descrição sobre o que você vende e sua paixão por produtos incríveis.' }}</p>
+            </div>
+            
+            <div class="preview-actions">
+              <button class="preview-btn-main">Seguir Loja</button>
+              <button class="preview-btn-outline">Mensagem</button>
+            </div>
+          </div>
+
+          <div class="preview-tabs">
+            <span class="active">Produtos</span>
+            <span>Avaliações</span>
+            <span>Sobre</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Customization Form -->
+    <section class="config-section">
+      <div class="config-card">
+        <div class="field-group">
+          <div class="field-header">
+            <ion-icon name="image-outline"></ion-icon>
+            <h3>Aparência Visual</h3>
+          </div>
+          
+          <div class="banner-upload-box" (click)="bannerInput.click()">
+            @if (showcaseForm.shopBanner) {
+              <img [src]="showcaseForm.shopBanner" alt="Banner Preview">
+              <div class="upload-overlay">
+                <ion-icon name="camera-outline"></ion-icon>
+                <span>Alterar Banner</span>
+              </div>
+            } @else {
+              <div class="upload-placeholder">
+                <ion-icon name="add-circle-outline"></ion-icon>
+                <span>Adicionar Banner de Capa</span>
+                <small>Recomendado: 1200 x 400 pixels</small>
+              </div>
+            }
+            <input #bannerInput type="file" accept="image/*" hidden (change)="onBannerSelected($event)">
+          </div>
+
+          <div class="color-pickers">
+            <label class="color-field">
+              <span>Cor Principal</span>
+              <div class="color-input-wrap">
+                <input type="color" [(ngModel)]="showcaseForm.shopPrimaryColor">
+                <code>{{ showcaseForm.shopPrimaryColor }}</code>
+              </div>
+            </label>
+            <label class="color-field">
+              <span>Cor de Acento</span>
+              <div class="color-input-wrap">
+                <input type="color" [(ngModel)]="showcaseForm.shopSecondaryColor">
+                <code>{{ showcaseForm.shopSecondaryColor }}</code>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-header">
+            <ion-icon name="create-outline"></ion-icon>
+            <h3>Informações da Loja</h3>
+          </div>
+
+          <label class="input-block">
+            <span>Nome da Vitrine</span>
+            <input type="text" [(ngModel)]="showcaseForm.shopName" placeholder="Ex: Boutique do Henrique">
+          </label>
+
+          <label class="input-block">
+            <span>Bio / Descrição</span>
+            <textarea rows="3" [(ngModel)]="showcaseForm.shopDescription" placeholder="Conte um pouco sobre sua loja e o que você oferece..."></textarea>
+          </label>
+
+          <label class="input-block">
+            <span>Título dos Destaques</span>
+            <input type="text" [(ngModel)]="showcaseForm.shopFeaturedTitle" placeholder="Ex: Ofertas da Semana">
+          </label>
+        </div>
+
+        <div class="field-group">
+          <div class="field-header">
+            <ion-icon name="share-social-outline"></ion-icon>
+            <h3>Redes e Contato</h3>
+          </div>
+
+          <div class="social-grid">
+            <label class="input-block">
+              <span>Instagram</span>
+              <div class="input-with-icon">
+                <ion-icon name="logo-instagram"></ion-icon>
+                <input type="text" [(ngModel)]="showcaseForm.shopInstagram" placeholder="@usuario">
+              </div>
+            </label>
+
+            <label class="input-block">
+              <span>WhatsApp de Vendas</span>
+              <div class="input-with-icon">
+                <ion-icon name="logo-whatsapp"></ion-icon>
+                <input type="tel" [(ngModel)]="showcaseForm.shopWhatsApp" placeholder="(00) 00000-0000">
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button class="save-button-full" (click)="saveShowcase()" [disabled]="isSaving">
+        @if (isSaving) {
+          <ion-spinner name="crescent"></ion-spinner>
+          Salvando...
+        } @else {
+          <ion-icon name="save-outline"></ion-icon>
+          Atualizar Minha Vitrine
+        }
+      </button>
+    </section>
+  </div>
+</ion-content>

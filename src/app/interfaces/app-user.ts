@@ -25,4 +25,16 @@ export interface AppUser {
   onlineSince?: any;
   lastActive?: any;
   isChatBanned?: boolean;
+  isAdmin?: boolean;
+  super_admin?: boolean;
+  
+  // Customização da Vitrine (Showcase)
+  shopName?: string;
+  shopDescription?: string;
+  shopBanner?: string;
+  shopPrimaryColor?: string;
+  shopSecondaryColor?: string;
+  shopInstagram?: string;
+  shopWhatsApp?: string;
+  shopFeaturedTitle?: string;
 }

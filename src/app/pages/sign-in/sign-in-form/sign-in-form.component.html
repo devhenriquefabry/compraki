@@ -4,7 +4,7 @@
 <div class="containerLogin">
   <img class="logoCompraki" src="assets/imagens/logoCompraki.png" alt="logoCompraki">
   
-  <form class="formuLogin" [formGroup]="signInForm">
+  <form class="formuLogin" [formGroup]="signInForm" *ngIf="!registrationSuccess">
     <!-- INDICADOR DE PROGRESSO -->
     <div class="steps-container">
       <div class="step-bubble" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
@@ -16,7 +16,7 @@
         <ion-icon *ngIf="currentStep > 2" name="checkmark"></ion-icon>
         <span *ngIf="currentStep <= 2">2</span>
       </div>
-      <div class="step-line" [class.active]="currentStep >= 3"></div>
+      <div class="step-line" [class.active]="currentStep >= 2"></div>
       <div class="step-bubble" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
         <span>3</span>
       </div>
@@ -129,4 +129,13 @@
     <hr *ngIf="currentStep === 1">
     <ion-label *ngIf="currentStep === 1" class="textos" [routerLink]="['/login']">Já possui uma conta? <span class="text-green">ENTRAR</span></ion-label>
   </form>
+
+  <!-- SUCESSO -->
+  <div class="success-container" *ngIf="registrationSuccess">
+    <div class="success-icon-box">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      <h3>CONTA CRIADA</h3>
+      <p>Seu cadastro foi realizado com sucesso! Redirecionando...</p>
+    </div>
+  </div>
 </div>

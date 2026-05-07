@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { authGuard, noAuthGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 const routes: Routes = [
   {
@@ -86,7 +87,7 @@ const routes: Routes = [
   {
     path: 'webhook-tester',
     loadChildren: () => import('./pages/webhook-tester/webhook-tester.module').then( m => m.WebhookTesterPageModule),
-    canActivate: [authGuard]
+    canActivate: [adminGuard]
   },
   {
     path: 'pix-payment',
@@ -135,8 +136,13 @@ const routes: Routes = [
   {
     path: 'admin/:tab',
     loadComponent: () => import('./pages/admin/admin.page').then( m => m.AdminPage),
+    canActivate: [adminGuard]
+  },  {
+    path: 'my-showcase',
+    loadChildren: () => import('./pages/my-showcase/my-showcase.module').then( m => m.MyShowcasePageModule),
     canActivate: [authGuard]
   }
+
 
 ];
 

@@ -23,6 +23,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Router } from '@angular/router';
 import { FirebaseUsersService } from './firebase-users.service';
 import { WhatsappInstancesService } from './whatsapp-instances.service';
+import { environment } from '../../environments/environment';
 
 // Copie sua config aqui para garantir que o SDK use o objeto puro
 const firebaseConfig = {
@@ -171,10 +172,7 @@ export class FirebaseProducts {
         usuario: userCredential.user.uid
       });
       
-      alert('Cadastro realizado com sucesso!');
       console.log('O ID do usuário no sistema é: ' + userCredential.user.uid);
-      
-      this.router.navigate(['/tabs']);
       return true; // Retorno em caso de sucesso
 
   } catch (error) {
@@ -226,7 +224,6 @@ async signInWithGoogle(): Promise<boolean> {
     });
     
     console.log('Bem-vindo, ' + user.displayName);
-    this.router.navigate(['/tabs']);
     return true;
   } catch (error) {
     console.error("Erro ao logar com Google NATIVO:", error);
@@ -256,8 +253,15 @@ async signInWithGoogle(): Promise<boolean> {
 
   }
 
-  resetPassword() {
-
+  async resetPassword(email: string): Promise<boolean> {
+    const { sendPasswordResetEmail } = await import('firebase/auth');
+    try {
+      await sendPasswordResetEmail(this.authenticator, email);
+      return true;
+    } catch (error) {
+      console.error('Erro ao enviar e-mail de recuperação:', error);
+      throw error;
+    }
   }
 
   getUser(): User | null {
@@ -277,7 +281,6 @@ async signInWithGoogle(): Promise<boolean> {
         telefone: usuario.user.phoneNumber || '',
         usuario: usuario.user.uid
       });
-      this.router.navigate(['/tabs'])
       return true
       
     } catch (error) {
@@ -298,5 +301,47 @@ async signInWithGoogle(): Promise<boolean> {
     } catch (error) {
       console.warn('Falha ao disparar gatilho WhatsApp:', error);
     }
+  }
+
+  // --- RECUPERAÇÃO DE SENHA PERSONALIZADA ---
+
+  async requestPasswordResetCode(email: string, method?: 'email' | 'whatsapp'): Promise<any> {
+    return this.callPublicFunction('requestPasswordResetCode', {
+      method: 'POST',
+      body: { email: email.toLowerCase().trim(), method }
+    });
+  }
+
+  async validateResetCode(email: string, code: string): Promise<any> {
+    return this.callPublicFunction('validateResetCode', {
+      method: 'POST',
+      body: { email: email.toLowerCase().trim(), code }
+    });
+  }
+
+  async completePasswordReset(payload: { email: string; code: string; newPassword: string }): Promise<any> {
+    return this.callPublicFunction('completePasswordReset', {
+      method: 'POST',
+      body: { ...payload, email: payload.email.toLowerCase().trim() }
+    });
+  }
+  private async callPublicFunction<T>(
+    functionName: string,
+    options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {}
+  ): Promise<T> {
+    const baseUrl = `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
+    const response = await fetch(`${baseUrl}/${functionName}`, {
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || 'Erro ao processar solicitação no servidor.');
+    }
+    return data as T;
   }
 }
