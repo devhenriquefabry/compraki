@@ -62,9 +62,15 @@ export class FirebaseProducts {
     this.authenticator = getAuth(app)
 
     // Listener para manter o estado do usuário sempre sincronizado
-    onAuthStateChanged(this.authenticator, (user) => {
+    onAuthStateChanged(this.authenticator, async (user) => {
       this.usuarioLogado = user;
       console.log('Estado de autenticação alterado. Usuário:', user?.email);
+      
+      if (user) {
+        // 🔥 Garante que o usuário esteja no Firestore e COM STATUS ADMIN LIBERADO
+        // Isso resolve o erro 403 em sessões persistentes sem precisar de novo login
+        await this.usersService.ensureAppUserDocument(user);
+      }
     });
   }
 
