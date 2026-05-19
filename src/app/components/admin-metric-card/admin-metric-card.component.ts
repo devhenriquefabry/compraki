@@ -9,7 +9,10 @@ import {
   micOutline, 
   flagOutline, 
   banOutline,
-  cubeOutline
+  cubeOutline,
+  walletOutline,
+  pricetagOutline,
+  statsChartOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -41,7 +44,10 @@ export class AdminMetricCardComponent {
       'mic-outline': micOutline,
       'flag-outline': flagOutline,
       'ban-outline': banOutline,
-      'cube-outline': cubeOutline
+      'cube-outline': cubeOutline,
+      'wallet-outline': walletOutline,
+      'pricetag-outline': pricetagOutline,
+      'stats-chart-outline': statsChartOutline
     });
   }
 }

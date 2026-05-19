@@ -13,7 +13,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BotStatusWidgetComponent } from './components/bot-status-widget/bot-status-widget.component';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app'
-import { environment } from 'src/environments/environment.prod';
+import { environment } from 'src/environments/environment';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 
 

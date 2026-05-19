@@ -6,20 +6,24 @@ import { addIcons } from 'ionicons';
 import { 
   settingsOutline, refreshOutline, saveOutline, keyOutline, businessOutline, 
   calculatorOutline, statsChartOutline, pieChartOutline, informationCircleOutline,
-  openOutline, alertCircleOutline, personCircleOutline
+  openOutline, alertCircleOutline, personCircleOutline, gridOutline, listOutline, 
+  analyticsOutline, barChartOutline
 } from 'ionicons/icons';
 import { MelhorEnvioService } from '../../services/melhor-envio.service';
 import { MelhorEnvioConfig, ShippingAnalysis, ShippingQuote } from '../../interfaces/shipping';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
+import { AdminMetricCardComponent } from '../../components/admin-metric-card/admin-metric-card.component';
 
 @Component({
   selector: 'app-melhor-envio',
   templateUrl: './melhor-envio.page.html',
   styleUrls: ['./melhor-envio.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, AdminPanelHeroComponent]
+  imports: [CommonModule, FormsModule, IonicModule, AdminPanelHeroComponent, AdminMetricCardComponent]
 })
 export class MelhorEnvioPage implements OnInit {
+  public activeTab: string = 'geral';
+
   public config: MelhorEnvioConfig = {
     accessToken: '',
     isSandbox: false,
@@ -58,7 +62,8 @@ export class MelhorEnvioPage implements OnInit {
     addIcons({
       settingsOutline, refreshOutline, saveOutline, keyOutline, businessOutline,
       calculatorOutline, statsChartOutline, pieChartOutline, informationCircleOutline,
-      openOutline, alertCircleOutline, personCircleOutline
+      openOutline, alertCircleOutline, personCircleOutline, gridOutline, listOutline,
+      analyticsOutline, barChartOutline
     });
   }
 

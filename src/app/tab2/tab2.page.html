@@ -87,10 +87,22 @@
     </div>
 
     <!-- GRID DE PRODUTOS (Estilo Marketplace) -->
-    <div class="products-marketplace-grid">
+    <div class="products-marketplace-grid" *ngIf="filteredProducts.length > 0">
       <ng-container *ngFor="let prod of filteredProducts">
         <ng-container *ngTemplateOutlet="marketplaceProductCard; context: { product: prod }"></ng-container>
       </ng-container>
+    </div>
+
+    <!-- EMPTY STATE (Quando não há produtos) -->
+    <div class="empty-marketplace animate-fade" *ngIf="filteredProducts.length === 0">
+      <div class="empty-icon-wrap">
+        <ion-icon name="cube-outline"></ion-icon>
+      </div>
+      <h3>Nenhum produto disponível</h3>
+      <p>Ainda não há ofertas cadastradas ou os filtros atuais não retornaram resultados.</p>
+      <ion-button fill="clear" color="success" (click)="clearFilters()" *ngIf="selectedCategory !== 'Todas'">
+        Limpar Filtros
+      </ion-button>
     </div>
   </ng-container>
 
@@ -172,7 +184,7 @@
       <ion-toolbar class="modal-toolbar">
         <ion-title>Busca Avançada</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="clearFilters()" class="btn-clear">Limpar</ion-button>
+          <ion-button (click)="clearFilters(true)" class="btn-clear">Limpar</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -236,7 +248,7 @@
 
       <div style="height: 40px;"></div>
 
-      <ion-button expand="block" class="btn-apply-filters" (click)="applyFilters()">
+      <ion-button expand="block" class="btn-apply-filters" (click)="applyFilters(true)">
         FILTRAR RESULTADOS
       </ion-button>
 

@@ -34,11 +34,6 @@ const routes: Routes = [
       {
         path: 'chats',
         loadComponent: () => import('../pages/chats/chats.page').then(m => m.ChatsPage)
-      },
-      {
-        path: '',
-        redirectTo: '/tabs/tab2',
-        pathMatch: 'full'
       }
     ]
   },

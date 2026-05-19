@@ -1046,3 +1046,93 @@
     display: none;
   }
 }
+/* DANGER ZONE STYLES */
+.danger-zone-section {
+  .section-heading {
+    span { color: #ef4444; }
+  }
+}
+
+.danger-card {
+  background: #fff;
+  border: 1px solid #fee2e2;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.05);
+
+  .danger-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    ion-icon {
+      font-size: 32px;
+      color: #ef4444;
+      background: #fef2f2;
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    strong {
+      display: block;
+      font-size: 1rem;
+      font-weight: 900;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+  }
+
+  .reset-db-btn {
+    flex-shrink: 0;
+    height: 48px;
+    padding: 0 24px;
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #dc2626;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .danger-card {
+    flex-direction: column;
+    text-align: center;
+    
+    .danger-info {
+      flex-direction: column;
+    }
+    
+    .reset-db-btn {
+      width: 100%;
+    }
+  }
+}

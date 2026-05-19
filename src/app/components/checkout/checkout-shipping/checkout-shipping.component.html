@@ -1,18 +1,20 @@
 <div class="shipping-wrapper">
-  <div class="section-header">
+  <div class="section-header" *ngIf="!readOnly">
     <ion-icon name="bicycle-outline"></ion-icon>
     <h3>Escolha como quer receber</h3>
   </div>
 
+  <div class="section-title" *ngIf="readOnly">Opção de Entrega</div>
+
   <!-- Skeleton Loading -->
-  <div *ngIf="isLoading" class="skeleton-container">
+  <div *ngIf="isLoading && !readOnly" class="skeleton-container">
     <div class="skeleton-item" *ngFor="let i of [1,2,3]">
       <ion-skeleton-text animated style="width: 100%; height: 80px; border-radius: 12px;"></ion-skeleton-text>
     </div>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="!isLoading && error" class="error-container animate-fade">
+  <div *ngIf="!isLoading && error && !readOnly" class="error-container animate-fade">
     <ion-icon name="alert-circle-outline"></ion-icon>
     <p>{{ error }}</p>
     <ion-button fill="clear" size="small" (click)="loadShippingQuotes()">Tentar novamente</ion-button>
@@ -20,35 +22,62 @@
 
   <!-- Quotes List -->
   <div *ngIf="!isLoading && !error" class="quotes-list animate-fade">
-    <div *ngIf="quotes.length === 0" class="empty-state">
+    <div *ngIf="quotes.length === 0 && !readOnly" class="empty-state">
       <p>Nenhuma transportadora disponível para este endereço.</p>
     </div>
 
-    <div 
-      *ngFor="let quote of quotes" 
-      class="quote-card" 
-      [class.selected]="selectedServiceId === quote.id"
-      (click)="selectQuote(quote)"
-    >
-      <div class="carrier-logo">
-        <img [src]="quote.company.picture" [alt]="quote.company.name">
-      </div>
-      
-      <div class="quote-info">
-        <span class="carrier-name">{{ quote.company.name }}</span>
-        <span class="service-name">{{ quote.name }}</span>
-        <span class="delivery-time">
-          <ion-icon name="time-outline"></ion-icon>
-          Chega em {{ quote.delivery_time }} {{ quote.delivery_time === 1 ? 'dia útil' : 'dias úteis' }}
-        </span>
-      </div>
+    <!-- Mode: Selection -->
+    <ng-container *ngIf="!readOnly">
+      <div 
+        *ngFor="let quote of quotes" 
+        class="quote-card" 
+        [class.selected]="selectedServiceId === quote.id"
+        (click)="selectQuote(quote)"
+      >
+        <div class="carrier-logo">
+          <img [src]="quote.company.picture" [alt]="quote.company.name">
+        </div>
+        
+        <div class="quote-info">
+          <span class="carrier-name">{{ quote.company.name }}</span>
+          <span class="service-name">{{ quote.name }}</span>
+          <span class="delivery-time">
+            <ion-icon name="time-outline"></ion-icon>
+            Chega em {{ quote.delivery_time }} {{ quote.delivery_time === 1 ? 'dia útil' : 'dias úteis' }}
+          </span>
+        </div>
 
-      <div class="quote-price">
-        <span class="price-val">{{ formatPrice(quote.price) }}</span>
-        <div class="radio-indicator">
-          <div class="inner-circle"></div>
+        <div class="quote-price">
+          <span class="price-val">{{ formatPrice(quote.price) }}</span>
+          <div class="radio-indicator">
+            <div class="inner-circle"></div>
+          </div>
         </div>
       </div>
-    </div>
+    </ng-container>
+
+    <!-- Mode: Read Only (Review) -->
+    <ng-container *ngIf="readOnly">
+      <div *ngFor="let quote of quotes">
+        <div class="quote-card selected readonly-card" *ngIf="selectedServiceId === quote.id">
+          <div class="carrier-logo">
+            <img [src]="quote.company.picture" [alt]="quote.company.name">
+          </div>
+          
+          <div class="quote-info">
+            <span class="carrier-name">{{ quote.company.name }}</span>
+            <span class="service-name">{{ quote.name }}</span>
+            <span class="delivery-time">
+              <ion-icon name="time-outline"></ion-icon>
+              Chega em {{ quote.delivery_time }} {{ quote.delivery_time === 1 ? 'dia útil' : 'dias úteis' }}
+            </span>
+          </div>
+
+          <div class="quote-price">
+            <span class="price-val">{{ formatPrice(quote.price) }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-container>
   </div>
 </div>

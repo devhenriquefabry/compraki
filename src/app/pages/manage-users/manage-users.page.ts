@@ -3,7 +3,15 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Subscription } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { 
+  peopleOutline, radioOutline, storefrontOutline, banOutline, 
+  downloadOutline, checkmarkCircleOutline, lockOpenOutline, lockClosedOutline, 
+  swapHorizontalOutline, personRemoveOutline, personAddOutline, trashOutline,
+  mapOutline, listOutline, locationOutline, businessOutline
+} from 'ionicons/icons';
 import { AppUser } from '../../interfaces/app-user';
+import { Order } from '../../interfaces/order';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 import { FirebaseUsersService } from '../../services/firebase-users.service';
 
@@ -34,9 +42,22 @@ interface UserRiskBadge {
   imports: [CommonModule, FormsModule, IonicModule, AdminPanelHeroComponent]
 })
 export class ManageUsersPage implements OnInit, OnDestroy {
+  public activeTab: 'lista' | 'mapa' = 'lista';
+  public userAddresses: any[] = [];
+  public userPurchases: Order[] = [];
+  public userSales: Order[] = [];
+  public detailTab: 'perfil' | 'enderecos' | 'historico' = 'perfil';
+  private map: any;
+  private markers: any[] = [];
+  private myMarker: any;
+  private watchId: any;
+  private addressesSub?: Subscription;
+  private purchasesSub?: Subscription;
+  private salesSub?: Subscription;
+
   public allUsers: AppUser[] = [];
   public filteredUsers: AppUser[] = [];
-  public selectedUser?: AppUser;
+  public selectedUser: AppUser | null = null;
   public loading = true;
   public actionLoading = false;
   public errorMessage = '';
@@ -68,8 +89,16 @@ export class ManageUsersPage implements OnInit, OnDestroy {
   ];
 
   private usersSub?: Subscription;
+  private geocache = new Map<string, {lat: number, lng: number}>();
 
-  constructor(private firebaseUsersService: FirebaseUsersService) {}
+  constructor(private firebaseUsersService: FirebaseUsersService) {
+    addIcons({
+      peopleOutline, radioOutline, storefrontOutline, banOutline,
+      downloadOutline, checkmarkCircleOutline, lockOpenOutline, lockClosedOutline,
+      swapHorizontalOutline, personRemoveOutline, personAddOutline, trashOutline,
+      mapOutline, listOutline, locationOutline, businessOutline
+    });
+  }
 
   ngOnInit(): void {
     this.loadUsers();
@@ -77,6 +106,12 @@ export class ManageUsersPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.usersSub?.unsubscribe();
+    this.addressesSub?.unsubscribe();
+    this.purchasesSub?.unsubscribe();
+    this.salesSub?.unsubscribe();
+    if (this.watchId) {
+      navigator.geolocation.clearWatch(this.watchId);
+    }
   }
 
   refresh(): void {
@@ -88,6 +123,13 @@ export class ManageUsersPage implements OnInit, OnDestroy {
     this.recompute();
   }
 
+  setTab(tab: 'lista' | 'mapa'): void {
+    this.activeTab = tab;
+    if (tab === 'mapa') {
+      setTimeout(() => this.initMap(), 300);
+    }
+  }
+
   onCustomDateChange(): void {
     if (this.period === 'custom') {
       this.recompute();
@@ -95,6 +137,15 @@ export class ManageUsersPage implements OnInit, OnDestroy {
   }
 
   onFiltersChange(): void {
+    this.recompute();
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = 'all';
+    this.roleFilter = 'all';
+    this.banFilter = 'all';
+    this.sortBy = 'recent-login';
     this.recompute();
   }
 
@@ -116,8 +167,153 @@ export class ManageUsersPage implements OnInit, OnDestroy {
 
   selectUser(user: AppUser): void {
     this.selectedUser = user;
+    this.detailTab = 'perfil';
     this.successMessage = '';
     this.errorMessage = '';
+    const uid = this.getUserId(user);
+    this.loadUserAddresses(uid);
+    this.loadUserHistory(uid);
+  }
+
+  private loadUserHistory(uid: string): void {
+    this.purchasesSub?.unsubscribe();
+    this.salesSub?.unsubscribe();
+    if (!uid) return;
+
+    this.purchasesSub = this.firebaseUsersService.getUserPurchases(uid).subscribe(orders => {
+      this.userPurchases = orders;
+    });
+
+    this.salesSub = this.firebaseUsersService.getUserSales(uid).subscribe(orders => {
+      this.userSales = orders;
+    });
+  }
+
+  private loadUserAddresses(uid: string): void {
+    this.addressesSub?.unsubscribe();
+    if (!uid) return;
+    this.addressesSub = this.firebaseUsersService.getUserAddresses(uid).subscribe(addresses => {
+      this.userAddresses = addresses;
+    });
+  }
+
+  private initMap(): void {
+    const L = (window as any).L;
+    if (!L) return;
+
+    if (this.map) {
+      this.map.remove();
+    }
+
+    this.map = L.map('users-map').setView([-15.7801, -47.9292], 4); // Centro do Brasil
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(this.map);
+
+    this.startLocationTracking();
+    this.renderMarkers();
+  }
+
+  private startLocationTracking(): void {
+    const L = (window as any).L;
+    if (!L || !this.map || !navigator.geolocation) return;
+
+    this.watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const firstTime = !this.myMarker;
+        
+        if (this.myMarker) {
+          this.myMarker.setLatLng([latitude, longitude]);
+        } else {
+          // Cria um ícone azul especial para "Eu"
+          const myIcon = L.divIcon({
+            className: 'my-location-marker',
+            html: '<div class="pulse-blue"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
+
+          this.myMarker = L.marker([latitude, longitude], { icon: myIcon })
+            .bindPopup('<b>Sua localização atual</b>')
+            .addTo(this.map);
+            
+          // Na primeira vez, centraliza em você
+          if (firstTime) {
+            this.map.setView([latitude, longitude], 13);
+          }
+        }
+      },
+      (err) => console.warn('Erro ao obter localização:', err),
+      { enableHighAccuracy: true }
+    );
+  }
+
+  private async renderMarkers(): Promise<void> {
+    const L = (window as any).L;
+    if (!L || !this.map) return;
+
+    // Limpa marcadores anteriores
+    this.markers.forEach(m => m.remove());
+    this.markers = [];
+
+    const currentUser = this.firebaseUsersService.getCurrentUser();
+    const currentUid = currentUser?.uid;
+
+    const usersWithAddress = this.allUsers.filter(u => 
+      u.address?.cep && (u.uid || (u as any).id) !== currentUid
+    );
+
+    // Ícone para usuários (Verde/Laranja para distinguir do Admin)
+    const userIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    for (const user of usersWithAddress) {
+      const addr = user.address!;
+      const addrStr = `${addr.street}, ${addr.number}, ${addr.city}, ${addr.state}, Brasil`;
+      
+      try {
+        const coords = await this.geocode(addrStr);
+        if (coords) {
+          const marker = L.marker([coords.lat, coords.lng], { icon: userIcon })
+            .bindPopup(`<b>${this.getUserName(user)}</b><br>${addrStr}`)
+            .addTo(this.map);
+          this.markers.push(marker);
+        }
+      } catch (e) {
+        console.warn(`Erro ao geocodificar endereço de ${user.uid}:`, e);
+      }
+    }
+
+    if (this.markers.length > 0 || this.myMarker) {
+      const allMarkers = [...this.markers];
+      if (this.myMarker) allMarkers.push(this.myMarker);
+      const group = L.featureGroup(allMarkers);
+      this.map.fitBounds(group.getBounds().pad(0.1));
+    }
+  }
+
+  private async geocode(address: string): Promise<{lat: number, lng: number} | null> {
+    if (this.geocache.has(address)) return this.geocache.get(address)!;
+
+    try {
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+      const data = await resp.json();
+      if (data && data.length > 0) {
+        const res = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        this.geocache.set(address, res);
+        return res;
+      }
+    } catch (e) {
+      console.error('Geocoding error:', e);
+    }
+    return null;
   }
 
   async toggleChatBan(user: AppUser): Promise<void> {
@@ -236,13 +432,17 @@ export class ManageUsersPage implements OnInit, OnDestroy {
       await this.firebaseUsersService.deleteUserDocument(uid);
       this.successMessage = `Registro de ${this.getUserName(user)} removido com sucesso.`;
       if (this.selectedUser && this.getUserId(this.selectedUser) === uid) {
-        this.selectedUser = undefined;
+        this.selectedUser = null;
       }
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error);
     } finally {
       this.actionLoading = false;
     }
+  }
+
+  async deleteUser(user: AppUser): Promise<void> {
+    return this.removeUserDocument(user);
   }
 
   exportCsv(): void {
@@ -421,7 +621,7 @@ export class ManageUsersPage implements OnInit, OnDestroy {
     return bTime - aTime;
   }
 
-  private getUserId(user: AppUser): string {
+  public getUserId(user: AppUser): string {
     return user.uid || (user as unknown as { id?: string }).id || '';
   }
 

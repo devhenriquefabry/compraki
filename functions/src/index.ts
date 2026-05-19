@@ -2031,6 +2031,381 @@ function isAdminEmail(email?: string): boolean {
  * RESET DE SENHA PERSONALIZADO
  */
 
+/**
+ * MELHOR ENVIO INTEGRATION
+ */
+
+async function getMelhorEnvioConfig() {
+  const snap = await getFirestore().doc('settings/melhor_envio').get();
+  return snap.exists ? snap.data() as any : null;
+}
+
+async function refreshMelhorEnvioToken() {
+  const config = await getMelhorEnvioConfig();
+  if (!config || !config.refreshToken) throw new Error('Refresh token not found');
+
+  const clientId = process.env.MELHOR_ENVIO_CLIENT_ID;
+  const clientSecret = process.env.MELHOR_ENVIO_CLIENT_SECRET;
+  const baseUrl = config.isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+
+  const response = await fetch(`${baseUrl}/oauth/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      grant_type: 'refresh_token',
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: config.refreshToken
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    logger.error('Failed to refresh Melhor Envio token', data);
+    throw new Error('Failed to refresh token');
+  }
+
+  await getFirestore().doc('settings/melhor_envio').set({
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresIn: data.expires_in,
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  return data.access_token;
+}
+
+async function requestMelhorEnvio(path: string, options: { method?: string; body?: any } = {}) {
+  let config = await getMelhorEnvioConfig();
+  if (!config) throw new Error('Melhor Envio not configured');
+
+  const baseUrl = config.isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+  
+  let response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'Authorization': `Bearer ${config.accessToken}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+
+  if (response.status === 401) {
+    // Tenta dar refresh no token se der erro de autorização
+    logger.info('Melhor Envio token expired, refreshing...');
+    const newToken = await refreshMelhorEnvioToken();
+    response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
+      method: options.method || 'GET',
+      headers: {
+        'Authorization': `Bearer ${newToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+  }
+
+  const text = await response.text();
+  let data: any = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (e) {
+    logger.warn('Melhor Envio response is not JSON', { text });
+    data = { message: text };
+  }
+
+  if (!response.ok) {
+    logger.error('Melhor Envio API request failed', { path, status: response.status, data });
+    let errorMessage = data.message || data.error || `Erro na API Melhor Envio (Status ${response.status})`;
+    
+    // Se houver detalhes de validação (errors), adiciona à mensagem
+    if (data.errors) {
+      const details = Object.entries(data.errors)
+        .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+        .join('; ');
+      errorMessage += ` (${details})`;
+    } else if (typeof data === 'object' && Object.keys(data).length > 0 && !data.message) {
+      // Se não tem message mas tem outros campos, loga tudo como string
+      errorMessage += ` (Detalhes: ${JSON.stringify(data)})`;
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  return data;
+}
+
+export const meAuthorizer = onRequest({ region, cors: false }, async (req, res) => {
+  const code = req.query['code'] as string;
+  if (!code) {
+    res.status(400).send('Code is missing');
+    return;
+  }
+
+  try {
+    const db = getFirestore();
+    const config = await getMelhorEnvioConfig();
+    const isSandbox = config?.isSandbox ?? true;
+    const baseUrl = isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+    
+    const clientId = process.env.MELHOR_ENVIO_CLIENT_ID;
+    const clientSecret = process.env.MELHOR_ENVIO_CLIENT_SECRET;
+    const redirectUrl = process.env.MELHOR_ENVIO_REDIRECT_URL;
+
+    const response = await fetch(`${baseUrl}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUrl,
+        code: code
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      logger.error('Melhor Envio token exchange failed', data);
+      res.status(500).send('Failed to exchange code for token');
+      return;
+    }
+
+    await db.doc('settings/melhor_envio').set({
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    // Redireciona de volta para o app
+    res.redirect('https://compraki-mcu.web.app/tabs/tab2');
+  } catch (error) {
+    logger.error('Melhor Envio Auth Callback Error', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+export const calculateMelhorEnvioShipping = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  try {
+    const { zipTo, products } = req.body;
+    if (!zipTo || !products || products.length === 0) {
+      res.status(400).json({ error: 'CEP de destino ou produtos não informados.' });
+      return;
+    }
+
+    const config = await getMelhorEnvioConfig();
+    if (!config || !config.address || !config.address.zipCode) {
+      logger.error('Melhor Envio configuration is incomplete', { config });
+      res.status(503).json({ error: 'Configuração do Melhor Envio incompleta (CEP de origem não encontrado).' });
+      return;
+    }
+
+    // Sanitiza produtos garantindo dimensões mínimas aceitas pelo Melhor Envio
+    const sanitizedProducts = products.map((p: any) => ({
+      id: String(p.id || 'prod').substring(0, 50),
+      width: Math.max(Number(p.width) || 0, 11),
+      height: Math.max(Number(p.height) || 0, 2),
+      length: Math.max(Number(p.length) || 0, 16),
+      weight: Math.max(Number(p.weight) || 0, 0.1),
+      insurance_value: Number(p.insurance_value || p.price || 10),
+      quantity: Number(p.quantity) || 1
+    }));
+
+    const payload = {
+      from: { postal_code: String(config.address.zipCode).replace(/\D/g, '') },
+      to: { postal_code: String(zipTo).replace(/\D/g, '') },
+      products: sanitizedProducts
+    };
+
+    logger.info('Calculating shipping with payload:', payload);
+
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/calculate', {
+      method: 'POST',
+      body: payload
+    });
+
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export const createMelhorEnvioShipment = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAuthenticated(req, res);
+  if (!user) return;
+
+  try {
+    const payload = req.body;
+    const data = await requestMelhorEnvio('/api/v2/me/cart', {
+      method: 'POST',
+      body: payload
+    });
+
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export const checkoutMelhorEnvioShipment = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAuthenticated(req, res);
+  if (!user) return;
+
+  try {
+    const { shipmentIds } = req.body;
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/checkout', {
+      method: 'POST',
+      body: { orders: shipmentIds }
+    });
+
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export const generateMelhorEnvioLabel = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  try {
+    const { shipmentIds } = req.body;
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/generate', {
+      method: 'POST',
+      body: { orders: shipmentIds }
+    });
+
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export const printMelhorEnvioLabel = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  try {
+    const { shipmentIds } = req.body;
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/print', {
+      method: 'POST',
+      body: { orders: shipmentIds }
+    });
+
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export const trackMelhorEnvioShipment = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  try {
+    const { shipmentIds } = req.body;
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/tracking', {
+      method: 'POST',
+      body: { orders: shipmentIds }
+    });
+
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export const melhorEnvioWebhook = onRequest({ region, cors: false }, async (req, res) => {
+  // Webhooks do Melhor Envio normalmente são POST
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  const payload = req.body;
+  logger.info('Melhor Envio Webhook received', payload);
+
+  try {
+    const db = getFirestore();
+    
+    // Se o payload contiver o ID do envio e o novo status
+    const shipmentId = payload.id || payload.shipment_id;
+    const status = payload.status;
+
+    if (shipmentId) {
+      // Procura o pedido que tem esse shipmentId (salvo normalmente em shippingInfo ou meta)
+      const ordersSnap = await db.collection('orders')
+        .where('shippingInfo.shipmentId', '==', shipmentId)
+        .limit(1)
+        .get();
+
+      if (!ordersSnap.empty) {
+        const orderDoc = ordersSnap.docs[0];
+        await orderDoc.ref.update({
+          'shippingInfo.status': status,
+          'shippingInfo.updatedAt': FieldValue.serverTimestamp(),
+          'shippingInfo.lastWebhookPayload': payload
+        });
+        logger.info(`Order ${orderDoc.id} updated via Melhor Envio Webhook`);
+      }
+    }
+
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    logger.error('Error processing Melhor Envio Webhook', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+export const getMelhorEnvioMe = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  try {
+    const data = await requestMelhorEnvio('/api/v2/me');
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export const listMelhorEnvioShipments = onRequest({ region, cors: false }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  try {
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/list');
+    res.status(200).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 interface ResetPasswordRequest {
   email?: string;
   method?: 'email' | 'whatsapp';

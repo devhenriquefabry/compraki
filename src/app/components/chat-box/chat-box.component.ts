@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, Input, ViewChild, ElementRef, Output, Eve
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, IonFooter, IonInput, IonButton, IonIcon, IonAvatar, IonSpinner, IonImg, IonCard, IonText, IonThumbnail, IonLabel, IonItem, AlertController, ToastController } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonButtons, IonFooter, IonInput, IonButton, IonIcon, IonSpinner, AlertController, ToastController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { send, mic, micOutline, imageOutline, trash, closeCircle, play, stop, checkmarkCircle, checkmarkDoneOutline, alertCircleOutline, flagOutline } from 'ionicons/icons';
 import { Subscription, firstValueFrom } from 'rxjs';
@@ -16,7 +16,7 @@ import { ChatRoom, ChatMessage, ChatParticipant } from '../../interfaces/chat';
   templateUrl: './chat-box.component.html',
   styleUrls: ['./chat-box.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, IonFooter, IonInput, IonButton, IonIcon, IonAvatar, IonSpinner, IonImg, IonCard, IonText, IonThumbnail, IonLabel, IonItem]
+  imports: [CommonModule, FormsModule, IonContent, IonHeader, IonButtons, IonFooter, IonInput, IonButton, IonIcon, IonSpinner]
 })
 export class ChatBoxComponent implements OnInit, OnDestroy {
   @ViewChild(IonContent, { static: false }) content!: IonContent;

@@ -10,15 +10,8 @@ import { Observable } from 'rxjs';
 import { Order } from '../interfaces/order';
 import { WhatsappInstancesService } from './whatsapp-instances.service';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
-  authDomain: "compraki-mcu.firebaseapp.com",
-  projectId: "compraki-mcu",
-  storageBucket: "compraki-mcu.firebasestorage.app",
-  messagingSenderId: "2028715763",
-  appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-  measurementId: "G-92Q7R0CQR0"
-};
+import { environment } from '../../environments/environment';
+const firebaseConfig = environment.firebase;
 
 @Injectable({
   providedIn: 'root'

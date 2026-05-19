@@ -1,0 +1,234 @@
+<div class="manage-refunds-container">
+  
+  <!-- Cabeçalho Interno / Sub-tabs -->
+  <div class="internal-tabs">
+    <button class="i-tab" [class.active]="activeTab === 'escrow'" (click)="setTab('escrow')">
+      Escrow (Retidos)
+      <span class="badge" *ngIf="escrowOrders.length > 0">{{ escrowOrders.length }}</span>
+    </button>
+    <button class="i-tab" [class.active]="activeTab === 'refunds'" (click)="setTab('refunds')">
+      Devoluções Solicitadas
+      <span class="badge warning" *ngIf="refundRequests.length > 0">{{ refundRequests.length }}</span>
+    </button>
+    <button class="i-tab" [class.active]="activeTab === 'released'" (click)="setTab('released')">
+      Liberados / Concluídos
+    </button>
+  </div>
+
+  <div class="tab-content scrollable">
+    
+    <!-- ABA 1: ESCROW (RETIDOS) -->
+    <div *ngIf="activeTab === 'escrow'" class="escrow-tab">
+      
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon holding"><ion-icon name="lock-closed"></ion-icon></div>
+          <div class="stat-info">
+            <span class="label">Total Retido (Garantia)</span>
+            <span class="value">{{ formatCurrency(totalRetido) }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon release"><ion-icon name="calendar-number"></ion-icon></div>
+          <div class="stat-info">
+            <span class="label">Para Liberar Hoje / Atrasado</span>
+            <span class="value">{{ formatCurrency(totalLiberarHoje) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-header">
+        <h3>Pedidos em Escrow (7 Dias)</h3>
+      </div>
+
+      <div *ngIf="isLoadingEscrow" class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+
+      <div *ngIf="!isLoadingEscrow && escrowOrders.length === 0" class="empty-state">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <p>Nenhum pedido retido no momento.</p>
+      </div>
+
+      <div class="order-list" *ngIf="!isLoadingEscrow && escrowOrders.length > 0">
+        <div class="order-card" *ngFor="let order of escrowOrders">
+          <div class="card-header">
+            <span class="order-id">#{{ order.id?.substring(0,8)?.toUpperCase() }}</span>
+            <span class="order-date">{{ formatDateTime(order.createdAt) }}</span>
+          </div>
+          <div class="card-body">
+            <div class="info-group">
+              <span class="label">Comprador:</span>
+              <span class="text">{{ order.customerData?.name }}</span>
+            </div>
+            <div class="info-group">
+              <span class="label">Valor Retido:</span>
+              <span class="text fw-bold success">{{ formatCurrency(order.total) }}</span>
+            </div>
+            
+            <div class="escrow-progress">
+              <div class="progress-labels">
+                <span>{{ formatDate(order.createdAt) }}</span>
+                <span>Libera em: {{ getDaysLeft(order.escrowInfo?.releaseDate) }} dia(s)</span>
+                <span>{{ formatDate(order.escrowInfo?.releaseDate) }}</span>
+              </div>
+              <ion-progress-bar 
+                [value]="getProgressBarValue(order.createdAt, order.escrowInfo?.releaseDate)" 
+                color="success">
+              </ion-progress-bar>
+            </div>
+          </div>
+          <div class="card-footer">
+            <ion-button fill="clear" size="small" color="primary" (click)="forceReleaseEscrow(order)" 
+              *ngIf="getDaysLeft(order.escrowInfo?.releaseDate) <= 0">
+              Forçar Liberação (Atrasado)
+            </ion-button>
+            <span class="status-badge holding">Em Escrow</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ABA 2: DEVOLUÇÕES SOLICITADAS -->
+    <div *ngIf="activeTab === 'refunds'" class="refunds-tab">
+      <div class="list-header">
+        <h3>Solicitações de Devolução / Disputas</h3>
+      </div>
+
+      <div *ngIf="isLoadingRefunds" class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+
+      <div *ngIf="!isLoadingRefunds && refundRequests.length === 0" class="empty-state">
+        <ion-icon name="checkmark-done-circle-outline"></ion-icon>
+        <p>Nenhuma solicitação de devolução pendente.</p>
+      </div>
+
+      <div class="order-list" *ngIf="!isLoadingRefunds && refundRequests.length > 0">
+        <div class="order-card dispute" *ngFor="let order of refundRequests">
+          <div class="card-header">
+            <span class="order-id">#{{ order.id?.substring(0,8)?.toUpperCase() }}</span>
+            <span class="status-badge" [ngClass]="order.refundInfo?.status?.toLowerCase()">
+              {{ order.refundInfo?.status }}
+            </span>
+          </div>
+          <div class="card-body">
+            <div class="info-group">
+              <span class="label">Comprador:</span>
+              <span class="text">{{ order.customerData?.name }}</span>
+            </div>
+            <div class="info-group">
+              <span class="label">Valor a Estornar:</span>
+              <span class="text fw-bold danger">{{ formatCurrency(order.total) }}</span>
+            </div>
+            <div class="info-group dispute-reason">
+              <span class="label">Motivo (Comprador):</span>
+              <span class="text">{{ order.refundInfo?.reason }}</span>
+            </div>
+            <div class="info-group">
+              <span class="label">Data Solicitação:</span>
+              <span class="text">{{ formatDateTime(order.refundInfo?.requestedAt) }}</span>
+            </div>
+          </div>
+          <div class="card-footer actions">
+            <ion-button size="small" color="dark" (click)="openRefundModal(order)">
+              Analisar e Processar
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ABA 3: LIBERADOS / CONCLUÍDOS -->
+    <div *ngIf="activeTab === 'released'" class="released-tab">
+      <div class="list-header">
+        <h3>Pagamentos Liberados e Concluídos</h3>
+      </div>
+
+      <div *ngIf="isLoadingReleased" class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+
+      <div *ngIf="!isLoadingReleased && releasedOrders.length === 0" class="empty-state">
+        <ion-icon name="time-outline"></ion-icon>
+        <p>Nenhum pagamento liberado ainda.</p>
+      </div>
+
+      <div class="order-list" *ngIf="!isLoadingReleased && releasedOrders.length > 0">
+        <div class="order-card" *ngFor="let order of releasedOrders">
+          <div class="card-header">
+            <span class="order-id">#{{ order.id?.substring(0,8)?.toUpperCase() }}</span>
+            <span class="status-badge success">Liberado</span>
+          </div>
+          <div class="card-body">
+            <div class="info-group">
+              <span class="label">Vendedor IDs:</span>
+              <span class="text">{{ order.sellerIds.join(', ') }}</span>
+            </div>
+            <div class="info-group">
+              <span class="label">Valor Liberado:</span>
+              <span class="text fw-bold">{{ formatCurrency(order.total) }}</span>
+            </div>
+            <div class="info-group">
+              <span class="label">Data Liberação:</span>
+              <span class="text">{{ formatDateTime(order.escrowInfo?.releasedAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL DE ANÁLISE DE DEVOLUÇÃO -->
+<ion-modal [isOpen]="isRefundModalOpen" (didDismiss)="closeRefundModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>Processar Devolução</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeRefundModal()">Fechar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding custom-bg">
+      <div class="modal-content" *ngIf="selectedRefundOrder">
+        
+        <div class="details-card">
+          <h4>Detalhes do Pedido #{{ selectedRefundOrder.id?.substring(0,8)?.toUpperCase() }}</h4>
+          <p><strong>Comprador:</strong> {{ selectedRefundOrder.customerData?.name }}</p>
+          <p><strong>Motivo da Devolução:</strong> {{ selectedRefundOrder.refundInfo?.reason }}</p>
+          <p><strong>Valor:</strong> {{ formatCurrency(selectedRefundOrder.total) }}</p>
+          <p><strong>ID Asaas:</strong> {{ selectedRefundOrder.asaasPaymentId || 'N/A' }}</p>
+        </div>
+
+        <div class="action-form">
+          <ion-item>
+            <ion-label position="stacked">Notas da Administração (Opcional/Obrigatório para Rejeitar)</ion-label>
+            <ion-textarea [(ngModel)]="adminNotes" placeholder="Escreva o parecer da plataforma..."></ion-textarea>
+          </ion-item>
+
+          <div class="modal-actions" *ngIf="selectedRefundOrder.refundInfo?.status === 'REQUESTED'">
+            <ion-button expand="block" color="success" (click)="approveRefund()" class="ion-margin-top">
+              <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+              Aprovar & Estornar no Asaas
+            </ion-button>
+            <ion-button expand="block" color="danger" fill="outline" (click)="rejectRefund()" class="ion-margin-top">
+              <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+              Rejeitar Devolução
+            </ion-button>
+          </div>
+          
+          <div *ngIf="selectedRefundOrder.refundInfo?.status !== 'REQUESTED'" class="status-msg">
+            Esta solicitação já foi processada. Status: {{ selectedRefundOrder.refundInfo?.status }}
+          </div>
+        </div>
+
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

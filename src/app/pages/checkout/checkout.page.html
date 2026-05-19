@@ -55,11 +55,11 @@
           <app-checkout-order-summary [items]="cartItems"></app-checkout-order-summary>
         </div>
         <div class="review-section">
-          <app-checkout-address></app-checkout-address>
-          <app-checkout-shipping></app-checkout-shipping>
+          <app-checkout-address [readOnly]="true"></app-checkout-address>
+          <app-checkout-shipping [readOnly]="true"></app-checkout-shipping>
         </div>
         <div class="review-section">
-          <app-checkout-payment></app-checkout-payment>
+          <app-checkout-payment [readOnly]="true"></app-checkout-payment>
         </div>
       </div>
       <app-checkout-totals [items]="cartItems"></app-checkout-totals>

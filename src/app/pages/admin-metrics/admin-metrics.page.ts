@@ -12,6 +12,7 @@ import {
   AdminNamedMetric
 } from '../../services/admin-analytics.service';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
+import { AlertController, ToastController } from '@ionic/angular';
 
 @Component({
   selector: 'app-admin-metrics',
@@ -44,7 +45,11 @@ export class AdminMetricsPage implements OnInit, OnDestroy {
   private onlinePanelInterval?: ReturnType<typeof setInterval>;
   private onlineDurationTick = 0;
 
-  constructor(private analyticsService: AdminAnalyticsService) {}
+  constructor(
+    private analyticsService: AdminAnalyticsService,
+    private alertController: AlertController,
+    private toastController: ToastController
+  ) {}
 
   ngOnInit(): void {
     this.loadMetrics();
@@ -170,6 +175,71 @@ export class AdminMetricsPage implements OnInit, OnDestroy {
 
   public trackByLabel(_: number, item: { label?: string; id?: string; title?: string }): string {
     return item.id || item.label || item.title || '';
+  }
+
+  public async confirmResetDatabase(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: '⚠️ AVISO CRÍTICO',
+      subHeader: 'Resetar base de dados',
+      message: 'Esta ação irá EXCLUIR PERMANENTEMENTE todos os usuários, produtos, pedidos e mensagens do sistema. Você tem certeza absoluta?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { 
+          text: 'SIM, RESETAR TUDO', 
+          role: 'destructive',
+          handler: () => this.executeDatabaseReset()
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async executeDatabaseReset(): Promise<void> {
+    const secondAlert = await this.alertController.create({
+      header: 'CONFIRMAÇÃO FINAL',
+      message: 'Digite "RESETAR" para confirmar a destruição total dos dados:',
+      inputs: [
+        { name: 'confirmText', type: 'text', placeholder: 'RESETAR' }
+      ],
+      buttons: [
+        { text: 'Abandornar', role: 'cancel' },
+        {
+          text: 'EXECUTAR AGORA',
+          handler: (data) => {
+            if (data.confirmText === 'RESETAR') {
+              this.performReset();
+            } else {
+              this.showToast('Confirmação incorreta. Operação cancelada.');
+            }
+          }
+        }
+      ]
+    });
+    await secondAlert.present();
+  }
+
+  private async performReset(): Promise<void> {
+    this.isLoading = true;
+    try {
+      await this.analyticsService.resetAllData();
+      this.showToast('Base de dados resetada com sucesso!');
+      this.refresh();
+    } catch (e) {
+      console.error(e);
+      this.showToast('Erro ao resetar dados.');
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async showToast(message: string): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration: 3000,
+      position: 'bottom',
+      color: 'dark'
+    });
+    await toast.present();
   }
 
   private loadMetrics(): void {

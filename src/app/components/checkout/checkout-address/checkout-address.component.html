@@ -1,5 +1,5 @@
-<div class="section-title">Endereço de Entrega</div>
-<ion-card class="checkout-card">
+<div class="section-title" *ngIf="!readOnly">Endereço de Entrega</div>
+<ion-card class="checkout-card" [class.readonly-card]="readOnly">
   <div class="address-content" *ngIf="selectedAddress; else noAddress">
     <div class="icon-container">
       <ion-icon name="location" class="location-icon"></ion-icon>
@@ -8,7 +8,7 @@
       <p class="street">{{ selectedAddress.street }}, {{ selectedAddress.number }} <span *ngIf="selectedAddress.complement">, {{ selectedAddress.complement }}</span></p>
       <p class="city">{{ selectedAddress.city }} - {{ selectedAddress.state }} | {{ selectedAddress.zipCode }}</p>
     </div>
-    <div class="button-container">
+    <div class="button-container" *ngIf="!readOnly">
       <button class="btn-alterar" (click)="alterarEndereco()">ALTERAR</button>
     </div>
   </div>
@@ -22,7 +22,7 @@
         <p class="street">Nenhum endereço cadastrado</p>
         <p class="city">Clique em adicionar para inserir um endereço</p>
       </div>
-      <div class="button-container">
+      <div class="button-container" *ngIf="!readOnly">
         <button class="btn-alterar" (click)="alterarEndereco()">ADICIONAR</button>
       </div>
     </div>

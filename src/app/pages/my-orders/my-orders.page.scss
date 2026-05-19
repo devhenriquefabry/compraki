@@ -133,4 +133,77 @@
       span { font-size: 16px; font-weight: 800; color: #333; }
     }
   }
+
+  .order-actions {
+    padding: 12px 16px;
+    border-top: 1px dashed #f0f0f0;
+    background: #fafafa;
+    border-radius: 0 0 20px 20px;
+    margin: 12px -16px -16px -16px;
+
+    ion-button {
+      margin: 0;
+      --border-radius: 8px;
+      font-weight: 600;
+    }
+
+    .refund-status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 8px;
+
+      &.requested { background: #fef3c7; color: #d97706; }
+      &.approved { background: #dcfce7; color: #15803d; }
+      &.rejected { background: #fee2e2; color: #b91c1c; }
+      &.completed { background: #f1f5f9; color: #475569; }
+    }
+  }
+}
+
+/* Modal Devolução */
+.custom-bg { --background: #f8fafc; }
+.modal-body {
+  .warning-box {
+    display: flex;
+    gap: 12px;
+    background: #eff6ff;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #bfdbfe;
+    color: #1e3a8a;
+    margin-bottom: 24px;
+
+    ion-icon {
+      font-size: 24px;
+      color: #3b82f6;
+      flex-shrink: 0;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+  }
+
+  .product-title {
+    color: #0f172a;
+    margin-bottom: 16px;
+  }
+
+  .reason-input {
+    --background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 24px;
+
+    ion-textarea {
+      margin-top: 8px;
+      color: #334155;
+    }
+  }
 }

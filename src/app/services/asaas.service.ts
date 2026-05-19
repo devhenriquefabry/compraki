@@ -125,4 +125,23 @@ export class AsaasService {
     }
     return data;
   }
+
+  // 3. Estornar Pagamento
+  async refundPayment(paymentId: string, value?: number, description?: string): Promise<any> {
+    const payload: any = {};
+    if (value) payload.value = value;
+    if (description) payload.description = description;
+
+    const response = await fetch(`${this.apiUrl}/v3/payments/${paymentId}/refund`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: Object.keys(payload).length > 0 ? JSON.stringify(payload) : undefined
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.errors?.[0]?.description || 'Erro ao processar estorno no Asaas');
+    }
+    return data;
+  }
 }

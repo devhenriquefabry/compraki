@@ -1,6 +1,7 @@
-<div class="section-title">Dados do Comprador</div>
-<ion-card class="checkout-card" style="margin-bottom: 20px; padding-top: 10px;">
-  <div class="card-form">
+<div class="section-title" *ngIf="!readOnly">Dados do Comprador</div>
+<div class="section-title" *ngIf="readOnly">Dados de Faturamento</div>
+<ion-card class="checkout-card" [class.readonly-card]="readOnly" style="margin-bottom: 20px; padding-top: 10px;">
+  <div class="card-form" *ngIf="!readOnly">
     <div class="input-group full-width">
       <label>Nome Completo (Conforme Identidade)</label>
       <input type="text" placeholder="Nome do Comprador" [(ngModel)]="stateService.paymentData.buyerName" />
@@ -16,11 +17,33 @@
       </div>
     </div>
   </div>
+
+  <div class="readonly-content" *ngIf="readOnly">
+    <div class="review-item">
+      <span class="label">Nome:</span>
+      <span class="value">{{ stateService.paymentData.buyerName }}</span>
+    </div>
+    <div class="review-item">
+      <span class="label">CPF:</span>
+      <span class="value">{{ stateService.paymentData.buyerCpf }}</span>
+    </div>
+    <div class="review-item">
+      <span class="label">Celular:</span>
+      <span class="value">{{ stateService.paymentData.buyerPhone }}</span>
+    </div>
+  </div>
 </ion-card>
 
 <div class="section-title">Forma de Pagamento</div>
-<ion-card class="checkout-card">
-  <ion-radio-group [(ngModel)]="stateService.paymentData.method">
+<ion-card class="checkout-card" [class.readonly-card]="readOnly">
+  <div class="readonly-payment" *ngIf="readOnly">
+    <div class="payment-summary">
+      <ion-icon [name]="stateService.paymentData.method === 'PIX' ? 'grid' : 'card'" color="tertiary"></ion-icon>
+      <span>{{ stateService.paymentData.method }}</span>
+    </div>
+  </div>
+
+  <ion-radio-group [(ngModel)]="stateService.paymentData.method" *ngIf="!readOnly">
     
     <!-- Opção: Pix -->
     <div class="payment-option">

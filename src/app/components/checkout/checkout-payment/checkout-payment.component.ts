@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Input } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common'; import { CheckoutStateService } from 'src/app/services/checkout-state.service';
@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common'; import { CheckoutStateService } 
   imports: [IonicModule, FormsModule, CommonModule]
 })
 export class CheckoutPaymentComponent implements OnInit {
+  @Input() readOnly: boolean = false;
 
   // Removendo variaveis locais para usar direto o stateService
   stateService = inject(CheckoutStateService);

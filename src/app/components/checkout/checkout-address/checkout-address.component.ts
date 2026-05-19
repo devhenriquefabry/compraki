@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Input } from '@angular/core';
 import { IonicModule, NavController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { AddressService, Address } from 'src/app/services/address.service';
@@ -12,6 +12,8 @@ import { CheckoutStateService } from 'src/app/services/checkout-state.service';
   imports: [IonicModule, CommonModule]
 })
 export class CheckoutAddressComponent implements OnInit {
+  @Input() readOnly: boolean = false;
+
 
   private addressService = inject(AddressService);
   private stateService = inject(CheckoutStateService);
