@@ -15,17 +15,6 @@ import { BotStatusWidgetComponent } from './components/bot-status-widget/bot-sta
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app'
 import { environment } from 'src/environments/environment.prod';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
-const firebaseConfig = {
-  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
-  authDomain: "compraki-mcu.firebaseapp.com",
-  databaseURL: "https://compraki-mcu-default-rtdb.firebaseio.com",
-  projectId: "compraki-mcu",
-  storageBucket: "compraki-mcu.firebasestorage.app",
-  messagingSenderId: "2028715763",
-  appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-  measurementId: "G-92Q7R0CQR0"
-
-}
 
 
 @NgModule({
@@ -36,7 +25,7 @@ const firebaseConfig = {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     { provide: LOCALE_ID, useValue: 'pt-BR' },
-    provideFirebaseApp(() => initializeApp(firebaseConfig)),
+    provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => getFirestore()),
     provideHttpClient(),
   ],

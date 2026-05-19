@@ -237,10 +237,17 @@
       span { font-size: 12px; opacity: 0.9; }
     }
 
-    .status-badge {
+    .badges-row {
       position: absolute;
       top: 8px;
       right: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .status-badge, .default-badge {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -249,7 +256,10 @@
       font-size: 10px;
       font-weight: 700;
       backdrop-filter: blur(4px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
 
+    .status-badge {
       &.status-active {
         background: rgba(74, 156, 43, 0.9);
         color: white;
@@ -264,6 +274,17 @@
       }
 
       ion-icon { font-size: 12px; }
+    }
+
+    .default-badge {
+      background: rgba(255, 255, 255, 0.9);
+      color: #854d0e;
+      border: 1px solid #fde68a;
+
+      ion-icon { 
+        font-size: 12px; 
+        color: #eab308;
+      }
     }
   }
 
@@ -364,6 +385,22 @@
             background: #f0fdf4;
             color: #4a9c2b;
             border-color: #bbf7d0;
+          }
+        }
+
+        &.btn-default {
+          background: #f8fafc;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+
+          ion-icon { color: #94a3b8; }
+
+          &.is-default {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #fde68a;
+            
+            ion-icon { color: #eab308; }
           }
         }
 

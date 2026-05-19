@@ -21,6 +21,43 @@ service cloud.firestore {
       );
     }
 
+    // Produtos: leitura pública, escrita por admins ou pelo próprio vendedor
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == request.resource.data.sellerId);
+    }
+
+    // Categorias: leitura pública, escrita por admins
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Banners: leitura pública, escrita por admins
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Usuários: leitura pública (perfil básico), escrita pelo próprio dono ou admin
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth.uid == userId || isAdmin();
+    }
+
+    // Chats e Mensagens: apenas participantes
+    match /chats/{chatId} {
+      allow read, write: if isSignedIn() && (
+        request.auth.uid == resource.data.buyerId || 
+        request.auth.uid == resource.data.sellerId ||
+        isAdmin()
+      );
+      
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
     // Cache global de mídias do WhatsApp: leitura para admins, escrita apenas via Cloud Functions (Admin SDK).
     match /whatsappMediaCache/{mediaId} {
       allow read: if isAdmin();
@@ -34,3 +71,4 @@ service cloud.firestore {
     }
   }
 }
+

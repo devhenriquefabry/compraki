@@ -110,9 +110,17 @@
               }
 
               <!-- Status Badge -->
-              <div class="status-badge" [class]="'status-' + banner.status">
-                <ion-icon [name]="getStatusIcon(banner.status)"></ion-icon>
-                {{ getStatusLabel(banner.status) }}
+              <div class="badges-row">
+                <div class="status-badge" [class]="'status-' + banner.status">
+                  <ion-icon [name]="getStatusIcon(banner.status)"></ion-icon>
+                  {{ getStatusLabel(banner.status) }}
+                </div>
+                @if (banner.isDefault) {
+                  <div class="default-badge">
+                    <ion-icon name="star"></ion-icon>
+                    Padrão
+                  </div>
+                }
               </div>
             </div>
 
@@ -158,6 +166,12 @@
                   [class.active]="banner.status === 'active'">
                   <ion-icon [name]="banner.status === 'active' ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
                   {{ banner.status === 'active' ? 'Ativo' : 'Inativo' }}
+                </button>
+                <button class="btn-action btn-default"
+                  [class.is-default]="banner.isDefault"
+                  (click)="setAsDefault(banner)">
+                  <ion-icon [name]="banner.isDefault ? 'star' : 'star-outline'"></ion-icon>
+                  {{ banner.isDefault ? 'Padrão' : 'Tornar Padrão' }}
                 </button>
                 <button class="btn-action btn-delete" (click)="deleteBanner(banner)">
                   <ion-icon name="trash-outline"></ion-icon>
@@ -388,6 +402,14 @@
             <ion-select-option value="inactive">❌ Inativo (Oculto)</ion-select-option>
             <ion-select-option value="scheduled">📅 Agendado</ion-select-option>
           </ion-select>
+        </ion-item>
+
+        <ion-item class="form-item">
+          <ion-icon name="star-outline" slot="start" color="warning"></ion-icon>
+          <ion-toggle [(ngModel)]="form.isDefault" labelPlacement="start">
+            <strong>Banner Padrão do App</strong>
+            <p><small>Exibido quando não houver agendamentos para o dia</small></p>
+          </ion-toggle>
         </ion-item>
 
         @if (form.status === 'scheduled') {

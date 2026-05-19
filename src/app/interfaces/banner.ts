@@ -20,6 +20,7 @@ export interface Banner {
   scheduledDates?: string[]; // Local dates in YYYY-MM-DD format
   dailySchedules?: Record<string, BannerDailySchedule>; // Per-date carousel planning
   order: number;
+  isDefault?: boolean;
   createdAt?: any;
   updatedAt?: any;
 }

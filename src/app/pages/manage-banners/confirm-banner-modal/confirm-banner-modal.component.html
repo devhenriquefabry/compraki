@@ -1,0 +1,50 @@
+<div class="premium-modal-wrapper" [class.success-bg]="isSuccess">
+  @if (!isSuccess) {
+    <div class="modal-header">
+      <h2>Trocar Banner Padrão</h2>
+      <p>Já existe um banner reserva definido</p>
+    </div>
+
+    <div class="modal-body">
+      <div class="alert-preview-container">
+        <div class="banner-preview-item">
+          <span>ATUAL</span>
+          <div class="banner-thumb">
+            <img [src]="currentBanner.imageURL" alt="Banner Atual" />
+          </div>
+          <p class="banner-name">{{ currentBanner.title }}</p>
+        </div>
+
+        <div class="banner-preview-arrow">
+          <ion-icon name="arrow-down-outline"></ion-icon>
+        </div>
+
+        <div class="banner-preview-item">
+          <span>NOVO</span>
+          <div class="banner-thumb">
+            <img [src]="newBanner.imageURL" alt="Novo Banner" />
+          </div>
+          <p class="banner-name">{{ newBanner.title }}</p>
+        </div>
+      </div>
+
+      <div class="confirmation-text">
+        <p>Deseja substituir o padrão atual por este novo?</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="cancel()">CANCELAR</button>
+      <button class="btn-confirm" (click)="confirm()">SIM, SUBSTITUIR</button>
+    </div>
+  } @else {
+    <div class="success-container">
+      <div class="success-icon-box">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+      </div>
+      <h2>Banner Atualizado!</h2>
+      <p>O banner padrão foi alterado com sucesso.</p>
+      <div class="success-loader"></div>
+    </div>
+  }
+</div>

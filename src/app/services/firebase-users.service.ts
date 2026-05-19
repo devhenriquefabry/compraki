@@ -7,15 +7,7 @@ import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { AppUser } from '../interfaces/app-user';
 import { Observable } from 'rxjs';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
-  authDomain: "compraki-mcu.firebaseapp.com",
-  projectId: "compraki-mcu",
-  storageBucket: "compraki-mcu.firebasestorage.app",
-  messagingSenderId: "2028715763",
-  appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-  measurementId: "G-92Q7R0CQR0"
-};
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -25,7 +17,7 @@ export class FirebaseUsersService {
   private storage;
 
   constructor() {
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
     this.db = getFirestore(app);
     this.storage = getStorage(app);
   }

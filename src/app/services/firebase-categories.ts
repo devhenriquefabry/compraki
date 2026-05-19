@@ -16,15 +16,7 @@ import {
 import { Observable } from 'rxjs';
 import { Category, Subcategory } from '../interfaces/category';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBD5AH1b1_p6AghhPx3Nr0fBVab8djRbkI",
-  authDomain: "compraki-mcu.firebaseapp.com",
-  projectId: "compraki-mcu",
-  storageBucket: "compraki-mcu.firebasestorage.app",
-  messagingSenderId: "2028715763",
-  appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-  measurementId: "G-92Q7R0CQR0"
-};
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -33,7 +25,7 @@ export class FirebaseCategories {
   private db: Firestore;
 
   constructor() {
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
     this.db = getFirestore(app);
   }
 

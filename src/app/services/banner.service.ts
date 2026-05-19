@@ -15,17 +15,9 @@ import {
   setDoc
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { Banner } from '../interfaces/banner';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
-  authDomain: "compraki-mcu.firebaseapp.com",
-  projectId: "compraki-mcu",
-  storageBucket: "compraki-mcu.firebasestorage.app",
-  messagingSenderId: "2028715763",
-  appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-};
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -35,7 +27,7 @@ export class BannerService {
   private storage;
 
   constructor() {
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
     this.db = getFirestore(app);
     this.storage = getStorage(app);
   }
@@ -89,6 +81,15 @@ export class BannerService {
           }
           return false;
         }).sort((a, b) => this.getDailyOrder(a, todayKey) - this.getDailyOrder(b, todayKey));
+
+        if (active.length === 0) {
+          const defaultBanner = banners.find(b => b.isDefault && b.status !== 'inactive');
+          if (defaultBanner) {
+            observer.next([defaultBanner]);
+            return;
+          }
+        }
+
         observer.next(active);
       });
     });
@@ -126,6 +127,17 @@ export class BannerService {
    */
   async create(banner: Omit<Banner, 'id'>): Promise<string> {
     const bannersCol = collection(this.db, 'banners');
+    
+    // Se estiver criando como padrão, garante que outros não sejam
+    if (banner.isDefault) {
+      const banners = await firstValueFrom(this.getAll());
+      for (const b of banners) {
+        if (b.id && b.isDefault) {
+          await updateDoc(doc(this.db, 'banners', b.id), { isDefault: false, updatedAt: serverTimestamp() });
+        }
+      }
+    }
+
     const docRef = await addDoc(bannersCol, {
       ...banner,
       createdAt: serverTimestamp(),
@@ -139,7 +151,25 @@ export class BannerService {
    */
   async update(id: string, data: Partial<Banner>): Promise<void> {
     const bannerRef = doc(this.db, 'banners', id);
+    
+    // Se estiver definindo como padrão, garante que outros não sejam
+    if (data.isDefault) {
+      const banners = await firstValueFrom(this.getAll());
+      for (const b of banners) {
+        if (b.id && b.id !== id && b.isDefault) {
+          await updateDoc(doc(this.db, 'banners', b.id), { isDefault: false, updatedAt: serverTimestamp() });
+        }
+      }
+    }
+
     await updateDoc(bannerRef, { ...data, updatedAt: serverTimestamp() });
+  }
+
+  /**
+   * Define um banner específico como o padrão único do sistema
+   */
+  async setAsDefault(bannerId: string): Promise<void> {
+    await this.update(bannerId, { isDefault: true });
   }
 
   /**

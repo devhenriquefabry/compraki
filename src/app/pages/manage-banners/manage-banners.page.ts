@@ -1,12 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
-import { Subscription, Observable } from 'rxjs';
+import { IonicModule, AlertController, ModalController } from '@ionic/angular';
+import { Subscription, Observable, firstValueFrom } from 'rxjs';
 import { Banner, BannerDailySchedule } from '../../interfaces/banner';
 import { BannerService } from '../../services/banner.service';
 import { AdminSubtabsComponent, AdminSubtabOption } from '../../components/admin-subtabs/admin-subtabs.component';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
+import { ConfirmBannerModalComponent } from './confirm-banner-modal/confirm-banner-modal.component';
 
 interface CalendarDay {
   dateKey: string;
@@ -30,7 +31,7 @@ interface DayPlannerItem {
   templateUrl: './manage-banners.page.html',
   styleUrls: ['./manage-banners.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, DatePipe, AdminSubtabsComponent, AdminPanelHeroComponent]
+  imports: [CommonModule, FormsModule, IonicModule, DatePipe, AdminSubtabsComponent, AdminPanelHeroComponent, ConfirmBannerModalComponent]
 })
 export class ManageBannersPage implements OnInit, OnDestroy {
 
@@ -82,7 +83,26 @@ export class ManageBannersPage implements OnInit, OnDestroy {
     { value: 6, label: 'Sáb', full: 'Sábado' }
   ];
 
-  constructor(private bannerService: BannerService) {}
+  constructor(
+    private bannerService: BannerService,
+    private alertController: AlertController,
+    private modalController: ModalController
+  ) {}
+
+  async showConfirmSwap(currentBanner: Banner, newBanner: Partial<Banner>): Promise<boolean> {
+    const modal = await this.modalController.create({
+      component: ConfirmBannerModalComponent,
+      componentProps: {
+        currentBanner,
+        newBanner
+      },
+      cssClass: 'premium-modal'
+    });
+
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    return !!data;
+  }
 
   setActiveSubTab(tab: string) {
     if (tab === 'list' || tab === 'calendar') {
@@ -111,7 +131,8 @@ export class ManageBannersPage implements OnInit, OnDestroy {
       scheduledEnd: '',
       scheduledDays: [],
       scheduledDates: [],
-      order: 1
+      order: 1,
+      isDefault: false
     };
   }
 
@@ -168,6 +189,20 @@ export class ManageBannersPage implements OnInit, OnDestroy {
     try {
       let imageURL = this.form.imageURL || '';
 
+      // Se estiver marcando como padrão, verifica se já existe outro
+      if (this.form.isDefault) {
+        const banners = await firstValueFrom(this.banners$);
+        const currentDefault = banners.find((b: Banner) => b.isDefault && b.id !== this.editingBanner?.id);
+        if (currentDefault) {
+          // Usa previewImageUrl para mostrar a imagem que o usuário está vendo no momento (pode ser a nova selecionada)
+          const confirmed = await this.showConfirmSwap(currentDefault, { ...this.form, imageURL: this.previewImageUrl });
+          if (!confirmed) {
+            this.isSaving = false;
+            return;
+          }
+        }
+      }
+
       // Se houver um arquivo novo, faz upload primeiro
       if (this.selectedFile) {
         imageURL = await this.bannerService.uploadBannerImage(this.selectedFile);
@@ -188,6 +223,7 @@ export class ManageBannersPage implements OnInit, OnDestroy {
         scheduledDates: this.getSortedScheduledDates(),
         dailySchedules: this.form.dailySchedules || {},
         order: Number(this.form.order) || 1,
+        isDefault: !!this.form.isDefault,
       };
 
       if (this.editingBanner?.id) {
@@ -209,6 +245,22 @@ export class ManageBannersPage implements OnInit, OnDestroy {
     if (!banner.id) return;
     const newStatus = banner.status === 'active' ? 'inactive' : 'active';
     await this.bannerService.update(banner.id, { status: newStatus });
+  }
+
+  async setAsDefault(banner: Banner) {
+    if (!banner.id) return;
+    if (banner.isDefault) return; // Já é padrão
+    
+    // Verifica se já existe um banner padrão
+    const banners = await firstValueFrom(this.banners$);
+    const currentDefault = banners.find((b: Banner) => b.isDefault);
+    
+    if (currentDefault) {
+      const confirmed = await this.showConfirmSwap(currentDefault, banner);
+      if (!confirmed) return;
+    }
+    
+    await this.bannerService.setAsDefault(banner.id);
   }
 
   async deleteBanner(banner: Banner) {

@@ -26,16 +26,6 @@ import { WhatsappInstancesService } from './whatsapp-instances.service';
 import { environment } from '../../environments/environment';
 
 // Copie sua config aqui para garantir que o SDK use o objeto puro
-const firebaseConfig = {
-  apiKey: "AIzaSyDD50YO6EznucB9D1yx6ujwjdD3v-ZCfyg",
-  authDomain: "compraki-mcu.firebaseapp.com",
-  projectId: "compraki-mcu",
-  storageBucket: "compraki-mcu.firebasestorage.app",
-  messagingSenderId: "2028715763",
-  appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-  measurementId: "G-92Q7R0CQR0"
-};
-
 @Injectable({
   providedIn: 'root',
 })
@@ -55,7 +45,7 @@ export class FirebaseProducts {
     private whatsappService: WhatsappInstancesService
   ) {
     // Inicializa ou recupera o App SEM passar pelo sistema de injeção do Angular 21
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
     this.db = getFirestore(app);
     this.storage = getStorage(app);
     this.authenticator = getAuth(app)
