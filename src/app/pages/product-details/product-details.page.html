@@ -21,7 +21,7 @@
             mousewheel="true" 
             style="--swiper-pagination-color: var(--cor-principal); --swiper-pagination-bullet-inactive-color: #ccc;">
             
-            <swiper-slide *ngFor="let img of p.photoURL || ['https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg']">
+            <swiper-slide *ngFor="let img of p.photoURL || ['assets/imagens/imagem-placeholder.png']">
               <img [src]="img" alt="Produto">
             </swiper-slide>
           </swiper-container>
@@ -43,12 +43,12 @@
           </div>
 
           <div class="payment-hints">
-            À vista no PIX, DINHEIRO ou CARTÃO 
+            Pagamento: {{ getPaymentMethodsLabel(p) }}
             <ion-icon name="grid-outline" class="pix-icon-small"></ion-icon>
             <span class="pix-label">pix</span>
           </div>
 
-          <div class="shipping-info-green">Frete Grátis</div>
+          <div class="shipping-info-green">{{ p.shipping || 'Entrega não informada' }}</div>
 
           <div class="rating-row">
             <div class="stars">
@@ -58,23 +58,27 @@
               <ion-icon name="star"></ion-icon>
               <ion-icon name="star"></ion-icon>
             </div>
-            <span class="rating-text">{{p.rating || 390}} avaliações &gt;</span>
+            <span class="rating-text">{{ p.rating ? (formatRating(p.rating) + ' de avaliação') : 'Sem avaliações' }}</span>
           </div>
         </div>
       </ion-card>
 
       <!-- CHIP DO VENDEDOR (compacto, logo abaixo do produto) -->
-      <div class="seller-chip" *ngIf="seller$ | async as seller">
-        <img class="chip-avatar" [src]="seller.photoURL || 'assets/imagens/foto-henrique.jpeg'" alt="">
+      <button type="button" class="seller-chip" *ngIf="seller$ | async as seller" (click)="goToSellerProfile(seller.uid)">
+        @if (seller.photoURL) {
+          <img class="chip-avatar" [src]="seller.photoURL" [alt]="seller.shopName || seller.displayName || 'Vendedor'">
+        } @else {
+          <span class="chip-avatar chip-initials">{{ getSellerInitials(seller) }}</span>
+        }
         <div class="chip-info">
-          <span class="chip-name">{{ seller.displayName || 'Loja Compraki' }}</span>
+          <span class="chip-name">{{ seller.shopName || seller.displayName || 'Loja Compraki' }}</span>
           <span class="chip-sub">
             <ion-icon name="checkmark-circle" class="chip-verified"></ion-icon>
-            Vendedor verificado
+            Vendedor verificado · {{ formatCompactCount((sellerFollowerCount$ | async) || 0) }} seguidores
           </span>
         </div>
         <ion-icon name="chevron-forward-outline" class="chip-arrow"></ion-icon>
-      </div>
+      </button>
 
       <!-- ABAS E DESCRIÇÃO -->
       <div class="tabs-container">
@@ -85,7 +89,7 @@
 
       <ion-card class="description-card">
         <p class="description-text">
-          {{p.description || 'Produto em ótimo estado, pouco tempo de uso. Equipado com processador de alto desempenho, ideal para produtividade e lazer sem travamentos.' }}
+          {{ p.description || 'Descrição não informada pelo vendedor.' }}
         </p>
       </ion-card>
 
@@ -97,10 +101,14 @@
         <!-- Banner de capa -->
         <div class="seller-banner" [style.background-image]="seller.shopBanner ? 'url(' + seller.shopBanner + ')' : 'linear-gradient(135deg, #1e1e2d, #2d2d44)'">
           <div class="seller-banner-overlay"></div>
-          <img 
-            class="seller-avatar-hero"
-            [src]="seller.photoURL || 'assets/imagens/foto-henrique.jpeg'" 
-            alt="">
+          @if (seller.photoURL) {
+            <img
+              class="seller-avatar-hero"
+              [src]="seller.photoURL"
+              [alt]="seller.shopName || seller.displayName || 'Vendedor'">
+          } @else {
+            <span class="seller-avatar-hero seller-avatar-initials">{{ getSellerInitials(seller) }}</span>
+          }
         </div>
 
         <!-- Corpo do perfil -->
@@ -115,7 +123,21 @@
                 Vendedor verificado
               </span>
             </div>
-            <ion-button class="btn-follow" fill="outline" size="small" [style.--color]="seller.shopPrimaryColor">Seguir</ion-button>
+            <ion-button
+              class="btn-follow"
+              [class.following]="isFollowingSeller$ | async"
+              fill="outline"
+              size="small"
+              [style.--color]="seller.shopPrimaryColor"
+              [disabled]="isOwnSeller(seller) || isFollowActionBusy"
+              (click)="toggleFollowSeller(seller, $event)">
+              @if (isFollowActionBusy) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                <ion-icon [name]="(isFollowingSeller$ | async) ? 'heart' : 'heart-outline'" slot="start"></ion-icon>
+              }
+              {{ (isFollowingSeller$ | async) ? 'Seguindo' : 'Seguir' }}
+            </ion-button>
           </div>
 
           <!-- Bio customizada -->
@@ -124,10 +146,12 @@
           </p>
 
           <!-- Seguidores e Produtos -->
-          <div class="seller-followers-row">
-            <span><strong>+1 mil</strong> Seguidores</span>
+          <div class="seller-followers-row" *ngIf="sellerStats$ | async as sellerStats">
+            <span><strong>{{ formatCompactCount((sellerFollowerCount$ | async) || 0) }}</strong> Seguidores</span>
             <span class="dot-sep">·</span>
-            <span><strong>+10</strong> Produtos</span>
+            <span><strong>{{ formatCount(sellerStats.productCount) }}</strong> Produtos</span>
+            <span class="dot-sep">·</span>
+            <span><strong>{{ formatCount(sellerStats.activeProductCount) }}</strong> Em estoque</span>
           </div>
 
           <!-- Badge Premium -->
@@ -142,20 +166,20 @@
           </div>
 
           <!-- Métricas -->
-          <div class="seller-metrics-row">
+          <div class="seller-metrics-row" *ngIf="sellerStats$ | async as sellerStats">
             <div class="metric-item">
-              <span class="metric-val">+392</span>
+              <span class="metric-val">{{ formatCompactCount((sellerFollowerCount$ | async) || 0) }}</span>
+              <span class="metric-label">Seguidores</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-item">
+              <span class="metric-val">{{ formatCount(sellerStats.soldCount) }}</span>
               <span class="metric-label">Vendas</span>
             </div>
             <div class="metric-divider"></div>
             <div class="metric-item">
-              <ion-icon name="chatbubble-ellipses-outline" class="metric-icon"></ion-icon>
-              <span class="metric-label">Bom atendimento</span>
-            </div>
-            <div class="metric-divider"></div>
-            <div class="metric-item">
-              <ion-icon name="bicycle-outline" class="metric-icon"></ion-icon>
-              <span class="metric-label">Entrega no prazo</span>
+              <span class="metric-val">{{ formatRating(sellerStats.averageRating) }}</span>
+              <span class="metric-label">Avaliação</span>
             </div>
           </div>
 
@@ -164,10 +188,15 @@
             expand="block" 
             class="btn-chat-seller"
             [style.--background]="seller.shopPrimaryColor || '#2dd36f'"
-            (click)="startChat(p)">
+            (click)="startChat(p, seller)">
             <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
             Falar com Vendedor
           </ion-button>
+
+          <button type="button" class="seller-profile-link" (click)="goToSellerProfile(seller.uid)">
+            Ver perfil completo
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
 
         </div>
       </div>
@@ -183,12 +212,12 @@
         <div class="related-scroll-track">
           <div 
             class="related-product-card" 
-            *ngFor="let rp of related"
+            *ngFor="let rp of related; trackBy: trackById"
             (click)="goToProduct(rp)">
             
             <div class="related-img-wrap">
               <img 
-                [src]="rp.photoURL?.[0] || 'https://m.media-amazon.com/images/I/61PXY1x7kQL._AC_SL1200_.jpg'" 
+                [src]="rp.photoURL?.[0] || 'assets/imagens/imagem-placeholder.png'"
                 [alt]="rp.name">
               <span 
                 class="discount-badge" 
@@ -202,8 +231,8 @@
 
               <div class="related-rating">
                 <ion-icon name="star" class="star-icon"></ion-icon>
-                <span class="rating-val">{{ rp.rating || '4.8' }}</span>
-                <span class="sold-count">+10mil vendidos</span>
+                <span class="rating-val">{{ rp.rating ? formatRating(rp.rating) : 'Sem avaliação' }}</span>
+                <span class="sold-count">{{ formatCount(rp.soldCount || 0) }} vendidos</span>
               </div>
 
               <div class="related-prices">

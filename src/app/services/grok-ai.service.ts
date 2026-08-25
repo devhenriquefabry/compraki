@@ -2,13 +2,15 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ChatMessage } from '../interfaces/chat';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GrokAiService {
 
-  private apiUrl = 'http://localhost:3001/ai/chat';
+  /** Vazio em producao: o bot-server roda na maquina do desenvolvedor. */
+  private apiUrl = environment.botServerUrl ? `${environment.botServerUrl}/ai/chat` : '';
 
   constructor(private http: HttpClient) { }
 

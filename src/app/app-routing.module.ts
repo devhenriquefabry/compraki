@@ -1,7 +1,8 @@
 import { NgModule } from '@angular/core';
-import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
+import { RouterModule, Routes } from '@angular/router';
 import { authGuard, noAuthGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+import { SelectivePreloadStrategy } from './core/selective-preload.strategy';
 
 const routes: Routes = [
   {
@@ -37,6 +38,7 @@ const routes: Routes = [
   {
     path: 'product-details/:id',
     loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage),
+    data: { preload: true },
     canActivate: [authGuard]
   },
   {
@@ -62,6 +64,7 @@ const routes: Routes = [
   {
     path: 'checkout',
     loadChildren: () => import('./pages/checkout/checkout.module').then(m => m.CheckoutPageModule),
+    data: { preload: true },
     canActivate: [authGuard]
   },
   {
@@ -82,6 +85,7 @@ const routes: Routes = [
   {
     path: 'cart',
     loadComponent: () => import('./pages/cart/cart.page').then(m => m.CartPage),
+    data: { preload: true },
     canActivate: [authGuard]
   },
   {
@@ -137,9 +141,20 @@ const routes: Routes = [
     path: 'admin/:tab',
     loadComponent: () => import('./pages/admin/admin.page').then( m => m.AdminPage),
     canActivate: [adminGuard]
-  },  {
+  },
+  {
     path: 'my-showcase',
     loadChildren: () => import('./pages/my-showcase/my-showcase.module').then( m => m.MyShowcasePageModule),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'seller-profile',
+    loadComponent: () => import('./pages/seller-profile/seller-profile.page').then(m => m.SellerProfilePage),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'seller-profile/:sellerId',
+    loadComponent: () => import('./pages/seller-profile/seller-profile.page').then(m => m.SellerProfilePage),
     canActivate: [authGuard]
   }
 
@@ -148,7 +163,9 @@ const routes: Routes = [
 
 @NgModule({
   imports: [
-    RouterModule.forRoot(routes, { preloadingStrategy: PreloadAllModules })
+    // Só as rotas com `data: { preload: true }` são baixadas antecipadamente.
+    // `PreloadAllModules` trazia até o painel admin no primeiro acesso.
+    RouterModule.forRoot(routes, { preloadingStrategy: SelectivePreloadStrategy })
   ],
   exports: [RouterModule]
 })

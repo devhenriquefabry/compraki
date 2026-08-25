@@ -11,12 +11,21 @@ import {
   Firestore,
   query,
   where,
-  orderBy
+  orderBy,
+  limit,
+  startAfter,
+  getDocs,
+  type DocumentData,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
+  type QuerySnapshot
 } from 'firebase/firestore';
 
 import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
 import { Product } from '../interfaces/product';
-import { Observable } from 'rxjs';
+
+import { Observable, from, of } from 'rxjs';
+import { map, shareReplay } from 'rxjs/operators';
 import { AppAddress } from '../interfaces/app-user';
 import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, onAuthStateChanged} from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -24,6 +33,14 @@ import { Router } from '@angular/router';
 import { FirebaseUsersService } from './firebase-users.service';
 import { WhatsappInstancesService } from './whatsapp-instances.service';
 import { environment } from '../../environments/environment';
+
+/** Uma pagina do catalogo, com o cursor para pedir a proxima. */
+export interface ProductPage {
+  products: Product[];
+  cursor: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
 
 @Injectable({
   providedIn: 'root',
@@ -62,57 +79,167 @@ export class FirebaseProducts {
     });
   }
 
-  getAll(): Observable<Product[]> {
-    return new Observable<Product[]>(subscriber => {
-      const productCol = collection(this.db, 'products');
+  // ==========================================================================
+  // LEITURA
+  //
+  // Regra desta seção: todo Observable de leitura passa por `shareReplay`.
+  //
+  // Os Observables criados com `new Observable()` em volta de `onSnapshot` são
+  // FRIOS: cada `subscribe` abre uma conexão nova. Como o template usa o pipe
+  // `async`, cada `| async` contava como um subscribe — a tela de detalhe do
+  // produto chegava a abrir 17 listeners, vários no mesmo documento. Com
+  // `shareReplay({ bufferSize: 1, refCount: true })` todos compartilham um
+  // listener só, e ele fecha quando o último inscrito sai.
+  // ==========================================================================
 
-      return onSnapshot(productCol,
-        (snapshot) => {
-          const products = snapshot.docs.map(d => {
-            const data = d.data() as any;
-            return { ...data, id: d.id } as Product;
-          });
-          subscriber.next(products);
-        },
-        (err) => subscriber.error(err)
-      );
-    });
+  /** Cache de streams por chave, para que a partilha sobreviva entre telas. */
+  private readonly productStreamCache = new Map<string, Observable<Product | null>>();
+  private readonly sellerStreamCache = new Map<string, Observable<Product[]>>();
+  private allProductsStream?: Observable<Product[]>;
+
+  private mapSnapshot(snapshot: QuerySnapshot<DocumentData>): Product[] {
+    return snapshot.docs.map(d => ({ ...(d.data() as any), id: d.id } as Product));
   }
 
+  /**
+   * Catálogo inteiro, em tempo real.
+   *
+   * @deprecated Para listas, prefira `getPage()`; para achar UM produto, use
+   * `getById()`. Este método transmite a coleção `products` completa e
+   * retransmite tudo a cada alteração em qualquer produto — o custo cresce
+   * junto com o catálogo. Ainda é usado pela vitrine principal, que será
+   * migrada para rolagem paginada.
+   */
+  getAll(): Observable<Product[]> {
+    if (!this.allProductsStream) {
+      this.allProductsStream = new Observable<Product[]>(subscriber => {
+        const productCol = collection(this.db, 'products');
+        return onSnapshot(
+          productCol,
+          (snapshot) => subscriber.next(this.mapSnapshot(snapshot)),
+          (err) => subscriber.error(err)
+        );
+      }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    }
+
+    return this.allProductsStream;
+  }
+
+  /**
+   * Uma página do catálogo. Substitui `getAll()` onde só se exibe uma lista.
+   *
+   * Leitura pontual (`getDocs`), não listener: a vitrine não precisa reagir a
+   * cada edição de produto alheio, e um listener sobre a coleção inteira é o
+   * padrão mais caro possível.
+   *
+   * @param cursor último documento da página anterior, para continuar dali.
+   */
+  async getPage(options: {
+    pageSize?: number;
+    cursor?: QueryDocumentSnapshot<DocumentData> | null;
+    categoryId?: string;
+    sellerId?: string;
+  } = {}): Promise<ProductPage> {
+    const pageSize = options.pageSize ?? 24;
+    const constraints: QueryConstraint[] = [];
+
+    if (options.categoryId) {
+      constraints.push(where('categoryIds', 'array-contains', options.categoryId));
+    }
+
+    if (options.sellerId) {
+      constraints.push(where('sellerId', '==', options.sellerId));
+    }
+
+    constraints.push(orderBy('createdAt', 'desc'));
+
+    if (options.cursor) {
+      constraints.push(startAfter(options.cursor));
+    }
+
+    // Pede um a mais para saber se existe próxima página sem uma consulta extra.
+    constraints.push(limit(pageSize + 1));
+
+    const snapshot = await getDocs(query(collection(this.db, 'products'), ...constraints));
+    const docs = snapshot.docs.slice(0, pageSize);
+
+    return {
+      products: docs.map(d => ({ ...(d.data() as any), id: d.id } as Product)),
+      cursor: docs.length > 0 ? docs[docs.length - 1] : null,
+      hasMore: snapshot.docs.length > pageSize
+    };
+  }
+
+  /**
+   * Produtos relacionados, por categoria em comum.
+   *
+   * A tela de detalhe chamava `getAll()` e descartava o resto com `.slice(0,10)`
+   * — o catálogo inteiro trafegava para exibir dez itens.
+   */
+  getRelated(product: Product | null, max = 10): Observable<Product[]> {
+    if (!product?.categoryIds?.length) return of([]);
+
+    // `array-contains-any` aceita no máximo 30 valores por consulta.
+    const categories = product.categoryIds.slice(0, 30);
+
+    const q = query(
+      collection(this.db, 'products'),
+      where('categoryIds', 'array-contains-any', categories),
+      limit(max + 1) // margem para descartar o próprio produto
+    );
+
+    return from(getDocs(q)).pipe(
+      map(snapshot => this.mapSnapshot(snapshot)
+        .filter(p => p.id !== product.id)
+        .slice(0, max)),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+  }
+
+  /** Um produto, em tempo real. Streams são compartilhados por id. */
   getById(id: string): Observable<Product | null> {
-    return new Observable<Product | null>(subscriber => {
+    const cached = this.productStreamCache.get(id);
+    if (cached) return cached;
+
+    const stream = new Observable<Product | null>(subscriber => {
       const productDoc = doc(this.db, 'products', id);
 
-      return onSnapshot(productDoc,
-        (snapshot) => {
-          if (snapshot.exists()) {
-            const data = snapshot.data() as any;
-            subscriber.next({ ...data, id: snapshot.id } as Product);
-          } else {
-            subscriber.next(null);
-          }
-        },
+      return onSnapshot(
+        productDoc,
+        (snapshot) => subscriber.next(
+          snapshot.exists()
+            ? ({ ...(snapshot.data() as any), id: snapshot.id } as Product)
+            : null
+        ),
         (err) => subscriber.error(err)
       );
-    });
+    }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+    this.productStreamCache.set(id, stream);
+    return stream;
   }
 
+  /** Produtos de um vendedor, em tempo real. Compartilhado por sellerId. */
   getBySeller(sellerId: string): Observable<Product[]> {
-    return new Observable<Product[]>(subscriber => {
-      const productCol = collection(this.db, 'products');
-      const q = query(productCol, where('sellerId', '==', sellerId), orderBy('createdAt', 'desc'));
+    const cached = this.sellerStreamCache.get(sellerId);
+    if (cached) return cached;
 
-      return onSnapshot(q,
-        (snapshot) => {
-          const products = snapshot.docs.map(d => {
-            const data = d.data() as any;
-            return { ...data, id: d.id } as Product;
-          });
-          subscriber.next(products);
-        },
+    const stream = new Observable<Product[]>(subscriber => {
+      const q = query(
+        collection(this.db, 'products'),
+        where('sellerId', '==', sellerId),
+        orderBy('createdAt', 'desc')
+      );
+
+      return onSnapshot(
+        q,
+        (snapshot) => subscriber.next(this.mapSnapshot(snapshot)),
         (err) => subscriber.error(err)
       );
-    });
+    }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+    this.sellerStreamCache.set(sellerId, stream);
+    return stream;
   }
 
   add(product: Product) {
@@ -146,6 +273,7 @@ export class FirebaseProducts {
     try {
       const { updateProfile } = await import('firebase/auth');
       const userCredential = await createUserWithEmailAndPassword(this.authenticator, email, password);
+      const createdAt = new Date();
       
       // Atualiza o perfil no Auth com o nome fornecido
       await updateProfile(userCredential.user, {
@@ -157,14 +285,31 @@ export class FirebaseProducts {
           cpf: cpf || null,
           phoneNumber: phone || null,
           displayName: name,
-          address: address || undefined
+          address: address || undefined,
+          createdAt: createdAt.toISOString()
       });
 
       void this.dispatchWhatsappTriggerSafe('account_created', {
         nome: name,
         email,
         telefone: phone || '',
-        usuario: userCredential.user.uid
+        cpf: cpf || '',
+        cep: address?.cep || '',
+        rua: address?.street || '',
+        numero: address?.number || '',
+        complemento: address?.complement || 'Nao informado',
+        bairro: address?.neighborhood || '',
+        cidade: address?.city || '',
+        uf: address?.state || '',
+        uid: userCredential.user.uid,
+        usuario: userCredential.user.uid,
+        perfil: 'vendedor',
+        admin: true,
+        vendedor: true,
+        endereco: this.formatAddressForWhatsapp(address),
+        criadoEm: createdAt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+        origem: 'cadastro_email_senha',
+        photoURL: userCredential.user.photoURL || ''
       });
       
       console.log('O ID do usuário no sistema é: ' + userCredential.user.uid);
@@ -299,6 +444,21 @@ async signInWithGoogle(): Promise<boolean> {
   }
 
   // --- RECUPERAÇÃO DE SENHA PERSONALIZADA ---
+
+  private formatAddressForWhatsapp(address?: AppAddress): string {
+    if (!address) return 'Nao informado';
+    return [
+      address.street,
+      address.number,
+      address.complement,
+      address.neighborhood,
+      address.city,
+      address.state,
+      address.cep
+    ]
+      .filter(Boolean)
+      .join(', ');
+  }
 
   async requestPasswordResetCode(email: string, method?: 'email' | 'whatsapp'): Promise<any> {
     return this.callPublicFunction('requestPasswordResetCode', {

@@ -70,7 +70,7 @@
         </div>
         <span>Todas</span>
       </div>
-      <div class="cat-item" *ngFor="let cat of (categories$ | async)" (click)="filterByCategory(cat.id)">
+      <div class="cat-item" *ngFor="let cat of (categories$ | async); trackBy: trackById" (click)="filterByCategory(cat.id)">
         <div class="cat-circle" [class.active]="selectedCategory === cat.id">
           <ion-icon [name]="getIcon(cat.icon)"></ion-icon>
         </div>
@@ -88,7 +88,7 @@
 
     <!-- GRID DE PRODUTOS (Estilo Marketplace) -->
     <div class="products-marketplace-grid" *ngIf="filteredProducts.length > 0">
-      <ng-container *ngFor="let prod of filteredProducts">
+      <ng-container *ngFor="let prod of filteredProducts; trackBy: trackById">
         <ng-container *ngTemplateOutlet="marketplaceProductCard; context: { product: prod }"></ng-container>
       </ng-container>
     </div>
@@ -120,7 +120,7 @@
     </div>
 
     <div class="products-marketplace-grid">
-      <ng-container *ngFor="let prod of filteredProducts">
+      <ng-container *ngFor="let prod of filteredProducts; trackBy: trackById">
         <ng-container *ngTemplateOutlet="marketplaceProductCard; context: { product: prod }"></ng-container>
       </ng-container>
     </div>
@@ -217,7 +217,7 @@
         <ion-item lines="none" class="filter-item">
           <ion-select aria-label="Categoria" interface="action-sheet" [(ngModel)]="selectedCategory">
             <ion-select-option value="Todas">Todas as Categorias</ion-select-option>
-            <ion-select-option *ngFor="let cat of (categories$ | async)" [value]="cat.id">{{cat.name}}</ion-select-option>
+            <ion-select-option *ngFor="let cat of (categories$ | async); trackBy: trackById" [value]="cat.id">{{cat.name}}</ion-select-option>
           </ion-select>
         </ion-item>
       </div>

@@ -91,7 +91,7 @@ export class MyShowcasePage implements OnInit {
         shopWhatsApp: this.showcaseForm.shopWhatsApp,
         shopFeaturedTitle: this.showcaseForm.shopFeaturedTitle
       });
-      await this.showToast('Sua vitrine foi atualizada com sucesso!');
+      await this.showToast('Seu perfil de vendedor foi atualizado com sucesso!');
       this.navCtrl.back();
     } catch (error) {
       console.error(error);

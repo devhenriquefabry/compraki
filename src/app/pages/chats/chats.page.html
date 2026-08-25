@@ -22,7 +22,7 @@
   </div>
 
   <ion-list lines="full" *ngIf="!isLoading && chats.length > 0" class="chat-list">
-    <ion-item *ngFor="let chat of chats" button detail="false" (click)="openChat(chat.id)">
+    <ion-item *ngFor="let chat of chats; trackBy: trackById" button detail="false" (click)="openChat(chat.id)">
       <!-- Avatar -->
       <ion-avatar slot="start">
         <img [src]="getOtherParticipant(chat)?.photoUrl || 'assets/imagens/foto-henrique.jpeg'" alt="avatar">
@@ -79,7 +79,7 @@
         </div>
 
         <ion-list *ngIf="!modalLoading && globalUsers.length > 0" lines="full">
-          <ion-item button detail="true" *ngFor="let user of globalUsers" (click)="startNewChatWith(user)">
+          <ion-item button detail="true" *ngFor="let user of globalUsers; trackBy: trackById" (click)="startNewChatWith(user)">
             <ion-avatar slot="start">
               <img [src]="user.photoURL || 'assets/imagens/foto-henrique.jpeg'" alt="avatar">
             </ion-avatar>

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable, combineLatest, map } from 'rxjs';
-import { collection, getFirestore, onSnapshot, getDocs, deleteDoc, writeBatch, doc } from 'firebase/firestore';
+import { Observable, combineLatest, from, map, shareReplay } from 'rxjs';
+import { collection, getFirestore, onSnapshot, getDoc, getDocs, deleteDoc, writeBatch, doc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { environment } from 'src/environments/environment';
 import { AppUser } from '../interfaces/app-user';
@@ -8,6 +9,22 @@ import { Order, OrderStatus } from '../interfaces/order';
 import { Product } from '../interfaces/product';
 
 export type AdminMetricsPeriod = 'today' | '7d' | '30d' | 'custom';
+
+/** Foto pré-calculada em `metrics/summary` (functions/src/metrics.ts). */
+export interface AdminMetricsSummary {
+  date: string;
+  computedAt?: any;
+  totals: { users: number; products: number; orders: number };
+  newUsers: { today: number; week: number; month: number };
+  sales: {
+    ordersToday: number;
+    ordersWeek: number;
+    ordersMonth: number;
+    gmvMonth: number;
+    commissionMonth: number;
+    averageTicketMonth: number;
+  };
+}
 
 export interface AdminMetricsFilters {
   period: AdminMetricsPeriod;
@@ -121,6 +138,43 @@ export class AdminAnalyticsService {
     );
   }
 
+  /**
+   * Resumo pré-calculado, lido de `metrics/summary`.
+   *
+   * Uma leitura de documento, em vez das três varreduras de coleção que
+   * `getDashboardMetrics()` faz. O valor é recalculado de hora em hora pela
+   * Cloud Function `aggregateDailyMetrics`; `refreshMetrics()` força na hora.
+   *
+   * `computedAt` diz de quando é o número — mostre no painel, para o número
+   * defasado não parecer errado.
+   */
+  getSummaryMetrics(): Observable<AdminMetricsSummary | null> {
+    return from(getDoc(doc(this.db, 'metrics', 'summary'))).pipe(
+      map(snap => (snap.exists() ? (snap.data() as AdminMetricsSummary) : null)),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+  }
+
+  /** Recalcula agora (botão "atualizar" do painel). Exige admin no servidor. */
+  async refreshMetrics(): Promise<void> {
+    const currentUser = getAuth().currentUser;
+    if (!currentUser) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const token = await currentUser.getIdToken();
+    const baseUrl = `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
+
+    const response = await fetch(`${baseUrl}/refreshMetricsNow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      throw new Error(data?.error || 'Não foi possível recalcular as métricas.');
+    }
+  }
+
   async resetAllData(): Promise<void> {
     const collections = [
       'users', 
@@ -150,8 +204,14 @@ export class AdminAnalyticsService {
     }
   }
 
+  /** Streams compartilhados por colecao: sem isto, cada inscrito abre um listener. */
+  private readonly collectionStreams = new Map<string, Observable<any[]>>();
+
   private listenCollection<T extends object>(collectionName: string): Observable<(T & { id?: string })[]> {
-    return new Observable<(T & { id?: string })[]>(subscriber => {
+    const cached = this.collectionStreams.get(collectionName);
+    if (cached) return cached as Observable<(T & { id?: string })[]>;
+
+    const stream = new Observable<(T & { id?: string })[]>(subscriber => {
       const unsubscribe = onSnapshot(
         collection(this.db, collectionName),
         snapshot => {
@@ -166,7 +226,10 @@ export class AdminAnalyticsService {
       );
 
       return () => unsubscribe();
-    });
+    }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+    this.collectionStreams.set(collectionName, stream);
+    return stream;
   }
 
   private buildMetrics(

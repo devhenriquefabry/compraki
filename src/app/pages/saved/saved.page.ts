@@ -14,6 +14,7 @@ import { SavedProductCardComponent } from '../../components/saved-product-card/s
 import { SavedFilterComponent } from '../../components/saved-filter/saved-filter.component';
 import { SavedUndoToastComponent } from '../../components/saved-undo-toast/saved-undo-toast.component';
 import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
+import { trackById } from 'src/app/core/track-by';
 
 @Component({
   selector: 'app-saved-page',
@@ -30,6 +31,9 @@ import { MiniHeaderComponent } from '../../components/mini-header/mini-header.co
   ]
 })
 export class SavedPage implements OnInit, OnDestroy {
+  /** trackBy padrao — evita recriar a lista inteira a cada emissao. */
+  public trackById = trackById;
+
   savedItems: SavedItem[] = [];
   filteredItems: SavedItem[] = [];
   isLoading = true;

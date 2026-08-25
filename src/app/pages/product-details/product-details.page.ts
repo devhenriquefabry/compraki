@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, Subject, combineLatest, from, of } from 'rxjs';
-import { map, switchMap, takeUntil, take } from 'rxjs/operators';
+import { map, shareReplay, switchMap, takeUntil, take } from 'rxjs/operators';
 import { 
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, 
   IonFooter, IonButton, IonIcon, IonModal, IonCard, IonSpinner, IonImg, IonText, IonThumbnail, IonLabel, IonItem
@@ -18,11 +18,12 @@ import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { FirebaseCartService } from 'src/app/services/firebase-cart.service';
 import { FirebaseSavedService } from 'src/app/services/firebase-saved.service';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
-import { AppUser } from 'src/app/interfaces/app-user';
+import { PublicSellerProfile } from 'src/app/interfaces/seller';
 
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
 import { ProductSelectorComponent } from 'src/app/components/product-selector/product-selector.component';
 import { ChatBoxComponent } from 'src/app/components/chat-box/chat-box.component';
+import { trackById } from 'src/app/core/track-by';
 
 @Component({
   selector: 'app-product-details',
@@ -39,12 +40,26 @@ import { ChatBoxComponent } from 'src/app/components/chat-box/chat-box.component
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class ProductDetailsPage implements OnInit, OnDestroy {
+  /** trackBy padrao — evita recriar a lista inteira a cada emissao. */
+  public trackById = trackById;
+
   public product$: Observable<Product | null>;
-  public allProducts$: Observable<Product[]>;
   public relatedProducts$: Observable<Product[]>;
-  public seller$: Observable<AppUser | null>;
+  /**
+   * Lista do seletor de fallback, exibido so quando a rota vem sem id.
+   * E uma pagina limitada — nao o catalogo inteiro.
+   */
+  public allProducts$: Observable<Product[]>;
+  public seller$: Observable<PublicSellerProfile | null>;
+  public sellerProducts$: Observable<Product[]>;
+  public sellerStats$: Observable<{ productCount: number; soldCount: number; averageRating: number | null; activeProductCount: number }>;
+  public sellerFollowerCount$: Observable<number>;
+  public isFollowingSeller$: Observable<boolean>;
   public cartQuantity$: Observable<number>;
   public isSaved = false;
+  public isFollowActionBusy = false;
+  public isFollowingSeller = false;
+  public currentUserId = '';
   private destroy$ = new Subject<void>();
 
   public isChatOpen = false;
@@ -61,6 +76,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     private route: ActivatedRoute
   ) {
     addIcons({ heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart, flash, chevronForwardOutline, ribbon, chatbubbleEllipsesOutline, bicycleOutline });
+    this.currentUserId = this.fbProducts.getUser()?.uid || '';
     
     this.product$ = this.route.params.pipe(
       switchMap(params => {
@@ -72,25 +88,54 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
       })
     );
 
-    this.allProducts$ = this.fbProducts.getAll();
-
-    this.relatedProducts$ = combineLatest([
-      this.product$,
-      this.allProducts$
-    ]).pipe(
-      map(([current, all]) => {
-        if (!current) return all.slice(0, 10);
-        return all.filter(p => p.id !== current.id).slice(0, 10);
-      })
+    this.allProducts$ = from(this.fbProducts.getPage({ pageSize: 50 })).pipe(
+      map(page => page.products),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
 
+    // Relacionados vem de uma consulta por categoria com `limit`. Antes esta
+    // tela baixava a colecao `products` inteira e jogava fora tudo menos 10.
+    this.relatedProducts$ = this.product$.pipe(
+      switchMap(current => this.fbProducts.getRelated(current, 10)),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    // Perfil PUBLICO do vendedor (`sellers/{uid}`), nao o documento pessoal.
+    // `users/{uid}` guarda CPF, telefone e endereco e nao tem leitura publica.
     this.seller$ = this.product$.pipe(
       switchMap(p => {
         if (p && p.sellerId) {
-          return from(this.fbUsers.getUserById(p.sellerId));
+          return from(this.fbUsers.getPublicSellerProfile(p.sellerId));
         }
         return of(null);
       })
+    );
+
+    this.sellerProducts$ = this.product$.pipe(
+      switchMap(p => p?.sellerId ? this.fbProducts.getBySeller(p.sellerId) : of([]))
+    );
+
+    this.sellerStats$ = this.sellerProducts$.pipe(
+      map(products => {
+        const ratings = products
+          .map(product => product.rating)
+          .filter((rating): rating is number => typeof rating === 'number' && !Number.isNaN(rating));
+
+        return {
+          productCount: products.length,
+          soldCount: products.reduce((total, product) => total + (product.soldCount || 0), 0),
+          averageRating: ratings.length ? ratings.reduce((total, rating) => total + rating, 0) / ratings.length : null,
+          activeProductCount: products.filter(product => product.stock > 0).length
+        };
+      })
+    );
+
+    this.sellerFollowerCount$ = this.product$.pipe(
+      switchMap(p => p?.sellerId ? this.fbUsers.getSellerFollowerCount(p.sellerId) : of(0))
+    );
+
+    this.isFollowingSeller$ = this.product$.pipe(
+      switchMap(p => p?.sellerId ? this.fbUsers.isFollowingSeller(p.sellerId) : of(false))
     );
 
     this.cartQuantity$ = combineLatest([
@@ -111,6 +156,14 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.currentUserId = this.fbProducts.getUser()?.uid || this.currentUserId;
+
+    this.isFollowingSeller$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(isFollowing => {
+        this.isFollowingSeller = isFollowing;
+      });
+
     this.product$.pipe(takeUntil(this.destroy$)).subscribe(async p => {
       if (p && p.id) {
         this.selectionService.setSelectedProduct(p);
@@ -120,15 +173,18 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   public onProductSelect(productId: string) {
-    this.allProducts$.pipe(takeUntil(this.destroy$)).subscribe(products => {
-      const selected = products.find(p => p.id === productId);
+    // `take(1)` encerra sozinho: antes cada clique deixava uma inscricao viva.
+    this.fbProducts.getById(productId).pipe(
+      take(1),
+      takeUntil(this.destroy$)
+    ).subscribe(selected => {
       if (selected) {
         this.selectionService.setSelectedProduct(selected);
       }
     });
   }
 
-  public async startChat(product: Product) {
+  public async startChat(product: Product, seller?: PublicSellerProfile | null) {
     if (!product.sellerId) {
       console.error("Produto sem vendedor definido.");
       return; 
@@ -136,8 +192,12 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
 
     try {
       const chatId = await this.chatService.startChat(
-         { uid: product.sellerId, name: 'Vendedor do Anúncio' },
-         { id: product.id!, name: product.name, photo: product.photoURL?.[0] }
+        {
+          uid: product.sellerId,
+          name: seller?.shopName || seller?.displayName || 'Vendedor do Anúncio',
+          photoUrl: seller?.photoURL || undefined
+        },
+        { id: product.id!, name: product.name, photo: product.photoURL?.[0] }
       );
       this.activeChatId = chatId;
       this.isChatOpen = true;
@@ -189,6 +249,64 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   public goToProduct(product: Product) {
     this.selectionService.setSelectedProduct(product);
     this.router.navigate(['/product-details', product.id]);
+  }
+
+  public goToSellerProfile(sellerId?: string) {
+    if (!sellerId) return;
+    this.router.navigate(['/seller-profile', sellerId]);
+  }
+
+  public getSellerInitials(seller: PublicSellerProfile | null): string {
+    const source = seller?.shopName || seller?.displayName || seller?.username || 'VC';
+    return source
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part: string) => part[0])
+      .join('')
+      .toUpperCase() || 'VC';
+  }
+
+  public formatCount(value: number): string {
+    return value.toLocaleString('pt-BR');
+  }
+
+  public formatCompactCount(value: number): string {
+    return value.toLocaleString('pt-BR', {
+      notation: 'compact',
+      maximumFractionDigits: 1
+    });
+  }
+
+  public formatRating(value: number | null): string {
+    return value === null ? '-' : value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+
+  public getPaymentMethodsLabel(product: Product): string {
+    const methods = product.paymentMethods || [];
+    return methods.length ? methods.join(', ') : 'Não informado';
+  }
+
+  public isOwnSeller(seller: PublicSellerProfile | null): boolean {
+    return !!seller?.uid && seller.uid === this.currentUserId;
+  }
+
+  public async toggleFollowSeller(seller: PublicSellerProfile, event?: Event) {
+    event?.stopPropagation();
+    if (this.isOwnSeller(seller) || this.isFollowActionBusy) return;
+
+    this.isFollowActionBusy = true;
+    try {
+      if (this.isFollowingSeller) {
+        await this.fbUsers.unfollowSeller(seller.uid);
+      } else {
+        await this.fbUsers.followSeller(seller);
+      }
+    } catch (error) {
+      console.error('Falha ao atualizar seguimento do vendedor:', error);
+    } finally {
+      this.isFollowActionBusy = false;
+    }
   }
 
   public getDiscountPercent(price: number, priceDiscounted?: number): number | null {

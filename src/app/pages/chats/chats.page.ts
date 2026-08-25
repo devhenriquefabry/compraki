@@ -10,6 +10,7 @@ import { FirebaseUsersService } from '../../services/firebase-users.service';
 import { ChatRoom, ChatParticipant } from '../../interfaces/chat';
 import { AppUser } from '../../interfaces/app-user';
 import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
+import { trackById } from 'src/app/core/track-by';
 
 @Component({
   selector: 'app-chats',
@@ -19,6 +20,9 @@ import { MiniHeaderComponent } from '../../components/mini-header/mini-header.co
   imports: [CommonModule, IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonAvatar, IonLabel, IonNote, IonSpinner, IonIcon, IonFab, IonFabButton, IonModal, IonButtons, IonButton, MiniHeaderComponent]
 })
 export class ChatsPage implements OnInit, OnDestroy {
+  /** trackBy padrao — evita recriar a lista inteira a cada emissao. */
+  public trackById = trackById;
+
   @ViewChild('newChatModal') newChatModal!: IonModal;
   
   chats: ChatRoom[] = [];

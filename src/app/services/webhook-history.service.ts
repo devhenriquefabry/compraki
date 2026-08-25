@@ -12,6 +12,7 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface WebhookEvent {
   id?: string;
@@ -24,16 +25,9 @@ export interface WebhookEvent {
   createdAt: any;
 }
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBD5AH1b1_p6AghhPx3Nr0fBVab8djRbkI",
-  authDomain: "compraki-mcu.firebaseapp.com",
-  databaseURL: "https://compraki-mcu-default-rtdb.firebaseio.com",
-  projectId: "compraki-mcu",
-  storageBucket: "compraki-mcu.firebasestorage.app",
-  messagingSenderId: "2028715763",
-  appId: "1:2028715763:web:5507a8b12473bfc6e50186",
-  measurementId: "G-92Q7R0CQR0"
-};
+// Config unica, vinda de environment. Duplicar a config aqui fazia com que
+// uma troca de projeto (staging/prod) passasse batida neste arquivo.
+const firebaseConfig = environment.firebase;
 
 @Injectable({
   providedIn: 'root'

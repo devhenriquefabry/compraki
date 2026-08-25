@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { collection, query, where, getDocs, getFirestore, collectionGroup } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, getFirestore, query, where } from 'firebase/firestore';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { Product } from '../interfaces/product';
 import { Order } from '../interfaces/order';
@@ -21,7 +21,7 @@ export class StatsService {
   }
 
   async getProductStats(productId: string) {
-    // 1. Quantidade de Salvos (Consulta Real via Collection Group)
+    // 1. Quantidade de Salvos (contador desnormalizado no produto)
     const savedCount = await this.countSaves(productId);
 
     // 2. Vendas Totais deste produto
@@ -37,20 +37,36 @@ export class StatsService {
     };
   }
 
+  /**
+   * Lê o contador já pronto em `products/{id}.savedCount`.
+   *
+   * Antes isto varria `collectionGroup('savedProducts')` — os salvos de TODOS
+   * os usuários — a cada abertura da tela, cobrado por documento lido. Agora é
+   * uma leitura só, e o número é mantido na escrita pelos gatilhos
+   * `onProductSaved` / `onProductUnsaved` (functions/src/counters.ts).
+   */
   private async countSaves(productId: string): Promise<number> {
     try {
-      // Busca em todas as subcoleções 'savedProducts' de todos os usuários
-      const q = query(collectionGroup(this.db, 'savedProducts'), where('productId', '==', productId));
-      const snap = await getDocs(q);
-      return snap.size; 
+      const snap = await getDoc(doc(this.db, 'products', productId));
+      return snap.exists() ? Number(snap.data()?.['savedCount'] ?? 0) : 0;
     } catch (err) {
-      console.warn("Erro ao contar salvos (Certifique-se que o índice de Collection Group foi criado no Firebase):", err);
+      console.warn('Erro ao ler savedCount do produto:', err);
       return 0;
     }
   }
 
   private async getSalesData(productId: string): Promise<any[]> {
-    const q = query(collection(this.db, 'orders'), where('status', '==', 'RECEIVED'));
+    // Escopo obrigatorio: as regras do Firestore so liberam pedidos em que o
+    // usuario e comprador ou vendedor. Sem o `array-contains` a consulta
+    // inteira e negada — e, mesmo liberada, varreria a colecao toda.
+    const uid = this.fbProducts.getUser()?.uid;
+    if (!uid) return [];
+
+    const q = query(
+      collection(this.db, 'orders'),
+      where('sellerIds', 'array-contains', uid),
+      where('status', '==', 'RECEIVED')
+    );
     const snap = await getDocs(q);
     const sales: any[] = [];
     
@@ -76,14 +92,10 @@ export class StatsService {
       // No Compraki, assumimos que o tempo de venda é a diferença entre criação e o recebimento das ordens
       // Para fins estatísticos simples, usaremos a média de dias desde a criação até cada venda.
       
-      const allProds = await new Promise<Product[]>((resolve) => {
-        const sub = this.fbProducts.getAll().subscribe(p => {
-          sub.unsubscribe();
-          resolve(p);
-        });
-      });
-
-      const product = allProds.find(p => p.id === productId);
+      // Uma leitura do documento do produto. Antes isto baixava a colecao
+      // `products` inteira via getAll() so para achar um item pelo id.
+      const productSnap = await getDoc(doc(this.db, 'products', productId));
+      const product = productSnap.exists() ? (productSnap.data() as Product) : null;
       if (!product || !product.createdAt) return '3 dias'; // Fallback simulado
 
       const prodCreation = product.createdAt.toDate ? product.createdAt.toDate() : new Date(product.createdAt);

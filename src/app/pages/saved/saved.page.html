@@ -39,7 +39,7 @@
   <!-- List -->
   <div class="list-container" *ngIf="!isLoading && filteredItems.length > 0">
     <app-saved-product-card 
-      *ngFor="let item of filteredItems" 
+      *ngFor="let item of filteredItems; trackBy: trackById" 
       [item]="item"
       (remove)="onRemove($event)">
     </app-saved-product-card>

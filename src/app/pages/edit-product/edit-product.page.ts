@@ -1,6 +1,7 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription, of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 
@@ -10,27 +11,33 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
   styleUrls: ['./edit-product.page.scss'],
   standalone: false
 })
-export class EditProductPage implements OnInit {
+export class EditProductPage implements OnInit, OnDestroy {
   public allProducts$!: Observable<Product[]>;
   public selectedProduct: Product | null = null;
   private fbProducts = inject(FirebaseProducts);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private productSub?: Subscription;
+
+  ngOnDestroy() {
+    this.productSub?.unsubscribe();
+  }
 
   ngOnInit() {
-    this.allProducts$ = this.fbProducts.getAll();
+    // Lista lateral para escolher outro produto do proprio vendedor.
+    const uid = this.fbProducts.getUser()?.uid;
+    this.allProducts$ = uid ? this.fbProducts.getBySeller(uid) : of([]);
 
-    // Lê o ID da URL e carrega o produto automaticamente
-    this.route.paramMap.subscribe(params => {
-      const id = params.get('id');
-      if (id) {
-        this.allProducts$.subscribe(products => {
-          const found = products.find(p => p.id === id);
-          if (found) {
-            this.selectedProduct = found;
-          }
-        });
-      }
+    // Le o ID da URL e carrega o produto automaticamente.
+    // Antes havia um subscribe dentro de outro subscribe sobre o catalogo
+    // inteiro: vazava listener a cada troca de rota.
+    this.productSub = this.route.paramMap.pipe(
+      switchMap(params => {
+        const id = params.get('id');
+        return id ? this.fbProducts.getById(id) : of(null);
+      })
+    ).subscribe(found => {
+      if (found) this.selectedProduct = found;
     });
   }
 

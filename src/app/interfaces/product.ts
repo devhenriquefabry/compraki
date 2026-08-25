@@ -8,6 +8,13 @@ export interface Product {
     condition: 'novo' | 'usado-como-novo' | 'usado-bom' | 'usado-aceitavel';
     stock: number;
     soldCount? : number;
+    /**
+     * Quantas pessoas salvaram este produto.
+     * Mantido pelos gatilhos `onProductSaved`/`onProductUnsaved`. Nao escrever
+     * pelo cliente: contar na leitura obrigava a varrer os salvos de todos os
+     * usuarios a cada abertura de tela.
+     */
+    savedCount?: number;
     categoryIds: string[];
     subcategoryIds: string[];
     acceptOffers?: boolean;

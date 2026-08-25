@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Subscription } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface BotStatus {
   status: 'idle' | 'running' | 'offline';
@@ -13,7 +14,8 @@ export interface BotStatus {
   providedIn: 'root'
 })
 export class BotMonitorService {
-  private apiUrl = 'http://localhost:3001';
+  /** Vazio em producao: o bot-server roda na maquina do desenvolvedor. */
+  private apiUrl = environment.botServerUrl;
   
   private statusSubject = new BehaviorSubject<BotStatus>({
     status: 'idle',

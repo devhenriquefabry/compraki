@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   AdminAnalyticsService,
@@ -48,7 +49,8 @@ export class AdminMetricsPage implements OnInit, OnDestroy {
   constructor(
     private analyticsService: AdminAnalyticsService,
     private alertController: AlertController,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -125,6 +127,12 @@ export class AdminMetricsPage implements OnInit, OnDestroy {
 
   public refresh(): void {
     this.loadMetrics();
+  }
+
+  public openUsersManagement(userId?: string): void {
+    void this.router.navigate(['/admin/users'], {
+      queryParams: userId ? { user: userId } : undefined
+    });
   }
 
   public getLinePoints(points: AdminChartPoint[]): string {

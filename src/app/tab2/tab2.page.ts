@@ -9,6 +9,7 @@ import { BannerService } from '../services/banner.service';
 import { Banner } from '../interfaces/banner';
 import { Category } from '../interfaces/category';
 import { Subscription, Observable } from 'rxjs';
+import { trackById } from 'src/app/core/track-by';
 
 @Component({
   selector: 'app-tab2',
@@ -17,6 +18,9 @@ import { Subscription, Observable } from 'rxjs';
   standalone: false
 })
 export class Tab2Page implements OnInit, OnDestroy {
+  /** trackBy padrao — evita recriar a lista inteira a cada emissao. */
+  public trackById = trackById;
+
 
   @ViewChild('bannerContainer', { static: false }) bannerContainer!: ElementRef;
   @ViewChild(IonModal) modal!: IonModal;

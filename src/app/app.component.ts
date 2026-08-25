@@ -1,4 +1,4 @@
-import { Component, QueryList, ViewChildren, OnInit, inject } from '@angular/core';
+import { Component, QueryList, ViewChildren, OnDestroy, OnInit, inject } from '@angular/core';
 import { IonRouterOutlet, Platform, NavController } from '@ionic/angular';
 import { App } from '@capacitor/app';
 import { Router, NavigationEnd } from '@angular/router';
@@ -27,6 +27,7 @@ import {
 import { NotificationService } from './services/notification.service';
 import { PresenceService } from './services/presence.service';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { isCurrentUserAdmin, onAuthUserChanged } from './core/auth-state';
 
 @Component({
   selector: 'app-root',
@@ -34,7 +35,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   public usuario! : User | null;
   public appUser: AppUser | null = null;
   private fbProducts = inject(FirebaseProducts);
@@ -43,6 +44,9 @@ export class AppComponent implements OnInit {
   private presenceService = inject(PresenceService); 
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
   
+  private stopAuthWatch?: () => void;
+  private stopUserDocWatch?: () => void;
+
   showSplash: boolean;
   splashAnimatingOut = false;
   
@@ -117,31 +121,47 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Atualização constante do usuário para a sidebar
-    setInterval(async () => {
-      const user = this.fbProducts.getUser();
-      if (user) {
-        this.usuario = user;
-        const freshAppUser = await this.usersService.getUserById(user.uid);
-        
-        if (!freshAppUser) {
-          // Documento não encontrado no Firestore (provável reset de base)
-          // Redireciona para o login para evitar inconsistências
+    this.watchCurrentUser();
+    this.restoreLastRoute();
+  }
+
+  ngOnDestroy() {
+    this.stopAuthWatch?.();
+    this.stopUserDocWatch?.();
+  }
+
+  /**
+   * Mantém `usuario` e `appUser` em dia para a sidebar.
+   *
+   * Antes isto era um `setInterval` de 1,5s que chamava `getUserById()` — ou
+   * seja, ~40 leituras do Firestore por minuto por usuário logado, para sempre,
+   * mesmo sem nada mudar. Agora são dois listeners: o Firebase avisa quando há
+   * mudança, em vez de a gente perguntar.
+   */
+  private watchCurrentUser() {
+    this.stopAuthWatch = onAuthUserChanged((user) => {
+      this.usuario = user;
+
+      // Troca de conta (ou logout): derruba o listener do documento anterior.
+      this.stopUserDocWatch?.();
+      this.stopUserDocWatch = undefined;
+
+      if (!user) {
+        this.appUser = null;
+        return;
+      }
+
+      this.stopUserDocWatch = this.usersService.watchUser(user.uid, (appUser) => {
+        if (!appUser) {
+          // Autenticado mas sem registro no Firestore (provável reset de base).
           console.warn('Usuário autenticado mas sem registro no banco. Redirecionando...');
           this.logout();
           return;
         }
 
-        if (!this.appUser || this.appUser.uid !== user.uid) {
-           this.appUser = freshAppUser;
-        }
-      } else {
-        this.usuario = null;
-        this.appUser = null;
-      }
-    }, 1500);
-
-    this.restoreLastRoute();
+        this.appUser = appUser;
+      });
+    });
   }
 
   private setupRouteTracking() {
@@ -187,14 +207,12 @@ export class AppComponent implements OnInit {
           return;
         }
 
-        // Verifica permissões se for admin
+        // Restaurar rota administrativa exige o claim `admin` no ID token.
+        // Ler `isAdmin` do documento não vale como autorização: o campo é
+        // gravável pelo próprio dono.
         if (lastUrl.includes('/admin') || lastUrl.includes('manage-')) {
-          this.usersService.getUserById(user.uid).then(appUser => {
-            if (appUser?.isAdmin || appUser?.super_admin) {
-              this.navCtrl.navigateRoot(lastUrl);
-            } else {
-              this.navCtrl.navigateRoot('/tabs/tab2');
-            }
+          isCurrentUserAdmin().then(isAdmin => {
+            this.navCtrl.navigateRoot(isAdmin ? lastUrl : '/tabs/tab2');
           });
         } else {
           this.navCtrl.navigateRoot(lastUrl);

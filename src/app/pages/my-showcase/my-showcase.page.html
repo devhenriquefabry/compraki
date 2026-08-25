@@ -3,7 +3,7 @@
     <button type="button" class="back-button" (click)="goBack()">
       <ion-icon name="arrow-back-outline"></ion-icon>
     </button>
-    <h1>Minha Vitrine</h1>
+    <h1>Perfil de vendedor</h1>
     <button type="button" class="save-pill" (click)="saveShowcase()" [disabled]="isSaving">
       @if (isSaving) {
         <ion-spinner name="crescent"></ion-spinner>
@@ -21,7 +21,7 @@
     <section class="preview-section">
       <div class="section-header">
         <ion-icon name="eye-outline"></ion-icon>
-        <span>Prévia da sua Vitrine</span>
+        <span>Prévia do perfil de vendedor</span>
       </div>
       
       <div class="mockup-phone">
@@ -110,7 +110,7 @@
           </div>
 
           <label class="input-block">
-            <span>Nome da Vitrine</span>
+            <span>Nome público do vendedor</span>
             <input type="text" [(ngModel)]="showcaseForm.shopName" placeholder="Ex: Boutique do Henrique">
           </label>
 
@@ -157,7 +157,7 @@
           Salvando...
         } @else {
           <ion-icon name="save-outline"></ion-icon>
-          Atualizar Minha Vitrine
+          Atualizar perfil de vendedor
         }
       </button>
     </section>

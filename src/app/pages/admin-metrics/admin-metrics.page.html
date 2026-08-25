@@ -79,7 +79,13 @@
           </div>
         </div>
 
-        <article class="metric-card info">
+        <article
+          class="metric-card info metric-card--link"
+          role="link"
+          tabindex="0"
+          (click)="openUsersManagement()"
+          (keydown.enter)="openUsersManagement()"
+          (keydown.space)="openUsersManagement()">
           <div class="icon-bubble"><ion-icon name="people-outline"></ion-icon></div>
           <span>Total de usuários</span>
           <strong>{{ data.overview.totalUsers }}</strong>
@@ -283,7 +289,14 @@
               <strong>{{ data.users.abandonmentRate }}%</strong>
             </div>
           </div>
-          <div class="list-row" *ngFor="let user of data.users.latestUsers; trackBy: trackByLabel">
+          <div
+            class="list-row list-row--link"
+            role="link"
+            tabindex="0"
+            *ngFor="let user of data.users.latestUsers; trackBy: trackByLabel"
+            (click)="openUsersManagement(user.id)"
+            (keydown.enter)="openUsersManagement(user.id)"
+            (keydown.space)="openUsersManagement(user.id)">
             <img *ngIf="user.image; else userIcon" [src]="user.image" [alt]="user.name">
             <ng-template #userIcon><ion-icon name="person-circle-outline"></ion-icon></ng-template>
             <div>

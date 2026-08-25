@@ -225,7 +225,7 @@ export class WhatsappInstancesService {
     if (!response.ok) {
       const errorMessage = typeof data?.error === 'string'
         ? data.error
-        : 'Erro ao chamar serviço de WhatsApp.';
+        : `Erro ao chamar servico de WhatsApp (${response.status}).`;
       throw new Error(errorMessage);
     }
 
