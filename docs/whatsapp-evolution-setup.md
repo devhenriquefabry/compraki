@@ -1,5 +1,17 @@
 # WhatsApp Multi-instancia com Evolution API
 
+## Arquitetura atual
+
+O Compraki replica a arquitetura do Instituto Gotland: a Evolution API roda fora do app e fora das Firebase Functions, em uma Fly Machine persistente. O frontend Ionic chama apenas Firebase Functions autenticadas; as Functions chamam a Evolution com a chave protegida no backend.
+
+Configuracao atual das Functions:
+
+- `EVOLUTION_API_URL=https://instituto-gotland-evolution.fly.dev`
+- `EVOLUTION_DEFAULT_INSTANCE=compraki`
+- `WHATSAPP_SIGNUP_NOTIFY_PHONE=55DDDNUMERO`
+
+A documentacao detalhada da arquitetura do Compraki esta em `infra/evolution/ARCHITECTURE.md`.
+
 Este documento descreve como preparar o servidor de WhatsApp usando Evolution API, Neon Postgres, Upstash Redis, Railway/Render/Fly e Firebase Functions.
 
 ## O que foi criado no projeto
@@ -54,6 +66,8 @@ Este documento descreve como preparar o servidor de WhatsApp usando Evolution AP
 4. Configurar variaveis/secrets no ambiente das Functions:
    - `EVOLUTION_API_URL`: URL publica da Evolution API.
    - `EVOLUTION_API_KEY`: mesma chave de `AUTHENTICATION_API_KEY`.
+   - `EVOLUTION_DEFAULT_INSTANCE`: instancia padrao usada como fallback quando a API nao conseguir listar todas as instancias.
+   - `WHATSAPP_SIGNUP_NOTIFY_PHONE`: WhatsApp administrativo que recebe os dados de novos cadastros.
    - `EVOLUTION_WEBHOOK_SECRET`: segredo aleatorio para validar webhook.
    - `ALLOWED_ORIGIN`: origem do app, por exemplo `http://localhost:8100` ou dominio de producao.
 
@@ -79,6 +93,7 @@ Campos obrigatorios:
 
 - `EVOLUTION_API_URL`
 - `EVOLUTION_API_KEY`
+- `EVOLUTION_DEFAULT_INSTANCE`
 - `EVOLUTION_WEBHOOK_SECRET`
 - `ALLOWED_ORIGIN`
 
