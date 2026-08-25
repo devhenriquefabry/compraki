@@ -98,7 +98,7 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
           this.loginForm.reset();
           
           setTimeout(() => {
-            this.router.navigate(['/tabs']);
+            this.router.navigate(['/tabs/tab2']);
           }, 2000);
         }
        })
@@ -114,7 +114,7 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
         this.loginForm.reset();
         
         setTimeout(() => {
-          this.router.navigate(['/tabs']);
+          this.router.navigate(['/tabs/tab2']);
         }, 2000);
       }
     });

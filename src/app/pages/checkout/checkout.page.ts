@@ -1,7 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CartItem } from 'src/app/interfaces/cart-item';
+import { AppUser } from 'src/app/interfaces/app-user';
 import { FirebaseCartService } from 'src/app/services/firebase-cart.service';
-import { AsaasService, AsaasCustomer, CreditCardData, CreditCardHolderInfo } from 'src/app/services/asaas.service';
+import { AsaasService, AsaasPaymentResult, CreditCardData, CreditCardHolderInfo } from 'src/app/services/asaas.service';
 import { CheckoutStateService } from 'src/app/services/checkout-state.service';
 import { LoadingController, AlertController, NavController, ToastController } from '@ionic/angular';
 import { OrdersService } from 'src/app/services/orders.service';
@@ -20,7 +21,10 @@ export class CheckoutPage implements OnInit {
   
   public currentStep: number = 1;
   public cartItems: CartItem[] = [];
-  
+  /** Perfil do comprador logado, carregado em `autoFillUserData()`. */
+  public appUser: AppUser | null = null;
+
+
   private cartService = inject(FirebaseCartService);
   private navCtrl = inject(NavController);
   private toastCtrl = inject(ToastController);
@@ -47,8 +51,8 @@ export class CheckoutPage implements OnInit {
     const userAuth = getAuth().currentUser;
     if (userAuth) {
       const profile = await this.usersService.getUserById(userAuth.uid);
+      this.appUser = profile;
       if (profile) {
-        console.log('Autofilling checkout with profile:', profile);
         this.stateService.paymentData = {
           ...this.stateService.paymentData,
           buyerName: profile.displayName || this.stateService.paymentData.buyerName,
@@ -99,18 +103,16 @@ export class CheckoutPage implements OnInit {
          throw new Error("Por favor, preencha Nome e CPF nos dados do comprador.");
       }
       
-      // Buscamos se ja existe, senao criamos (opcionalmente)
-      // Para simplificar, vou tentar criar o cliente. O Asaas permite criar, mas falha se o CPF já existe.
-      // O ideal é buscar primeiro:
-      let customer = await this.asaasService.getCustomerByCpf(data.buyerCpf);
-      if (!customer) {
-        customer = await this.asaasService.createCustomer({
-          name: data.buyerName,
-          cpfCnpj: data.buyerCpf,
-          email: `${data.buyerCpf.replace(/\D/g, '')}@compraki.com.br`, // Simulando um email se nao tiver
-          phone: data.buyerPhone
-        });
-      }
+      // O servidor resolve o cliente Asaas a partir do ID token: reaproveita o
+      // cadastro se o CPF já existir e guarda o vínculo em `users/{uid}`.
+      // O app não escolhe mais para qual cliente a cobrança vai.
+      const buyerEmail = this.appUser?.email || undefined;
+      const customer = await this.asaasService.createCustomer({
+        name: data.buyerName,
+        cpfCnpj: data.buyerCpf,
+        email: buyerEmail,
+        phone: data.buyerPhone
+      });
 
       const total = this.cartTotal;
       if (total <= 0) throw new Error("Carrinho vazio ou valor inválido.");
@@ -119,7 +121,7 @@ export class CheckoutPage implements OnInit {
       dueDate.setDate(dueDate.getDate() + 3); // 3 dias de vencimento
       const dueString = dueDate.toISOString().split('T')[0];
 
-      let paymentResult;
+      let paymentResult: AsaasPaymentResult;
 
       if (data.method === 'PIX' || data.method === 'BOLETO') {
          paymentResult = await this.asaasService.createPayment(
@@ -141,7 +143,7 @@ export class CheckoutPage implements OnInit {
          const address = this.stateService.addressData;
          const holderInfo: CreditCardHolderInfo = {
            name: data.buyerName,
-           email: customer.email || 'comprador@email.com',
+           email: buyerEmail || 'comprador@email.com',
            cpfCnpj: data.buyerCpf,
            postalCode: address.postalCode,
            addressNumber: address.addressNumber,
@@ -156,6 +158,8 @@ export class CheckoutPage implements OnInit {
            cardData,
            holderInfo
          );
+      } else {
+         throw new Error('Forma de pagamento não suportada.');
       }
 
       await loading.dismiss();
@@ -184,7 +188,7 @@ export class CheckoutPage implements OnInit {
           name: data.buyerName,
           cpf: data.buyerCpf,
           phone: data.buyerPhone,
-          email: customer.email || `${data.buyerCpf}@compraki.com.br`
+          email: buyerEmail || `${data.buyerCpf}@compraki.com.br`
         },
         addressData: {
           street: this.stateService.addressData.street || 'Endereço Salvo',
@@ -205,13 +209,17 @@ export class CheckoutPage implements OnInit {
 
       // 5. Navegar conforme o método
       if (data.method === 'PIX') {
-          const qr = await this.asaasService.getPixQrCode(paymentResult.id);
+          // O QR Code ja vem em `createPayment`; a consulta abaixo e o
+          // fallback para quando o Asaas ainda nao o tinha pronto.
+          const qr = (paymentResult.pixQrCode
+            ?? await this.asaasService.getPixQrCode(paymentResult.id)) as
+            { payload?: string; encodedImage?: string } | null;
           this.router.navigate(['/pix-payment'], { 
             queryParams: { 
               orderId: orderId,
               paymentId: paymentResult.id,
-              pixCode: qr.payload,
-              qrCode: qr.encodedImage
+              pixCode: qr?.payload,
+              qrCode: qr?.encodedImage
             }
           });
       } else if (data.method === 'BOLETO') {
@@ -220,7 +228,13 @@ export class CheckoutPage implements OnInit {
           this.navCtrl.navigateRoot('/tabs/tab2');
       } else {
           // Cartão de Crédito
-          await this.ordersService.updateOrderStatus(orderId, 'RECEIVED'); // Para cartão simulamos aprovação imediata
+          // Status vem do Asaas, nao de suposicao nossa: CONFIRMED/RECEIVED
+          // significam aprovado; qualquer outra coisa segue PENDING ate o
+          // webhook confirmar.
+          const approved = ['CONFIRMED', 'RECEIVED'].includes(paymentResult.status);
+          if (approved) {
+            await this.ordersService.updateOrderStatus(orderId, 'RECEIVED');
+          }
           await this.showSuccessAlert('Sucesso!', 'Compra em Cartão de Crédito aprovada!');
           await this.cartService.clearCart();
           this.navCtrl.navigateRoot('/tabs/tab2');

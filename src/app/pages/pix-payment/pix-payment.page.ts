@@ -1,8 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { ToastController, LoadingController } from '@ionic/angular';
 import { OrdersService } from 'src/app/services/orders.service';
+import { environment } from 'src/environments/environment';
 
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
@@ -19,7 +19,6 @@ export class PixPaymentPage implements OnInit {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private http = inject(HttpClient);
   private toastCtrl = inject(ToastController);
   private loadingCtrl = inject(LoadingController);
   private ordersService = inject(OrdersService);
@@ -63,35 +62,32 @@ export class PixPaymentPage implements OnInit {
     }
   }
 
+  /** Só existe fora de produção — controla a exibição do botão no template. */
+  public readonly canSimulatePayment = !environment.production;
+
+  /**
+   * Marca o pedido como recebido SEM cobrança real.
+   *
+   * Ferramenta de desenvolvimento. Em produção estaria dando produto de graça:
+   * qualquer comprador apertaria o botão e teria o pedido como pago. Por isso
+   * a checagem abaixo, além do `*ngIf` no template.
+   *
+   * A confirmação de pagamento de verdade tem que vir do webhook do Asaas
+   * (server-side) — está na Fase 1.
+   */
   async simulatePayment() {
+    if (environment.production) {
+      console.warn('simulatePayment está desativado em produção.');
+      return;
+    }
+
     const loading = await this.loadingCtrl.create({
       message: 'Simulando recebimento...',
     });
     await loading.present();
 
     try {
-      // 1. Disparar Webhook Local (Opcional, mas completa o ciclo de testes do usuário)
-      // Usamos a URL pública que geramos antes ou localhost:3000
-      const webhookUrl = 'http://localhost:3000';
-      const payload = {
-        event: 'PAYMENT_RECEIVED',
-        payment: {
-          id: this.paymentId,
-          status: 'RECEIVED',
-          value: 0, // O valor real não importa tanto na simulação visual
-          billingType: 'PIX'
-        }
-      };
-
-      // Tentamos bater no webhook local. Se falhar (ex: túnel fechado), seguimos com Firestore
-      this.http.post(webhookUrl, payload, { 
-        headers: { 'asaas-access-token': 'whsec_RS2WNLw9r2sJr6H80ctPiF0nosAdDXZNpTcdp80WsdM' } 
-      }).subscribe({
-        next: () => console.log('Webhook simulado com sucesso'),
-        error: (err) => console.warn('Servidor webhook local não respondeu, mas continuaremos...', err)
-      });
-
-      // 2. Atualizar status no Firestore de PENDING -> RECEIVED
+      // Atualizar status no Firestore de PENDING -> RECEIVED
       await this.ordersService.updateOrderStatus(this.orderId, 'RECEIVED');
 
       await loading.dismiss();

@@ -1,56 +1,35 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { environment } from 'src/environments/environment';
+import { waitForAuthUser } from '../core/auth-state';
 
 /**
- * Função utilitária para garantir que o Firebase está inicializado e retornar o Auth
- */
-const getFirebaseAuth = () => {
-  const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
-  return getAuth(app);
-};
-
-/**
- * Guard para proteger rotas que exigem autenticação.
+ * Guard para rotas que exigem autenticação.
  * Redireciona para /login se o usuário não estiver logado.
+ *
+ * Usa o estado compartilhado de `core/auth-state`: o listener de auth é único
+ * no app, então só a primeira navegação espera o Firebase resolver.
  */
-export const authGuard: CanActivateFn = (route, state) => {
+export const authGuard: CanActivateFn = async (route, state) => {
   const router = inject(Router);
-  const auth = getFirebaseAuth();
 
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe(); // Unsubscribe immediately after the first check
-      if (user) {
-        resolve(true);
-      } else {
-        console.log('Acesso negado: Usuário não autenticado. Redirecionando para login...');
-        router.navigate(['/login']);
-        resolve(false);
-      }
-    });
-  });
+  const user = await waitForAuthUser();
+  if (user) return true;
+
+  // Guarda o destino para voltar depois do login.
+  router.navigate(['/login'], { queryParams: { redirectTo: state.url } });
+  return false;
 };
 
 /**
- * Guard para rotas que NÃO devem ser acessadas por usuários já logados (ex: Login, Sign-in).
- * Redireciona para /tabs se o usuário já estiver logado.
+ * Guard para rotas que NÃO devem ser acessadas por usuários já logados
+ * (Login, Sign-in, recuperação de senha).
  */
-export const noAuthGuard: CanActivateFn = (route, state) => {
+export const noAuthGuard: CanActivateFn = async () => {
   const router = inject(Router);
-  const auth = getFirebaseAuth();
 
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe(); // Unsubscribe immediately after the first check
-      if (user) {
-        router.navigate(['/tabs']);
-        resolve(false);
-      } else {
-        resolve(true);
-      }
-    });
-  });
+  const user = await waitForAuthUser();
+  if (!user) return true;
+
+  router.navigate(['/tabs/tab2']);
+  return false;
 };

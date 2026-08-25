@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastController, LoadingController } from '@ionic/angular';
 import { WebhookHistoryService, WebhookEvent } from 'src/app/services/webhook-history.service';
 import { Subscription } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-webhook-tester',
@@ -17,9 +18,18 @@ export class WebhookTesterPage implements OnInit, OnDestroy {
   private loadingCtrl = inject(LoadingController);
   private historyService = inject(WebhookHistoryService);
 
-  public targetUrl = 'http://localhost:3000';
-  public webhookToken = 'whsec_RS2WNLw9r2sJr6H80ctPiF0nosAdDXZNpTcdp80WsdM';
-  
+  public targetUrl = environment.webhookTesterUrl;
+
+  /**
+   * Preenchido à mão por quem usa a ferramenta.
+   *
+   * O token estava fixo aqui e ia para o bundle publicado — qualquer pessoa
+   * conseguia extrair e forjar webhooks de pagamento. Segredo não mora em
+   * `src/`: tudo que está aqui chega ao navegador.
+   */
+  public webhookToken = '';
+
+
   public eventsList = [
     { id: 'PAYMENT_CREATED', label: 'Cobrança Criada', color: 'primary' },
     { id: 'PAYMENT_RECEIVED', label: 'Cobrança Recebida (Paga)', color: 'success' },

@@ -38,7 +38,9 @@
       </div>
     </ion-card>
 
-    <div class="simulation-section">
+    <!-- Ferramenta de desenvolvimento: confirma o pedido sem cobrança real.
+         Em produção daria produto de graça, por isso nunca é renderizada lá. -->
+    <div class="simulation-section" *ngIf="canSimulatePayment">
       <div class="simulation-alert">
         <ion-icon name="bug-outline"></ion-icon>
         <p>Ambiente de Testes: Use o botão abaixo para confirmar o recebimento sem precisar pagar de verdade.</p>

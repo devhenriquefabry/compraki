@@ -140,11 +140,13 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
 
     try {
       // 1. Chama API Asaas para estornar o pagamento
-      const asaasResult = await this.asaasService.refundPayment(this.selectedRefundOrder.asaasPaymentId);
+      const asaasResult = await this.asaasService.refundPayment(
+        this.selectedRefundOrder.asaasPaymentId
+      ) as { id?: string } | null;
       
       // 2. Atualiza no Firestore: Marca refundInfo como APPROVED e depois atualiza tudo via completeRefundProcess
       await this.refundsService.approveRefund(this.selectedRefundOrder.id, 'admin-id', this.adminNotes);
-      await this.refundsService.completeRefundProcess(this.selectedRefundOrder.id, asaasResult.id || 'asaas-refund-id-gerado');
+      await this.refundsService.completeRefundProcess(this.selectedRefundOrder.id, asaasResult?.id || 'asaas-refund-id-gerado');
 
       this.showToast('Estorno realizado com sucesso no Asaas!', 'success');
       this.closeRefundModal();

@@ -1,0 +1,227 @@
+<ion-header class="ion-no-border">
+  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+</ion-header>
+
+<ion-content class="seller-profile-content">
+  <ng-container *ngIf="seller$ | async as seller; else loadingState">
+    <ng-container *ngIf="products$ | async as products">
+      <ng-container *ngIf="stats$ | async as stats">
+        <section class="profile-hero" [style.--seller-primary]="seller.shopPrimaryColor || '#799d50'">
+          <div
+            class="seller-cover"
+            [class.empty-cover]="!seller.shopBanner"
+            [style.background-image]="seller.shopBanner ? 'url(' + seller.shopBanner + ')' : null">
+          </div>
+
+          <div class="seller-summary">
+            <div class="avatar-ring">
+              @if (seller.photoURL) {
+                <img [src]="seller.photoURL" [alt]="getDisplayName(seller)" referrerpolicy="no-referrer">
+              } @else {
+                <span>{{ getInitials(seller) }}</span>
+              }
+            </div>
+
+            <div class="seller-heading">
+              <div>
+                <h1>{{ getDisplayName(seller) }}</h1>
+                @if (seller.username) {
+                  <p class="seller-handle">@{{ seller.username }}</p>
+                }
+                @if (seller.isSeller) {
+                  <span class="verified-line">
+                    <ion-icon name="checkmark-circle"></ion-icon>
+                    Vendedor verificado
+                  </span>
+                }
+              </div>
+
+              <button
+                type="button"
+                class="follow-button"
+                *ngIf="!isOwnProfile(seller)"
+                [class.following]="isFollowing$ | async"
+                [disabled]="isFollowActionBusy"
+                (click)="toggleFollow(seller)">
+                @if (isFollowActionBusy) {
+                  <ion-spinner name="crescent"></ion-spinner>
+                } @else {
+                  <ion-icon [name]="(isFollowing$ | async) ? 'heart' : 'heart-outline'"></ion-icon>
+                }
+                {{ (isFollowing$ | async) ? 'Seguindo' : 'Seguir' }}
+              </button>
+
+              <button
+                type="button"
+                class="follow-button"
+                *ngIf="isOwnProfile(seller)"
+                (click)="editSellerProfile()">
+                <ion-icon name="create-outline"></ion-icon>
+                Editar
+              </button>
+            </div>
+
+            <p class="seller-bio" *ngIf="seller.shopDescription; else noBio">
+              {{ seller.shopDescription }}
+            </p>
+            <ng-template #noBio>
+              <p class="seller-bio muted">Este vendedor ainda não cadastrou uma descrição pública.</p>
+            </ng-template>
+
+            <div class="hero-actions">
+              <button type="button" class="social-proof" disabled>
+                <ion-icon name="heart"></ion-icon>
+                {{ formatCompactCount((followerCount$ | async) || 0) }} seguidores
+              </button>
+              <button type="button" (click)="startChat(seller)" [disabled]="isOwnProfile(seller)">
+                <ion-icon name="chatbubbles-outline"></ion-icon>
+                Conversar
+              </button>
+              <button type="button" *ngIf="seller.shopWhatsApp" (click)="openWhatsApp(seller.shopWhatsApp)">
+                <ion-icon name="logo-whatsapp"></ion-icon>
+                WhatsApp
+              </button>
+              <button type="button" *ngIf="seller.shopInstagram" (click)="openInstagram(seller.shopInstagram)">
+                <ion-icon name="logo-instagram"></ion-icon>
+                Instagram
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <main class="profile-shell">
+          <section class="products-section featured-products">
+            <div class="section-title">
+              <h2>{{ seller.shopFeaturedTitle || 'Produtos do vendedor' }}</h2>
+              <span>{{ formatCount(products.length) }} itens</span>
+            </div>
+
+            @if (products.length) {
+              <div class="products-grid">
+                <button type="button" class="product-card" *ngFor="let product of products" (click)="goToProduct(product)">
+                  <div class="product-image">
+                    <img [src]="getProductImage(product)" [alt]="product.name">
+                    @if (product.stock <= 0) {
+                      <span class="stock-badge">Esgotado</span>
+                    }
+                  </div>
+                  <div class="product-info">
+                    <strong>{{ product.name }}</strong>
+                    <span>{{ formatPrice(product.price) }}</span>
+                    <small>
+                      <ion-icon name="star"></ion-icon>
+                      {{ product.rating ? formatRating(product.rating) : 'Sem avaliações' }}
+                    </small>
+                  </div>
+                </button>
+              </div>
+            } @else {
+              <div class="empty-products compact-empty">
+                <ion-icon name="images-outline"></ion-icon>
+                <strong>Nenhum produto publicado</strong>
+                <span>Quando este vendedor publicar anúncios, eles aparecerão aqui.</span>
+              </div>
+            }
+          </section>
+
+          <section class="stats-card">
+            <div class="stat-item follower-stat">
+              <strong>{{ formatCompactCount((followerCount$ | async) || 0) }}</strong>
+              <span>Seguidores</span>
+            </div>
+            <div class="stat-item">
+              <strong>{{ formatCount(stats.productCount) }}</strong>
+              <span>Produtos</span>
+            </div>
+            <div class="stat-item">
+              <strong>{{ formatCount(stats.soldCount) }}</strong>
+              <span>Vendas</span>
+            </div>
+            <div class="stat-item">
+              <strong>{{ formatRating(stats.averageRating) }}</strong>
+              <span>Avaliação</span>
+            </div>
+            <div class="stat-item">
+              <strong>{{ formatCount(stats.activeProductCount) }}</strong>
+              <span>Em estoque</span>
+            </div>
+          </section>
+
+          <section class="trust-card">
+            <div class="trust-row" *ngIf="seller.isSeller">
+              <span><ion-icon name="shield-checkmark-outline"></ion-icon></span>
+              <div>
+                <strong>Perfil verificado</strong>
+                <small>Conta de vendedor ativa na Compraki.</small>
+              </div>
+            </div>
+
+            <div class="trust-row" *ngIf="getMemberSinceLabel(seller)">
+              <span><ion-icon name="calendar-outline"></ion-icon></span>
+              <div>
+                <strong>Membro desde {{ getMemberSinceLabel(seller) }}</strong>
+                <small>Histórico público do cadastro do vendedor.</small>
+              </div>
+            </div>
+
+            <div class="trust-row" *ngIf="getLatestProductLabel(products)">
+              <span><ion-icon name="time-outline"></ion-icon></span>
+              <div>
+                <strong>Último produto em {{ getLatestProductLabel(products) }}</strong>
+                <small>Informação calculada a partir dos anúncios publicados.</small>
+              </div>
+            </div>
+          </section>
+
+          <section class="operation-card">
+            <div class="section-title">
+              <h2>Operação da loja</h2>
+            </div>
+
+            <div class="operation-grid">
+              <div class="operation-item">
+                <ion-icon name="card-outline"></ion-icon>
+                <span>Pagamentos</span>
+                <strong>{{ stats.paymentMethods.length ? stats.paymentMethods.join(', ') : 'Não informado' }}</strong>
+              </div>
+              <div class="operation-item">
+                <ion-icon name="bicycle-outline"></ion-icon>
+                <span>Entrega</span>
+                <strong>{{ stats.shippingMethods.length ? stats.shippingMethods.join(', ') : 'Não informado' }}</strong>
+              </div>
+              <div class="operation-item">
+                <ion-icon name="pricetag-outline"></ion-icon>
+                <span>Ofertas</span>
+                <strong>{{ formatCount(products.length) }} anúncios publicados</strong>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+
+  <ng-template #loadingState>
+    <div class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Carregando perfil do vendedor...</span>
+    </div>
+  </ng-template>
+</ion-content>
+
+<ion-modal [isOpen]="isChatOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="closeChat()" class="seller-chat-modal">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title>Conversa com vendedor</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeChat()">Fechar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <div class="chat-wrapper">
+      <app-chat-box [chatId]="activeChatId"></app-chat-box>
+    </div>
+  </ng-template>
+</ion-modal>

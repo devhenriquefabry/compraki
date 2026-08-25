@@ -1,5 +1,5 @@
 import { NgIf } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
@@ -17,11 +17,12 @@ import { AppAddress } from 'src/app/interfaces/app-user';
   imports: [IonicModule, RouterLink, ReactiveFormsModule, NgIf, LoadingSpinnerOverlayComponent]
 })
 
-export class SignInFormComponent implements OnInit {
+export class SignInFormComponent implements OnInit, OnDestroy {
   public currentStep: number = 1;
   public totalSteps: number = 3;
   public formularioValido: boolean = false;
   public registrationSuccess: boolean = false;
+  private removeDevAutofillShortcutListener?: () => void;
 
   signInForm = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -41,10 +42,21 @@ export class SignInFormComponent implements OnInit {
     state: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   })
 
-  constructor(public firebaseProducts: FirebaseProducts, private addressService: AddressService, private router: Router) { }
+  constructor(
+    public firebaseProducts: FirebaseProducts,
+    private addressService: AddressService,
+    private router: Router,
+    private changeDetectorRef: ChangeDetectorRef
+  ) { }
 
 
   ngOnInit() {
+    const devAutofillShortcutListener = (event: KeyboardEvent) => this.handleDevAutofillShortcut(event);
+    document.addEventListener('keydown', devAutofillShortcutListener, true);
+    this.removeDevAutofillShortcutListener = () => {
+      document.removeEventListener('keydown', devAutofillShortcutListener, true);
+    };
+
     this.signInForm.valueChanges.subscribe(() => {
       this.formularioValido = this.signInForm.valid;
     });
@@ -56,6 +68,69 @@ export class SignInFormComponent implements OnInit {
         this.fillAddressFromCEP(cleanCep);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.removeDevAutofillShortcutListener?.();
+  }
+
+  handleDevAutofillShortcut(event: KeyboardEvent): void {
+    if (!this.isDevAutofillShortcut(event) || this.registrationSuccess) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    this.autofillRandomRegistrationData();
+  }
+
+  private isDevAutofillShortcut(event: KeyboardEvent): boolean {
+    if (!event.ctrlKey || !event.shiftKey || event.altKey || event.metaKey) {
+      return false;
+    }
+
+    const acceptedKeys = new Set(['\'', '"', 'Dead', '´', '`']);
+    const acceptedCodes = new Set(['Quote', 'Backquote', 'IntlRo', 'IntlBackslash', 'BracketLeft', 'BracketRight']);
+    return acceptedKeys.has(event.key) || acceptedCodes.has(event.code);
+  }
+
+  private autofillRandomRegistrationData(): void {
+    const firstNames = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Felipe', 'Gabriela', 'Henrique', 'Isabela', 'Lucas'];
+    const lastNames = ['Silva', 'Santos', 'Oliveira', 'Costa', 'Pereira', 'Almeida', 'Souza', 'Ferreira', 'Lima', 'Gomes'];
+    const streets = ['Rua das Palmeiras', 'Avenida Brasil', 'Rua Sao Jose', 'Rua das Flores', 'Avenida Getulio Vargas'];
+    const neighborhoods = ['Centro', 'Santo Antonio', 'Bom Pastor', 'Santa Luzia', 'Nova Cidade'];
+    const cities = ['Manhuacu', 'Belo Horizonte', 'Vitoria', 'Juiz de Fora', 'Caratinga'];
+    const states = ['MG', 'ES', 'RJ', 'SP'];
+
+    const randomItem = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
+    const randomDigits = (length: number): string => Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+    const firstName = randomItem(firstNames);
+    const lastName = `${randomItem(lastNames)} ${randomItem(lastNames)}`;
+    const uniqueId = Date.now().toString(36);
+    const password = `Compraki${randomDigits(4)}!`;
+
+    this.signInForm.patchValue({
+      name: `${firstName} ${lastName}`,
+      email: `teste.${firstName.toLowerCase()}.${uniqueId}@compraki.dev`,
+      cpf: randomDigits(11),
+      phone: `339${randomDigits(8)}`,
+      password,
+      repeatPassword: password,
+      cep: '36900000',
+      street: randomItem(streets),
+      number: String(10 + Math.floor(Math.random() * 990)),
+      complement: `Apto ${1 + Math.floor(Math.random() * 300)}`,
+      neighborhood: randomItem(neighborhoods),
+      city: randomItem(cities),
+      state: randomItem(states)
+    });
+
+    this.signInForm.markAllAsTouched();
+    this.formularioValido = this.signInForm.valid;
+    this.currentStep = this.totalSteps;
+    this.changeDetectorRef.detectChanges();
+    console.info('Cadastro preenchido automaticamente pelo atalho Ctrl + Shift + aspas.');
   }
 
   isStepValid(step: number): boolean {
@@ -132,7 +207,7 @@ export class SignInFormComponent implements OnInit {
             this.signInForm.reset();
             
             setTimeout(() => {
-              this.router.navigate(['/tabs']);
+              this.router.navigate(['/tabs/tab2']);
             }, 2000);
           }
         })
@@ -147,7 +222,7 @@ export class SignInFormComponent implements OnInit {
         this.signInForm.reset();
         
         setTimeout(() => {
-          this.router.navigate(['/tabs']);
+          this.router.navigate(['/tabs/tab2']);
         }, 2000);
       }
     })

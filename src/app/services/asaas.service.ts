@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { environment } from '../../environments/environment';
+import { getFirebaseAuth } from '../core/auth-state';
 
 export interface AsaasCustomer {
   id?: string;
@@ -25,123 +27,146 @@ export interface CreditCardHolderInfo {
   phone: string;
 }
 
+export interface AsaasPaymentResult {
+  id: string;
+  status: string;
+  invoiceUrl?: string;
+  bankSlipUrl?: string;
+  pixQrCode?: {
+    encodedImage?: string;
+    payload?: string;
+    expirationDate?: string;
+  } | null;
+}
+
+/**
+ * Cliente do Asaas — via Cloud Functions.
+ *
+ * A chave de produção NÃO mora mais aqui. Antes ela estava literal neste
+ * arquivo, o que a colocava dentro do bundle publicado e no histórico do Git;
+ * qualquer pessoa com o app aberto conseguia extrair e emitir cobranças.
+ * Agora a chave só existe em `functions/.env` (`ASAAS_API_KEY`) e o app fala
+ * apenas com endpoints que verificam o ID token.
+ *
+ * NÃO reintroduzir chave, token ou segredo neste arquivo — nem em nenhum
+ * outro sob `src/`. Tudo que está em `src/` vai para o navegador.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class AsaasService {
-  // ATENÇÃO: Proxy url configured in angular.json. Request will be intercepted and sent to https://api.asaas.com
-  // Chave original: $aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjczYjFjZTkyLTVlZmEtNGMxMS1hMjczLTY0OWM1ZWJjZTg4OTo6JGFhY2hfNWQ3NzFkMjYtNDZlNy00NjYzLTk4MWMtMTczZGZjNjA3NDYy
-  private apiUrl = '/asaas-api'; 
-  private apiKey = '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjczYjFjZTkyLTVlZmEtNGMxMS1hMjczLTY0OWM1ZWJjZTg4OTo6JGFhY2hfNWQ3NzFkMjYtNDZlNy00NjYzLTk4MWMtMTczZGZjNjA3NDYy';
+  private readonly functionsBaseUrl =
+    `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
 
-  constructor() {}
+  private async authorizedFetch<T>(fnName: string, init: RequestInit = {}): Promise<T> {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) {
+      throw new Error('Você precisa estar logado para concluir o pagamento.');
+    }
 
-  private getHeaders(): HeadersInit {
-    return {
-      'Content-Type': 'application/json',
-      'access_token': this.apiKey
-    };
+    const token = await user.getIdToken();
+
+    const response = await fetch(`${this.functionsBaseUrl}/${fnName}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(init.headers || {})
+      }
+    });
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Não foi possível concluir a operação.');
+    }
+
+    return data as T;
   }
 
-  // 1. Criar Cliente
-  async createCustomer(customer: AsaasCustomer): Promise<any> {
-    const response = await fetch(`${this.apiUrl}/v3/customers`, {
+  /**
+   * Garante o cadastro do usuário logado no Asaas.
+   * O `customerId` fica guardado no servidor — o app não escolhe para qual
+   * cliente a cobrança vai.
+   */
+  async createCustomer(customer: AsaasCustomer): Promise<{ id: string; reused: boolean }> {
+    return this.authorizedFetch('createAsaasCustomer', {
       method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(customer)
+      body: JSON.stringify({
+        name: customer.name,
+        cpfCnpj: customer.cpfCnpj,
+        email: customer.email,
+        phone: customer.phone
+      })
     });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.errors?.[0]?.description || 'Erro ao criar cliente no Asaas');
-    }
-    return data;
   }
 
-  // Pesquisar Cliente
-  async getCustomerByCpf(cpfCnpj: string): Promise<any> {
-    const response = await fetch(`${this.apiUrl}/v3/customers?cpfCnpj=${cpfCnpj}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error('Erro ao buscar cliente');
-    }
-    
-    if (data.data && data.data.length > 0) {
-      return data.data[0];
-    }
-    return null;
-  }
-
-  // 2. Criar Pagamento
+  /**
+   * Cria a cobrança do usuário logado.
+   *
+   * `customerId` continua na assinatura por compatibilidade com os chamadores
+   * existentes, mas é ignorado: o servidor resolve o cliente pelo ID token.
+   */
   async createPayment(
-    customerId: string, 
-    billingType: 'BOLETO' | 'CREDIT_CARD' | 'PIX', 
+    _customerId: string,
+    billingType: 'BOLETO' | 'CREDIT_CARD' | 'PIX',
     value: number,
-    dueDate: string, // YYYY-MM-DD
+    dueDate: string,
     creditCard?: CreditCardData,
     creditCardHolderInfo?: CreditCardHolderInfo
-  ): Promise<any> {
-    
-    const payload: any = {
-      customer: customerId,
-      billingType: billingType,
-      value: value,
-      dueDate: dueDate,
-      description: 'Compra no App Compraki'
-    };
-
-    if (billingType === 'CREDIT_CARD' && creditCard && creditCardHolderInfo) {
-      payload.creditCard = creditCard;
-      payload.creditCardHolderInfo = creditCardHolderInfo;
-    }
-
-    const response = await fetch(`${this.apiUrl}/v3/payments`, {
+  ): Promise<AsaasPaymentResult> {
+    return this.authorizedFetch('createAsaasPayment', {
       method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        billingType,
+        value,
+        dueDate,
+        creditCard: billingType === 'CREDIT_CARD' ? creditCard : undefined,
+        creditCardHolderInfo: billingType === 'CREDIT_CARD' ? creditCardHolderInfo : undefined
+      })
     });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.errors?.[0]?.description || 'Erro ao processar pagamento');
-    }
-    return data;
   }
 
-  // Recuperar QRCode do PIX
-  async getPixQrCode(paymentId: string): Promise<any> {
-    const response = await fetch(`${this.apiUrl}/v3/payments/${paymentId}/pixQrCode`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error('Erro ao buscar PIX QR Code');
-    }
-    return data;
+  /**
+   * O QR Code do PIX já volta dentro de `createPayment`. Este método existe
+   * para os chamadores antigos e faz uma consulta à cobrança.
+   */
+  async getPixQrCode(paymentId: string): Promise<unknown> {
+    const payment = await this.getPayment(paymentId);
+    return (payment as { pixQrCode?: unknown })?.pixQrCode ?? null;
   }
 
-  // 3. Estornar Pagamento
-  async refundPayment(paymentId: string, value?: number, description?: string): Promise<any> {
-    const payload: any = {};
-    if (value) payload.value = value;
-    if (description) payload.description = description;
+  /** Consulta o status de uma cobrança do próprio usuário. */
+  async getPayment(paymentId: string): Promise<unknown> {
+    return this.authorizedFetch(
+      `getAsaasPayment?paymentId=${encodeURIComponent(paymentId)}`,
+      { method: 'GET' }
+    );
+  }
 
-    const response = await fetch(`${this.apiUrl}/v3/payments/${paymentId}/refund`, {
+  /**
+   * Estorno — exige privilégio de administrador no servidor.
+   * Um usuário comum recebe 403.
+   */
+  async refundPayment(paymentId: string, value?: number, description?: string): Promise<unknown> {
+    return this.authorizedFetch('refundAsaasPayment', {
       method: 'POST',
-      headers: this.getHeaders(),
-      body: Object.keys(payload).length > 0 ? JSON.stringify(payload) : undefined
+      body: JSON.stringify({ paymentId, value, description })
     });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.errors?.[0]?.description || 'Erro ao processar estorno no Asaas');
-    }
-    return data;
+  }
+
+  /**
+   * REMOVIDO: busca de cliente por CPF.
+   *
+   * Consultar a base de clientes do Asaas por CPF a partir do app permitiria
+   * enumerar clientes. O vínculo usuário → cliente Asaas agora é resolvido no
+   * servidor por `createCustomer()`.
+   */
+  async getCustomerByCpf(_cpfCnpj: string): Promise<null> {
+    console.warn(
+      'getCustomerByCpf foi descontinuado. Use createCustomer(), que reaproveita o cadastro existente.'
+    );
+    return null;
   }
 }

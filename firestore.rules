@@ -1,74 +1,320 @@
 rules_version = '2';
 
+// ============================================================================
+// Vineon / Compraki — regras de acesso ao Firestore
+//
+// PRINCIPIOS (nao afrouxar sem revisao):
+//  1. Papel de admin vem EXCLUSIVAMENTE do custom claim `admin` no ID token.
+//     Nunca de campo em documento que o proprio usuario possa escrever.
+//  2. `users/{uid}` guarda dado pessoal (CPF, telefone, endereco) e NAO tem
+//     leitura publica. O perfil publico do vendedor vive em `sellers/{uid}`,
+//     espelhado por Cloud Function (functions/src/seller-profile.ts).
+//  3. Toda regra de update valida `resource.data` (o documento que ja existe),
+//     nao apenas `request.resource.data` (o payload que chegou).
+//  4. Colecao sem match explicito é negada por padrao. Ao criar colecao nova,
+//     adicionar a regra aqui — nao pelo console.
+// ============================================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------- helpers
 
     function isSignedIn() {
       return request.auth != null;
     }
 
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Somente custom claim. Ver functions/src/admin-claims.ts para atribuir.
     function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Campos que definem privilegio ou punicao: so admin encosta.
+    function privilegedFields() {
+      return ['isAdmin', 'super_admin', 'role', 'admin', 'isChatBanned'];
+    }
+
+    function touchesPrivileged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasAny(privilegedFields());
+    }
+
+    function chatData(chatId) {
+      return get(/databases/$(database)/documents/chats/$(chatId)).data;
+    }
+
+    function isChatParticipant(chatId) {
+      let c = chatData(chatId);
       return isSignedIn() && (
-        request.auth.token.admin == true ||
-        (
-          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          (
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true ||
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.super_admin == true ||
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-          )
-        )
+        (c.participantIds is list && request.auth.uid in c.participantIds) ||
+        request.auth.uid == c.buyerId ||
+        request.auth.uid == c.sellerId
       );
     }
 
-    // Produtos: leitura pública, escrita por admins ou pelo próprio vendedor
+    // ---------------------------------------------------------------- produtos
+
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == request.resource.data.sellerId);
+
+      allow create: if isAdmin() || (
+        isSignedIn() && request.resource.data.sellerId == request.auth.uid
+      );
+
+      // Valida o dono ATUAL do documento e impede transferir a posse.
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && resource.data.sellerId == request.auth.uid
+        && request.resource.data.sellerId == resource.data.sellerId
+      );
+
+      allow delete: if isAdmin() || (
+        isSignedIn() && resource.data.sellerId == request.auth.uid
+      );
     }
 
-    // Categorias: leitura pública, escrita por admins
+    // ------------------------------------------------------ catalogo editorial
+
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Banners: leitura pública, escrita por admins
     match /banners/{bannerId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Usuários: leitura pública (perfil básico), escrita pelo próprio dono ou admin
-    match /users/{userId} {
+    // ------------------------------------------------- perfil publico de loja
+    // Espelho somente-leitura mantido pela Cloud Function `syncSellerProfile`.
+    // Contem apenas campos de vitrine — nunca CPF, e-mail, telefone ou endereco.
+
+    match /sellers/{sellerId} {
       allow read: if true;
-      allow write: if request.auth.uid == userId || isAdmin();
+      allow write: if false;
     }
 
-    // Chats e Mensagens: apenas participantes
-    match /chats/{chatId} {
-      allow read, write: if isSignedIn() && (
-        request.auth.uid == resource.data.buyerId || 
-        request.auth.uid == resource.data.sellerId ||
-        isAdmin()
+    // ------------------------------------------------------------- usuarios
+    // Dado pessoal. Leitura restrita ao dono e a admin.
+
+    match /users/{userId} {
+      allow read: if isUser(userId) || isAdmin();
+
+      allow create: if isAdmin() || (
+        isUser(userId)
+        && !request.resource.data.keys().hasAny(privilegedFields())
       );
-      
-      match /messages/{messageId} {
-        allow read, write: if isSignedIn();
+
+      allow update: if isAdmin() || (
+        isUser(userId) && !touchesPrivileged()
+      );
+
+      allow delete: if isAdmin();
+
+      // Seguidores: contagem aparece no perfil publico, entao leitura aberta.
+      // O documento so guarda o vinculo, sem dado pessoal.
+      match /followers/{followerId} {
+        allow read: if true;
+        allow create, update, delete: if isUser(followerId)
+          && request.auth.uid != userId;
+      }
+
+      match /followingSellers/{sellerId} {
+        allow read: if isUser(userId) || isAdmin();
+        allow create, update, delete: if isUser(userId)
+          && request.auth.uid != sellerId;
+      }
+
+      // Carrinho, salvos e enderecos: exclusivos do dono.
+      match /cart/{itemId} {
+        allow read, write: if isUser(userId);
+      }
+
+      match /savedProducts/{savedId} {
+        allow read, write: if isUser(userId);
+      }
+
+      match /addresses/{addressId} {
+        allow read, write: if isUser(userId);
       }
     }
 
-    // Cache global de mídias do WhatsApp: leitura para admins, escrita apenas via Cloud Functions (Admin SDK).
+    // ------------------------------------------------ consultas collection group
+    // `collectionGroup()` NAO usa as regras da subcolecao: precisa de match
+    // proprio com o prefixo `{path=**}`. Sao consultas de painel, so admin.
+    //
+    // NOTA: `StatsService.countSaves()` (src/app/services/stats.service.ts)
+    // faz collectionGroup em `savedProducts` e passa a devolver 0 para o
+    // vendedor comum — o try/catch de la ja trata. A correcao definitiva e o
+    // contador desnormalizado `savedCount` no proprio produto (Fase 2).
+
+    match /{path=**}/messages/{messageId} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/savedProducts/{savedId} {
+      allow read: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------- chats
+
+    match /chats/{chatId} {
+      allow read: if isAdmin() || (isSignedIn() && (
+        (resource.data.participantIds is list
+          && request.auth.uid in resource.data.participantIds) ||
+        request.auth.uid == resource.data.buyerId ||
+        request.auth.uid == resource.data.sellerId
+      ));
+
+      // Quem cria precisa estar dentro da propria conversa.
+      allow create: if isAdmin() || (
+        isSignedIn()
+        && request.resource.data.participantIds is list
+        && request.auth.uid in request.resource.data.participantIds
+      );
+
+      allow update: if isAdmin() || (isSignedIn() && (
+        (resource.data.participantIds is list
+          && request.auth.uid in resource.data.participantIds) ||
+        request.auth.uid == resource.data.buyerId ||
+        request.auth.uid == resource.data.sellerId
+      ));
+
+      allow delete: if isAdmin();
+
+      // Subcolecao NAO herda a regra do pai — a checagem precisa ser repetida.
+      match /messages/{messageId} {
+        allow read: if isAdmin() || isChatParticipant(chatId);
+
+        allow create: if isAdmin() || (
+          isChatParticipant(chatId)
+          && request.resource.data.senderId == request.auth.uid
+        );
+
+        // Mensagem enviada nao se reescreve; historico e imutavel.
+        allow update: if isAdmin() || (
+          isChatParticipant(chatId)
+          && request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(['read', 'readAt'])
+        );
+
+        allow delete: if isAdmin();
+      }
+    }
+
+    // --------------------------------------------------------------- pedidos
+    // Leitura para o comprador, para os vendedores envolvidos e para admin.
+    // Valores financeiros so mudam via Cloud Function (Admin SDK ignora regras).
+
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        (resource.data.sellerIds is list
+          && request.auth.uid in resource.data.sellerIds)
+      ));
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      // Comprador e vendedor mexem em status/entrega, nunca no dinheiro.
+      allow update: if isAdmin() || (isSignedIn()
+        && (
+          request.auth.uid == resource.data.userId ||
+          (resource.data.sellerIds is list
+            && request.auth.uid in resource.data.sellerIds)
+        )
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['total', 'userId', 'sellerIds', 'items', 'asaasPaymentId']));
+
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------- denuncias
+
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------ operacao / diagnostico
+
+    match /webhook_history/{entryId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
     match /whatsappMediaCache/{mediaId} {
       allow read: if isAdmin();
       allow write: if false;
     }
 
-    // Estatísticas agregadas do cache (hits/misses/bytesStored).
     match /whatsappMediaCacheStats/{statsDoc} {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    // Metricas agregadas por Cloud Function agendada (Fase 2).
+    match /metrics/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ------------------------------------------------- exclusivas do Admin SDK
+    // Nenhum cliente acessa. Listadas explicitamente para deixar a intencao
+    // registrada, em vez de depender do deny implicito.
+
+    match /passwordResets/{email} {
+      allow read, write: if false;
+    }
+
+    match /whatsappInstances/{instanceName} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /whatsappInstanceLocks/{instanceName} {
+      allow read, write: if false;
+    }
+
+    match /whatsappTriggers/{triggerId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /botJobs/{jobId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /botJobLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /whatsappDeletedInstances/{instanceName} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /whatsappTriggerLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /whatsappWebhookEvents/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Credenciais e tokens de integracao (Melhor Envio, etc). Nunca ao cliente.
+    match /settings/{docId} {
+      allow read, write: if false;
+    }
   }
 }
-

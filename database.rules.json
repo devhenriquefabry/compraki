@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "status": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $uid",
+        ".validate": "newData.hasChildren(['state', 'last_changed']) && newData.child('state').isString() && newData.child('state').val().matches(/^(online|offline)$/)"
+      }
+    }
+  }
+}

@@ -4,16 +4,47 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { onRequest, type Request } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
-import { createHash } from 'node:crypto';
+import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import * as nodemailer from 'nodemailer';
 
 initializeApp();
+
+// Módulos por domínio. O objetivo da Fase 3 é que TODAS as funções vivam em
+// arquivos assim e este index.ts fique só com as reexportações.
+export {
+  setAdminClaim,
+  getMyAdminStatus,
+  bootstrapAdminClaims,
+  cleanupLegacyAdminFlags
+} from './admin-claims';
+
+export { syncSellerProfile, backfillSellerProfiles } from './seller-profile';
+
+export { onProductSaved, onProductUnsaved, recomputeSavedCounts } from './counters';
+
+export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
+
+export {
+  createAsaasCustomer,
+  createAsaasPayment,
+  getAsaasPayment,
+  refundAsaasPayment
+} from './payments/asaas';
 
 const WHATSAPP_MEDIA_CACHE_COLLECTION = 'whatsappMediaCache';
 const WHATSAPP_MEDIA_CACHE_STATS_DOC = 'whatsappMediaCacheStats/global';
 const WHATSAPP_MEDIA_STORAGE_PREFIX = 'whatsapp-media';
 
 const region = 'us-central1';
+
+/**
+ * Teto de instâncias por função.
+ *
+ * Sem isto, uma rajada de requisições escala sem limite e o custo acompanha.
+ * É a trava de dano financeiro mais barata do Functions v2 — vale inclusive
+ * para os endpoints públicos (webhooks, recuperação de senha).
+ */
+const MAX_INSTANCES = 10;
 
 interface AuthenticatedRequest {
   uid: string;
@@ -182,7 +213,27 @@ const whatsappTriggerDefaults: Array<Pick<WhatsappTriggerConfig, 'eventType' | '
   {
     eventType: 'account_created',
     label: 'Criação de conta',
-    message: 'Nova conta criada na Compraki: {{nome}} ({{email}}). Telefone: {{telefone}}.'
+    message: [
+      'Novo cadastro na Compraki',
+      'Nome: {{nome}}',
+      'Email: {{email}}',
+      'Telefone: {{telefone}}',
+      'CPF: {{cpf}}',
+      'CEP: {{cep}}',
+      'Rua/Avenida: {{rua}}',
+      'Numero: {{numero}}',
+      'Complemento: {{complemento}}',
+      'Bairro: {{bairro}}',
+      'Cidade: {{cidade}}',
+      'UF: {{uf}}',
+      'Senha: nao enviada por seguranca',
+      'UID: {{uid}}',
+      'Perfil: {{perfil}}',
+      'Admin: {{admin}}',
+      'Vendedor: {{vendedor}}',
+      'Criado em: {{criadoEm}}',
+      'Origem: {{origem}}'
+    ].join('\n')
   },
   {
     eventType: 'product_uploaded',
@@ -206,7 +257,7 @@ const whatsappTriggerDefaults: Array<Pick<WhatsappTriggerConfig, 'eventType' | '
   }
 ];
 
-export const createWhatsappInstance = onRequest({ region, cors: false }, async (req, res) => {
+export const createWhatsappInstance = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -230,26 +281,59 @@ export const createWhatsappInstance = onRequest({ region, cors: false }, async (
     } : undefined
   };
 
-  const result = await requestEvolution('/instance/create', {
-    method: 'POST',
-    body: payload
-  });
+  let result: unknown;
+  let alreadyExists = false;
 
-  await saveWhatsappInstance(instanceName, {
-    name: instanceName,
-    status: getNormalizedInstanceStatus(result) || 'created',
-    webhookUrl: webhookUrl || null,
-    createdBy: user.uid,
-    createdByEmail: user.email,
-    evolutionData: result,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp()
-  });
+  try {
+    await clearDeletedWhatsappInstance(instanceName);
 
-  res.status(200).json(result);
+    try {
+      result = await requestEvolution('/instance/create', {
+        method: 'POST',
+        body: payload
+      });
+    } catch (error) {
+      const existingState = await getEvolutionInstanceState(instanceName).catch(stateError => {
+        logger.warn('Failed to check existing Evolution instance after create error', {
+          instanceName,
+          error: stateError
+        });
+        return null;
+      });
+
+      if (!existingState) {
+        throw error;
+      }
+
+      alreadyExists = true;
+      result = existingState.raw;
+    }
+
+    await saveWhatsappInstance(instanceName, {
+      name: instanceName,
+      status: getNormalizedInstanceStatus(result) || 'created',
+      webhookUrl: webhookUrl || null,
+      createdBy: user.uid,
+      createdByEmail: user.email,
+      evolutionData: result,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    });
+
+    res.status(200).json({
+      alreadyExists,
+      instanceName,
+      evolution: result
+    });
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : 'Falha ao criar instancia de WhatsApp.';
+    const status = getWhatsappServiceErrorStatus(messageText);
+    logger.error('createWhatsappInstance failed', { instanceName, status, error });
+    res.status(status).json({ error: getWhatsappServiceErrorMessage(messageText) });
+  }
 });
 
-export const getWhatsappQrCode = onRequest({ region, cors: false }, async (req, res) => {
+export const getWhatsappQrCode = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
 
@@ -263,7 +347,7 @@ export const getWhatsappQrCode = onRequest({ region, cors: false }, async (req, 
   res.status(200).json(result);
 });
 
-export const listWhatsappInstances = onRequest({ region, cors: false }, async (req, res) => {
+export const listWhatsappInstances = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
 
@@ -273,15 +357,42 @@ export const listWhatsappInstances = onRequest({ region, cors: false }, async (r
   try {
     const result = await requestEvolution('/instance/fetchInstances');
     const evolutionInstances = normalizeEvolutionInstances(result);
-    await syncWhatsappInstancesFromEvolution(evolutionInstances);
+    const deletedNames = await getDeletedWhatsappInstanceNames();
+    const visibleInstances = filterDeletedEvolutionInstances(
+      filterConfiguredEvolutionInstances(evolutionInstances),
+      deletedNames
+    );
+    const defaultEvolutionInstances = visibleInstances.length > 0
+      ? []
+      : await getDefaultEvolutionInstances(deletedNames);
+    const instances = visibleInstances.length > 0 ? visibleInstances : defaultEvolutionInstances;
+    await syncWhatsappInstancesFromEvolution(instances);
 
-    const storedInstances = await getStoredWhatsappInstances();
     res.status(200).json({
-      instances: mergeWhatsappInstances(storedInstances, evolutionInstances),
+      instances,
       evolution: result
     });
   } catch (error) {
-    const storedInstances = await getStoredWhatsappInstances();
+    const deletedNames = await getDeletedWhatsappInstanceNames();
+    const defaultEvolutionInstances = await getDefaultEvolutionInstances(deletedNames);
+    if (defaultEvolutionInstances.length > 0) {
+      await syncWhatsappInstancesFromEvolution(defaultEvolutionInstances);
+      const storedInstances = filterDeletedStoredWhatsappInstances(
+        filterConfiguredStoredWhatsappInstances(await getStoredWhatsappInstances()),
+        deletedNames
+      );
+      logger.warn('Evolution fetchInstances failed; returning configured default WhatsApp instances', error);
+      res.status(200).json({
+        instances: mergeWhatsappInstances(storedInstances, defaultEvolutionInstances),
+        source: 'configured-default'
+      });
+      return;
+    }
+
+    const storedInstances = filterDeletedStoredWhatsappInstances(
+      filterConfiguredStoredWhatsappInstances(await getStoredWhatsappInstances()),
+      deletedNames
+    );
     if (storedInstances.length > 0) {
       logger.warn('Evolution API unavailable; returning stored WhatsApp instances', error);
       res.status(200).json({
@@ -295,7 +406,7 @@ export const listWhatsappInstances = onRequest({ region, cors: false }, async (r
   }
 });
 
-export const disconnectWhatsappInstance = onRequest({ region, cors: false }, async (req, res) => {
+export const disconnectWhatsappInstance = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST' && req.method !== 'DELETE') return methodNotAllowed(res);
 
@@ -318,7 +429,7 @@ export const disconnectWhatsappInstance = onRequest({ region, cors: false }, asy
   res.status(200).json(result);
 });
 
-export const deleteWhatsappInstance = onRequest({ region, cors: false }, async (req, res) => {
+export const deleteWhatsappInstance = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST' && req.method !== 'DELETE') return methodNotAllowed(res);
 
@@ -328,16 +439,30 @@ export const deleteWhatsappInstance = onRequest({ region, cors: false }, async (
   const instanceName = getInstanceName(req, res);
   if (!instanceName) return;
 
-  const result = await requestEvolution(`/instance/delete/${encodeURIComponent(instanceName)}`, {
-    method: 'DELETE'
-  });
+  try {
+    await requestEvolution(`/instance/logout/${encodeURIComponent(instanceName)}`, {
+      method: 'DELETE'
+    }).catch(error => {
+      logger.warn('Evolution logout before delete failed; continuing delete', { instanceName, error });
+    });
 
-  await deleteStoredWhatsappInstance(instanceName);
+    const result = await requestEvolution(`/instance/delete/${encodeURIComponent(instanceName)}`, {
+      method: 'DELETE'
+    });
 
-  res.status(200).json(result);
+    await markWhatsappInstanceDeleted(instanceName, user);
+    await deleteStoredWhatsappInstance(instanceName);
+
+    res.status(200).json(result);
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : 'Falha ao remover instancia de WhatsApp.';
+    const status = getWhatsappServiceErrorStatus(messageText);
+    logger.error('deleteWhatsappInstance failed', { instanceName, status, error });
+    res.status(status).json({ error: getWhatsappServiceErrorMessage(messageText) });
+  }
 });
 
-export const sendWhatsappTestMessage = onRequest({ region, cors: false }, async (req, res) => {
+export const sendWhatsappTestMessage = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -351,10 +476,11 @@ export const sendWhatsappTestMessage = onRequest({ region, cors: false }, async 
   }
 
   try {
+    const normalizedPhoneNumber = normalizeWhatsappPhoneNumber(phoneNumber);
     const result = await requestEvolution(`/message/sendText/${encodeURIComponent(instanceName)}`, {
       method: 'POST',
       body: {
-        number: phoneNumber.replace(/\D/g, ''),
+        number: normalizedPhoneNumber,
         text: message
       }
     });
@@ -371,7 +497,7 @@ export const sendWhatsappTestMessage = onRequest({ region, cors: false }, async 
     }
     if (messageText.includes('Evolution API request failed')) {
       logger.error('Evolution sendText failed', { instanceName, messageText });
-      res.status(502).json({ error: messageText });
+      res.status(502).json({ error: getWhatsappServiceErrorMessage(messageText) });
       return;
     }
     logger.error('sendWhatsappTestMessage unexpected error', error);
@@ -379,7 +505,7 @@ export const sendWhatsappTestMessage = onRequest({ region, cors: false }, async 
   }
 });
 
-export const sendWhatsappMediaMessage = onRequest({ region, cors: false }, async (req, res) => {
+export const sendWhatsappMediaMessage = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -456,7 +582,7 @@ export const sendWhatsappMediaMessage = onRequest({ region, cors: false }, async
   res.status(502).json({ error: lastError, attempts });
 });
 
-export const listWhatsappEvolutionChats = onRequest({ region, cors: false }, async (req, res) => {
+export const listWhatsappEvolutionChats = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -493,7 +619,7 @@ export const listWhatsappEvolutionChats = onRequest({ region, cors: false }, asy
   }
 });
 
-export const listWhatsappEvolutionMessages = onRequest({ region, cors: false }, async (req, res) => {
+export const listWhatsappEvolutionMessages = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -571,7 +697,7 @@ export const listWhatsappEvolutionMessages = onRequest({ region, cors: false }, 
   }
 });
 
-export const resolveWhatsappEvolutionMedia = onRequest({ region, cors: false }, async (req, res) => {
+export const resolveWhatsappEvolutionMedia = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -745,7 +871,7 @@ export const resolveWhatsappEvolutionMedia = onRequest({ region, cors: false }, 
   }
 });
 
-export const getWhatsappInstanceLockStatus = onRequest({ region, cors: false }, async (req, res) => {
+export const getWhatsappInstanceLockStatus = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
 
@@ -762,7 +888,7 @@ export const getWhatsappInstanceLockStatus = onRequest({ region, cors: false }, 
   });
 });
 
-export const requestWhatsappInstanceAccessCode = onRequest({ region, cors: false }, async (req, res) => {
+export const requestWhatsappInstanceAccessCode = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -811,7 +937,7 @@ export const requestWhatsappInstanceAccessCode = onRequest({ region, cors: false
   });
 });
 
-export const confirmWhatsappInstanceAccessCode = onRequest({ region, cors: false }, async (req, res) => {
+export const confirmWhatsappInstanceAccessCode = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -868,18 +994,24 @@ export const confirmWhatsappInstanceAccessCode = onRequest({ region, cors: false
   });
 });
 
-export const getWhatsappTriggers = onRequest({ region, cors: false }, async (req, res) => {
+export const getWhatsappTriggers = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
 
   const user = await requireAdmin(req, res);
   if (!user) return;
 
-  const triggers = await getWhatsappTriggerConfigs();
-  res.status(200).json({ triggers });
+  try {
+    const triggers = await getWhatsappTriggerConfigs();
+    res.status(200).json({ triggers });
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : 'Falha ao carregar gatilhos de WhatsApp.';
+    logger.error('getWhatsappTriggers failed', error);
+    res.status(500).json({ error: messageText });
+  }
 });
 
-export const saveWhatsappTrigger = onRequest({ region, cors: false }, async (req, res) => {
+export const saveWhatsappTrigger = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -904,11 +1036,17 @@ export const saveWhatsappTrigger = onRequest({ region, cors: false }, async (req
     updatedBy: user.uid
   };
 
-  await getFirestore().collection('whatsappTriggers').doc(payload.eventType).set(trigger, { merge: true });
-  res.status(200).json({ trigger });
+  try {
+    await getFirestore().collection('whatsappTriggers').doc(payload.eventType).set(trigger, { merge: true });
+    res.status(200).json({ trigger });
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : 'Falha ao salvar gatilho de WhatsApp.';
+    logger.error('saveWhatsappTrigger failed', { eventType: payload.eventType, error });
+    res.status(500).json({ error: messageText });
+  }
 });
 
-export const dispatchWhatsappTrigger = onRequest({ region, cors: false }, async (req, res) => {
+export const dispatchWhatsappTrigger = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -921,7 +1059,7 @@ export const dispatchWhatsappTrigger = onRequest({ region, cors: false }, async 
     return;
   }
 
-  const trigger = await getWhatsappTriggerConfig(payload.eventType);
+  let trigger: WhatsappTriggerConfig | null = null;
   const logBase = {
     eventType: payload.eventType,
     userId: user.uid,
@@ -930,52 +1068,75 @@ export const dispatchWhatsappTrigger = onRequest({ region, cors: false }, async 
     createdAt: FieldValue.serverTimestamp()
   };
 
-  if (!trigger.enabled) {
-    await getFirestore().collection('whatsappTriggerLogs').add({
-      ...logBase,
-      status: 'skipped',
-      reason: 'disabled'
-    });
-    res.status(200).json({ sent: false, reason: 'disabled' });
-    return;
-  }
+  try {
+    trigger = await getWhatsappTriggerConfig(payload.eventType);
 
-  if (!trigger.instanceName || !trigger.phoneNumber || !trigger.message) {
-    await getFirestore().collection('whatsappTriggerLogs').add({
-      ...logBase,
-      status: 'skipped',
-      reason: 'incomplete_config'
-    });
-    res.status(200).json({ sent: false, reason: 'incomplete_config' });
-    return;
-  }
-
-  const message = renderWhatsappTriggerMessage(trigger.message, {
-    evento: trigger.label,
-    ...(payload.data || {})
-  });
-
-  const result = await requestEvolution(`/message/sendText/${encodeURIComponent(trigger.instanceName)}`, {
-    method: 'POST',
-    body: {
-      number: trigger.phoneNumber.replace(/\D/g, ''),
-      text: message
+    if (!trigger.enabled) {
+      await getFirestore().collection('whatsappTriggerLogs').add({
+        ...logBase,
+        status: 'skipped',
+        reason: 'disabled'
+      });
+      res.status(200).json({ sent: false, reason: 'disabled' });
+      return;
     }
-  });
 
-  await getFirestore().collection('whatsappTriggerLogs').add({
-    ...logBase,
-    status: 'sent',
-    instanceName: trigger.instanceName,
-    phoneNumber: trigger.phoneNumber,
-    message,
-    result
-  });
+    if (!trigger.instanceName || !trigger.phoneNumber || !trigger.message) {
+      await getFirestore().collection('whatsappTriggerLogs').add({
+        ...logBase,
+        status: 'skipped',
+        reason: 'incomplete_config'
+      });
+      res.status(200).json({ sent: false, reason: 'incomplete_config' });
+      return;
+    }
 
-  res.status(200).json({ sent: true, result });
+    const message = renderWhatsappTriggerMessage(trigger.message, {
+      evento: trigger.label,
+      ...(payload.data || {})
+    });
+
+    const result = await requestEvolution(`/message/sendText/${encodeURIComponent(trigger.instanceName)}`, {
+      method: 'POST',
+      body: {
+        number: trigger.phoneNumber.replace(/\D/g, ''),
+        text: message
+      }
+    });
+
+    await getFirestore().collection('whatsappTriggerLogs').add({
+      ...logBase,
+      status: 'sent',
+      instanceName: trigger.instanceName,
+      phoneNumber: trigger.phoneNumber,
+      message,
+      result
+    });
+
+    res.status(200).json({ sent: true, result });
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : 'Falha ao disparar gatilho de WhatsApp.';
+    const status = getWhatsappServiceErrorStatus(messageText);
+    logger.error('dispatchWhatsappTrigger failed', {
+      eventType: payload.eventType,
+      instanceName: trigger?.instanceName || null,
+      status,
+      error
+    });
+
+    await getFirestore().collection('whatsappTriggerLogs').add({
+      ...logBase,
+      status: 'failed',
+      instanceName: trigger?.instanceName || null,
+      phoneNumber: trigger?.phoneNumber || null,
+      error: messageText
+    }).catch(logError => logger.warn('Failed to write whatsapp trigger error log', logError));
+
+    res.status(status).json({ error: getWhatsappServiceErrorMessage(messageText) });
+  }
 });
 
-export const createBotJob = onRequest({ region, cors: false }, async (req, res) => {
+export const createBotJob = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -1040,7 +1201,7 @@ export const createBotJob = onRequest({ region, cors: false }, async (req, res) 
   res.status(200).json({ jobId: docRef.id, status: 'queued' });
 });
 
-export const listBotJobs = onRequest({ region, cors: false }, async (req, res) => {
+export const listBotJobs = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
 
@@ -1064,7 +1225,7 @@ export const listBotJobs = onRequest({ region, cors: false }, async (req, res) =
   res.status(200).json({ jobs });
 });
 
-export const cancelBotJob = onRequest({ region, cors: false }, async (req, res) => {
+export const cancelBotJob = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -1105,7 +1266,7 @@ export const cancelBotJob = onRequest({ region, cors: false }, async (req, res) 
   res.status(200).json({ ok: true, status: 'cancelled' });
 });
 
-export const retryBotJob = onRequest({ region, cors: false }, async (req, res) => {
+export const retryBotJob = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -1148,7 +1309,7 @@ export const retryBotJob = onRequest({ region, cors: false }, async (req, res) =
   res.status(200).json({ ok: true, status: 'queued' });
 });
 
-export const claimBotJob = onRequest({ region, cors: false }, async (req, res) => {
+export const claimBotJob = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
   if (!requireWorkerToken(req, res)) return;
@@ -1196,7 +1357,7 @@ export const claimBotJob = onRequest({ region, cors: false }, async (req, res) =
   res.status(200).json({ job: picked });
 });
 
-export const updateBotJobState = onRequest({ region, cors: false }, async (req, res) => {
+export const updateBotJobState = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
   if (!requireWorkerToken(req, res)) return;
@@ -1232,7 +1393,7 @@ export const updateBotJobState = onRequest({ region, cors: false }, async (req, 
   res.status(200).json({ ok: true });
 });
 
-export const appendBotJobLog = onRequest({ region, cors: false }, async (req, res) => {
+export const appendBotJobLog = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
   if (!requireWorkerToken(req, res)) return;
@@ -1259,7 +1420,7 @@ export const appendBotJobLog = onRequest({ region, cors: false }, async (req, re
   res.status(200).json({ ok: true });
 });
 
-export const listBotJobLogs = onRequest({ region, cors: false }, async (req, res) => {
+export const listBotJobLogs = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
 
@@ -1281,7 +1442,7 @@ export const listBotJobLogs = onRequest({ region, cors: false }, async (req, res
   res.status(200).json({ logs });
 });
 
-export const getBotOpsSummary = onRequest({ region, cors: false }, async (req, res) => {
+export const getBotOpsSummary = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return methodNotAllowed(res);
 
@@ -1303,7 +1464,7 @@ export const getBotOpsSummary = onRequest({ region, cors: false }, async (req, r
   res.status(200).json({ summary });
 });
 
-export const evolutionWebhook = onRequest({ region, cors: false }, async (req, res) => {
+export const evolutionWebhook = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -1325,41 +1486,45 @@ export const evolutionWebhook = onRequest({ region, cors: false }, async (req, r
     receivedAt: new Date()
   });
 
-  await saveWhatsappInstance(instanceName, {
+  const normalizedStatus = getNormalizedInstanceStatus(payload);
+  const instanceUpdate: Partial<StoredWhatsappInstance> = {
     name: instanceName,
-    status: getNormalizedInstanceStatus(payload) || eventName,
     evolutionData: payload,
     updatedAt: FieldValue.serverTimestamp()
-  });
+  };
+
+  if (normalizedStatus) {
+    instanceUpdate.status = normalizedStatus;
+  }
+
+  await saveWhatsappInstance(instanceName, instanceUpdate);
 
   logger.info('Evolution webhook received', { instanceName, eventName });
   res.status(200).json({ ok: true });
 });
 
+/**
+ * Autoriza admin pelo custom claim `admin` do ID token.
+ *
+ * NÃO consulta mais `users/{uid}`. Aquele documento é gravável pelo próprio
+ * dono, então lê-lo aqui transformava "criar conta" em "virar admin". A lista
+ * `ADMIN_EMAILS` continua valendo apenas como bootstrap do primeiro
+ * administrador, antes de existir qualquer claim.
+ *
+ * Para conceder ou revogar acesso, use a função `setAdminClaim`
+ * (functions/src/admin-claims.ts).
+ */
 async function requireAdmin(req: Request, res: HttpResponse): Promise<AuthenticatedRequest | null> {
   const decodedUser = await requireAuthenticated(req, res);
   if (!decodedUser) return null;
 
-  try {
-    const userSnap = await getFirestore().doc(`users/${decodedUser.uid}`).get();
-    const userData = userSnap.exists ? userSnap.data() : {};
-    const isAdmin = decodedUser.isTokenAdmin === true
-      || userData?.['isAdmin'] === true
-      || userData?.['super_admin'] === true
-      || userData?.['role'] === 'admin'
-      || isAdminEmail(decodedUser.email);
-
-    if (!isAdmin) {
-      res.status(403).json({ error: 'Admin access required' });
-      return null;
-    }
-
+  if (decodedUser.isTokenAdmin === true || isAdminEmail(decodedUser.email)) {
     return decodedUser;
-  } catch (error) {
-    logger.warn('Failed to verify admin access', error);
-    res.status(401).json({ error: 'Invalid Firebase ID token' });
-    return null;
   }
+
+  logger.warn('Admin access denied', { uid: decodedUser.uid, email: decodedUser.email });
+  res.status(403).json({ error: 'Admin access required' });
+  return null;
 }
 
 async function requireAuthenticated(req: Request, res: HttpResponse): Promise<AuthenticatedRequest | null> {
@@ -1419,14 +1584,54 @@ async function requestEvolution(path: string, options: EvolutionRequestOptions =
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) as unknown : {};
+  let data: unknown = {};
+  if (text) {
+    try {
+      data = JSON.parse(text) as unknown;
+    } catch (_error) {
+      data = { raw: text };
+    }
+  }
 
   if (!response.ok) {
     logger.error('Evolution API request failed', { path, status: response.status, data });
-    throw new Error(`Evolution API request failed with status ${response.status}`);
+    const detail = extractEvolutionErrorDetail(data);
+    throw new Error(
+      `Evolution API request failed with status ${response.status}${detail ? `: ${detail}` : ''}`
+    );
   }
 
   return data;
+}
+
+function getWhatsappServiceErrorStatus(messageText: string): number {
+  if (messageText.includes('EVOLUTION_API_URL and EVOLUTION_API_KEY must be configured')) return 503;
+  if (messageText.includes('Evolution API request failed')) return 502;
+  return 500;
+}
+
+function getWhatsappServiceErrorMessage(messageText: string): string {
+  if (messageText.includes('EVOLUTION_API_URL and EVOLUTION_API_KEY must be configured')) {
+    return 'Evolution API não configurada nas Functions (defina EVOLUTION_API_URL e EVOLUTION_API_KEY em functions/.env e faça deploy).';
+  }
+  return messageText;
+}
+
+function extractEvolutionErrorDetail(data: unknown): string {
+  if (!data || typeof data !== 'object') return '';
+  const record = data as Record<string, unknown>;
+  const candidates = [
+    record['message'],
+    record['error'],
+    record['details'],
+    record['raw']
+  ];
+
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) return value.trim().slice(0, 500);
+  }
+
+  return '';
 }
 
 function handleCors(req: Request, res: HttpResponse): boolean {
@@ -1792,6 +1997,31 @@ async function deleteStoredWhatsappInstance(instanceName: string): Promise<void>
   await db.collection('whatsappInstances').doc(getWhatsappInstanceDocId(instanceName)).delete();
 }
 
+async function markWhatsappInstanceDeleted(instanceName: string, user?: AuthenticatedRequest): Promise<void> {
+  const db = getFirestore();
+  await db.collection('whatsappDeletedInstances').doc(getWhatsappInstanceDocId(instanceName)).set({
+    name: instanceName,
+    deletedBy: user?.uid || null,
+    deletedByEmail: user?.email || null,
+    deletedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+async function clearDeletedWhatsappInstance(instanceName: string): Promise<void> {
+  const db = getFirestore();
+  await db.collection('whatsappDeletedInstances').doc(getWhatsappInstanceDocId(instanceName)).delete();
+}
+
+async function getDeletedWhatsappInstanceNames(): Promise<Set<string>> {
+  const snapshot = await getFirestore().collection('whatsappDeletedInstances').get();
+  return new Set(
+    snapshot.docs
+      .map(doc => getString(doc.data()['name']) || doc.id)
+      .filter(Boolean)
+      .map(name => name.toLowerCase())
+  );
+}
+
 async function getStoredWhatsappInstances(): Promise<StoredWhatsappInstance[]> {
   const snapshot = await getFirestore().collection('whatsappInstances').get();
 
@@ -1856,6 +2086,82 @@ function normalizeEvolutionInstances(response: unknown): NormalizedEvolutionInst
       raw: item
     };
   });
+}
+
+function getEvolutionDefaultInstanceNames(): string[] {
+  return (process.env.EVOLUTION_DEFAULT_INSTANCE || process.env.EVOLUTION_DEFAULT_INSTANCES || '')
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean);
+}
+
+function filterConfiguredEvolutionInstances(instances: NormalizedEvolutionInstance[]): NormalizedEvolutionInstance[] {
+  const configuredNames = getEvolutionDefaultInstanceNames();
+  if (configuredNames.length === 0) return instances;
+
+  const allowed = new Set(configuredNames.map(name => name.toLowerCase()));
+  return instances.filter(instance => allowed.has(instance.name.toLowerCase()));
+}
+
+function filterConfiguredStoredWhatsappInstances(instances: StoredWhatsappInstance[]): StoredWhatsappInstance[] {
+  const configuredNames = getEvolutionDefaultInstanceNames();
+  if (configuredNames.length === 0) return instances;
+
+  const allowed = new Set(configuredNames.map(name => name.toLowerCase()));
+  return instances.filter(instance => allowed.has(instance.name.toLowerCase()));
+}
+
+function filterDeletedEvolutionInstances(
+  instances: NormalizedEvolutionInstance[],
+  deletedNames: Set<string>
+): NormalizedEvolutionInstance[] {
+  if (deletedNames.size === 0) return instances;
+  return instances.filter(instance => !deletedNames.has(instance.name.toLowerCase()));
+}
+
+function filterDeletedStoredWhatsappInstances(
+  instances: StoredWhatsappInstance[],
+  deletedNames: Set<string>
+): StoredWhatsappInstance[] {
+  if (deletedNames.size === 0) return instances;
+  return instances.filter(instance => !deletedNames.has(instance.name.toLowerCase()));
+}
+
+async function getDefaultEvolutionInstances(
+  deletedNames: Set<string> = new Set()
+): Promise<NormalizedEvolutionInstance[]> {
+  const instanceNames = getEvolutionDefaultInstanceNames();
+  const instances: NormalizedEvolutionInstance[] = [];
+
+  for (const instanceName of instanceNames) {
+    if (deletedNames.has(instanceName.toLowerCase())) {
+      continue;
+    }
+
+    const instance = await getEvolutionInstanceState(instanceName);
+    if (instance) {
+      instances.push(instance);
+    } else {
+      logger.warn('Failed to read configured default WhatsApp instance state', {
+        instanceName
+      });
+    }
+  }
+
+  return instances;
+}
+
+async function getEvolutionInstanceState(instanceName: string): Promise<NormalizedEvolutionInstance | null> {
+  try {
+    const raw = await requestEvolution(`/instance/connectionState/${encodeURIComponent(instanceName)}`);
+    return {
+      name: instanceName,
+      status: getNormalizedInstanceStatus(raw) || 'desconhecido',
+      raw
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getNormalizedInstanceStatus(value: unknown): string | null {
@@ -1950,18 +2256,181 @@ function extractPhoneFromInstanceRecord(record: Record<string, unknown>): string
   return null;
 }
 
+/**
+ * Código numérico com gerador criptográfico.
+ * `Math.random()` é previsível e não serve para credencial de uso único.
+ */
 function generateNumericCode(length: number): string {
   let value = '';
   for (let i = 0; i < length; i++) {
-    value += Math.floor(Math.random() * 10).toString();
+    value += randomInt(0, 10).toString();
   }
   return value;
+}
+
+// ---------------------------------------------------------------------------
+// Recuperação de senha — parâmetros de segurança
+// ---------------------------------------------------------------------------
+
+/** 8 dígitos: 100x mais espaço de busca que os 6 anteriores. */
+const RESET_CODE_LENGTH = 8;
+const RESET_CODE_TTL_MS = 15 * 60 * 1000;
+/** Tentativas erradas antes de invalidar o código. */
+const RESET_MAX_ATTEMPTS = 5;
+/** Intervalo mínimo entre dois envios para o mesmo e-mail. */
+const RESET_RESEND_COOLDOWN_MS = 60 * 1000;
+/** Envios por e-mail dentro da janela. */
+const RESET_MAX_SENDS_PER_WINDOW = 5;
+const RESET_SEND_WINDOW_MS = 60 * 60 * 1000;
+
+interface StoredPasswordReset {
+  email: string;
+  codeHash: string;
+  expiresAt: number;
+  attempts?: number;
+  sendCount?: number;
+  windowStartedAt?: number;
+  lastSentAt?: number;
+}
+
+function normalizeResetEmail(email: string): string {
+  return email.toLowerCase().trim();
+}
+
+/**
+ * Guarda apenas o hash do código. Vazamento do documento (backup, export,
+ * acesso indevido ao console) deixa de entregar o código em claro.
+ */
+function hashResetCode(email: string, code: string): string {
+  return createHash('sha256')
+    .update(`${normalizeResetEmail(email)}:${code.trim()}`)
+    .digest('hex');
+}
+
+/** Comparação em tempo constante — não vaza o prefixo correto pelo tempo. */
+function resetCodeMatches(stored: string | undefined, email: string, provided: string): boolean {
+  if (!stored) return false;
+
+  const expected = Buffer.from(stored, 'utf8');
+  const actual = Buffer.from(hashResetCode(email, provided), 'utf8');
+  if (expected.length !== actual.length) return false;
+
+  return timingSafeEqual(expected, actual);
+}
+
+type ResetCheck =
+  | { ok: true; data: StoredPasswordReset }
+  | { ok: false; status: number; error: string };
+
+/**
+ * Valida o código e contabiliza a tentativa.
+ *
+ * Cada erro incrementa `attempts`; ao chegar em RESET_MAX_ATTEMPTS o documento
+ * é apagado e o código morre. Sem isso, 15 minutos de tentativas paralelas
+ * varrem o espaço inteiro e trocam a senha de qualquer conta.
+ */
+async function checkResetCode(email: string, code: string): Promise<ResetCheck> {
+  const db = getFirestore();
+  const normalized = normalizeResetEmail(email);
+  const ref = db.collection('passwordResets').doc(normalized);
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    return { ok: false, status: 400, error: 'Código não encontrado ou expirado.' };
+  }
+
+  const data = snap.data() as StoredPasswordReset;
+  const attempts = data.attempts ?? 0;
+
+  if (attempts >= RESET_MAX_ATTEMPTS) {
+    await ref.delete().catch(() => undefined);
+    return {
+      ok: false,
+      status: 429,
+      error: 'Número de tentativas excedido. Solicite um novo código.'
+    };
+  }
+
+  if (Date.now() > (data.expiresAt || 0)) {
+    await ref.delete().catch(() => undefined);
+    return { ok: false, status: 400, error: 'Código expirado. Solicite um novo.' };
+  }
+
+  if (!resetCodeMatches(data.codeHash, normalized, code)) {
+    const remaining = RESET_MAX_ATTEMPTS - (attempts + 1);
+    await ref.update({ attempts: FieldValue.increment(1) }).catch(() => undefined);
+
+    // Log sem o código: registrar tentativa falha, nunca o valor tentado.
+    logger.warn('Tentativa de código de reset inválida', { email: normalized, attempts: attempts + 1 });
+
+    return {
+      ok: false,
+      status: 400,
+      error: remaining > 0
+        ? `Código inválido. Restam ${remaining} tentativa(s).`
+        : 'Código inválido. Solicite um novo código.'
+    };
+  }
+
+  return { ok: true, data };
+}
+
+type ResetRateLimit = { allowed: true; sendCount: number; windowStartedAt: number }
+  | { allowed: false; error: string };
+
+/**
+ * Limita envios por e-mail: um a cada minuto, no máximo 5 por hora.
+ *
+ * NOTA: o limite é por e-mail, guardado no próprio documento de reset. Um
+ * limite por IP exige armazenamento à parte e entra na Fase 1, junto com o
+ * App Check.
+ */
+async function checkResetRateLimit(email: string): Promise<ResetRateLimit> {
+  const normalized = normalizeResetEmail(email);
+  const snap = await getFirestore().collection('passwordResets').doc(normalized).get();
+
+  const now = Date.now();
+  if (!snap.exists) {
+    return { allowed: true, sendCount: 0, windowStartedAt: now };
+  }
+
+  const data = snap.data() as StoredPasswordReset;
+
+  if (data.lastSentAt && now - data.lastSentAt < RESET_RESEND_COOLDOWN_MS) {
+    const wait = Math.ceil((RESET_RESEND_COOLDOWN_MS - (now - data.lastSentAt)) / 1000);
+    return { allowed: false, error: `Aguarde ${wait} segundos para pedir outro código.` };
+  }
+
+  const windowStartedAt = data.windowStartedAt ?? now;
+  const windowExpired = now - windowStartedAt > RESET_SEND_WINDOW_MS;
+
+  if (windowExpired) {
+    return { allowed: true, sendCount: 0, windowStartedAt: now };
+  }
+
+  const sendCount = data.sendCount ?? 0;
+  if (sendCount >= RESET_MAX_SENDS_PER_WINDOW) {
+    return {
+      allowed: false,
+      error: 'Muitas solicitações para este e-mail. Tente novamente em uma hora.'
+    };
+  }
+
+  return { allowed: true, sendCount, windowStartedAt };
 }
 
 function maskPhoneNumber(phoneNumber: string): string {
   const digits = phoneNumber.replace(/\D/g, '');
   if (digits.length <= 4) return digits;
   return `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
+}
+
+function normalizeWhatsappPhoneNumber(phoneNumber: string): string {
+  const digits = phoneNumber.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('55')) return digits;
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  return digits;
 }
 
 async function getWhatsappTriggerConfigs(): Promise<WhatsappTriggerConfig[]> {
@@ -1972,29 +2441,86 @@ async function getWhatsappTriggerConfigs(): Promise<WhatsappTriggerConfig[]> {
     savedByEvent.set(doc.id, doc.data() as Partial<WhatsappTriggerConfig>);
   });
 
-  return whatsappTriggerDefaults.map(defaultConfig => ({
-    eventType: defaultConfig.eventType,
-    label: defaultConfig.label,
-    enabled: false,
-    instanceName: '',
-    phoneNumber: '',
-    message: defaultConfig.message,
-    ...savedByEvent.get(defaultConfig.eventType)
-  }));
+  return whatsappTriggerDefaults.map(defaultConfig => {
+    const envDefaults = getWhatsappTriggerEnvDefaults(defaultConfig.eventType);
+    const saved = savedByEvent.get(defaultConfig.eventType) || {};
+    const useSavedDestination = shouldUseSavedWhatsappTriggerDestination(defaultConfig.eventType, saved, envDefaults);
+    const forceSignupEnvDefaults = shouldForceSignupWhatsappEnvDefaults(defaultConfig.eventType, envDefaults);
+
+    return {
+      eventType: defaultConfig.eventType,
+      label: defaultConfig.label,
+      ...saved,
+      enabled: forceSignupEnvDefaults ? true : getWhatsappTriggerEnabled(defaultConfig.eventType, saved, envDefaults, useSavedDestination),
+      instanceName: forceSignupEnvDefaults ? envDefaults.instanceName : useSavedDestination ? saved.instanceName || '' : envDefaults.instanceName,
+      phoneNumber: forceSignupEnvDefaults ? envDefaults.phoneNumber : useSavedDestination ? saved.phoneNumber || '' : envDefaults.phoneNumber,
+      message: forceSignupEnvDefaults ? defaultConfig.message : saved.message || defaultConfig.message
+    };
+  });
 }
 
 async function getWhatsappTriggerConfig(eventType: WhatsappTriggerEvent): Promise<WhatsappTriggerConfig> {
   const snapshot = await getFirestore().collection('whatsappTriggers').doc(eventType).get();
   const defaults = getWhatsappTriggerDefault(eventType);
+  const envDefaults = getWhatsappTriggerEnvDefaults(eventType);
+  const saved = snapshot.exists ? snapshot.data() as Partial<WhatsappTriggerConfig> : {};
+  const useSavedDestination = shouldUseSavedWhatsappTriggerDestination(eventType, saved, envDefaults);
+  const forceSignupEnvDefaults = shouldForceSignupWhatsappEnvDefaults(eventType, envDefaults);
 
   return {
     eventType,
     label: defaults.label,
-    enabled: false,
-    instanceName: '',
-    phoneNumber: '',
-    message: defaults.message,
-    ...(snapshot.exists ? snapshot.data() as Partial<WhatsappTriggerConfig> : {})
+    ...saved,
+    enabled: forceSignupEnvDefaults ? true : getWhatsappTriggerEnabled(eventType, saved, envDefaults, useSavedDestination),
+    instanceName: forceSignupEnvDefaults ? envDefaults.instanceName : useSavedDestination ? saved.instanceName || '' : envDefaults.instanceName,
+    phoneNumber: forceSignupEnvDefaults ? envDefaults.phoneNumber : useSavedDestination ? saved.phoneNumber || '' : envDefaults.phoneNumber,
+    message: forceSignupEnvDefaults ? defaults.message : saved.message || defaults.message
+  };
+}
+
+function shouldForceSignupWhatsappEnvDefaults(
+  eventType: WhatsappTriggerEvent,
+  envDefaults: Pick<WhatsappTriggerConfig, 'enabled' | 'instanceName' | 'phoneNumber'>
+): boolean {
+  return eventType === 'account_created' && envDefaults.enabled;
+}
+
+function getWhatsappTriggerEnabled(
+  eventType: WhatsappTriggerEvent,
+  saved: Partial<WhatsappTriggerConfig>,
+  envDefaults: Pick<WhatsappTriggerConfig, 'enabled' | 'instanceName' | 'phoneNumber'>,
+  useSavedDestination: boolean
+): boolean {
+  if (eventType === 'account_created' && envDefaults.enabled) {
+    return true;
+  }
+
+  return useSavedDestination && typeof saved.enabled === 'boolean' ? saved.enabled : envDefaults.enabled;
+}
+
+function shouldUseSavedWhatsappTriggerDestination(
+  eventType: WhatsappTriggerEvent,
+  saved: Partial<WhatsappTriggerConfig>,
+  envDefaults: Pick<WhatsappTriggerConfig, 'enabled' | 'instanceName' | 'phoneNumber'>
+): boolean {
+  if (!saved.instanceName || !saved.phoneNumber) return false;
+  if (eventType !== 'account_created') return true;
+  if (!envDefaults.instanceName) return true;
+  return saved.instanceName.toLowerCase() === envDefaults.instanceName.toLowerCase();
+}
+
+function getWhatsappTriggerEnvDefaults(eventType: WhatsappTriggerEvent): Pick<WhatsappTriggerConfig, 'enabled' | 'instanceName' | 'phoneNumber'> {
+  if (eventType !== 'account_created') {
+    return { enabled: false, instanceName: '', phoneNumber: '' };
+  }
+
+  const instanceName = getEvolutionDefaultInstanceNames()[0] || '';
+  const phoneNumber = (process.env.WHATSAPP_SIGNUP_NOTIFY_PHONE || process.env.WHATSAPP_ADMIN_PHONE || '').trim();
+
+  return {
+    enabled: Boolean(instanceName && phoneNumber),
+    instanceName,
+    phoneNumber
   };
 }
 
@@ -2139,7 +2665,7 @@ async function requestMelhorEnvio(path: string, options: { method?: string; body
   return data;
 }
 
-export const meAuthorizer = onRequest({ region, cors: false }, async (req, res) => {
+export const meAuthorizer = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   const code = req.query['code'] as string;
   if (!code) {
     res.status(400).send('Code is missing');
@@ -2193,9 +2719,14 @@ export const meAuthorizer = onRequest({ region, cors: false }, async (req, res) 
   }
 });
 
-export const calculateMelhorEnvioShipping = onRequest({ region, cors: false }, async (req, res) => {
+export const calculateMelhorEnvioShipping = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
+
+  // Cada chamada consome cota da conta Melhor Envio. Sem autenticação, é uma
+  // torneira aberta que qualquer um pode girar.
+  const user = await requireAuthenticated(req, res);
+  if (!user) return;
 
   try {
     const { zipTo, products } = req.body;
@@ -2241,7 +2772,7 @@ export const calculateMelhorEnvioShipping = onRequest({ region, cors: false }, a
   }
 });
 
-export const createMelhorEnvioShipment = onRequest({ region, cors: false }, async (req, res) => {
+export const createMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -2261,7 +2792,7 @@ export const createMelhorEnvioShipment = onRequest({ region, cors: false }, asyn
   }
 });
 
-export const checkoutMelhorEnvioShipment = onRequest({ region, cors: false }, async (req, res) => {
+export const checkoutMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -2281,7 +2812,7 @@ export const checkoutMelhorEnvioShipment = onRequest({ region, cors: false }, as
   }
 });
 
-export const generateMelhorEnvioLabel = onRequest({ region, cors: false }, async (req, res) => {
+export const generateMelhorEnvioLabel = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -2301,7 +2832,7 @@ export const generateMelhorEnvioLabel = onRequest({ region, cors: false }, async
   }
 });
 
-export const printMelhorEnvioLabel = onRequest({ region, cors: false }, async (req, res) => {
+export const printMelhorEnvioLabel = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -2321,9 +2852,14 @@ export const printMelhorEnvioLabel = onRequest({ region, cors: false }, async (r
   }
 });
 
-export const trackMelhorEnvioShipment = onRequest({ region, cors: false }, async (req, res) => {
+export const trackMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
+
+  // Rastreio expõe dado de entrega (endereço, destinatário, status). Não pode
+  // ficar consultável por qualquer um que adivinhe um código.
+  const user = await requireAuthenticated(req, res);
+  if (!user) return;
 
   try {
     const { shipmentIds } = req.body;
@@ -2338,15 +2874,40 @@ export const trackMelhorEnvioShipment = onRequest({ region, cors: false }, async
   }
 });
 
-export const melhorEnvioWebhook = onRequest({ region, cors: false }, async (req, res) => {
+export const melhorEnvioWebhook = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   // Webhooks do Melhor Envio normalmente são POST
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
   }
 
+  // Este handler escreve direto em `orders`. Sem verificar a origem, qualquer
+  // um marca pedido como entregue. Mesmo padrão já usado no evolutionWebhook.
+  const expectedSecret = (process.env.MELHOR_ENVIO_WEBHOOK_SECRET || '').trim();
+  if (!expectedSecret) {
+    logger.error('MELHOR_ENVIO_WEBHOOK_SECRET não configurado — webhook recusado');
+    res.status(503).json({ error: 'Webhook not configured' });
+    return;
+  }
+
+  const providedSecret = (
+    req.header('x-melhor-envio-webhook-secret') ||
+    req.header('x-webhook-secret') ||
+    ''
+  ).trim();
+
+  if (providedSecret !== expectedSecret) {
+    logger.warn('Melhor Envio webhook com segredo inválido', { ip: req.ip });
+    res.status(401).json({ error: 'Invalid webhook secret' });
+    return;
+  }
+
   const payload = req.body;
-  logger.info('Melhor Envio Webhook received', payload);
+  // Payload pode conter dados do destinatário — registrar só o identificador.
+  logger.info('Melhor Envio Webhook received', {
+    shipmentId: payload?.id || payload?.shipment_id,
+    status: payload?.status
+  });
 
   try {
     const db = getFirestore();
@@ -2380,7 +2941,7 @@ export const melhorEnvioWebhook = onRequest({ region, cors: false }, async (req,
   }
 });
 
-export const getMelhorEnvioMe = onRequest({ region, cors: false }, async (req, res) => {
+export const getMelhorEnvioMe = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   const user = await requireAdmin(req, res);
   if (!user) return;
@@ -2393,7 +2954,7 @@ export const getMelhorEnvioMe = onRequest({ region, cors: false }, async (req, r
   }
 });
 
-export const listMelhorEnvioShipments = onRequest({ region, cors: false }, async (req, res) => {
+export const listMelhorEnvioShipments = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   const user = await requireAdmin(req, res);
   if (!user) return;
@@ -2417,7 +2978,7 @@ interface CompleteResetRequest {
   newPassword?: string;
 }
 
-export const requestPasswordResetCode = onRequest({ region, cors: false }, async (req, res) => {
+export const requestPasswordResetCode = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -2439,14 +3000,25 @@ export const requestPasswordResetCode = onRequest({ region, cors: false }, async
       return;
     }
 
-    // 2. Gerar código e salvar no Firestore
-    const code = generateNumericCode(6);
-    const expiresAt = Date.now() + (15 * 60 * 1000); // 15 minutos
+    // 1.5. Rate limit por e-mail (1/min, 5/hora)
+    const rateLimit = await checkResetRateLimit(email);
+    if (!rateLimit.allowed) {
+      res.status(429).json({ error: rateLimit.error });
+      return;
+    }
 
-    await db.collection('passwordResets').doc(email.toLowerCase().trim()).set({
-      email,
-      code,
+    // 2. Gerar código e salvar SOMENTE o hash
+    const code = generateNumericCode(RESET_CODE_LENGTH);
+    const expiresAt = Date.now() + RESET_CODE_TTL_MS;
+
+    await db.collection('passwordResets').doc(normalizeResetEmail(email)).set({
+      email: normalizeResetEmail(email),
+      codeHash: hashResetCode(email, code),
       expiresAt,
+      attempts: 0,
+      sendCount: rateLimit.sendCount + 1,
+      windowStartedAt: rateLimit.windowStartedAt,
+      lastSentAt: Date.now(),
       createdAt: FieldValue.serverTimestamp()
     });
 
@@ -2563,12 +3135,21 @@ export const requestPasswordResetCode = onRequest({ region, cors: false }, async
       return;
     }
 
+    // O código NUNCA volta na resposta HTTP. Devolvê-lo quando o envio falha
+    // (como acontecia aqui) permite tomar qualquer conta: basta pedir o reset
+    // e ler o corpo da resposta.
+    if (!whatsappSent && !emailSent) {
+      logger.error('Nenhum canal disponível para enviar o código de reset', { email });
+      res.status(503).json({
+        error: 'Não foi possível enviar o código agora. Tente novamente em alguns minutos.'
+      });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       whatsapp: whatsappSent,
-      email: emailSent,
-      // Debug only: remove for production
-      code: (!whatsappSent && !emailSent) ? code : undefined
+      email: emailSent
     });
 
   } catch (error) {
@@ -2577,7 +3158,7 @@ export const requestPasswordResetCode = onRequest({ region, cors: false }, async
   }
 });
 
-export const validateResetCode = onRequest({ region, cors: false }, async (req, res) => {
+export const validateResetCode = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -2588,30 +3169,9 @@ export const validateResetCode = onRequest({ region, cors: false }, async (req, 
   }
 
   try {
-    const db = getFirestore();
-    const resetDoc = await db.collection('passwordResets').doc(email.toLowerCase().trim()).get();
-
-    if (!resetDoc.exists) {
-      res.status(400).json({ error: 'Código não encontrado ou expirado.' });
-      return;
-    }
-
-    const resetData = resetDoc.data();
-    const storedCode = String(resetData?.['code'] || '').trim();
-    const receivedCode = String(code || '').trim();
-    const now = Date.now();
-    const expiresAt = resetData?.['expiresAt'] || 0;
-
-    logger.info('Validating reset code', {
-      email: email.toLowerCase().trim(),
-      now,
-      expiresAt,
-      isExpired: now > expiresAt,
-      isMatch: storedCode === receivedCode
-    });
-
-    if (storedCode !== receivedCode || now > expiresAt) {
-      res.status(400).json({ error: 'Código inválido ou expirado.' });
+    const check = await checkResetCode(email, code);
+    if (!check.ok) {
+      res.status(check.status).json({ error: check.error });
       return;
     }
 
@@ -2622,7 +3182,7 @@ export const validateResetCode = onRequest({ region, cors: false }, async (req, 
   }
 });
 
-export const completePasswordReset = onRequest({ region, cors: false }, async (req, res) => {
+export const completePasswordReset = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
@@ -2632,40 +3192,32 @@ export const completePasswordReset = onRequest({ region, cors: false }, async (r
     return;
   }
 
+  if (newPassword.length < 8) {
+    res.status(400).json({ error: 'A nova senha precisa ter pelo menos 8 caracteres.' });
+    return;
+  }
+
   try {
     const auth = getAuth();
     const db = getFirestore();
 
-    const resetDoc = await db.collection('passwordResets').doc(email.toLowerCase().trim()).get();
-    if (!resetDoc.exists) {
-      res.status(400).json({ error: 'Código não encontrado ou expirado.' });
-      return;
-    }
-
-    const resetData = resetDoc.data();
-    const storedCode = String(resetData?.['code'] || '').trim();
-    const receivedCode = String(code || '').trim();
-    const now = Date.now();
-    const expiresAt = resetData?.['expiresAt'] || 0;
-
-    logger.info('Completing password reset', {
-      email: email.toLowerCase().trim(),
-      now,
-      expiresAt,
-      isExpired: now > expiresAt,
-      isMatch: storedCode === receivedCode
-    });
-
-    if (storedCode !== receivedCode || now > expiresAt) {
-      res.status(400).json({ error: 'Código inválido ou expirado.' });
+    const check = await checkResetCode(email, code);
+    if (!check.ok) {
+      res.status(check.status).json({ error: check.error });
       return;
     }
 
     const userRecord = await auth.getUserByEmail(email);
     await auth.updateUser(userRecord.uid, { password: newPassword });
-    await db.collection('passwordResets').doc(email.toLowerCase().trim()).delete();
 
-    logger.info('Password successfully updated for user', { email });
+    // Código de uso único: some assim que serve.
+    await db.collection('passwordResets').doc(normalizeResetEmail(email)).delete();
+
+    // Encerra as sessões abertas. Se um invasor estava dentro da conta, a
+    // troca de senha sozinha não o expulsaria.
+    await auth.revokeRefreshTokens(userRecord.uid);
+
+    logger.info('Password successfully updated for user', { uid: userRecord.uid });
     res.status(200).json({ success: true, message: 'Senha atualizada com sucesso!' });
   } catch (error) {
     logger.error('Error in completePasswordReset', error);
