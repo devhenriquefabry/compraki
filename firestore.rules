@@ -221,7 +221,14 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
 
-      // Comprador e vendedor mexem em status/entrega, nunca no dinheiro.
+      // Comprador e vendedor mexem em entrega e observacao, nunca no dinheiro
+      // nem no `status`.
+      //
+      // `status` esta na lista porque e ele que diz se o pedido foi pago. Com
+      // ele liberado, o comprador escrevia `status: 'RECEIVED'` direto pelo SDK
+      // e levava o produto sem pagar — era o que o botao "SIMULAR PAGAMENTO"
+      // fazia. Quem confirma pagamento e a funcao `asaasWebhook`, pelo Admin
+      // SDK, que nao passa por estas regras.
       allow update: if isAdmin() || (isSignedIn()
         && (
           request.auth.uid == resource.data.userId ||
@@ -229,7 +236,10 @@ service cloud.firestore {
             && request.auth.uid in resource.data.sellerIds)
         )
         && !request.resource.data.diff(resource.data).affectedKeys()
-             .hasAny(['total', 'userId', 'sellerIds', 'items', 'asaasPaymentId']));
+             .hasAny([
+               'total', 'userId', 'sellerIds', 'items', 'asaasPaymentId',
+               'status', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy'
+             ]));
 
       allow delete: if isAdmin();
     }
@@ -247,6 +257,12 @@ service cloud.firestore {
     match /webhook_history/{entryId} {
       allow read: if isAdmin();
       allow write: if isAdmin();
+    }
+
+    // Trava de idempotencia do webhook do Asaas. So o Admin SDK escreve.
+    match /asaasWebhookEvents/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     match /whatsappMediaCache/{mediaId} {

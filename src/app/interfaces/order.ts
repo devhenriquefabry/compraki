@@ -45,7 +45,23 @@ export interface Order {
   sellerIds: string[]; // Lista de IDs de todos os vendedores envolvidos no pedido
   createdAt: any;
   updatedAt?: any;
-  
+
+  // Escritos apenas pela Cloud Function `asaasWebhook`; o cliente nao alcanca.
+  paymentConfirmedBy?: string;
+  paymentConfirmedAt?: any;
+
+  /**
+   * Sinalizado quando o valor pago nao bate com o total do pedido. O pedido
+   * NAO vira pago nesse caso — precisa de conferencia manual.
+   */
+  paymentAlert?: {
+    reason: 'VALUE_MISMATCH';
+    expectedValue: number;
+    paidValue: number;
+    detectedAt: any;
+  };
+
+
   // Dados de entrega/comprador salvos no momento da compra
   customerData: {
     name: string;

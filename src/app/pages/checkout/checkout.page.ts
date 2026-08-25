@@ -228,14 +228,18 @@ export class CheckoutPage implements OnInit {
           this.navCtrl.navigateRoot('/tabs/tab2');
       } else {
           // Cartão de Crédito
-          // Status vem do Asaas, nao de suposicao nossa: CONFIRMED/RECEIVED
-          // significam aprovado; qualquer outra coisa segue PENDING ate o
-          // webhook confirmar.
+          //
+          // O pedido segue PENDING aqui de proposito. Quem escreve `status` e
+          // a Cloud Function `asaasWebhook`, pelo Admin SDK — o cliente nao
+          // confirma o proprio pagamento (as regras do Firestore tambem barram).
+          // Para cartao aprovado o webhook chega em segundos.
           const approved = ['CONFIRMED', 'RECEIVED'].includes(paymentResult.status);
-          if (approved) {
-            await this.ordersService.updateOrderStatus(orderId, 'RECEIVED');
-          }
-          await this.showSuccessAlert('Sucesso!', 'Compra em Cartão de Crédito aprovada!');
+          await this.showSuccessAlert(
+            approved ? 'Sucesso!' : 'Pagamento em análise',
+            approved
+              ? 'Compra em Cartão de Crédito aprovada!'
+              : 'Recebemos seu pagamento e ele está em análise. Você será avisado assim que for confirmado.'
+          );
           await this.cartService.clearCart();
           this.navCtrl.navigateRoot('/tabs/tab2');
       }

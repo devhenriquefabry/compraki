@@ -11,8 +11,9 @@ isto primeiro, depois `docs/runbook-fase-0.md` para o deploy.
 
 Foi feita uma auditoria de arquitetura completa, seguida da **Fase 0**
 (contenção de segurança) e da maior parte da **Fase 2** (performance e custo).
-**Nada está deployado e nada foi commitado** — tudo está na árvore de trabalho.
-Há uma ação urgente que só o Henrique pode fazer: revogar a chave do Asaas.
+O trabalho está commitado no branch `fase-0-seguranca`, ainda **não deployado** e
+não empurrado. Há uma ação urgente que só o Henrique pode fazer: revogar a chave
+do Asaas.
 
 Relatório da auditoria:
 https://claude.ai/code/artifact/7b75f845-daaa-47ce-933b-ca4bc5c2788b
@@ -25,11 +26,15 @@ https://claude.ai/code/artifact/7b75f845-daaa-47ce-933b-ca4bc5c2788b
    Asaas. A chave `$aact_prod_000Mzkw…` e o `whsec_RS2WNLw9…` estavam dentro do
    bundle publicado e continuam no histórico do Git (commit `c9747d1`). Trocar
    o código não invalida o que já vazou. Conferir o extrato da conta.
-2. Preencher `functions/.env` com os valores novos (modelo em `.env.example`).
-3. Deployar **na ordem do `docs/runbook-fase-0.md`** — a ordem importa: o
+2. Preencher `functions/.env` com os valores novos (modelo em `.env.example`),
+   incluindo o `ASAAS_WEBHOOK_TOKEN` novo.
+3. **Cadastrar o webhook de pagamento no painel do Asaas** (passo 2b do
+   runbook). Sem ele nenhum pedido sai de `PENDING` — confirmar pagamento
+   deixou de ser coisa do aplicativo.
+4. Deployar **na ordem do `docs/runbook-fase-0.md`** — a ordem importa: o
    backfill de `sellers/` tem que rodar antes das regras novas, senão os perfis
    de vendedor ficam vazios.
-4. Decidir sobre o histórico do Git (reescrever ou tratar o repositório como
+5. Decidir sobre o histórico do Git (reescrever ou tratar o repositório como
    comprometido).
 
 ---
@@ -64,6 +69,19 @@ existir no `ng serve` — pagamento estava quebrado no build de produção.
 máximo 5 tentativas, 1 envio/min e 5/hora, comparação em tempo constante, revoga
 sessões ao trocar. Removido o `code:` que voltava no corpo da resposta quando o
 envio falhava — era takeover de qualquer conta.
+
+**Confirmação de pagamento.** Não existia nenhuma no servidor: quem marcava
+pedido como pago era o botão "SIMULAR PAGAMENTO" no navegador do próprio
+comprador. Desligar o botão sozinho deixaria PIX e boleto presos em `PENDING`
+para sempre. Entrou `functions/src/payments/asaas-webhook.ts` — valida o token
+no cabeçalho `asaas-access-token`, é idempotente por evento
+(`asaasWebhookEvents`), só permite transição de status que faça sentido, e
+**confere o valor pago contra o total do pedido** antes de confirmar. Divergiu,
+o pedido não vira pago e ganha `paymentAlert`.
+
+Junto com isso, `status` entrou na lista de campos que o cliente não escreve em
+`orders` — sem essa parte o comprador continuaria confirmando o próprio
+pagamento pelo SDK, e o webhook seria decoração.
 
 **Outros:** assinatura no `melhorEnvioWebhook`; autenticação nos dois endpoints
 abertos do Melhor Envio; `maxInstances` nas 39 functions; `user-scalable=no`
@@ -115,6 +133,17 @@ presumida; segredos e URLs `localhost` movidos para `environment`.
 staging separado, testes de regras com emulador, Crashlytics/Sentry, budgets
 apertando.
 
+**O item mais importante da Fase 1 é o total calculado no servidor.**
+`createAsaasPayment` recebe o `value` do navegador, e o `total` do pedido também
+é escrito pelo cliente — dá para montar um pedido de R$ 500 e uma cobrança de
+R$ 0,01. O webhook mitiga (compara os dois e se recusa a confirmar quando
+divergem), mas a correção de verdade é a função receber o `orderId`, ler os
+itens e recalcular o preço a partir de `products/`. O navegador não deveria ter
+opinião sobre quanto custa.
+
+Vale junto: tokenizar o cartão com o SDK do Asaas no front, para número e CCV
+nunca passarem pelas Functions (está comentado em `createAsaasPayment`).
+
 **Fase 3:** a11y (41 de 87 imagens sem `alt`, 0 com dimensão, 38 `<div (click)>`,
 3 `autocomplete` em 133 campos), Reactive Forms, estado na URL, quebrar
 `functions/src/index.ts` (3.016 linhas) em módulos por domínio.
@@ -161,6 +190,7 @@ functions/src/shared/http.ts                CORS, auth, requireAdmin, maxInstanc
 functions/src/admin-claims.ts               setAdminClaim, bootstrap, limpeza
 functions/src/seller-profile.ts             espelho users/ → sellers/
 functions/src/payments/asaas.ts             Asaas server-side
+functions/src/payments/asaas-webhook.ts     confirmacao de pagamento
 functions/src/counters.ts                   savedCount por gatilho
 functions/src/metrics.ts                    métricas agregadas agendadas
 

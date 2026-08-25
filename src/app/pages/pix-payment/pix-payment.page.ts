@@ -72,8 +72,10 @@ export class PixPaymentPage implements OnInit {
    * qualquer comprador apertaria o botão e teria o pedido como pago. Por isso
    * a checagem abaixo, além do `*ngIf` no template.
    *
-   * A confirmação de pagamento de verdade tem que vir do webhook do Asaas
-   * (server-side) — está na Fase 1.
+   * A confirmação de verdade vem da Cloud Function `asaasWebhook`. As regras do
+   * Firestore agora barram escrita de `status` pelo cliente, então este botão
+   * só funciona para quem tem o claim `admin` — e mesmo assim só fora de
+   * produção. Para testar o fluxo real, dispare o webhook contra o emulador.
    */
   async simulatePayment() {
     if (environment.production) {

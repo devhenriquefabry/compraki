@@ -31,6 +31,8 @@ export {
   refundAsaasPayment
 } from './payments/asaas';
 
+export { asaasWebhook } from './payments/asaas-webhook';
+
 const WHATSAPP_MEDIA_CACHE_COLLECTION = 'whatsappMediaCache';
 const WHATSAPP_MEDIA_CACHE_STATS_DOC = 'whatsappMediaCacheStats/global';
 const WHATSAPP_MEDIA_STORAGE_PREFIX = 'whatsapp-media';

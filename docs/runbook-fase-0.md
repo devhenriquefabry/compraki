@@ -36,6 +36,10 @@ O arquivo já existe e **não** é versionado. Acrescente:
 ASAAS_API_KEY=
 ASAAS_API_URL=https://api.asaas.com/v3
 
+# Token do webhook de pagamento do Asaas. Gere agora com `openssl rand -hex 32`
+# e guarde: o MESMO valor vai no painel do Asaas, no passo 2b.
+ASAAS_WEBHOOK_TOKEN=
+
 # Token NOVO de webhook gerado no passo 0
 MELHOR_ENVIO_WEBHOOK_SECRET=
 
@@ -67,10 +71,47 @@ ALLOWED_ORIGINS=https://compraki-mcu.web.app,capacitor://localhost,ionic://local
 firebase deploy --only functions
 ```
 
-Sobe 46 funções, entre elas as novas: `setAdminClaim`, `bootstrapAdminClaims`,
+Sobe 47 funções, entre elas as novas: `setAdminClaim`, `bootstrapAdminClaims`,
 `cleanupLegacyAdminFlags`, `syncSellerProfile`, `backfillSellerProfiles`,
 `createAsaasCustomer`, `createAsaasPayment`, `getAsaasPayment`,
-`refundAsaasPayment`.
+`refundAsaasPayment`, `asaasWebhook`.
+
+---
+
+## 2b. Cadastrar o webhook de pagamento no painel do Asaas
+
+**Não pule este passo.** Confirmar pagamento deixou de ser coisa do aplicativo —
+quem escreve `status` no pedido é a função `asaasWebhook`, pelo Admin SDK, e as
+regras do Firestore barram o cliente. Sem o webhook cadastrado, **nenhum pedido
+sai de `PENDING`**: nem PIX, nem boleto, nem cartão.
+
+Painel do Asaas → **Integrações → Webhooks → Adicionar**:
+
+| Campo | Valor |
+|---|---|
+| URL | `https://us-central1-compraki-mcu.cloudfunctions.net/asaasWebhook` |
+| Token de autenticação | o mesmo `ASAAS_WEBHOOK_TOKEN` do passo 1 |
+| Versão da API | v3 |
+| Eventos | Cobranças (`PAYMENT_*`) |
+| Fila de sincronização | ativada |
+
+Confira que responde:
+
+```bash
+curl -i -X POST https://us-central1-compraki-mcu.cloudfunctions.net/asaasWebhook \
+  -H "Content-Type: application/json" -d '{}'
+```
+
+Esperado: **401**. Se vier 503, o `ASAAS_WEBHOOK_TOKEN` não subiu no passo 2.
+
+O que a função faz com cada evento:
+
+- `PAYMENT_RECEIVED` e `PAYMENT_CONFIRMED` → pedido vai de `PENDING` para
+  `RECEIVED`, **desde que o valor pago bata com o total do pedido**. Divergiu, o
+  pedido continua `PENDING` e ganha um campo `paymentAlert` para conferência.
+- `PAYMENT_REFUNDED` → `REFUNDED`. `PAYMENT_DELETED` → `CANCELLED`.
+- Qualquer outro evento é reconhecido com 200 e ignorado.
+- Reenvio do mesmo evento é descartado pela coleção `asaasWebhookEvents`.
 
 ---
 
@@ -198,6 +239,14 @@ Marque cada item:
 - [ ] Abrir um produto → nome, foto e loja do vendedor aparecem normalmente.
 - [ ] Abrir o perfil de um vendedor → carrega com os dados da vitrine.
 - [ ] Comprar via PIX → cobrança é criada (agora pela Function, não pelo app).
+- [ ] Pagar esse PIX de verdade e conferir que o pedido vira `RECEIVED`
+      **sozinho**, em segundos, sem ninguém tocar em nada. É o webhook.
+- [ ] No DevTools, com um pedido seu na tela, tentar
+      `updateDoc(doc(db,'orders',meuPedido),{status:'RECEIVED'})` → erro de
+      permissão. Se isso passar, a confirmação de pagamento continua nas mãos
+      do comprador.
+- [ ] `curl -X POST .../asaasWebhook -d '{}'` sem o header
+      `asaas-access-token` → 401.
 - [ ] Conferir que o botão "SIMULAR PAGAMENTO" **não** aparece no build de produção.
 - [ ] Pedir recuperação de senha duas vezes seguidas → a segunda pede para aguardar.
 - [ ] Errar o código 5 vezes → bloqueia e manda pedir um novo.
@@ -214,6 +263,20 @@ simulação. Rode com `{"apply": true}`.
 **"Missing or insufficient permissions" numa tela nova:** provavelmente uma
 coleção sem `match` em `firestore.rules`. O Firestore nega por padrão o que não
 casa. Veja qual coleção no console do navegador e adicione a regra.
+
+**Pedido pago que não sai de `PENDING`:** olhe o log da função `asaasWebhook`
+no console do Firebase.
+
+- Nenhuma execução → o webhook não está cadastrado no Asaas (passo 2b), ou está
+  com a URL errada. O painel do Asaas mostra a fila de entregas com o erro.
+- `401` → o token do painel não bate com o `ASAAS_WEBHOOK_TOKEN` das Functions.
+- `Webhook do Asaas sem pedido correspondente` → a cobrança existe mas nenhum
+  pedido tem aquele `asaasPaymentId`. Provavelmente o app caiu entre criar a
+  cobrança e gravar o pedido.
+- `Valor pago diverge do total do pedido` → o pedido tem `paymentAlert`. **Não
+  confirme sem conferir**: é exatamente o sinal de alguém pagando menos do que
+  o carrinho vale. O total do pedido ainda vem do navegador; o cálculo no
+  servidor está na Fase 1.
 
 **Painel admin inacessível para você:** o claim não entrou no token. Saia,
 entre de novo, e confira em:
