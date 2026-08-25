@@ -54,16 +54,31 @@ export class WhatsappInstancesPanelComponent {
     this.errorMessage = '';
     this.successMessage = '';
 
+    const existingInstance = this.instances.find(instance => instance.name.toLowerCase() === name.toLowerCase());
+    if (existingInstance) {
+      this.isCreating = false;
+      this.selectedTestInstance = existingInstance.name;
+      this.successMessage = `A instância ${existingInstance.name} já está cadastrada. Use os botões da lista para testar, gerar QR ou gerenciar a conexão.`;
+      return;
+    }
+
     try {
       await this.whatsappService.createInstance({
         instanceName: name,
         webhookUrl: this.webhookUrl.trim() || undefined
       });
-      this.successMessage = `Instância ${name} criada. Busque o QR Code para conectar.`;
+      this.successMessage = `Instância ${name} pronta. Busque o QR Code para conectar.`;
       this.instanceName = '';
       this.instancesChanged.emit();
     } catch (error) {
-      this.errorMessage = getErrorMessage(error);
+      const message = getErrorMessage(error);
+      const refreshedInstance = this.instances.find(instance => instance.name.toLowerCase() === name.toLowerCase());
+      if (refreshedInstance) {
+        this.selectedTestInstance = refreshedInstance.name;
+        this.successMessage = `A instância ${refreshedInstance.name} já está cadastrada. Use a conexão existente.`;
+      } else {
+        this.errorMessage = message;
+      }
     } finally {
       this.isCreating = false;
     }
@@ -162,3 +177,4 @@ export class WhatsappInstancesPanelComponent {
     return qrCode.startsWith('data:image') ? qrCode : `data:image/png;base64,${qrCode}`;
   }
 }
+

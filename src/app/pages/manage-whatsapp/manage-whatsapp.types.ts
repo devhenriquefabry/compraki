@@ -72,5 +72,11 @@ export function getInstanceStatusClass(status: string): string {
 }
 
 export function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Erro inesperado ao gerenciar WhatsApp.';
+  if (!(error instanceof Error)) return 'Erro inesperado ao gerenciar WhatsApp.';
+
+  if (error.message.includes('Evolution API request failed with status 500')) {
+    return 'A Evolution API respondeu com erro interno. Se a instância já aparece conectada, use a conexão existente; se precisar criar outra, tente novamente depois de reiniciar/verificar o servidor Evolution.';
+  }
+
+  return error.message;
 }

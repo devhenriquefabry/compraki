@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import { 
@@ -89,9 +90,14 @@ export class ManageUsersPage implements OnInit, OnDestroy {
   ];
 
   private usersSub?: Subscription;
+  private routeSub?: Subscription;
+  private pendingSelectedUserId = '';
   private geocache = new Map<string, {lat: number, lng: number}>();
 
-  constructor(private firebaseUsersService: FirebaseUsersService) {
+  constructor(
+    private firebaseUsersService: FirebaseUsersService,
+    private route: ActivatedRoute
+  ) {
     addIcons({
       peopleOutline, radioOutline, storefrontOutline, banOutline,
       downloadOutline, checkmarkCircleOutline, lockOpenOutline, lockClosedOutline,
@@ -101,10 +107,15 @@ export class ManageUsersPage implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.routeSub = this.route.queryParamMap.subscribe(params => {
+      this.pendingSelectedUserId = params.get('user') || '';
+      this.selectPendingUser();
+    });
     this.loadUsers();
   }
 
   ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
     this.usersSub?.unsubscribe();
     this.addressesSub?.unsubscribe();
     this.purchasesSub?.unsubscribe();
@@ -539,6 +550,7 @@ export class ManageUsersPage implements OnInit, OnDestroy {
       next: users => {
         this.allUsers = users;
         this.recompute();
+        this.selectPendingUser();
         this.loading = false;
       },
       error: error => {
@@ -577,6 +589,16 @@ export class ManageUsersPage implements OnInit, OnDestroy {
 
     const filteredIds = new Set(this.filteredUsers.map(user => this.getUserId(user)));
     this.selectedUserIds = new Set(Array.from(this.selectedUserIds).filter(id => filteredIds.has(id)));
+  }
+
+  private selectPendingUser(): void {
+    if (!this.pendingSelectedUserId || this.allUsers.length === 0) return;
+
+    const user = this.allUsers.find(item => this.getUserId(item) === this.pendingSelectedUserId);
+    if (!user) return;
+
+    this.selectUser(user);
+    this.pendingSelectedUserId = '';
   }
 
   private filterBySearch(user: AppUser, term: string): boolean {
