@@ -105,3 +105,9 @@ functions/batch-delete*.js
 functions/cleanup-auth.ps1
 functions/extract-uids.js
 *.backup.json
+
+# Evolution API local/runtime artifacts
+infra/evolution/*connect-response*.json
+infra/evolution/*create-instance-response*.json
+infra/evolution/*qrcode*.png
+infra/evolution/instances/
