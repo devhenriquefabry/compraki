@@ -1,0 +1,26 @@
+# Firebase App Hosting — backend do site Vineon (www.vineonsite.com.br)
+#
+# O App Hosting compila a partir do GitHub, nao da maquina local: ele roda
+# `npm ci` e `npm run build` (= `ng build`, configuracao `production`) e publica
+# o resultado. Como este app Angular nao tem SSR, o adaptador gera um servidor
+# Express minimo que serve `www/browser` e devolve `index.html` em qualquer rota
+# desconhecida — e isso que faz o deep link (/produto/123) funcionar no F5.
+#
+# Segredo NENHUM aqui: tudo que entra no bundle Angular e publico. Chave de
+# gateway, token de webhook e afins continuam no `functions/.env`, usados so
+# pelas Cloud Functions.
+
+runConfig:
+  # Servidor de arquivo estatico: o minimo ja sobra. A maior parte das
+  # requisicoes nem chega aqui, o CDN do App Hosting responde antes.
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
+
+  # Teto de containers. Protege a fatura se o site levar um pico de acesso.
+  maxInstances: 10
+
+  # Zero = nao paga container parado, mas a primeira visita depois de um tempo
+  # ocioso espera o cold start (~1s). Se quiser o site sempre quente, troque
+  # para 1 — custa da ordem de US$ 10-15/mes.
+  minInstances: 0
