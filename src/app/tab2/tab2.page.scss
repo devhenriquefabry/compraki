@@ -3,9 +3,15 @@ ion-toolbar {
 }
 
 .custom-header {
-  --background: #1e2d3e;
+  --background: var(--vn-navy-900);
   --color: white;
   --border-width: 0;
+
+  /* Header nativo (app-mini-header) tem fundo próprio (#1e2d3e); aqui usamos
+     a mesma cor da marca (--vn-navy-900) para casar com a faixa do banner. */
+  ::ng-deep .container {
+    background-color: var(--vn-navy-900);
+  }
   
   .header-logo-center {
     display: flex;
@@ -27,7 +33,7 @@ ion-toolbar {
 }
 
 .search-toolbar {
-  --background: #1e2d3e;
+  --background: var(--vn-navy-900);
   --border-width: 0;
   --padding-top: 5px;
   --padding-bottom: 15px;
@@ -158,6 +164,16 @@ ion-toolbar {
   }
 }
 
+/* FAIXA AZUL ATRÁS DO BANNER (mesmo efeito do .dhm-band do desktop) */
+.banner-band {
+  background: linear-gradient(
+    180deg,
+    var(--vn-navy-900) 0%,
+    var(--vn-navy-800) 55%,
+    #f8f9fa 100%
+  );
+}
+
 /* BANNERS (SNAP NATIVO + DRAG) */
 .banner-scroll-container {
   overflow-x: auto;
@@ -285,6 +301,9 @@ ion-toolbar {
     align-items: center;
     gap: 8px;
     min-width: 70px;
+    /* overflow-x:auto no pai deixa o item encolher abaixo do conteúdo (min-size
+       automático vira 0), e o texto com nowrap passa a invadir o vizinho. */
+    flex-shrink: 0;
 
     .cat-circle {
       width: 60px; height: 60px;
@@ -303,12 +322,15 @@ ion-toolbar {
         box-shadow: 0 4px 10px rgba(121, 157, 80, 0.15);
       }
     }
-    span { 
-      font-size: 11px; 
-      font-weight: 700; 
-      color: #1e2d3e; 
+    span {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e2d3e;
       text-align: center;
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.25;
+      width: 100%;
+      max-width: 74px;
     }
   }
 

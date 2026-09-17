@@ -35,41 +35,44 @@
 
   <!-- CONTEÚDO ORIGINAL (Só aparece se NÃO estiver buscando) -->
   <ng-container *ngIf="!searchTerm">
-    <!-- BANNER TOPO (Snap Nativo + Drag) -->
-    <div class="banner-scroll-container" #bannerContainer>
-      <div class="scroll-track">
-        <!-- Banners dinâmicos do Firestore -->
-        @if (activeBanners.length > 0) {
-          @for (banner of activeBanners; track banner.id) {
+    <!-- FAIXA AZUL (continua o header, no molde do desktop) -->
+    <div class="banner-band">
+      <!-- BANNER TOPO (Snap Nativo + Drag) -->
+      <div class="banner-scroll-container" #bannerContainer>
+        <div class="scroll-track">
+          <!-- Banners dinâmicos do Firestore -->
+          @if (activeBanners.length > 0) {
+            @for (banner of activeBanners; track banner.id) {
+              <div class="banner-slide">
+                <div class="promo-banner" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
+                  @if (banner.imageURL) {
+                    <img class="banner-bg-img" [src]="banner.imageURL" [alt]="banner.title">
+                  } @else {
+                    <div class="promo-text" [style.color]="banner.textColor">
+                      <h3>{{ banner.title }}</h3>
+                      @if (banner.subtitle) { <p>{{ banner.subtitle }}</p> }
+                      @if (banner.buttonText) {
+                        <button class="btn-aproveite">{{ banner.buttonText }}</button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          } @else {
+            <!-- Fallback: banner padrão enquanto não há banners cadastrados -->
             <div class="banner-slide">
-              <div class="promo-banner" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
-                @if (banner.imageURL) {
-                  <img class="banner-bg-img" [src]="banner.imageURL" [alt]="banner.title">
-                } @else {
-                  <div class="promo-text" [style.color]="banner.textColor">
-                    <h3>{{ banner.title }}</h3>
-                    @if (banner.subtitle) { <p>{{ banner.subtitle }}</p> }
-                    @if (banner.buttonText) {
-                      <button class="btn-aproveite">{{ banner.buttonText }}</button>
-                    }
-                  </div>
-                }
+              <div class="promo-banner">
+                <div class="promo-text">
+                  <h3>Mega Promoção!</h3>
+                  <p>Descontos de até <span>60% OFF</span></p>
+                  <button class="btn-aproveite">APROVEITE</button>
+                </div>
+                <img src="assets/imagens/promo-fallback.png" alt="Promo">
               </div>
             </div>
           }
-        } @else {
-          <!-- Fallback: banner padrão enquanto não há banners cadastrados -->
-          <div class="banner-slide">
-            <div class="promo-banner">
-              <div class="promo-text">
-                <h3>Mega Promoção!</h3>
-                <p>Descontos de até <span>60% OFF</span></p>
-                <button class="btn-aproveite">APROVEITE</button>
-              </div>
-              <img src="assets/imagens/promo-fallback.png" alt="Promo">
-            </div>
-          </div>
-        }
+        </div>
       </div>
     </div>
 
