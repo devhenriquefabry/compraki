@@ -22,6 +22,8 @@ export { syncSellerProfile, backfillSellerProfiles } from './seller-profile';
 
 export { onProductSaved, onProductUnsaved, recomputeSavedCounts } from './counters';
 
+export { onProductReviewWritten } from './reviews';
+
 export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
 
 export {
@@ -2714,7 +2716,8 @@ export const meAuthorizer = onRequest({ region, cors: false, maxInstances: MAX_I
     }, { merge: true });
 
     // Redireciona de volta para o app
-    res.redirect('https://compraki-mcu.web.app/tabs/tab2');
+    const appUrl = (process.env.APP_PUBLIC_URL || 'https://www.vineonsite.com.br').replace(/\/+$/, '');
+    res.redirect(`${appUrl}/tabs/tab2`);
   } catch (error) {
     logger.error('Melhor Envio Auth Callback Error', error);
     res.status(500).send('Internal Server Error');

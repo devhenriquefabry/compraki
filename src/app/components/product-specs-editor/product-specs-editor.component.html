@@ -1,0 +1,39 @@
+<div class="se">
+  @for (row of rows(); track $index) {
+    <div class="se-row">
+      <input
+        class="se-input se-input--label"
+        type="text"
+        [value]="row.label"
+        placeholder="Ex: Marca"
+        maxlength="80"
+        [attr.aria-label]="'Nome da característica ' + ($index + 1)"
+        (input)="update($index, 'label', $event)">
+      <input
+        class="se-input"
+        type="text"
+        [value]="row.value"
+        placeholder="Ex: Apple"
+        maxlength="80"
+        [attr.aria-label]="'Valor de ' + (row.label || 'característica ' + ($index + 1))"
+        (input)="update($index, 'value', $event)">
+      <button type="button" class="se-remove" (click)="remove($index)" [attr.aria-label]="'Remover ' + (row.label || 'característica')">
+        <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+      </button>
+    </div>
+  }
+
+  @if (rows().length < maxSpecs) {
+    @if (suggestions().length) {
+      <div class="se-suggest">
+        @for (label of suggestions(); track label) {
+          <button type="button" class="se-chip" (click)="add(label)">+ {{ label }}</button>
+        }
+      </div>
+    }
+    <button type="button" class="se-add" (click)="add()">
+      <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
+      Adicionar outra característica
+    </button>
+  }
+</div>

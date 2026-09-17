@@ -186,6 +186,19 @@
       </div>
     </div>
 
+    <!-- SEÇÃO FICHA TÉCNICA -->
+    <div class="section-title">
+      <div class="dot"></div>
+      <span>Características</span>
+    </div>
+
+    <div class="form-group">
+      <app-product-specs-editor
+        [specs]="editProductForm.controls.specs.value"
+        (specsChange)="editProductForm.controls.specs.setValue($event)">
+      </app-product-specs-editor>
+    </div>
+
     <!-- SEÇÃO DESCRIÇÃO -->
     <div class="section-title">
       <div class="dot"></div>

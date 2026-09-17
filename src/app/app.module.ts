@@ -12,6 +12,7 @@ import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BotStatusWidgetComponent } from './components/bot-status-widget/bot-status-widget.component';
+import { DesktopHeaderComponent } from './components/desktop-header/desktop-header.component';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app'
 import { environment } from 'src/environments/environment';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
@@ -19,9 +20,7 @@ import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 
 @NgModule({
   declarations: [AppComponent, BotStatusWidgetComponent],
-  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule,
-
-  ],
+  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, DesktopHeaderComponent],
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     { provide: LOCALE_ID, useValue: 'pt-BR' },

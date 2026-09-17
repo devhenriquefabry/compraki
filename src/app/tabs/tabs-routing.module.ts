@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { TabsPage } from './tabs.page';
+import { authGuard } from '../guards/auth.guard';
 
 const routes: Routes = [
   {
@@ -18,27 +19,33 @@ const routes: Routes = [
       },
       {
         path: 'cart',
-        loadComponent: () => import('../pages/cart/cart.page').then(m => m.CartPage)
+        loadComponent: () => import('../pages/cart/cart.page').then(m => m.CartPage),
+        canActivate: [authGuard]
       },
       {
         path: 'upload-product',
-        loadChildren: () => import('../pages/upload-product/upload-product.module').then(m => m.UploadProductPageModule)
+        loadChildren: () => import('../pages/upload-product/upload-product.module').then(m => m.UploadProductPageModule),
+        canActivate: [authGuard]
       },
       {
         path: 'my-account',
-        loadChildren: () => import('../pages/my-account/my-account.module').then(m => m.MyAccountPageModule)
+        loadChildren: () => import('../pages/my-account/my-account.module').then(m => m.MyAccountPageModule),
+        canActivate: [authGuard]
       },
       {
         path: 'notifications',
-        loadChildren: () => import('../pages/notifications/notifications.module').then(m => m.NotificationsPageModule)
+        loadChildren: () => import('../pages/notifications/notifications.module').then(m => m.NotificationsPageModule),
+        canActivate: [authGuard]
       },
       {
         path: 'saved',
-        loadComponent: () => import('../pages/saved/saved.page').then(m => m.SavedPage)
+        loadComponent: () => import('../pages/saved/saved.page').then(m => m.SavedPage),
+        canActivate: [authGuard]
       },
       {
         path: 'chats',
-        loadComponent: () => import('../pages/chats/chats.page').then(m => m.ChatsPage)
+        loadComponent: () => import('../pages/chats/chats.page').then(m => m.ChatsPage),
+        canActivate: [authGuard]
       }
     ]
   },

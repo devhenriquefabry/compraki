@@ -2,7 +2,8 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Product } from 'src/app/interfaces/product';
+import { Product, ProductSpec } from 'src/app/interfaces/product';
+import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
@@ -15,7 +16,7 @@ import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinn
   templateUrl: './edit-product-form.component.html',
   styleUrls: ['./edit-product-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent]
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent]
 })
 export class EditProductFormComponent implements OnInit {
   private _product!: Product;
@@ -50,6 +51,7 @@ export class EditProductFormComponent implements OnInit {
     stock: new FormControl<number>(1, [Validators.required]),
     acceptOffers: new FormControl(true),
     description: new FormControl('', [Validators.required]),
+    specs: new FormControl<ProductSpec[]>([]),
     categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
     subcategoryIds: new FormControl<string[]>([]),
     shipping: new FormControl<'Frete Grátis' | 'A combinar' | 'Entrega Expressa'>('A combinar', [Validators.required]),
@@ -92,7 +94,7 @@ export class EditProductFormComponent implements OnInit {
 
   private updateFormWithProduct(product: Product) {
     if (product) {
-      this.editProductForm.patchValue(product);
+      this.editProductForm.patchValue({ ...product, specs: product.specs || [] });
       this.selectedPhotos = [...(product.photoURL || [])];
       this.filesToUpload = []; // Reset local files on product change
     }
@@ -263,6 +265,7 @@ export class EditProductFormComponent implements OnInit {
 
         const updatedProduct = {
           ...this.editProductForm.value,
+          specs: cleanSpecs(this.editProductForm.value.specs),
           photoURL: finalPhotoURL
         } as Product;
 

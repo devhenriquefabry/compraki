@@ -1,0 +1,29 @@
+<section class="rail" [attr.aria-labelledby]="headingId">
+  <div class="rail-head">
+    <h2 class="rail-title" [id]="headingId">{{ heading() }}</h2>
+    @if (seeAll(); as params) {
+      <a class="rail-see-all" routerLink="/tabs/tab2" [queryParams]="params">Ver todos</a>
+    }
+  </div>
+
+  <div class="rail-viewport">
+    <ul class="rail-track" #track (scroll)="updateArrows()">
+      @for (product of products(); track product.id) {
+        <li class="rail-item">
+          <app-storefront-card [product]="product"></app-storefront-card>
+        </li>
+      }
+    </ul>
+
+    @if (canScrollBack()) {
+      <button type="button" class="rail-arrow rail-arrow--back" (click)="scrollByPage(-1)" aria-label="Produtos anteriores">
+        <ion-icon name="chevron-back" aria-hidden="true"></ion-icon>
+      </button>
+    }
+    @if (canScrollForward()) {
+      <button type="button" class="rail-arrow rail-arrow--forward" (click)="scrollByPage(1)" aria-label="Mais produtos">
+        <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+      </button>
+    }
+  </div>
+</section>

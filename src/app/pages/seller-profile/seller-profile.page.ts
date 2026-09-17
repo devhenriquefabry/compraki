@@ -38,6 +38,7 @@ import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.
 import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
+import { requireAccount } from 'src/app/core/auth-redirect';
 
 interface SellerStats {
   productCount: number;
@@ -221,6 +222,7 @@ export class SellerProfilePage implements OnInit, OnDestroy {
   }
 
   public async toggleFollow(seller: PublicSellerProfile) {
+    if (!requireAccount(this.router)) return;
     if (this.isOwnProfile(seller) || this.isFollowActionBusy) return;
 
     this.isFollowActionBusy = true;
@@ -241,6 +243,7 @@ export class SellerProfilePage implements OnInit, OnDestroy {
   }
 
   public async startChat(seller: PublicSellerProfile) {
+    if (!requireAccount(this.router)) return;
     if (this.isOwnProfile(seller)) {
       this.editSellerProfile();
       return;

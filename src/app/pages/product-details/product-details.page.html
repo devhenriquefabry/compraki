@@ -1,310 +1,488 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="true" [showMenuButton]="false" backUrl="/tabs/tab2"></app-mini-header>
-</ion-header>
+@if (!layout.isDesktop()) {
+  <ion-header class="ion-no-border">
+    <app-mini-header [showBackButton]="true" [showMenuButton]="false" backUrl="/tabs/tab2"></app-mini-header>
+  </ion-header>
+}
 
-<ion-content class="product-bg-gray" [class.chat-active-layout]="isChatOpen">
-  
-  <div class="page-split-container">
-    
-    <!-- CONTEÚDO PRINCIPAL (PRODUTO) -->
-    <div class="main-content-scroll" *ngIf="product$ | async as p">
-      
-      <!-- CARD DO PRODUTO -->
-      <ion-card class="product-card-premium">
-        <div class="oferta-badge">OFERTA!</div>
-        
-        <div class="img-viewer">
-          <swiper-container 
-            slides-per-view="1" 
-            pagination="true" 
-            keyboard="true" 
-            mousewheel="true" 
-            style="--swiper-pagination-color: var(--cor-principal); --swiper-pagination-bullet-inactive-color: #ccc;">
-            
-            <swiper-slide *ngFor="let img of p.photoURL || ['assets/imagens/imagem-placeholder.png']">
-              <img [src]="img" alt="Produto">
-            </swiper-slide>
-          </swiper-container>
-        </div>
-
-        <div class="product-info-padding">
-          <h1 class="product-title">{{p.name}}</h1>
-          
-          <div class="price-section">
-            <span class="currency">R$</span>
-            <span class="main-price">{{p.price | number:'1.0-0'}}</span>
-            <span class="cents">,{{getFloating(p.price)}}</span>
-            
-            <!-- Indicador de Carrinho -->
-            <div class="cart-indicator-badge" *ngIf="(cartQuantity$ | async) as qty">
-              <ion-icon name="cart"></ion-icon>
-              <span>{{ qty }} no carrinho</span>
+<ion-content #content class="pd-content" [class.pd-content--chat]="isChatOpen && layout.isDesktop()">
+  <div class="pd-shell">
+    <div class="pd-scroll">
+      @switch (productState$ | async) {
+        @case (undefined) {
+          <!-- Esqueleto: mesma forma da página, sem salto quando o produto chega -->
+          <div class="pd-page" aria-busy="true" aria-label="Carregando produto">
+            <div class="pd-sheet pd-skeleton">
+              <div class="sk sk-media"></div>
+              <div class="sk-lines">
+                <div class="sk sk-line sk-line--sm"></div>
+                <div class="sk sk-line sk-line--lg"></div>
+                <div class="sk sk-line sk-line--md"></div>
+                <div class="sk sk-line sk-line--price"></div>
+                <div class="sk sk-line sk-line--md"></div>
+              </div>
             </div>
           </div>
-
-          <div class="payment-hints">
-            Pagamento: {{ getPaymentMethodsLabel(p) }}
-            <ion-icon name="grid-outline" class="pix-icon-small"></ion-icon>
-            <span class="pix-label">pix</span>
-          </div>
-
-          <div class="shipping-info-green">{{ p.shipping || 'Entrega não informada' }}</div>
-
-          <div class="rating-row">
-            <div class="stars">
-              <ion-icon name="star"></ion-icon>
-              <ion-icon name="star"></ion-icon>
-              <ion-icon name="star"></ion-icon>
-              <ion-icon name="star"></ion-icon>
-              <ion-icon name="star"></ion-icon>
-            </div>
-            <span class="rating-text">{{ p.rating ? (formatRating(p.rating) + ' de avaliação') : 'Sem avaliações' }}</span>
-          </div>
-        </div>
-      </ion-card>
-
-      <!-- CHIP DO VENDEDOR (compacto, logo abaixo do produto) -->
-      <button type="button" class="seller-chip" *ngIf="seller$ | async as seller" (click)="goToSellerProfile(seller.uid)">
-        @if (seller.photoURL) {
-          <img class="chip-avatar" [src]="seller.photoURL" [alt]="seller.shopName || seller.displayName || 'Vendedor'">
-        } @else {
-          <span class="chip-avatar chip-initials">{{ getSellerInitials(seller) }}</span>
         }
-        <div class="chip-info">
-          <span class="chip-name">{{ seller.shopName || seller.displayName || 'Loja Compraki' }}</span>
-          <span class="chip-sub">
-            <ion-icon name="checkmark-circle" class="chip-verified"></ion-icon>
-            Vendedor verificado · {{ formatCompactCount((sellerFollowerCount$ | async) || 0) }} seguidores
-          </span>
-        </div>
-        <ion-icon name="chevron-forward-outline" class="chip-arrow"></ion-icon>
-      </button>
+        @case (null) {
+          <div class="pd-page">
+            <div class="pd-sheet pd-missing">
+              <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
+              <h1>Este anúncio não está mais disponível</h1>
+              <p>Ele pode ter sido pausado ou removido pelo vendedor.</p>
+              <a class="pd-btn pd-btn--primary" routerLink="/tabs/tab2">Ver outros produtos</a>
+            </div>
+          </div>
+        }
+      }
 
-      <!-- ABAS E DESCRIÇÃO -->
-      <div class="tabs-container">
-        <div class="tab-item active">Descrição</div>
-        <div class="tab-item">Especificações</div>
-        <div class="tab-item">Avaliações</div>
-      </div>
+      @if (product$ | async; as p) {
+        @let seller = seller$ | async;
+        @let inCart = (cartQuantity$ | async) || 0;
+        @let crumbs = breadcrumb$ | async;
+        @let price = priceParts(priceMain(p));
+        @let shipping = shippingInfo(p);
+        @let specs = specRows(p);
+        @let reviewCount = p.reviewCount || 0;
 
-      <ion-card class="description-card">
-        <p class="description-text">
-          {{ p.description || 'Descrição não informada pelo vendedor.' }}
-        </p>
-      </ion-card>
+        <div class="pd-page">
+          <!-- Trilha + ações do anúncio (desktop) -->
+          @if (layout.isDesktop()) {
+            <div class="pd-topbar">
+              <nav class="pd-crumbs" aria-label="Você está em">
+                <a routerLink="/tabs/tab2">Início</a>
+                @if (crumbs?.category; as cat) {
+                  <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+                  <a routerLink="/tabs/tab2" [queryParams]="{ cat: cat.id }">{{ cat.name }}</a>
+                }
+                @if (crumbs?.subcategoryName; as sub) {
+                  <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+                  <span>{{ sub }}</span>
+                }
+              </nav>
+              <div class="pd-topbar-actions">
+                <button type="button" class="pd-link" (click)="share(p)">
+                  <ion-icon name="share-social-outline" aria-hidden="true"></ion-icon> Compartilhar
+                </button>
+                <a class="pd-link" routerLink="/tabs/upload-product">Vender um igual</a>
+              </div>
+            </div>
+          }
 
-      <!-- =============================================
-           PERFIL EXPANDIDO DO VENDEDOR
-           ============================================= -->
-      <div class="seller-profile-section" *ngIf="seller$ | async as seller" id="seller-profile">
+          <!-- ============================================ BLOCO PRINCIPAL -->
+          <section class="pd-sheet pd-hero">
+            <!-- Galeria -->
+            <div class="pd-gallery">
+              @if (!layout.isDesktop()) {
+                <div class="pd-mobile-head">
+                  <div class="pd-meta-row">
+                    <span class="pd-meta">{{ isNew(p) ? 'Novo' : 'Usado' }}@if (p.soldCount) { &nbsp;|&nbsp; +{{ formatCount(p.soldCount) }} vendidos }</span>
+                    <button type="button" class="pd-icon-btn" (click)="share(p)" aria-label="Compartilhar">
+                      <ion-icon name="share-social-outline" aria-hidden="true"></ion-icon>
+                    </button>
+                  </div>
+                  <h1 class="pd-title">{{ p.name }}</h1>
+                  @if (reviewCount) {
+                    <button type="button" class="pd-rating" (click)="scrollToReviews(content)">
+                      <span class="pd-rating-num">{{ formatRating(p.rating) }}</span>
+                      <span class="pd-stars" aria-hidden="true">
+                        @for (s of [1,2,3,4,5]; track s) { <span class="pd-star" [style.--fill]="starFill(p.rating || 0, s)"></span> }
+                      </span>
+                      <span class="pd-rating-count">({{ reviewCount }})</span>
+                    </button>
+                  }
+                </div>
+              }
 
-        <!-- Banner de capa -->
-        <div class="seller-banner" [style.background-image]="seller.shopBanner ? 'url(' + seller.shopBanner + ')' : 'linear-gradient(135deg, #1e1e2d, #2d2d44)'">
-          <div class="seller-banner-overlay"></div>
-          @if (seller.photoURL) {
-            <img
-              class="seller-avatar-hero"
-              [src]="seller.photoURL"
-              [alt]="seller.shopName || seller.displayName || 'Vendedor'">
-          } @else {
-            <span class="seller-avatar-hero seller-avatar-initials">{{ getSellerInitials(seller) }}</span>
+              <div class="pd-gallery-frame">
+                <button
+                  type="button"
+                  class="pd-fav"
+                  [class.is-on]="isSaved"
+                  [attr.aria-pressed]="isSaved"
+                  [attr.aria-label]="isSaved ? 'Remover dos favoritos' : 'Salvar nos favoritos'"
+                  (click)="toggleFavorite(p)">
+                  <ion-icon [name]="isSaved ? 'heart' : 'heart-outline'" aria-hidden="true"></ion-icon>
+                </button>
+                <app-product-gallery [photos]="p.photoURL" [productName]="p.name" [compact]="!layout.isDesktop()"></app-product-gallery>
+              </div>
+            </div>
+
+            <!-- Informações -->
+            <div class="pd-info">
+              @if (layout.isDesktop()) {
+                <span class="pd-meta">{{ conditionLabel(p) }}@if (p.soldCount) { &nbsp;|&nbsp; +{{ formatCount(p.soldCount) }} vendidos }</span>
+                <h1 class="pd-title">{{ p.name }}</h1>
+                @if (reviewCount) {
+                  <button type="button" class="pd-rating" (click)="scrollToReviews(content)">
+                    <span class="pd-rating-num">{{ formatRating(p.rating) }}</span>
+                    <span class="pd-stars" aria-hidden="true">
+                      @for (s of [1,2,3,4,5]; track s) { <span class="pd-star" [style.--fill]="starFill(p.rating || 0, s)"></span> }
+                    </span>
+                    <span class="pd-rating-count">({{ reviewCount }} {{ reviewCount === 1 ? 'avaliação' : 'avaliações' }})</span>
+                  </button>
+                } @else {
+                  <span class="pd-rating pd-rating--none">Ainda sem avaliações</span>
+                }
+              }
+
+              <!-- Preço -->
+              <div class="pd-price">
+                @if (hasDiscount(p)) {
+                  <s class="pd-price-old" aria-label="Preço anterior">{{ formatMoney(p.price) }}</s>
+                }
+                <div class="pd-price-main">
+                  <span class="pd-price-now" [attr.aria-label]="formatMoney(priceMain(p))">
+                    <span class="pd-cur">R$</span><span class="pd-reais">{{ price.reais }}</span><sup class="pd-cents">{{ price.cents }}</sup>
+                  </span>
+                  @if (hasDiscount(p)) {
+                    <span class="pd-off">{{ discountPercent(p) }}% OFF</span>
+                  }
+                </div>
+                @if (hasDiscount(p)) {
+                  <span class="pd-savings">Você economiza {{ savings(p) }}</span>
+                }
+              </div>
+
+              <div class="pd-pay-inline">
+                @for (m of paymentMethods(p); track m.key) {
+                  <span class="pd-pay-chip"><ion-icon [name]="m.icon" aria-hidden="true"></ion-icon>{{ m.label }}</span>
+                }
+              </div>
+
+              @if (!layout.isDesktop()) {
+                <!-- Celular: entrega, estoque e compra logo abaixo do preço -->
+                <div class="pd-ship" [class.is-highlight]="shipping.highlight">
+                  <ion-icon [name]="shipping.icon" aria-hidden="true"></ion-icon>
+                  <div>
+                    <strong>{{ shipping.title }}</strong>
+                    <span>{{ shipping.detail }}</span>
+                  </div>
+                </div>
+
+                <ng-container *ngTemplateOutlet="buyControls; context: { $implicit: p, inCart: inCart }"></ng-container>
+              }
+
+              <!-- O que você precisa saber -->
+              <div class="pd-know">
+                <h2 class="pd-h3">O que você precisa saber</h2>
+                <ul>
+                  @for (item of highlights(p); track $index) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+
+            <!-- Caixa de compra (desktop) -->
+            @if (layout.isDesktop()) {
+              <aside class="pd-buybox" aria-label="Comprar">
+                <div class="pd-ship" [class.is-highlight]="shipping.highlight">
+                  <ion-icon [name]="shipping.icon" aria-hidden="true"></ion-icon>
+                  <div>
+                    <strong>{{ shipping.title }}</strong>
+                    <span>{{ shipping.detail }}</span>
+                  </div>
+                </div>
+
+                <ng-container *ngTemplateOutlet="buyControls; context: { $implicit: p, inCart: inCart }"></ng-container>
+
+                @if (seller) {
+                  <button type="button" class="pd-soldby" (click)="goToSellerProfile(seller.uid)">
+                    Vendido por <strong>{{ sellerName(seller) }}</strong>
+                    @if (sellerStats$ | async; as st) {
+                      @if (st.soldCount) { <span>+{{ formatCompactCount(st.soldCount) }} vendas</span> }
+                    }
+                  </button>
+                }
+
+                <ng-container *ngTemplateOutlet="guarantee"></ng-container>
+              </aside>
+            }
+          </section>
+
+          @if (!layout.isDesktop()) {
+            <section class="pd-sheet pd-sheet--pad">
+              <ng-container *ngTemplateOutlet="guarantee"></ng-container>
+            </section>
+          }
+
+          <!-- ============================================ DETALHES -->
+          <div class="pd-details">
+            <div class="pd-main-col">
+              <!-- Características -->
+              <section class="pd-sheet pd-sheet--pad" aria-labelledby="pd-specs-title">
+                <h2 class="pd-h2" id="pd-specs-title">Características do produto</h2>
+                @let visibleSpecs = (specsExpanded || specs.length <= 8) ? specs : specs.slice(0, 6);
+                <dl class="pd-specs">
+                  @for (row of visibleSpecs; track row.label + $index) {
+                    <div class="pd-spec">
+                      <dt>{{ row.label }}</dt>
+                      <dd>{{ row.value }}</dd>
+                    </div>
+                  }
+                </dl>
+                @if (specs.length > 8) {
+                  <button type="button" class="pd-more" (click)="specsExpanded = !specsExpanded" [attr.aria-expanded]="specsExpanded">
+                    {{ specsExpanded ? 'Ver menos características' : 'Ver todas as características' }}
+                    <ion-icon name="chevron-down" [class.is-up]="specsExpanded" aria-hidden="true"></ion-icon>
+                  </button>
+                }
+              </section>
+
+              <!-- Descrição -->
+              <section class="pd-sheet pd-sheet--pad" aria-labelledby="pd-desc-title">
+                <h2 class="pd-h2" id="pd-desc-title">Descrição</h2>
+                @if (p.description?.trim()) {
+                  <div class="pd-desc" [class.is-clamped]="descriptionIsLong(p) && !descriptionExpanded">
+                    <p>{{ p.description }}</p>
+                  </div>
+                  @if (descriptionIsLong(p)) {
+                    <button type="button" class="pd-more" (click)="descriptionExpanded = !descriptionExpanded" [attr.aria-expanded]="descriptionExpanded">
+                      {{ descriptionExpanded ? 'Ver menos' : 'Ver descrição completa' }}
+                      <ion-icon name="chevron-down" [class.is-up]="descriptionExpanded" aria-hidden="true"></ion-icon>
+                    </button>
+                  }
+                } @else {
+                  <p class="pd-muted">O vendedor não incluiu uma descrição. Tire suas dúvidas pelo chat antes de comprar.</p>
+                }
+              </section>
+
+              <!-- Opiniões -->
+              <section class="pd-sheet pd-sheet--pad" id="opinioes" aria-labelledby="pd-reviews-title">
+                <h2 class="pd-h2" id="pd-reviews-title">Opiniões do produto</h2>
+                <app-product-reviews [product]="p"></app-product-reviews>
+              </section>
+            </div>
+
+            <!-- Lateral: vendedor e pagamento -->
+            <div class="pd-side-col">
+              @if (seller) {
+                <section class="pd-sheet pd-sheet--pad pd-seller" aria-labelledby="pd-seller-title">
+                  <h2 class="pd-h2 vn-sr-only" id="pd-seller-title">Informações do vendedor</h2>
+                  <div class="pd-seller-head" [style.--shop]="seller.shopPrimaryColor || null">
+                    <button type="button" class="pd-seller-id" (click)="goToSellerProfile(seller.uid)">
+                      @if (seller.photoURL) {
+                        <img class="pd-avatar" [src]="seller.photoURL" alt="" referrerpolicy="no-referrer">
+                      } @else {
+                        <span class="pd-avatar pd-avatar--initials" aria-hidden="true">{{ getSellerInitials(seller) }}</span>
+                      }
+                      <span class="pd-seller-name">
+                        <strong>{{ sellerName(seller) }}</strong>
+                        <small>
+                          {{ formatCompactCount((sellerFollowerCount$ | async) || 0) }} seguidores
+                          @if (sellerSince(seller); as year) { · no Vineon desde {{ year }} }
+                        </small>
+                      </span>
+                    </button>
+
+                    @if (!isOwnSeller(seller)) {
+                      <button
+                        type="button"
+                        class="pd-btn pd-btn--sm"
+                        [class.is-following]="isFollowingSeller"
+                        [disabled]="isFollowActionBusy"
+                        [attr.aria-pressed]="isFollowingSeller"
+                        (click)="toggleFollowSeller(seller, $event)">
+                        {{ isFollowingSeller ? 'Seguindo' : 'Seguir' }}
+                      </button>
+                    }
+                  </div>
+
+                  @if (sellerStats$ | async; as st) {
+                    <dl class="pd-seller-stats">
+                      <div>
+                        <dt>Vendas</dt>
+                        <dd>{{ formatCompactCount(st.soldCount) }}</dd>
+                      </div>
+                      <div>
+                        <dt>Nota média</dt>
+                        <dd>{{ formatRating(st.averageRating) }}</dd>
+                      </div>
+                      <div>
+                        <dt>Anúncios</dt>
+                        <dd>{{ formatCount(st.activeProductCount) }}</dd>
+                      </div>
+                    </dl>
+                  }
+
+                  @if (seller.shopDescription) {
+                    <p class="pd-seller-bio">{{ seller.shopDescription }}</p>
+                  }
+
+                  <div class="pd-seller-actions">
+                    @if (!isOwnSeller(seller)) {
+                      <button type="button" class="pd-btn pd-btn--block" (click)="startChat(p, seller)">
+                        <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon>
+                        {{ p.acceptOffers ? 'Perguntar ou fazer proposta' : 'Perguntar ao vendedor' }}
+                      </button>
+                    }
+                    <button type="button" class="pd-link pd-link--center" (click)="goToSellerProfile(seller.uid)">
+                      Ver loja completa <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+                    </button>
+                  </div>
+                </section>
+              }
+
+              <section class="pd-sheet pd-sheet--pad" aria-labelledby="pd-pay-title">
+                <h2 class="pd-h2" id="pd-pay-title">Meios de pagamento</h2>
+                <ul class="pd-pay-list">
+                  @for (m of paymentMethods(p); track m.key) {
+                    <li><ion-icon [name]="m.icon" aria-hidden="true"></ion-icon>{{ m.label }}</li>
+                  } @empty {
+                    <li class="pd-muted">Combine com o vendedor.</li>
+                  }
+                </ul>
+                <p class="pd-muted pd-small">O pagamento é feito dentro do Vineon. Não pague por fora da plataforma.</p>
+              </section>
+            </div>
+          </div>
+
+          <!-- ============================================ VITRINES -->
+          @if (moreFromSeller$ | async; as more) {
+            @if (more.length) {
+              <app-product-rail class="pd-rail" [heading]="'Mais produtos de ' + sellerName(seller)" [products]="more"></app-product-rail>
+            }
+          }
+          @if (relatedProducts$ | async; as related) {
+            @if (related.length) {
+              <app-product-rail class="pd-rail" heading="Quem viu este produto também viu" [products]="related"></app-product-rail>
+            }
           }
         </div>
 
-        <!-- Corpo do perfil -->
-        <div class="seller-profile-body" [style.--shop-primary]="seller.shopPrimaryColor || '#7c4dff'">
-
-          <!-- Nome + Botão Seguir -->
-          <div class="seller-name-follow-row">
-            <div class="seller-name-block">
-              <h2 class="seller-hero-name">{{ seller.shopName || seller.displayName || 'Loja Compraki' }}</h2>
-              <span class="seller-official-label">
-                <ion-icon name="checkmark-circle" class="hero-verified-icon"></ion-icon>
-                Vendedor verificado
-              </span>
-            </div>
-            <ion-button
-              class="btn-follow"
-              [class.following]="isFollowingSeller$ | async"
-              fill="outline"
-              size="small"
-              [style.--color]="seller.shopPrimaryColor"
-              [disabled]="isOwnSeller(seller) || isFollowActionBusy"
-              (click)="toggleFollowSeller(seller, $event)">
-              @if (isFollowActionBusy) {
-                <ion-spinner name="crescent"></ion-spinner>
-              } @else {
-                <ion-icon [name]="(isFollowingSeller$ | async) ? 'heart' : 'heart-outline'" slot="start"></ion-icon>
-              }
-              {{ (isFollowingSeller$ | async) ? 'Seguindo' : 'Seguir' }}
-            </ion-button>
-          </div>
-
-          <!-- Bio customizada -->
-          <p class="seller-bio" *ngIf="seller.shopDescription">
-            {{ seller.shopDescription }}
-          </p>
-
-          <!-- Seguidores e Produtos -->
-          <div class="seller-followers-row" *ngIf="sellerStats$ | async as sellerStats">
-            <span><strong>{{ formatCompactCount((sellerFollowerCount$ | async) || 0) }}</strong> Seguidores</span>
-            <span class="dot-sep">·</span>
-            <span><strong>{{ formatCount(sellerStats.productCount) }}</strong> Produtos</span>
-            <span class="dot-sep">·</span>
-            <span><strong>{{ formatCount(sellerStats.activeProductCount) }}</strong> Em estoque</span>
-          </div>
-
-          <!-- Badge Premium -->
-          <div class="seller-badge-card">
-            <div class="badge-icon-wrap" [style.background]="seller.shopPrimaryColor">
-              <ion-icon name="ribbon" class="ribbon-icon"></ion-icon>
-            </div>
-            <div class="badge-text-block">
-              <span class="badge-title">Vendedor Premium</span>
-              <span class="badge-sub">É um dos melhores do site!</span>
-            </div>
-          </div>
-
-          <!-- Métricas -->
-          <div class="seller-metrics-row" *ngIf="sellerStats$ | async as sellerStats">
-            <div class="metric-item">
-              <span class="metric-val">{{ formatCompactCount((sellerFollowerCount$ | async) || 0) }}</span>
-              <span class="metric-label">Seguidores</span>
-            </div>
-            <div class="metric-divider"></div>
-            <div class="metric-item">
-              <span class="metric-val">{{ formatCount(sellerStats.soldCount) }}</span>
-              <span class="metric-label">Vendas</span>
-            </div>
-            <div class="metric-divider"></div>
-            <div class="metric-item">
-              <span class="metric-val">{{ formatRating(sellerStats.averageRating) }}</span>
-              <span class="metric-label">Avaliação</span>
-            </div>
-          </div>
-
-          <!-- Botão Chat -->
-          <ion-button 
-            expand="block" 
-            class="btn-chat-seller"
-            [style.--background]="seller.shopPrimaryColor || '#2dd36f'"
-            (click)="startChat(p, seller)">
-            <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-            Falar com Vendedor
-          </ion-button>
-
-          <button type="button" class="seller-profile-link" (click)="goToSellerProfile(seller.uid)">
-            Ver perfil completo
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </button>
-
-        </div>
-      </div>
-
-
-      <!-- SEÇÃO PRODUTOS RELACIONADOS -->
-      <div class="related-section" *ngIf="(relatedProducts$ | async) as related">
-        <div class="related-header">
-          <span class="related-title">Produtos relacionados</span>
-          <span class="related-ad-badge">Ad</span>
-        </div>
-
-        <div class="related-scroll-track">
-          <div 
-            class="related-product-card" 
-            *ngFor="let rp of related; trackBy: trackById"
-            (click)="goToProduct(rp)">
-            
-            <div class="related-img-wrap">
-              <img 
-                [src]="rp.photoURL?.[0] || 'assets/imagens/imagem-placeholder.png'"
-                [alt]="rp.name">
-              <span 
-                class="discount-badge" 
-                *ngIf="getDiscountPercent(rp.price, rp.priceDiscounted) as disc">
-                {{ disc }}% OFF
-              </span>
-            </div>
-
-            <div class="related-info">
-              <p class="related-name">{{ rp.name }}</p>
-
-              <div class="related-rating">
-                <ion-icon name="star" class="star-icon"></ion-icon>
-                <span class="rating-val">{{ rp.rating ? formatRating(rp.rating) : 'Sem avaliação' }}</span>
-                <span class="sold-count">{{ formatCount(rp.soldCount || 0) }} vendidos</span>
+        <!-- Controles de compra: compartilhados entre caixa do desktop e bloco do celular -->
+        <ng-template #buyControls let-p let-inCart="inCart">
+          <div class="pd-buy" #inlineBuy>
+            @if (isOwnProduct(p)) {
+              <div class="pd-own">
+                <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+                <span>Este anúncio é seu.</span>
               </div>
-
-              <div class="related-prices">
-                <span class="original-price" *ngIf="rp.priceDiscounted">
-                  R$ {{ rp.priceDiscounted | number:'1.2-2' }}
+              <button type="button" class="pd-btn pd-btn--primary pd-btn--block" (click)="editListing(p)">
+                <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Editar anúncio
+              </button>
+            } @else if (p.stock > 0) {
+              <div class="pd-stock-row">
+                <span class="pd-stock" [class.is-low]="p.stock <= 5">
+                  {{ p.stock > 5 ? 'Estoque disponível' : stockLabel(p) }}
                 </span>
-                <div class="final-price-row">
-                  <span class="final-price">R$ {{ rp.price | number:'1.2-2' }}</span>
-                  <span 
-                    class="off-label" 
-                    *ngIf="getDiscountPercent(rp.price, rp.priceDiscounted) as disc">
-                    {{ disc }}% OFF
-                  </span>
+                <div class="pd-qty" role="group" aria-label="Quantidade">
+                  <button type="button" (click)="decreaseQty()" [disabled]="quantity <= 1" aria-label="Diminuir quantidade">
+                    <ion-icon name="remove-outline" aria-hidden="true"></ion-icon>
+                  </button>
+                  <output aria-live="polite">{{ quantity }}</output>
+                  <button type="button" (click)="increaseQty(p)" [disabled]="quantity >= p.stock" aria-label="Aumentar quantidade">
+                    <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                  </button>
                 </div>
               </div>
+              @if (p.stock > 5) {
+                <span class="pd-stock-count">{{ stockLabel(p) }}</span>
+              }
 
-              <div class="full-badge">
-                <ion-icon name="flash" class="flash-icon"></ion-icon>
-                FULL
+              <button type="button" class="pd-btn pd-btn--primary pd-btn--block pd-btn--lg" [disabled]="isAddingToCart" (click)="buyNow(p)">
+                Comprar agora
+              </button>
+              <button type="button" class="pd-btn pd-btn--soft pd-btn--block pd-btn--lg" [disabled]="isAddingToCart" (click)="addToCart(p)">
+                @if (isAddingToCart) { <ion-spinner name="crescent" aria-hidden="true"></ion-spinner> }
+                Adicionar ao carrinho
+              </button>
+              @if (inCart) {
+                <a class="pd-incart" routerLink="/tabs/cart">
+                  <ion-icon name="cart" aria-hidden="true"></ion-icon>
+                  {{ inCart }} {{ inCart === 1 ? 'unidade' : 'unidades' }} no seu carrinho
+                </a>
+              }
+            } @else {
+              <div class="pd-soldout">
+                <strong>Produto esgotado</strong>
+                <span>Salve nos favoritos ou pergunte ao vendedor se vai repor.</span>
               </div>
+              <button type="button" class="pd-btn pd-btn--soft pd-btn--block" (click)="toggleFavorite(p)">
+                <ion-icon [name]="isSaved ? 'heart' : 'heart-outline'" aria-hidden="true"></ion-icon>
+                {{ isSaved ? 'Salvo nos favoritos' : 'Salvar nos favoritos' }}
+              </button>
+            }
+          </div>
+        </ng-template>
+      }
+
+      <!-- Assinatura de confiança: o escrow de 7 dias que o checkout já aplica -->
+      <ng-template #guarantee>
+        <div class="pd-guarantee">
+          <div class="pd-guarantee-head">
+            <span class="pd-guarantee-badge" aria-hidden="true">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+            </span>
+            <div>
+              <strong>Compra Garantida Vineon</strong>
+              <span>Seu dinheiro fica protegido até o pedido chegar.</span>
             </div>
           </div>
+          <ol class="pd-guarantee-steps">
+            <li><span>Você paga</span> pelo Vineon, com Pix ou cartão</li>
+            <li><span>Retemos o valor</span> por 7 dias após a compra</li>
+            <li><span>Deu problema?</span> Peça a devolução em Minhas compras</li>
+          </ol>
         </div>
-      </div>
-
+      </ng-template>
     </div>
 
-    <!-- PAINEL LATERAL DE CHAT (VISÍVEL APENAS EM DESKTOP) -->
-    <div class="desktop-chat-pane" *ngIf="isChatOpen">
-      <div class="pane-header">
-         <h3 class="poppins">Conversa com Vendedor</h3>
-         <ion-button fill="clear" color="medium" (click)="closeChat()">
-            <ion-icon name="close-circle"></ion-icon>
-         </ion-button>
-      </div>
-      <app-chat-box [chatId]="activeChatId" (onClose)="closeChat()"></app-chat-box>
-    </div>
-
+    <!-- Painel de chat lateral (desktop) -->
+    @if (isChatOpen && layout.isDesktop()) {
+      <aside class="pd-chat-pane" aria-label="Conversa com o vendedor">
+        <div class="pd-chat-head">
+          <h3>Conversa com o vendedor</h3>
+          <button type="button" class="pd-icon-btn" (click)="closeChat()" aria-label="Fechar conversa">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+        <app-chat-box [chatId]="activeChatId" (onClose)="closeChat()"></app-chat-box>
+      </aside>
+    }
   </div>
 
-  <app-product-selector 
-    *ngIf="!(product$ | async)"
-    [allProducts$]="allProducts$"
-    (productSelected)="onProductSelect($event)">
-  </app-product-selector>
+  @if ((productState$ | async) === null && !route.snapshot.params['id']) {
+    <app-product-selector [allProducts$]="allProducts$" (productSelected)="onProductSelect($event)"></app-product-selector>
+  }
 </ion-content>
 
-<!-- MODAL DE CHAT (MOBILE) -->
-<ion-modal [isOpen]="isChatOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="closeChat()" class="mobile-chat-modal">
+<!-- Chat no celular -->
+<ion-modal [isOpen]="isChatOpen && !layout.isDesktop()" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="closeChat()" class="mobile-chat-modal">
   <ng-template>
     <ion-header class="ion-no-border">
       <ion-toolbar>
-        <ion-title class="poppins">Falar com Vendedor</ion-title>
+        <ion-title>Conversa com o vendedor</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="closeChat()">FECHAR</ion-button>
+          <ion-button (click)="closeChat()">Fechar</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <div class="modal-content-wrapper" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
-      <app-chat-box [chatId]="activeChatId" style="flex: 1; display: flex; flex-direction: column;"></app-chat-box>
+    <div class="pd-chat-modal-body">
+      <app-chat-box [chatId]="activeChatId"></app-chat-box>
     </div>
   </ng-template>
 </ion-modal>
 
-<ion-footer class="ion-no-border action-footer" *ngIf="(product$ | async) as p">
-  <div class="footer-content">
-    <ion-button class="btn-favorite" (click)="toggleFavorite()">
-      <ion-icon [name]="isSaved ? 'heart' : 'heart-outline'"></ion-icon>
-    </ion-button>
-    <ion-button class="btn-buy-cart" expand="block" (click)="goToCheckout()">
-      <ion-icon [name]="(cartQuantity$ | async) ? 'add-circle-outline' : 'bag-add-outline'" slot="start"></ion-icon>
-      {{ (cartQuantity$ | async) ? 'ADICIONAR MAIS' : 'ADICIONAR AO CARRINHO' }}
-    </ion-button>
-  </div>
-</ion-footer>
+<!-- Celular: barra fixa quando os botões inline saem da tela -->
+@if (!layout.isDesktop()) {
+  @if (product$ | async; as p) {
+    <ion-footer class="ion-no-border pd-sticky" [class.is-visible]="showStickyBuy && !isChatOpen">
+      <div class="pd-sticky-inner">
+        <div class="pd-sticky-price">
+          @let sp = priceParts(priceMain(p));
+          <strong>R$ {{ sp.reais }}<sup>{{ sp.cents }}</sup></strong>
+          @if (hasDiscount(p)) { <span>{{ discountPercent(p) }}% OFF</span> }
+        </div>
+        @if (canBuy(p)) {
+          <button type="button" class="pd-btn pd-btn--primary" [disabled]="isAddingToCart" (click)="buyNow(p)">Comprar agora</button>
+        } @else {
+          <button type="button" class="pd-btn pd-btn--soft" (click)="toggleFavorite(p)">
+            <ion-icon [name]="isSaved ? 'heart' : 'heart-outline'" aria-hidden="true"></ion-icon>
+            {{ isSaved ? 'Salvo' : 'Salvar' }}
+          </button>
+        }
+      </div>
+    </ion-footer>
+  }
+}

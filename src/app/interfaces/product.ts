@@ -27,9 +27,24 @@ export interface Product {
     height?: number; // em cm
     length?: number; // em cm
     
+    /** Ficha técnica livre (Marca, Modelo, Cor...), preenchida pelo vendedor. */
+    specs?: ProductSpec[];
+
+    /**
+     * Nota média, total de avaliações e contagem por estrela (chaves '1'..'5').
+     * Escritos só pela Cloud Function `onProductReviewWritten`; as regras do
+     * Firestore barram o vendedor de mexer neles.
+     */
     rating?: number;
+    reviewCount?: number;
+    ratingBreakdown?: Record<string, number>;
     location?: string;
     sellerId?: string;
     createdAt?: any;
     updatedAt?: any;
+}
+
+export interface ProductSpec {
+    label: string;
+    value: string;
 }

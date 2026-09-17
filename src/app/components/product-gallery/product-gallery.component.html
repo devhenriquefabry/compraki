@@ -1,0 +1,81 @@
+@if (compact()) {
+  <div class="pg-strip">
+    <div class="pg-track" #track (scroll)="onTrackScroll($event)">
+      @for (src of images(); track $index) {
+        <button type="button" class="pg-slide" (click)="openLightbox($index)" [attr.aria-label]="'Ampliar foto ' + ($index + 1) + ' de ' + images().length">
+          <img [src]="src" [alt]="$index === 0 ? productName() : ''" [attr.loading]="$index === 0 ? 'eager' : 'lazy'" decoding="async">
+        </button>
+      }
+    </div>
+
+    @if (images().length > 1) {
+      <span class="pg-counter" aria-live="polite">{{ active() + 1 }} / {{ images().length }}</span>
+      <div class="pg-dots" aria-hidden="true">
+        @for (src of images(); track $index) {
+          <span class="pg-dot" [class.is-active]="$index === active()"></span>
+        }
+      </div>
+    }
+  </div>
+} @else {
+  <div class="pg-desktop">
+    @if (images().length > 1) {
+      <ul class="pg-thumbs" aria-label="Fotos do produto">
+        @for (src of images(); track $index) {
+          <li>
+            <button
+              type="button"
+              class="pg-thumb"
+              [class.is-active]="$index === active()"
+              [attr.aria-label]="'Foto ' + ($index + 1) + ' de ' + images().length"
+              [attr.aria-current]="$index === active()"
+              (mouseenter)="select($index)"
+              (focus)="select($index)"
+              (click)="select($index)">
+              <img [src]="src" alt="" loading="lazy" decoding="async">
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    <button
+      type="button"
+      class="pg-stage"
+      [class.is-zooming]="zoom()"
+      (mousemove)="onZoomMove($event)"
+      (mouseleave)="zoom.set(null)"
+      (click)="openLightbox()"
+      aria-label="Ver foto em tela cheia">
+      <img
+        class="pg-stage-img"
+        [src]="images()[active()]"
+        [alt]="productName()"
+        [style.transform-origin]="zoom() ? zoom()!.x + '% ' + zoom()!.y + '%' : null">
+    </button>
+  </div>
+}
+
+@if (lightboxOpen()) {
+  <div class="pg-lightbox" role="dialog" aria-modal="true" [attr.aria-label]="'Fotos de ' + productName()" (click)="closeLightbox()">
+    <button type="button" class="pg-lb-close" (click)="closeLightbox()" aria-label="Fechar">
+      <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+    </button>
+
+    <figure class="pg-lb-figure" (click)="$event.stopPropagation()">
+      <img [src]="images()[active()]" [alt]="productName()">
+      @if (images().length > 1) {
+        <figcaption>{{ active() + 1 }} / {{ images().length }}</figcaption>
+      }
+    </figure>
+
+    @if (images().length > 1) {
+      <button type="button" class="pg-lb-nav pg-lb-nav--prev" (click)="$event.stopPropagation(); select(active() - 1)" aria-label="Foto anterior">
+        <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
+      </button>
+      <button type="button" class="pg-lb-nav pg-lb-nav--next" (click)="$event.stopPropagation(); select(active() + 1)" aria-label="Próxima foto">
+        <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+      </button>
+    }
+  </div>
+}

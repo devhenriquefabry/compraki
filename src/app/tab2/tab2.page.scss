@@ -131,6 +131,11 @@ ion-toolbar {
   --background: #f8f9fa;
 }
 
+/* Home de site (desktop): a faixa azul encosta no header, sem respiro. */
+.desktop-home-content {
+  --background: var(--vn-ground);
+}
+
 /* Largura máxima alinhada à busca (desktop) */
 .explore-shell {
   width: 100%;

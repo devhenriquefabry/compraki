@@ -1,0 +1,87 @@
+/*
+ * Vineon no desktop (vineonsite.com.br)
+ * ----------------------------------------------------------------------------
+ * O app nasceu mobile-first. No navegador, a partir de 992px, o `LayoutService`
+ * marca o <html> com duas classes:
+ *
+ *   .vn-desktop        -> tela larga, fora do app nativo
+ *   .vn-desktop-shell  -> idem, e a rota usa o header de site (loja)
+ *
+ * Tudo que muda o layout do app em telas grandes fica atrás dessas classes.
+ * No APK (Capacitor) elas nunca são aplicadas, então o app da Play Store
+ * continua exatamente como está.
+ *
+ * Paleta tirada da apresentação da marca. Regra de uso do neon: no conteúdo
+ * claro ele só aparece onde há economia (selo de desconto) e no botão de busca
+ * — neon é "oferta", não enfeite. Texto verde sobre branco usa `--vn-neon-ink`,
+ * porque o neon puro não tem contraste legível em fundo claro.
+ */
+
+:root {
+  --vn-navy-900: #0D1420;   /* Azul profundo */
+  --vn-navy-800: #14202E;   /* Azul escuro */
+  --vn-navy-700: #1F2E40;
+  --vn-neon: #DEFF1A;       /* Verde neon do logotipo */
+  --vn-neon-ink: #4D7C0F;   /* Verde legível em fundo branco (5:1) */
+  --vn-ground: #EDF0F3;
+  --vn-surface: #FFFFFF;
+  --vn-ink: #0D1420;
+  --vn-ink-2: #3A4452;
+  --vn-ink-muted: #5B6573;
+  --vn-line: #DDE2E8;
+  --vn-alert: #D12F3A;      /* Branco em cima dele passa de 4.5:1 */
+
+  --vn-radius: 8px;
+  --vn-shadow-1: 0 1px 2px rgba(13, 20, 32, 0.08);
+  --vn-shadow-2: 0 10px 28px rgba(13, 20, 32, 0.14);
+
+  --vn-font-display: 'Sora', 'Nunito', system-ui, sans-serif;
+  --vn-font-body: 'Nunito', system-ui, sans-serif;
+
+  --vn-content-max: 1200px;
+  --vn-gutter: 24px;
+  --vn-shell-header-h: 104px;
+}
+
+.vn-sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+html.vn-desktop-shell {
+  /* O header de site fica fixo no topo; as páginas começam logo abaixo dele. */
+  ion-app > ion-router-outlet {
+    top: var(--vn-shell-header-h);
+  }
+
+  /* A navegação vai para o header; a barra de abas é coisa de celular. */
+  ion-tab-bar {
+    display: none !important;
+  }
+
+  /*
+   * Páginas que não têm layout próprio de desktop: o conteúdo vira uma coluna
+   * centralizada, em vez de esticar de ponta a ponta num monitor de 1920px.
+   * A home e o detalhe do produto montam o próprio layout.
+   */
+  .ion-page:not(app-tab2):not(app-product-details) {
+    --vn-side: max(var(--vn-gutter), calc((100% - var(--vn-content-max)) / 2));
+
+    > ion-content {
+      --padding-start: var(--vn-side);
+      --padding-end: var(--vn-side);
+    }
+
+    > ion-header ion-toolbar {
+      --padding-start: var(--vn-side);
+      --padding-end: var(--vn-side);
+    }
+  }
+}

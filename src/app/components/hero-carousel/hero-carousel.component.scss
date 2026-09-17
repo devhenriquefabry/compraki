@@ -1,0 +1,250 @@
+:host {
+  display: block;
+}
+
+.hero {
+  position: relative;
+}
+
+.hero-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--vn-navy-800);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3);
+}
+
+.hero-track {
+  display: flex;
+  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.hero-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+/* Faixa 4:1 = arte "Computador" de Gestão de Banners (core/banner-formats.ts). */
+.hero-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.hero-frame:focus-visible {
+  outline: 3px solid var(--vn-neon);
+  outline-offset: -3px;
+}
+
+.hero-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-adapted {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hero-adapted-backdrop {
+  position: absolute;
+  inset: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  object-fit: cover;
+  filter: blur(22px) saturate(1.1) brightness(0.9);
+}
+
+.hero-adapted-art {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  object-fit: contain;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.25);
+}
+
+.hero-text-slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  padding: 0 80px;
+  background: linear-gradient(135deg, var(--vn-navy-800), var(--vn-navy-700));
+  color: #fff;
+
+  h2 {
+    max-width: 18ch;
+    margin: 0;
+    color: inherit;
+    font-family: var(--vn-font-display);
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  p {
+    max-width: 42ch;
+    margin: 0;
+    font-size: 18px;
+    opacity: 0.88;
+  }
+}
+
+.hero-text-cta {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--vn-navy-900);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Sem banners: assinatura da marca, com o brilho neon do logotipo. */
+.hero-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 0 88px;
+  overflow: hidden;
+  background:
+    radial-gradient(55% 95% at 80% 50%, rgba(222, 255, 26, 0.14), transparent 70%),
+    linear-gradient(120deg, var(--vn-navy-900) 0%, var(--vn-navy-800) 100%);
+}
+
+.hero-brand-copy {
+  max-width: 640px;
+  color: #fff;
+
+  h2 {
+    margin: 0;
+    font-family: var(--vn-font-display);
+    font-size: clamp(26px, 2.6vw, 36px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+}
+
+.hero-brand-tagline {
+  margin: 0 0 18px;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--vn-font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+
+  span {
+    color: var(--vn-neon);
+  }
+}
+
+.hero-brand-mark {
+  flex-shrink: 0;
+  height: 70%;
+  width: auto;
+  filter: drop-shadow(0 0 26px rgba(222, 255, 26, 0.45));
+}
+
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 72px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--vn-navy-900);
+  box-shadow: var(--vn-shadow-2);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: opacity 0.2s ease;
+
+  ion-icon {
+    font-size: 24px;
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--vn-neon);
+    outline-offset: 2px;
+  }
+}
+
+.hero-arrow--back {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.hero-arrow--forward {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+}
+
+/* Com mouse, as setas aparecem ao passar por cima; em tela de toque ficam visíveis. */
+@media (hover: hover) {
+  .hero-arrow {
+    opacity: 0;
+  }
+
+  .hero:hover .hero-arrow {
+    opacity: 1;
+  }
+}
+
+.hero-dots {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.hero-dot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.45);
+    transition: width 0.2s ease, background-color 0.2s ease;
+  }
+
+  &.is-current::before {
+    width: 20px;
+    background: var(--vn-neon);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--vn-neon);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-track,
+  .hero-dot::before {
+    transition: none;
+  }
+}

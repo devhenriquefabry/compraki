@@ -1,3 +1,8 @@
+/* No site de desktop o header de loja (app-desktop-header) faz este papel. */
+:host-context(html.vn-desktop-shell) {
+    display: none;
+}
+
 .container {
     height: 60px;
     background-color: #1e2d3e;

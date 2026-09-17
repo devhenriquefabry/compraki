@@ -1,0 +1,98 @@
+<section
+  class="hero"
+  aria-roledescription="carrossel"
+  aria-label="Destaques"
+  (mouseenter)="paused.set(true)"
+  (mouseleave)="paused.set(false)"
+  (focusin)="paused.set(true)"
+  (focusout)="paused.set(false)">
+
+  <div class="hero-viewport">
+    <div class="hero-track" [style.transform]="'translateX(-' + index() * 100 + '%)'">
+      @for (banner of banners(); track banner.id; let i = $index) {
+        <div
+          class="hero-slide"
+          role="group"
+          aria-roledescription="slide"
+          [attr.aria-label]="(i + 1) + ' de ' + count()"
+          [attr.aria-hidden]="i !== index()"
+          [attr.inert]="i !== index() ? '' : null">
+
+          @switch (linkOf(banner)?.kind) {
+            @case ('internal') {
+              <a class="hero-frame" [href]="linkOf(banner)!.href" (click)="openInternal($event, linkOf(banner)!.href)">
+                <ng-container [ngTemplateOutlet]="slideArt" [ngTemplateOutletContext]="{ $implicit: banner }"></ng-container>
+              </a>
+            }
+            @case ('external') {
+              <a class="hero-frame" [href]="linkOf(banner)!.href" target="_blank" rel="noopener noreferrer">
+                <ng-container [ngTemplateOutlet]="slideArt" [ngTemplateOutletContext]="{ $implicit: banner }"></ng-container>
+              </a>
+            }
+            @default {
+              <div class="hero-frame">
+                <ng-container [ngTemplateOutlet]="slideArt" [ngTemplateOutletContext]="{ $implicit: banner }"></ng-container>
+              </div>
+            }
+          }
+        </div>
+      } @empty {
+        <!-- Sem banner cadastrado: a vitrine abre com a assinatura da marca. -->
+        <div class="hero-slide">
+          <div class="hero-frame hero-brand">
+            <div class="hero-brand-copy">
+              <p class="hero-brand-tagline">Tudo conecta. <span>Você escolhe.</span></p>
+              <h2>Produtos novos e usados, com pagamento por Pix ou cartão.</h2>
+            </div>
+            <img class="hero-brand-mark" src="assets/imagens/vineon-icon.svg" alt="">
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (count() > 1) {
+      <button type="button" class="hero-arrow hero-arrow--back" (click)="previous()" aria-label="Banner anterior">
+        <ion-icon name="chevron-back" aria-hidden="true"></ion-icon>
+      </button>
+      <button type="button" class="hero-arrow hero-arrow--forward" (click)="next()" aria-label="Próximo banner">
+        <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+      </button>
+    }
+  </div>
+
+  @if (count() > 1) {
+    <div class="hero-dots">
+      @for (banner of banners(); track banner.id; let i = $index) {
+        <button
+          type="button"
+          class="hero-dot"
+          [class.is-current]="i === index()"
+          [attr.aria-current]="i === index() ? 'true' : null"
+          [attr.aria-label]="'Ir para o banner ' + (i + 1)"
+          (click)="goTo(i)"></button>
+      }
+    </div>
+  }
+</section>
+
+<ng-template #slideArt let-banner>
+  @if (banner.desktopImageURL) {
+    <img class="hero-image" [src]="banner.desktopImageURL" [alt]="banner.title || ''">
+  } @else if (banner.imageURL) {
+    <!-- Sem arte de computador: a do celular inteira, sobre um fundo desfocado dela mesma. -->
+    <div class="hero-adapted">
+      <img class="hero-adapted-backdrop" [src]="banner.imageURL" alt="" aria-hidden="true">
+      <img class="hero-adapted-art" [src]="banner.imageURL" [alt]="banner.title || ''">
+    </div>
+  } @else {
+    <div class="hero-text-slide" [style.background]="banner.backgroundColor" [style.color]="banner.textColor">
+      <h2>{{ banner.title }}</h2>
+      @if (banner.subtitle) {
+        <p>{{ banner.subtitle }}</p>
+      }
+      @if (banner.buttonText) {
+        <span class="hero-text-cta">{{ banner.buttonText }}</span>
+      }
+    </div>
+  }
+</ng-template>

@@ -3,12 +3,106 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // ---------------------------------------------------------------- helpers
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Mesma fonte de verdade do firestore.rules: so o custom claim `admin`.
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Chat e privado: so quem participa le/escreve midia dele. O documento
+    // `chats/{chatId}` ja existe no Firestore quando a conversa e criada, e a
+    // leitura cruzada exige `rules_version = '2'` (ja declarado acima).
+    function chatData(chatId) {
+      return firestore.get(/databases/(default)/documents/chats/$(chatId)).data;
+    }
+
+    function isChatParticipant(chatId) {
+      let c = chatData(chatId);
+      return isSignedIn() && (
+        (c.participantIds is list && request.auth.uid in c.participantIds) ||
+        request.auth.uid == c.buyerId ||
+        request.auth.uid == c.sellerId
+      );
+    }
+
+    // ------------------------------------------------------------ whatsapp
+
     // Cache compartilhado de mídias do WhatsApp.
     // Leitura aberta (URLs sao SHA-1 dificil de adivinhar e listing eh proibido).
     // Escrita exclusiva via Admin SDK em Cloud Functions.
     match /whatsapp-media/{allPaths=**} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // ------------------------------------------------------------ produtos
+
+    // Fotos de produto (upload-product-form -> FirebaseProducts.uploadImage).
+    // Leitura publica (mesma politica de `products/{productId}` no Firestore).
+    // Escrita exige login; o dono real e validado pela regra do Firestore ao
+    // gravar o documento do produto, esta so evita upload anonimo.
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.resource.size < 10 * 1024 * 1024
+        && isImage();
+    }
+
+    // ------------------------------------------------------------- banners
+
+    // Artes do carrossel da home (manage-banners.page.ts -> BannerService).
+    // Leitura publica — aparecem na home para todo mundo, logado ou nao.
+    // Escrita so por admin: e conteudo editorial da loja, nao do vendedor.
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && isImage();
+    }
+
+    // -------------------------------------------------- perfil e vitrine
+
+    // Foto de perfil (firebase-users.service.ts -> uploadProfilePhoto).
+    // Leitura publica: aparece no chat, nos comentarios e no perfil do
+    // vendedor para qualquer visitante. Escrita so pelo dono da conta.
+    match /profile-photos/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isUser(uid)
+        && request.resource.size < 5 * 1024 * 1024
+        && isImage();
+    }
+
+    // Banner de capa da vitrine do vendedor (uploadShowcaseBanner).
+    // Mesma politica de profile-photos: publica na leitura, so o dono escreve.
+    match /showcase-banners/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isUser(uid)
+        && request.resource.size < 5 * 1024 * 1024
+        && isImage();
+    }
+
+    // ---------------------------------------------------------------- chat
+
+    // Fotos e audios trocados numa conversa (chat-box.component.ts -> upload).
+    // Privado: so quem participa do chat le ou envia midia nele.
+    match /chats/{chatId}/{allPaths=**} {
+      allow read: if isChatParticipant(chatId);
+      allow write: if isChatParticipant(chatId)
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('(image|audio|video)/.*');
     }
   }
 }

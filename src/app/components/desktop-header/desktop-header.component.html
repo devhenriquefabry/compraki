@@ -1,0 +1,163 @@
+<header class="dh">
+  <div class="dh-row dh-row--top">
+    <a class="dh-logo" routerLink="/tabs/tab2" aria-label="Vineon, página inicial">
+      <img src="assets/imagens/Vineon.svg" alt="" width="132" height="35">
+    </a>
+
+    <form class="dh-search" role="search" (submit)="submitSearch($event, searchInput.value)">
+      <label class="vn-sr-only" for="dh-search-input">Buscar no Vineon</label>
+      <input
+        #searchInput
+        id="dh-search-input"
+        type="search"
+        name="q"
+        [value]="searchTerm()"
+        placeholder="Buscar produtos, marcas e muito mais…"
+        autocomplete="off"
+        enterkeyhint="search">
+      <button type="submit" class="dh-search-submit" aria-label="Buscar">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </button>
+    </form>
+
+    <a class="dh-sell" routerLink="/tabs/upload-product">
+      <span class="dh-sell-icon"><ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon></span>
+      <span class="dh-sell-text">
+        <strong>Venda no Vineon</strong>
+        <span>Anuncie seu produto</span>
+      </span>
+    </a>
+  </div>
+
+  <div class="dh-row dh-row--bottom">
+    <a class="dh-address dh-wide-only" routerLink="/address">
+      <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+      <span class="dh-address-text">
+        @if (user()) {
+          <small>Enviar para {{ firstName() }}</small>
+          <span>Meus endereços</span>
+        } @else {
+          <small>Informe seu</small>
+          <span>endereço de entrega</span>
+        }
+      </span>
+    </a>
+
+    <nav class="dh-nav" aria-label="Loja">
+      <div class="dh-menu">
+        <button
+          type="button"
+          class="dh-link"
+          aria-controls="dh-categories-panel"
+          [attr.aria-expanded]="openMenu() === 'categories'"
+          (click)="toggleMenu('categories')">
+          Categorias
+          <ion-icon class="dh-caret" name="chevron-down" aria-hidden="true"></ion-icon>
+        </button>
+
+        @if (openMenu() === 'categories') {
+          <div class="dh-panel dh-panel--categories" id="dh-categories-panel">
+            @for (category of categories(); track category.id) {
+              <a
+                class="dh-panel-item"
+                routerLink="/tabs/tab2"
+                [queryParams]="{ cat: category.id }"
+                (click)="closeMenus()">
+                <ion-icon [name]="category.icon || 'pricetags-outline'" aria-hidden="true"></ion-icon>
+                {{ category.name }}
+              </a>
+            } @empty {
+              <p class="dh-panel-empty">Nenhuma categoria cadastrada ainda.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <a class="dh-link" routerLink="/tabs/tab2" [queryParams]="{ ofertas: 1 }">Ofertas</a>
+      <a class="dh-link" routerLink="/tabs/tab2" [queryParams]="{ frete: 1 }">Frete grátis</a>
+      <a class="dh-link dh-wide-only" routerLink="/tabs/tab2" [queryParams]="{ ordem: 'mais-vendidos' }">Mais vendidos</a>
+      <a class="dh-link" routerLink="/tabs/chats" routerLinkActive="is-active">Mensagens</a>
+    </nav>
+
+    <div class="dh-account">
+      @if (user()) {
+        <div class="dh-menu">
+          <button
+            type="button"
+            class="dh-link dh-user"
+            aria-controls="dh-account-panel"
+            [attr.aria-expanded]="openMenu() === 'account'"
+            (click)="toggleMenu('account')">
+            @if (user()?.photoURL; as photo) {
+              <img class="dh-avatar" [src]="photo" alt="" referrerpolicy="no-referrer">
+            } @else {
+              <span class="dh-avatar dh-avatar--initials" aria-hidden="true">{{ initials() }}</span>
+            }
+            {{ firstName() }}
+            <ion-icon class="dh-caret" name="chevron-down" aria-hidden="true"></ion-icon>
+          </button>
+
+          @if (openMenu() === 'account') {
+            <div class="dh-panel dh-panel--account" id="dh-account-panel">
+              <div class="dh-panel-user">
+                <strong>{{ user()?.displayName || firstName() }}</strong>
+                @if (user()?.email; as email) {
+                  <span>{{ email }}</span>
+                }
+              </div>
+
+              <a class="dh-panel-item" routerLink="/tabs/my-account">Minha conta</a>
+              <a class="dh-panel-item" routerLink="/my-orders">Compras</a>
+              <a class="dh-panel-item" routerLink="/my-sales">Vendas</a>
+              <a class="dh-panel-item" routerLink="/my-products">Meus anúncios</a>
+              <a class="dh-panel-item" routerLink="/my-showcase">Minha vitrine</a>
+              <a class="dh-panel-item" routerLink="/address">Endereços</a>
+
+              @if (isAdmin()) {
+                <div class="dh-panel-divider" role="separator"></div>
+                <a class="dh-panel-item" routerLink="/admin">Painel de gestão</a>
+                <a class="dh-panel-item" routerLink="/admin/bots">Gestão de bots</a>
+              }
+
+              <div class="dh-panel-divider" role="separator"></div>
+              <button type="button" class="dh-panel-item dh-panel-item--danger" (click)="logout()">Sair</button>
+            </div>
+          }
+        </div>
+      } @else {
+        <a class="dh-link" routerLink="/sign-in" [queryParams]="authQuery()">Crie a sua conta</a>
+        <a class="dh-link" routerLink="/login" [queryParams]="authQuery()">Entre</a>
+      }
+
+      <a class="dh-link dh-wide-only" routerLink="/my-orders" routerLinkActive="is-active">Compras</a>
+
+      <a
+        class="dh-icon-link"
+        routerLink="/tabs/saved"
+        routerLinkActive="is-active"
+        [attr.aria-label]="savedCount() ? 'Favoritos, ' + savedCount() + ' salvos' : 'Favoritos'">
+        <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+        @if (savedCount()) {
+          <span class="dh-badge" aria-hidden="true">{{ savedCount() > 99 ? '99+' : savedCount() }}</span>
+        }
+      </a>
+
+      @if (user()) {
+        <a class="dh-icon-link" routerLink="/tabs/notifications" routerLinkActive="is-active" aria-label="Notificações">
+          <ion-icon name="notifications-outline" aria-hidden="true"></ion-icon>
+        </a>
+      }
+
+      <a
+        class="dh-icon-link"
+        routerLink="/tabs/cart"
+        routerLinkActive="is-active"
+        [attr.aria-label]="cartCount() ? 'Carrinho, ' + cartCount() + (cartCount() === 1 ? ' item' : ' itens') : 'Carrinho'">
+        <ion-icon name="cart-outline" aria-hidden="true"></ion-icon>
+        @if (cartCount()) {
+          <span class="dh-badge" aria-hidden="true">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
+        }
+      </a>
+    </div>
+  </div>
+</header>

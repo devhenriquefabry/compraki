@@ -1,3 +1,14 @@
+<!-- Site em tela larga: home no molde do Mercado Livre (header fica no app shell) -->
+@if (layout.isDesktop()) {
+<ion-content class="desktop-home-content">
+  <app-desktop-home
+    [products]="allProducts"
+    [loaded]="productsLoaded"
+    [categories]="(categories$ | async) ?? []"
+    [banners]="activeBanners">
+  </app-desktop-home>
+</ion-content>
+} @else {
 <ion-header class="ion-no-border">
   <ion-toolbar class="custom-header">
     <app-mini-header [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
@@ -255,3 +266,4 @@
     </ion-content>
   </ng-template>
 </ion-modal>
+}

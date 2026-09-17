@@ -1,0 +1,153 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.sc {
+  /* Prende os textos .vn-sr-only (absolutos) ao card. Sem isso, num trilho
+     rolável eles escapam do recorte e a página inteira ganha rolagem lateral. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--vn-radius);
+  background: var(--vn-surface);
+  color: var(--vn-ink);
+  font-family: var(--vn-font-body);
+  text-decoration: none;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: var(--vn-shadow-2);
+
+    .sc-name {
+      color: var(--vn-ink);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--vn-navy-900);
+    outline-offset: 2px;
+  }
+}
+
+.sc-media {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 12px;
+  border-bottom: 1px solid #F0F2F5;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.sc-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px 16px;
+}
+
+.sc-name {
+  display: -webkit-box;
+  min-height: 2.6em;
+  margin: 0 0 4px;
+  overflow: hidden;
+  color: var(--vn-ink-2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.sc-old-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.sc-old {
+  color: var(--vn-ink-muted);
+  font-size: 12px;
+}
+
+.sc-price {
+  color: var(--vn-ink);
+  font-family: var(--vn-font-display);
+  font-size: 23px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.sc-currency {
+  margin-right: 3px;
+  font-size: 0.7em;
+}
+
+.sc-cents {
+  position: relative;
+  top: -0.75em;
+  margin-left: 2px;
+  font-size: 0.5em;
+}
+
+/* O único neon dentro da vitrine clara: marca economia. */
+.sc-off {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--vn-neon);
+  color: var(--vn-navy-900);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.sc-installment {
+  color: var(--vn-ink-2);
+  font-size: 13px;
+}
+
+.sc-shipping {
+  color: var(--vn-neon-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sc-shipping--express {
+  color: var(--vn-ink-2);
+}
+
+.sc-meta {
+  margin-top: auto;
+  padding-top: 6px;
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--vn-ink-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-used {
+  margin-right: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--vn-line);
+  border-radius: 4px;
+  color: var(--vn-ink-2);
+  font-weight: 700;
+}

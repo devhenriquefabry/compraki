@@ -59,11 +59,19 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------- produtos
 
+    // Nota e contagem de avaliacoes: so a Cloud Function `onProductReviewWritten`
+    // escreve. Com isso liberado, o vendedor gravava `rating: 5` no proprio anuncio.
+    function reviewAggregateFields() {
+      return ['rating', 'reviewCount', 'ratingBreakdown'];
+    }
+
     match /products/{productId} {
       allow read: if true;
 
       allow create: if isAdmin() || (
-        isSignedIn() && request.resource.data.sellerId == request.auth.uid
+        isSignedIn()
+        && request.resource.data.sellerId == request.auth.uid
+        && !request.resource.data.keys().hasAny(reviewAggregateFields())
       );
 
       // Valida o dono ATUAL do documento e impede transferir a posse.
@@ -71,11 +79,52 @@ service cloud.firestore {
         isSignedIn()
         && resource.data.sellerId == request.auth.uid
         && request.resource.data.sellerId == resource.data.sellerId
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(reviewAggregateFields())
       );
 
       allow delete: if isAdmin() || (
         isSignedIn() && resource.data.sellerId == request.auth.uid
       );
+
+      // Avaliacoes. Id do documento = uid de quem avalia (uma por pessoa).
+      // Leitura publica: visitante sem conta tambem ve as opinioes.
+      //
+      // Aqui a regra so garante que o pedido citado e da pessoa e esta pago.
+      // Se o produto esta mesmo dentro do pedido quem confere e a funcao
+      // `onProductReviewWritten` (a regra nao consegue varrer `items`); se nao
+      // estiver, ela apaga a avaliacao.
+      match /reviews/{reviewerId} {
+        allow read: if true;
+
+        allow create: if isUser(reviewerId)
+          && isValidReview()
+          && ownsPaidOrder(request.resource.data.orderId)
+          && get(/databases/$(database)/documents/products/$(productId)).data.sellerId != request.auth.uid;
+
+        allow update: if isUser(reviewerId)
+          && isValidReview()
+          && request.resource.data.orderId == resource.data.orderId
+          && request.resource.data.createdAt == resource.data.createdAt;
+
+        allow delete: if isUser(reviewerId) || isAdmin();
+      }
+    }
+
+    function isValidReview() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['userId', 'userName', 'rating', 'comment', 'orderId', 'createdAt', 'updatedAt'])
+        && d.userId == request.auth.uid
+        && d.rating is int && d.rating >= 1 && d.rating <= 5
+        && d.comment is string && d.comment.size() <= 2000
+        && d.userName is string && d.userName.size() <= 60
+        && d.orderId is string;
+    }
+
+    function ownsPaidOrder(orderId) {
+      let order = get(/databases/$(database)/documents/orders/$(orderId)).data;
+      return order.userId == request.auth.uid
+        && order.status in ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
     }
 
     // ------------------------------------------------------ catalogo editorial

@@ -1,0 +1,37 @@
+<footer class="df">
+  <div class="df-inner">
+    <div class="df-brand">
+      <img src="assets/imagens/Vineon.svg" alt="Vineon" width="140" height="37">
+      <p class="df-tagline">Tudo conecta. <span>Você escolhe.</span></p>
+    </div>
+
+    <nav class="df-columns" aria-label="Rodapé">
+      <div>
+        <h2>Comprar</h2>
+        <a routerLink="/tabs/tab2" [queryParams]="{ ofertas: 1 }">Ofertas</a>
+        <a routerLink="/tabs/tab2" [queryParams]="{ frete: 1 }">Frete grátis</a>
+        <a routerLink="/tabs/tab2" [queryParams]="{ ordem: 'mais-vendidos' }">Mais vendidos</a>
+        <a routerLink="/tabs/saved">Favoritos</a>
+      </div>
+      <div>
+        <h2>Vender</h2>
+        <a routerLink="/tabs/upload-product">Anunciar produto</a>
+        <a routerLink="/my-products">Meus anúncios</a>
+        <a routerLink="/my-sales">Minhas vendas</a>
+        <a routerLink="/my-showcase">Minha vitrine</a>
+      </div>
+      <div>
+        <h2>Minha conta</h2>
+        <a routerLink="/my-orders">Compras</a>
+        <a routerLink="/tabs/chats">Mensagens</a>
+        <a routerLink="/address">Endereços</a>
+        <a routerLink="/tabs/notifications">Notificações</a>
+      </div>
+    </nav>
+  </div>
+
+  <div class="df-legal">
+    <span>© {{ year }} Vineon</span>
+    <span>vineonsite.com.br</span>
+  </div>
+</footer>

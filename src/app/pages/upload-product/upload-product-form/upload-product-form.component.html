@@ -1,240 +1,316 @@
 <app-loading-spinner-overlay *ngIf="isLoading"></app-loading-spinner-overlay>
+
 <div class="upload-container">
-  <!-- LOGO BRANDING -->
-  <div class="form-logo-top">
-    <img src="assets/imagens/logo-devmode-notice.png" alt="Compraki Devmode">
+
+  <!-- CABEÇALHO -->
+  <div class="page-head">
+    <div class="page-head-text">
+      <h1>Anunciar produto</h1>
+      <p>Preencha os dados abaixo. Anúncios completos vendem mais rápido.</p>
+    </div>
+    <div class="progress-pill" [class.is-complete]="completionPercent === 100">
+      <svg viewBox="0 0 36 36" class="progress-ring">
+        <path class="progress-ring-bg" d="M18 2 a16 16 0 0 1 0 32 a16 16 0 0 1 0 -32" />
+        <path class="progress-ring-fill" [attr.stroke-dasharray]="completionPercent + ', 100'" d="M18 2 a16 16 0 0 1 0 32 a16 16 0 0 1 0 -32" />
+      </svg>
+      <span>{{ completionPercent }}% completo</span>
+    </div>
   </div>
 
-  <!-- BANNER TOPO REAL -->
-  <div class="announce-banner-real">
-    <img src="assets/imagens/banner-anunciar.png" alt="Anunciar Produto">
-  </div>
+  <div class="page-body">
+    <form [formGroup]="submitProductForm" class="form-column">
 
-  <form action="" [formGroup]="submitProductForm">
-    <!-- SEÇÃO FOTOS -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Fotos do Produto</span>
-      <button type="button" class="btn-reorder-trigger" *ngIf="selectedPhotos.length > 1" (click)="openReorderModal()">
-        <ion-icon name="swap-horizontal-outline"></ion-icon>
-        Selecionar Ordem
+      <!-- FOTOS -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="images-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Fotos do produto</h2>
+            <p>A primeira foto é a capa do anúncio. Até 6 fotos.</p>
+          </div>
+          <button type="button" class="btn-reorder-trigger" *ngIf="selectedPhotos.length > 1" (click)="openReorderModal()">
+            <ion-icon name="swap-horizontal-outline"></ion-icon>
+            Ordenar
+          </button>
+        </header>
+
+        <div class="photos-grid">
+          <div class="add-photo-box" (click)="fileInput.click()">
+            <ion-icon name="camera-outline"></ion-icon>
+            <span>Adicionar</span>
+            <input #fileInput type="file" accept="image/*" multiple (change)="onFileSelected($event)" style="display: none;">
+          </div>
+
+          <div class="photo-item" *ngFor="let photo of selectedPhotos; let i = index">
+            <img [src]="photo" alt="Foto do produto" draggable="false" (click)="openPreview(photo)">
+            <div class="photo-order-badge" [class.is-cover]="i === 0">{{ i === 0 ? 'Capa' : i + 1 }}</div>
+            <div class="remove-photo" (click)="removePhoto(i)">
+              <ion-icon name="close"></ion-icon>
+            </div>
+          </div>
+
+          <div class="photo-placeholder" *ngIf="selectedPhotos.length < 5" (click)="fileInput.click()">
+            <ion-icon name="add"></ion-icon>
+          </div>
+        </div>
+      </section>
+
+      <!-- INFORMAÇÕES BÁSICAS -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="pricetag-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Informações básicas</h2>
+            <p>Título, categoria e condição do item</p>
+          </div>
+        </header>
+
+        <div class="form-group">
+          <label>Título do produto</label>
+          <div class="input-wrapper">
+            <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM">
+            <ion-icon name="checkmark-circle" class="valid-icon" *ngIf="submitProductForm.get('name')?.valid"></ion-icon>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Categoria principal</label>
+          <div class="category-chips">
+            <button type="button"
+                    *ngFor="let cat of (categories$ | async)"
+                    class="cat-chip"
+                    [class.active]="submitProductForm.get('categoryIds')?.value?.[0] === cat.id"
+                    (click)="selectCategory(cat.id)">
+              <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
+              <span>{{ cat.name }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="availableSubcategories.length > 0">
+          <label>Subcategoria</label>
+          <div class="subcategory-chips">
+            <button type="button"
+                    *ngFor="let sub of availableSubcategories"
+                    class="sub-chip"
+                    [class.active]="submitProductForm.get('subcategoryIds')?.value?.includes(sub.id)"
+                    (click)="toggleSubcategory(sub.id)">
+              {{ sub.name }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Condição do produto</label>
+          <div class="condition-grid">
+            <button type="button"
+                    *ngFor="let c of conditionOptions"
+                    class="condition-card"
+                    [class.active]="submitProductForm.get('condition')?.value === c.value"
+                    (click)="submitProductForm.patchValue({condition: c.value})">
+              <span class="cc-label">{{ c.label }}</span>
+              <span class="cc-hint">{{ c.hint }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PREÇO E ESTOQUE -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="cash-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Preço e estoque</h2>
+            <p>Defina o valor e quantas unidades você tem</p>
+          </div>
+        </header>
+
+        <div class="row">
+          <div class="form-group col">
+            <label>Preço</label>
+            <div class="input-wrapper price-input">
+              <span class="prefix">R$</span>
+              <input type="number" formControlName="price" placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-group col">
+            <label>Preço promocional <small>(opcional)</small></label>
+            <div class="input-wrapper price-input promo">
+              <span class="prefix">R$</span>
+              <input type="number" formControlName="priceDiscounted" placeholder="0,00">
+            </div>
+            <span class="field-hint discount-hint" *ngIf="discountPercent">-{{ discountPercent }}% de desconto</span>
+          </div>
+          <div class="form-group col-small">
+            <label>Estoque</label>
+            <div class="input-wrapper stock-input">
+              <input type="number" formControlName="stock" placeholder="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-group">
+          <div class="toggle-text">
+            <label>Aceitar ofertas?</label>
+            <p>Permitir que compradores façam propostas</p>
+          </div>
+          <ion-toggle color="success" formControlName="acceptOffers"></ion-toggle>
+        </div>
+      </section>
+
+      <!-- ENTREGA E PAGAMENTO -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="rocket-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Entrega e pagamento</h2>
+            <p>Como o comprador recebe e paga pelo item</p>
+          </div>
+        </header>
+
+        <div class="form-group">
+          <label>Opções de entrega</label>
+          <div class="shipping-options">
+            <button type="button"
+                    *ngFor="let opt of shippingOptions"
+                    class="ship-pill"
+                    [class.active]="submitProductForm.get('shipping')?.value === opt.value"
+                    (click)="submitProductForm.patchValue({shipping: opt.value})">
+              <ion-icon [name]="opt.icon"></ion-icon>
+              <span class="ship-pill-text">
+                <strong>{{ opt.label }}</strong>
+                <small>{{ opt.hint }}</small>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Formas de pagamento aceitas</label>
+          <div class="payment-methods-grid">
+            <button type="button"
+                    *ngFor="let method of availablePaymentMethods"
+                    class="pay-pill"
+                    [class.active]="submitProductForm.get('paymentMethods')?.value?.includes(method)"
+                    (click)="togglePaymentMethod(method)">
+              <ion-icon [name]="method === 'PIX' ? 'qr-code-outline' : (method === 'CARTÃO' ? 'card-outline' : 'cash-outline')"></ion-icon>
+              <span>{{ method }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- DIMENSÕES -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="cube-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Dimensões e peso</h2>
+            <p>Usados para calcular o frete pelo Melhor Envio</p>
+          </div>
+        </header>
+
+        <div class="row">
+          <div class="form-group col">
+            <label>Peso (kg)</label>
+            <div class="input-wrapper">
+              <input type="number" formControlName="weight" placeholder="Ex: 0.5">
+            </div>
+          </div>
+          <div class="form-group col">
+            <label>Comprimento (cm)</label>
+            <div class="input-wrapper">
+              <input type="number" formControlName="length" placeholder="Ex: 16">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group col">
+            <label>Largura (cm)</label>
+            <div class="input-wrapper">
+              <input type="number" formControlName="width" placeholder="Ex: 11">
+            </div>
+          </div>
+          <div class="form-group col">
+            <label>Altura (cm)</label>
+            <div class="input-wrapper">
+              <input type="number" formControlName="height" placeholder="Ex: 2">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FICHA TÉCNICA -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="list-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Características</h2>
+            <p>Marca, modelo, cor... Aparecem na ficha técnica do anúncio (opcional)</p>
+          </div>
+        </header>
+
+        <app-product-specs-editor
+          [specs]="submitProductForm.controls.specs.value"
+          (specsChange)="submitProductForm.controls.specs.setValue($event)">
+        </app-product-specs-editor>
+      </section>
+
+      <!-- DESCRIÇÃO -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="document-text-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Descrição</h2>
+            <p>Detalhes ajudam o comprador a decidir mais rápido</p>
+          </div>
+        </header>
+
+        <div class="form-group">
+          <textarea formControlName="description" rows="6" placeholder="Descreva o estado, características e o que está incluso na compra..."></textarea>
+        </div>
+      </section>
+
+      <div class="spacer-bottom"></div>
+    </form>
+
+    <!-- BARRA LATERAL (DESKTOP) -->
+    <aside class="preview-sidebar">
+      <div class="preview-card">
+        <div class="preview-card-photo">
+          <img *ngIf="selectedPhotos[0]" [src]="selectedPhotos[0]" alt="Prévia do produto">
+          <ion-icon *ngIf="!selectedPhotos[0]" name="image-outline"></ion-icon>
+          <span class="preview-condition">{{ conditionLabel }}</span>
+        </div>
+        <div class="preview-card-body">
+          <h3>{{ submitProductForm.value.name || 'Nome do produto' }}</h3>
+          <div class="preview-price-row">
+            <span class="preview-price">
+              {{ (submitProductForm.value.priceDiscounted || submitProductForm.value.price || 0) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </span>
+            <span class="preview-old-price" *ngIf="discountPercent">
+              {{ submitProductForm.value.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            </span>
+          </div>
+          <span class="preview-shipping" *ngIf="submitProductForm.value.shipping">{{ submitProductForm.value.shipping }}</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-publish" (click)="submit()" [disabled]="!submitProductForm.valid">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        Publicar produto
       </button>
-    </div>
-    
-    <div class="photos-grid">
-      <div class="add-photo-box" (click)="fileInput.click()">
-        <ion-icon name="camera-outline"></ion-icon>
-        <span>+ Adicionar Fotos</span>
-        <small>Até 6 fotos</small>
-        <input #fileInput type="file" multiple (change)="onFileSelected($event)" style="display: none;">
-      </div>
+      <p class="publish-hint" *ngIf="!submitProductForm.valid">Complete os campos obrigatórios para publicar</p>
+    </aside>
+  </div>
 
-      <div class="photo-item" *ngFor="let photo of selectedPhotos; let i = index">
-        <img [src]="photo" alt="Preview" draggable="false" (click)="openPreview(photo)">
-        <div class="photo-order-badge">{{ i + 1 }}</div>
-        <div class="remove-photo" (click)="removePhoto(i)">
-          <ion-icon name="close"></ion-icon>
-        </div>
-      </div>
-
-      <!-- Placeholder slots para manter o grid bonito -->
-      <div class="photo-placeholder" *ngIf="selectedPhotos.length < 5" (click)="fileInput.click()" style="cursor: pointer;">
-        <ion-icon name="add"></ion-icon>
-      </div>
-    </div>
-
-    <!-- SEÇÃO INFORMAÇÕES -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Informações do Produto</span>
-    </div>
-
-    <div class="form-group">
-      <label>Título do Produto</label>
-      <div class="input-wrapper">
-        <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM">
-        <ion-icon name="checkmark" color="success" *ngIf="submitProductForm.get('name')?.valid"></ion-icon>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Categoria principal</label>
-      <div class="category-chips">
-        <button type="button" 
-                *ngFor="let cat of (categories$ | async)" 
-                class="cat-chip"
-                [class.active]="submitProductForm.get('categoryIds')?.value?.[0] === cat.id"
-                (click)="selectCategory(cat.id)">
-          <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
-          <span>{{ cat.name }}</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="form-group" *ngIf="availableSubcategories.length > 0">
-      <label>Subcategoria</label>
-      <div class="subcategory-chips">
-        <button type="button" 
-                *ngFor="let sub of availableSubcategories" 
-                class="sub-chip"
-                [class.active]="submitProductForm.get('subcategoryIds')?.value?.includes(sub.id)"
-                (click)="toggleSubcategory(sub.id)">
-          {{ sub.name }}
-        </button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Condição do Produto</label>
-      <div class="condition-pills scrollable">
-        <button type="button" 
-                [class.active]="submitProductForm.get('condition')?.value === 'novo'"
-                (click)="submitProductForm.patchValue({condition: 'novo'})">
-          Novo
-        </button>
-        <button type="button"
-                [class.active]="submitProductForm.get('condition')?.value === 'usado-como-novo'"
-                (click)="submitProductForm.patchValue({condition: 'usado-como-novo'})">
-          Como Novo
-        </button>
-        <button type="button"
-                [class.active]="submitProductForm.get('condition')?.value === 'usado-bom'"
-                (click)="submitProductForm.patchValue({condition: 'usado-bom'})">
-          Bom estado
-        </button>
-        <button type="button"
-                [class.active]="submitProductForm.get('condition')?.value === 'usado-aceitavel'"
-                (click)="submitProductForm.patchValue({condition: 'usado-aceitavel'})">
-          Aceitável
-        </button>
-      </div>
-    </div>
-
-    <!-- SEÇÃO PREÇO E ESTOQUE -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Preço e Estoque</span>
-    </div>
-
-    <div class="row">
-      <div class="form-group col">
-        <label>Preço</label>
-        <div class="input-wrapper price-input">
-          <span class="prefix">R$</span>
-          <input type="number" formControlName="price" placeholder="0,00">
-        </div>
-      </div>
-      <div class="form-group col">
-        <label>Preço Oferta (Opcional)</label>
-        <div class="input-wrapper price-input promo">
-          <span class="prefix">R$</span>
-          <input type="number" formControlName="priceDiscounted" placeholder="0,00">
-        </div>
-      </div>
-      <div class="form-group col-small">
-        <label>Estoque</label>
-        <div class="input-wrapper stock-input">
-          <input type="number" formControlName="stock" placeholder="1">
-        </div>
-      </div>
-    </div>
-
-    <!-- SEÇÃO LOGÍSTICA E PAGAMENTO -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Logística e Pagamento</span>
-    </div>
-
-    <div class="form-group">
-      <label>Opções de Entrega</label>
-      <div class="shipping-options">
-        <button type="button" 
-                *ngFor="let opt of shippingOptions" 
-                class="ship-pill"
-                [class.active]="submitProductForm.get('shipping')?.value === opt"
-                (click)="submitProductForm.patchValue({shipping: opt})">
-          {{ opt }}
-        </button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Formas de Pagamento Aceitas</label>
-      <div class="payment-methods-grid">
-        <button type="button" 
-                *ngFor="let method of availablePaymentMethods" 
-                class="pay-pill"
-                [class.active]="submitProductForm.get('paymentMethods')?.value?.includes(method)"
-                (click)="togglePaymentMethod(method)">
-          <ion-icon [name]="method === 'PIX' ? 'qr-code-outline' : (method === 'CARTÃO' ? 'card-outline' : 'cash-outline')"></ion-icon>
-          <span>{{ method }}</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="toggle-group">
-      <div class="toggle-text">
-        <label>Aceitar Ofertas?</label>
-        <p>Permitir que compradores façam propostas</p>
-      </div>
-      <ion-toggle color="success" formControlName="acceptOffers"></ion-toggle>
-    </div>
-
-    <!-- SEÇÃO DIMENSÕES (MELHOR ENVIO) -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Dimensões e Peso (Para Frete)</span>
-    </div>
-
-    <div class="row">
-      <div class="form-group col">
-        <label>Peso (kg)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="weight" placeholder="Ex: 0.5">
-        </div>
-      </div>
-      <div class="form-group col">
-        <label>Comprimento (cm)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="length" placeholder="Ex: 16">
-        </div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="form-group col">
-        <label>Largura (cm)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="width" placeholder="Ex: 11">
-        </div>
-      </div>
-      <div class="form-group col">
-        <label>Altura (cm)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="height" placeholder="Ex: 2">
-        </div>
-      </div>
-    </div>
-
-    <!-- SEÇÃO DESCRIÇÃO -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Descrição do Produto</span>
-    </div>
-
-    <div class="form-group">
-      <textarea formControlName="description" rows="6" placeholder="Descreva seu produto em detalhes..."></textarea>
-    </div>
-
-    <div class="spacer-bottom"></div>
-  </form>
-
+  <!-- BARRA FIXA (MOBILE) -->
   <div class="fixed-bottom-actions">
-    <button type="submit" class="btn-publish" (click)="submit()" [disabled]="!submitProductForm.valid">
+    <button type="button" class="btn-publish" (click)="submit()" [disabled]="!submitProductForm.valid">
       <ion-icon name="pricetag-outline"></ion-icon>
-      PUBLICAR PRODUTO
+      Publicar produto
     </button>
   </div>
-
 
   <app-feedback-modal
     [visible]="showFeedback"
@@ -243,17 +319,18 @@
     [message]="feedbackMessage"
     (closed)="onFeedbackClosed()">
   </app-feedback-modal>
-  <!-- MODAL DE REORDENAÇÃO (INSTAGRAM STYLE) -->
+
+  <!-- MODAL DE REORDENAÇÃO -->
   <div class="reorder-modal-overlay" *ngIf="isReorderModalOpen">
     <div class="reorder-modal-content">
       <div class="reorder-header">
-        <h3>Definir Ordem das Fotos</h3>
+        <h3>Definir ordem das fotos</h3>
         <p>Toque nas fotos na ordem desejada para reorganizar</p>
       </div>
 
       <div class="reorder-grid">
-        <div class="reorder-item" 
-             *ngFor="let photo of selectedPhotos; let i = index" 
+        <div class="reorder-item"
+             *ngFor="let photo of selectedPhotos; let i = index"
              (click)="toggleReorder(i)"
              [class.selected]="getReorderNumber(i)">
           <img [src]="photo" alt="Preview">
@@ -265,8 +342,8 @@
 
       <div class="reorder-footer">
         <button type="button" class="btn-cancel-reorder" (click)="closeReorderModal()">CANCELAR</button>
-        <button type="button" 
-                class="btn-confirm-reorder" 
+        <button type="button"
+                class="btn-confirm-reorder"
                 [disabled]="reorderIndices.length !== selectedPhotos.length"
                 (click)="confirmReorder()">
           CONFIRMAR ({{ reorderIndices.length }}/{{ selectedPhotos.length }})
@@ -284,4 +361,4 @@
       Fechar
     </button>
   </div>
-</div>
+</div>

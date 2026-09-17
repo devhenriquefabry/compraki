@@ -34,7 +34,8 @@
             ],
             "styles": [
               "src/global.scss",
-              "src/theme/variables.scss"
+              "src/theme/variables.scss",
+              "src/theme/desktop.scss"
             ],
             "scripts": [],
             "browser": "src/main.ts"
@@ -118,7 +119,8 @@
             ],
             "styles": [
               "src/global.scss",
-              "src/theme/variables.scss"
+              "src/theme/variables.scss",
+              "src/theme/desktop.scss"
             ],
             "scripts": []
           },

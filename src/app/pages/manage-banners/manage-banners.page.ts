@@ -8,6 +8,7 @@ import { BannerService } from '../../services/banner.service';
 import { AdminSubtabsComponent, AdminSubtabOption } from '../../components/admin-subtabs/admin-subtabs.component';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 import { ConfirmBannerModalComponent } from './confirm-banner-modal/confirm-banner-modal.component';
+import { BANNER_FORMATS, BannerFormat, BannerFormatKey, BannerImageCheck, checkBannerImage, safeInsetPercent } from '../../core/banner-formats';
 
 interface CalendarDay {
   dateKey: string;
@@ -42,8 +43,19 @@ export class ManageBannersPage implements OnInit, OnDestroy {
   public isFormOpen = false;
   public isSaving = false;
   public editingBanner: Banner | null = null;
+  /** Arte do celular (`imageURL`). */
   public previewImageUrl: string = '';
   private selectedFile: File | null = null;
+  /** Arte do computador (`desktopImageURL`). */
+  public desktopPreviewUrl: string = '';
+  private selectedDesktopFile: File | null = null;
+
+  public readonly formats = BANNER_FORMATS;
+  public readonly formatList: BannerFormat[] = [BANNER_FORMATS.mobile, BANNER_FORMATS.desktop];
+  public readonly safeInset = safeInsetPercent;
+  /** Resultado da conferência de tamanho/proporção de cada arte escolhida. */
+  public imageChecks: Partial<Record<BannerFormatKey, BannerImageCheck>> = {};
+  public showSafeZone = true;
   public activeSubTab: 'list' | 'calendar' = 'list';
   public readonly subtabOptions: AdminSubtabOption[] = [
     { value: 'list', label: 'Banners', icon: 'images-outline' },
@@ -124,6 +136,7 @@ export class ManageBannersPage implements OnInit, OnDestroy {
       buttonText: '',
       buttonLink: '',
       imageURL: '',
+      desktopImageURL: '',
       backgroundColor: '#4a9c2b',
       textColor: '#ffffff',
       status: 'active',
@@ -141,14 +154,18 @@ export class ManageBannersPage implements OnInit, OnDestroy {
     if (banner) {
       this.form = { ...banner };
       this.previewImageUrl = banner.imageURL || '';
+      this.desktopPreviewUrl = banner.desktopImageURL || '';
       this.calendarViewDate = this.getInitialCalendarDate(banner);
     } else {
       this.form = this.getEmptyForm();
       this.previewImageUrl = '';
+      this.desktopPreviewUrl = '';
       this.calendarViewDate = new Date();
     }
     this.updateCalendarDays();
     this.selectedFile = null;
+    this.selectedDesktopFile = null;
+    this.imageChecks = {};
     this.isFormOpen = true;
   }
 
@@ -157,26 +174,53 @@ export class ManageBannersPage implements OnInit, OnDestroy {
     this.editingBanner = null;
     this.form = this.getEmptyForm();
     this.previewImageUrl = '';
+    this.desktopPreviewUrl = '';
     this.selectedFile = null;
+    this.selectedDesktopFile = null;
+    this.imageChecks = {};
   }
 
-  onFileSelected(event: any) {
-    const file: File = event.target.files[0];
+  previewFor(key: BannerFormatKey): string {
+    return key === 'mobile' ? this.previewImageUrl : this.desktopPreviewUrl;
+  }
+
+  /**
+   * Escolha de arte. Confere formato e proporção antes de aceitar: erro
+   * (tipo/tamanho) bloqueia; proporção ou resolução fora do ideal só avisa.
+   */
+  async onBannerFileSelected(event: Event, key: BannerFormatKey) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // permite escolher o mesmo arquivo de novo depois de corrigir
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert('O arquivo deve ter no máximo 2MB!');
-      return;
+    const check = await checkBannerImage(file, BANNER_FORMATS[key]);
+    this.imageChecks = { ...this.imageChecks, [key]: check };
+    if (check.errors.length) return;
+
+    const url = URL.createObjectURL(file);
+    if (key === 'mobile') {
+      this.selectedFile = file;
+      this.previewImageUrl = url;
+    } else {
+      this.selectedDesktopFile = file;
+      this.desktopPreviewUrl = url;
     }
+  }
 
-    this.selectedFile = file;
-
-    // Gera prévia local imediata
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      this.previewImageUrl = e.target.result;
-    };
-    reader.readAsDataURL(file);
+  removeBannerImage(key: BannerFormatKey, event?: Event) {
+    event?.stopPropagation();
+    const { [key]: _removed, ...rest } = this.imageChecks;
+    this.imageChecks = rest;
+    if (key === 'mobile') {
+      this.selectedFile = null;
+      this.previewImageUrl = '';
+      this.form.imageURL = '';
+    } else {
+      this.selectedDesktopFile = null;
+      this.desktopPreviewUrl = '';
+      this.form.desktopImageURL = '';
+    }
   }
 
   async saveBanner() {
@@ -208,12 +252,18 @@ export class ManageBannersPage implements OnInit, OnDestroy {
         imageURL = await this.bannerService.uploadBannerImage(this.selectedFile);
       }
 
+      let desktopImageURL = this.form.desktopImageURL || '';
+      if (this.selectedDesktopFile) {
+        desktopImageURL = await this.bannerService.uploadBannerImage(this.selectedDesktopFile);
+      }
+
       const payload: Omit<Banner, 'id'> = {
         title: this.form.title || '',
         subtitle: this.form.subtitle || '',
         buttonText: this.form.buttonText || '',
         buttonLink: this.form.buttonLink || '',
         imageURL,
+        desktopImageURL,
         backgroundColor: this.form.backgroundColor || '#4a9c2b',
         textColor: this.form.textColor || '#ffffff',
         status: this.form.status || 'active',

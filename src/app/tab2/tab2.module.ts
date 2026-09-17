@@ -7,6 +7,7 @@ import { ExploreContainerComponentModule } from '../explore-container/explore-co
 
 import { Tab2PageRoutingModule } from './tab2-routing.module';
 import { MiniHeaderComponent } from '../components/mini-header/mini-header.component';
+import { DesktopHomeComponent } from './desktop-home/desktop-home.component';
 
 @NgModule({
   imports: [
@@ -15,7 +16,8 @@ import { MiniHeaderComponent } from '../components/mini-header/mini-header.compo
     FormsModule,
     ExploreContainerComponentModule,
     Tab2PageRoutingModule,
-    MiniHeaderComponent
+    MiniHeaderComponent,
+    DesktopHomeComponent
   ],
   declarations: [Tab2Page]
 })

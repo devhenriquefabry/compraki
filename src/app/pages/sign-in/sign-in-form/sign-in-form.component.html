@@ -2,7 +2,7 @@
 <app-loading-spinner-overlay *ngIf="firebaseProducts.carregando"></app-loading-spinner-overlay>
 
 <div class="containerLogin">
-  <img class="logoCompraki" src="assets/imagens/logoCompraki.png" alt="logoCompraki">
+  <img class="logoCompraki" src="assets/imagens/Vineon.svg" alt="Vineon">
   
   <form class="formuLogin" [formGroup]="signInForm" *ngIf="!registrationSuccess">
     <!-- INDICADOR DE PROGRESSO -->
@@ -127,7 +127,7 @@
 
     <ion-label *ngIf="currentStep === 1" class="textos">Ao se cadastrar, você concorda com nossos <span class="text-green">Termos de Uso</span></ion-label>
     <hr *ngIf="currentStep === 1">
-    <ion-label *ngIf="currentStep === 1" class="textos" [routerLink]="['/login']">Já possui uma conta? <span class="text-green">ENTRAR</span></ion-label>
+    <ion-label *ngIf="currentStep === 1" class="textos" [routerLink]="['/login']" queryParamsHandling="preserve">Já possui uma conta? <span class="text-green">ENTRAR</span></ion-label>
   </form>
 
   <!-- SUCESSO -->

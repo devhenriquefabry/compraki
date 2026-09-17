@@ -1,0 +1,101 @@
+:host {
+  display: block;
+}
+
+.se {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.se-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 36px;
+  gap: 8px;
+  align-items: center;
+}
+
+.se-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #DDE2E8;
+  border-radius: 10px;
+  background: #fff;
+  color: #0D1420;
+  font: inherit;
+  font-size: 14px;
+
+  &--label {
+    font-weight: 700;
+  }
+
+  &:focus {
+    outline: 2px solid #0D1420;
+    outline-offset: -1px;
+  }
+}
+
+.se-remove {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #5B6573;
+  font-size: 20px;
+  cursor: pointer;
+
+  &:hover {
+    background: #EDF0F3;
+    color: #D12F3A;
+  }
+}
+
+.se-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.se-chip {
+  padding: 6px 12px;
+  border: 1px dashed #B8C0CA;
+  border-radius: 999px;
+  background: #fff;
+  color: #3A4452;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    border-style: solid;
+    border-color: #0D1420;
+  }
+}
+
+.se-add {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: #0D1420;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

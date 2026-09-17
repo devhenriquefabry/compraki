@@ -1,0 +1,130 @@
+:host {
+  display: block;
+}
+
+.rail {
+  padding: 20px 20px 8px;
+  border-radius: var(--vn-radius);
+  background: var(--vn-surface);
+  box-shadow: var(--vn-shadow-1);
+}
+
+.rail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  margin-bottom: 4px;
+}
+
+.rail-title {
+  margin: 0;
+  color: var(--vn-ink);
+  font-family: var(--vn-font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.rail-see-all {
+  border-radius: 4px;
+  color: var(--vn-navy-700);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--vn-navy-900);
+    outline-offset: 2px;
+  }
+}
+
+.rail-viewport {
+  position: relative;
+}
+
+.rail-track {
+  --rail-gap: 12px;
+  --rail-columns: 6;
+
+  display: flex;
+  gap: var(--rail-gap);
+  margin: 0 -8px;
+  padding: 12px 8px 20px;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 8px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (max-width: 1199px) {
+    --rail-columns: 5;
+  }
+
+  // Celular e tablet (página de produto): cards largos o bastante para ler o
+  // preço, com o próximo aparecendo pela metade para indicar que rola.
+  @media (max-width: 991px) {
+    --rail-columns: 3.4;
+  }
+
+  @media (max-width: 600px) {
+    --rail-columns: 2.3;
+  }
+}
+
+.rail-item {
+  flex: 0 0 calc((100% - (var(--rail-columns) - 1) * var(--rail-gap)) / var(--rail-columns));
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.rail-arrow {
+  position: absolute;
+  top: calc(50% - 24px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--vn-surface);
+  color: var(--vn-navy-900);
+  box-shadow: var(--vn-shadow-2);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+
+  ion-icon {
+    font-size: 22px;
+  }
+
+  &:hover {
+    transform: scale(1.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--vn-navy-900);
+    outline-offset: 2px;
+  }
+}
+
+.rail-arrow--back {
+  left: -40px;
+}
+
+.rail-arrow--forward {
+  right: -40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-arrow {
+    transition: none;
+  }
+}

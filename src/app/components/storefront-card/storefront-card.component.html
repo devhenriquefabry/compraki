@@ -1,0 +1,38 @@
+<a class="sc" [routerLink]="['/product-details', product().id]" (click)="select()">
+  <div class="sc-media">
+    <img [src]="view().photo" [alt]="product().name" loading="lazy" decoding="async">
+  </div>
+
+  <div class="sc-body">
+    <h3 class="sc-name">{{ product().name }}</h3>
+
+    @if (view().oldPrice; as oldPrice) {
+      <span class="sc-old-row">
+        <s class="sc-old"><span class="vn-sr-only">De </span>{{ oldPrice }}</s>
+        <span class="sc-off">{{ view().off }}% OFF</span>
+      </span>
+    }
+
+    <span class="vn-sr-only">{{ view().oldPrice ? 'por ' : '' }}{{ view().fullPrice }}</span>
+    <span class="sc-price" aria-hidden="true">
+      <span class="sc-currency">R$</span>{{ view().reais }}@if (view().cents; as cents) {<span class="sc-cents">{{ cents }}</span>}
+    </span>
+
+    @if (view().installment; as installment) {
+      <span class="sc-installment">em {{ installment }}</span>
+    }
+
+    @if (view().freeShipping) {
+      <span class="sc-shipping">Frete grátis</span>
+    } @else if (view().express) {
+      <span class="sc-shipping sc-shipping--express">Entrega expressa</span>
+    }
+
+    @if (view().used || product().location) {
+      <span class="sc-meta">
+        @if (view().used) {<span class="sc-used">Usado</span>}
+        {{ product().location }}
+      </span>
+    }
+  </div>
+</a>

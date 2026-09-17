@@ -1,0 +1,261 @@
+:host {
+  display: block;
+  --pg-ink: var(--vn-navy-900, #0D1420);
+  --pg-line: var(--vn-line, #DDE2E8);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+img {
+  display: block;
+}
+
+/* ---------------------------------------------------------------- celular */
+
+.pg-strip {
+  position: relative;
+  background: #fff;
+}
+
+.pg-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.pg-slide {
+  flex: 0 0 100%;
+  aspect-ratio: 1 / 1;
+  scroll-snap-align: center;
+  position: relative;
+
+  img {
+    position: absolute;
+    inset: 12px;
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
+    object-fit: contain;
+  }
+}
+
+.pg-counter {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(13, 20, 32, 0.06);
+  color: var(--vn-ink-2, #3A4452);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pg-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0 12px;
+}
+
+.pg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pg-line);
+  transition: width 0.2s ease, background-color 0.2s ease;
+
+  &.is-active {
+    width: 18px;
+    border-radius: 3px;
+    background: var(--pg-ink);
+  }
+}
+
+/* ---------------------------------------------------------------- desktop */
+
+.pg-desktop {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.pg-thumbs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.pg-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  border: 1px solid var(--pg-line);
+  background: #fff;
+  padding: 3px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &:hover {
+    border-color: var(--vn-ink-muted, #5B6573);
+  }
+
+  &.is-active {
+    border-color: var(--pg-ink);
+    box-shadow: 0 0 0 1px var(--pg-ink);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pg-ink);
+    outline-offset: 2px;
+  }
+}
+
+.pg-stage {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+  max-height: 520px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  cursor: zoom-in;
+  background: #fff;
+
+  &:focus-visible {
+    outline: 2px solid var(--pg-ink);
+    outline-offset: 2px;
+  }
+}
+
+// Absoluta: dentro de um <button> em grid, `height: 100%` não resolvia e a
+// foto crescia até a altura natural, cortada pelo `overflow: hidden`.
+.pg-stage-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.2s ease-out;
+}
+
+.pg-stage.is-zooming .pg-stage-img {
+  transform: scale(2);
+  transition: none;
+}
+
+/* ------------------------------------------------------------- tela cheia */
+
+.pg-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  background: rgba(13, 20, 32, 0.94);
+  display: grid;
+  place-items: center;
+  padding: 56px 16px 24px;
+  animation: pg-fade 0.18s ease-out;
+}
+
+.pg-lb-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 1100px);
+
+  img {
+    max-width: 100%;
+    max-height: calc(100vh - 140px);
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+  }
+
+  figcaption {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.pg-lb-close,
+.pg-lb-nav {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 26px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--vn-neon, #DEFF1A);
+    outline-offset: 2px;
+  }
+}
+
+.pg-lb-close {
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+}
+
+.pg-lb-nav {
+  top: 50%;
+  transform: translateY(-50%);
+
+  &--prev {
+    left: 12px;
+  }
+
+  &--next {
+    right: 12px;
+  }
+}
+
+@keyframes pg-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-lightbox,
+  .pg-stage-img,
+  .pg-dot {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,235 @@
+@if (!isResults()) {
+  <!-- Faixa azul que continua o header: banners e, por cima da borda, os atalhos. -->
+  <div class="dhm-band">
+    <div class="dhm-container">
+      <app-hero-carousel [banners]="banners()"></app-hero-carousel>
+    </div>
+  </div>
+
+  <div class="dhm-container dhm-stack">
+    <ul class="dhm-shortcuts" aria-label="Atalhos">
+      @for (card of shortcuts(); track card.key) {
+        <li class="dhm-shortcut">
+          <h2 class="dhm-shortcut-title">{{ card.title }}</h2>
+
+          @if (card.product; as product) {
+            <a class="dhm-shortcut-product" [routerLink]="['/product-details', product.id]">
+              <img [src]="product.photoURL?.[0] || placeholder" [alt]="product.name" loading="lazy">
+              <span class="dhm-shortcut-name">{{ product.name }}</span>
+              <span class="dhm-shortcut-price">
+                {{ priceLabel(product) }}
+                @if (discountOf(product)) {
+                  <span class="dhm-off">{{ discountOf(product) }}% OFF</span>
+                }
+              </span>
+              @if (card.note) {
+                <span class="dhm-shortcut-note">{{ card.note }}</span>
+              }
+            </a>
+          } @else {
+            <div class="dhm-shortcut-empty">
+              <span class="dhm-shortcut-icon"><ion-icon [name]="card.icon" aria-hidden="true"></ion-icon></span>
+              <p>{{ card.text }}</p>
+            </div>
+          }
+
+          <a class="dhm-shortcut-cta" [routerLink]="card.link" [queryParams]="card.queryParams ?? null">{{ card.cta }}</a>
+        </li>
+      }
+    </ul>
+
+    @if (!loaded()) {
+      <div class="dhm-panel" aria-busy="true" aria-label="Carregando produtos">
+        <div class="dhm-skeleton dhm-skeleton--title"></div>
+        <div class="dhm-skeleton-row">
+          @for (i of skeletonCards; track i) {
+            <div class="dhm-skeleton dhm-skeleton--card"></div>
+          }
+        </div>
+      </div>
+    } @else if (products().length === 0) {
+      <div class="dhm-panel dhm-empty">
+        <span class="dhm-empty-icon"><ion-icon name="storefront-outline" aria-hidden="true"></ion-icon></span>
+        <h2>Ainda não há produtos à venda</h2>
+        <p>Os anúncios aparecem aqui assim que forem publicados.</p>
+        <a class="dhm-button" routerLink="/tabs/upload-product">Anunciar produto</a>
+      </div>
+    } @else {
+      @if (offersRail().length >= railMin) {
+        <app-product-rail heading="Ofertas" [products]="offersRail()" [seeAll]="{ ofertas: 1 }"></app-product-rail>
+      }
+
+      @if (inspiredRail().length >= railMin) {
+        <app-product-rail heading="Inspirado no último visto" [products]="inspiredRail()" [seeAll]="inspiredSeeAll()"></app-product-rail>
+      }
+
+      @if (categoryTiles().length) {
+        <section class="dhm-panel" aria-labelledby="dhm-categories-title">
+          <h2 class="dhm-panel-title" id="dhm-categories-title">Categorias</h2>
+          <ul class="dhm-categories">
+            @for (tile of categoryTiles(); track tile.category.id) {
+              <li>
+                <a class="dhm-category" routerLink="/tabs/tab2" [queryParams]="{ cat: tile.category.id }">
+                  <span class="dhm-category-icon">
+                    <ion-icon [name]="tile.category.icon || 'pricetags-outline'" aria-hidden="true"></ion-icon>
+                  </span>
+                  <span class="dhm-category-name">{{ tile.category.name }}</span>
+                  <span class="dhm-category-count">{{ tile.count }} {{ tile.count === 1 ? 'produto' : 'produtos' }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (bestSellersRail().length >= railMin) {
+        <app-product-rail heading="Mais vendidos" [products]="bestSellersRail()" [seeAll]="{ ordem: 'mais-vendidos' }"></app-product-rail>
+      }
+
+      @if (freeShippingRail().length >= railMin) {
+        <app-product-rail heading="Frete grátis" [products]="freeShippingRail()" [seeAll]="{ frete: 1 }"></app-product-rail>
+      }
+
+      @for (rail of categoryRails(); track rail.category.id) {
+        <app-product-rail [heading]="'Em ' + rail.category.name" [products]="rail.products" [seeAll]="{ cat: rail.category.id }"></app-product-rail>
+      }
+
+      <section class="dhm-catalog" aria-labelledby="dhm-catalog-title">
+        <div class="dhm-section-head">
+          <h2 class="dhm-section-title" id="dhm-catalog-title">Todos os produtos</h2>
+          <span class="dhm-section-count">{{ newest().length }} {{ newest().length === 1 ? 'anúncio' : 'anúncios' }}</span>
+        </div>
+
+        <ul class="dhm-grid dhm-grid--catalog">
+          @for (product of visibleNewest(); track product.id) {
+            <li><app-storefront-card [product]="product"></app-storefront-card></li>
+          }
+        </ul>
+
+        @if (newest().length > visibleCount()) {
+          <button type="button" class="dhm-more" (click)="showMore()">Mostrar mais produtos</button>
+        }
+      </section>
+    }
+  </div>
+} @else {
+  <div class="dhm-container dhm-results">
+    <aside class="dhm-filters" aria-label="Filtros">
+      <h1 class="dhm-results-title">{{ resultsTitle() }}</h1>
+      @if (loaded()) {
+        <p class="dhm-results-count" aria-live="polite">
+          {{ results().length }} {{ results().length === 1 ? 'resultado' : 'resultados' }}
+        </p>
+      }
+
+      @if (activeChips().length) {
+        <ul class="dhm-chips" aria-label="Filtros aplicados">
+          @for (chip of activeChips(); track chip.key) {
+            <li>
+              <button type="button" class="dhm-chip" (click)="setFilters(chip.remove)" [attr.aria-label]="'Remover filtro ' + chip.label">
+                {{ chip.label }}
+                <ion-icon name="close" aria-hidden="true"></ion-icon>
+              </button>
+            </li>
+          }
+        </ul>
+        <button type="button" class="dhm-link-button" (click)="clearFilters()">Limpar filtros</button>
+      }
+
+      <section class="dhm-filter-group">
+        <h2>Envio e promoções</h2>
+        <label class="dhm-check">
+          <input type="checkbox" [checked]="filters().frete" (change)="toggleFlag('frete', $event)">
+          Frete grátis
+        </label>
+        <label class="dhm-check">
+          <input type="checkbox" [checked]="filters().ofertas" (change)="toggleFlag('ofertas', $event)">
+          Com desconto
+        </label>
+      </section>
+
+      @if (categoryFacets().length) {
+        <section class="dhm-filter-group">
+          <h2>Categorias</h2>
+          <ul class="dhm-facets">
+            @for (facet of categoryFacets(); track facet.category.id) {
+              <li>
+                <a
+                  routerLink="/tabs/tab2"
+                  queryParamsHandling="merge"
+                  [queryParams]="{ cat: facet.category.id === filters().cat ? null : facet.category.id }"
+                  [class.is-active]="facet.category.id === filters().cat"
+                  [attr.aria-current]="facet.category.id === filters().cat ? 'true' : null">
+                  {{ facet.category.name }}
+                  <span class="dhm-facet-count">{{ facet.count }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <section class="dhm-filter-group">
+        <h2>Preço</h2>
+        @if (priceRanges().length) {
+          <ul class="dhm-facets">
+            @for (range of priceRanges(); track range.label) {
+              <li>
+                <a routerLink="/tabs/tab2" queryParamsHandling="merge" [queryParams]="{ min: range.min, max: range.max }">{{ range.label }}</a>
+              </li>
+            }
+          </ul>
+        }
+        <form class="dhm-price-form" (submit)="applyPrice($event, minInput.value, maxInput.value)">
+          <label class="vn-sr-only" for="dhm-price-min">Preço mínimo</label>
+          <input #minInput id="dhm-price-min" type="number" min="0" step="any" inputmode="decimal" placeholder="Mínimo" [value]="filters().min ?? ''">
+          <span aria-hidden="true">–</span>
+          <label class="vn-sr-only" for="dhm-price-max">Preço máximo</label>
+          <input #maxInput id="dhm-price-max" type="number" min="0" step="any" inputmode="decimal" placeholder="Máximo" [value]="filters().max ?? ''">
+          <button type="submit" aria-label="Aplicar faixa de preço">
+            <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+          </button>
+        </form>
+      </section>
+    </aside>
+
+    <div class="dhm-results-main">
+      <div class="dhm-results-bar">
+        <label for="dhm-sort">Ordenar por</label>
+        <select id="dhm-sort" (change)="setSort($event)">
+          <option value="relevancia" [selected]="filters().ordem === 'relevancia'">Mais relevantes</option>
+          <option value="mais-vendidos" [selected]="filters().ordem === 'mais-vendidos'">Mais vendidos</option>
+          <option value="preco-menor" [selected]="filters().ordem === 'preco-menor'">Menor preço</option>
+          <option value="preco-maior" [selected]="filters().ordem === 'preco-maior'">Maior preço</option>
+        </select>
+      </div>
+
+      @if (!loaded()) {
+        <div class="dhm-grid dhm-grid--results" aria-busy="true" aria-label="Carregando produtos">
+          @for (i of skeletonCards; track i) {
+            <div class="dhm-skeleton dhm-skeleton--card"></div>
+          }
+        </div>
+      } @else if (results().length) {
+        <ul class="dhm-grid dhm-grid--results">
+          @for (product of visibleResults(); track product.id) {
+            <li><app-storefront-card [product]="product"></app-storefront-card></li>
+          }
+        </ul>
+
+        @if (results().length > visibleCount()) {
+          <button type="button" class="dhm-more" (click)="showMore()">Mostrar mais resultados</button>
+        }
+      } @else {
+        <div class="dhm-panel dhm-empty">
+          <span class="dhm-empty-icon"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></span>
+          <h2>Nenhum produto encontrado</h2>
+          <p>Confira a ortografia, use termos mais gerais ou tire algum filtro.</p>
+          <button type="button" class="dhm-button" (click)="clearFilters()">Limpar filtros</button>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<app-desktop-footer></app-desktop-footer>

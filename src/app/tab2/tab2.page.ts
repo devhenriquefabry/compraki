@@ -10,6 +10,8 @@ import { Banner } from '../interfaces/banner';
 import { Category } from '../interfaces/category';
 import { Subscription, Observable } from 'rxjs';
 import { trackById } from 'src/app/core/track-by';
+import { LayoutService } from '../core/layout.service';
+import { discountPercent, hasDiscount, installmentHint, priceMain } from '../core/product-pricing';
 
 @Component({
   selector: 'app-tab2',
@@ -28,7 +30,9 @@ export class Tab2Page implements OnInit, OnDestroy {
   public categories$!: Observable<Category[]>;
 
   public currentBannerIndex = 0;
-  private allProducts: Product[] = [];
+  public allProducts: Product[] = [];
+  /** Vira `true` no primeiro retorno do catálogo (a home de desktop mostra esqueleto até lá). */
+  public productsLoaded = false;
   public filteredProducts: Product[] = [];
   public activeBanners: Banner[] = [];
   private bannerSub?: Subscription;
@@ -48,12 +52,15 @@ export class Tab2Page implements OnInit, OnDestroy {
   private bannerService = inject(BannerService);
   private selectionService = inject(ProductSelectionService);
   private router = inject(Router);
+  /** No navegador em tela larga a Tab2 vira a home de site (`app-desktop-home`). */
+  public layout = inject(LayoutService);
 
   constructor() {}
 
   ngOnInit() {
     this.productSub = this.fbProducts.getAll().subscribe(products => {
       this.allProducts = products;
+      this.productsLoaded = true;
       this.applyFilters();
     });
 
@@ -157,44 +164,11 @@ export class Tab2Page implements OnInit, OnDestroy {
     this.router.navigate(['/product-details', product.id]);
   }
 
-  /** Preço exibido (promo ou cheio) */
-  public priceMain(product: Product): number {
-    const d = product.priceDiscounted;
-    if (d != null && d > 0 && d < product.price) {
-      return d;
-    }
-    return product.price;
-  }
-
-  public hasDiscount(product: Product): boolean {
-    return (
-      product.priceDiscounted != null &&
-      product.priceDiscounted > 0 &&
-      product.price > 0 &&
-      product.priceDiscounted < product.price
-    );
-  }
-
-  public discountPercent(product: Product): number {
-    if (!this.hasDiscount(product)) {
-      return 0;
-    }
-    return Math.round((1 - (product.priceDiscounted as number) / product.price) * 100);
-  }
-
-  /** Texto tipo Mercado Livre: parcela sugerida (informativo) */
-  public installmentHint(product: Product): string | null {
-    const total = this.priceMain(product);
-    if (total < 30) {
-      return null;
-    }
-    const per12 = total / 12;
-    const formatted = per12.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-    return `12x R$ ${formatted}`;
-  }
+  // Regras de preço compartilhadas com a vitrine de desktop (core/product-pricing).
+  public priceMain = priceMain;
+  public hasDiscount = hasDiscount;
+  public discountPercent = discountPercent;
+  public installmentHint = installmentHint;
 
   public getIcon(icon: any): string {
     if (typeof icon === 'string' && icon.trim() !== '') {

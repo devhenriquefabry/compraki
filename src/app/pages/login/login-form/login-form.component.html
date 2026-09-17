@@ -4,7 +4,7 @@
 <app-loading-spinner-overlay *ngIf="firebaseProducts.carregando"></app-loading-spinner-overlay>
 
 <div class="containerLogin">
-  <img class="logoCompraki" src="assets/imagens/logoCompraki.png" alt="logoCompraki">
+  <img class="logoCompraki" src="assets/imagens/Vineon.svg" alt="Vineon">
   
   @if (!loginSuccess) {
     <form class="formuLogin" [formGroup]="loginForm">
@@ -35,7 +35,7 @@
       <hr>
 
       <ion-label class="textos">Ainda não tem uma conta?</ion-label>
-      <ion-button fill="outline" class="signInButton" [routerLink]="['/sign-in']">CADASTRE-SE</ion-button>
+      <ion-button fill="outline" class="signInButton" [routerLink]="['/sign-in']" queryParamsHandling="preserve">CADASTRE-SE</ion-button>
       
       <div class="test-accounts-divider">
         <hr>
@@ -108,4 +108,4 @@
       <div class="success-loader"></div>
     </div>
   }
-</div>
+</div>

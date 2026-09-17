@@ -21,56 +21,57 @@
     <div class="spec-card">
       <div class="spec-card-header">
         <ion-icon name="information-circle-outline"></ion-icon>
-        <strong>Especificações para Banners</strong>
+        <strong>Como fazer um banner que fica bom no celular e no computador</strong>
         <button class="btn-toggle-specs" (click)="showSpecs = !showSpecs">
           <ion-icon [name]="showSpecs ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
         </button>
       </div>
       @if (showSpecs) {
-        <div class="spec-grid">
-          <div class="spec-item">
-            <ion-icon name="resize-outline" color="primary"></ion-icon>
-            <div>
-              <strong>Dimensões Recomendadas</strong>
-              <span>1080 × 400 px (Mobile)</span>
-              <span class="spec-note">Proporção 2.7:1</span>
-            </div>
+        <div class="bf-guide">
+          <p class="bf-lead">
+            Cada banner tem <strong>duas artes</strong>: uma para o celular, que é mais alta, e uma para o computador,
+            que é uma faixa larga. Não estique a mesma imagem — reorganize a composição para cada formato.
+            A arte de computador é opcional: sem ela, o site mostra a do celular inteira, com um fundo desfocado nas laterais.
+          </p>
+
+          <div class="bf-formats">
+            @for (f of formatList; track f.key) {
+              <div class="bf-format">
+                <div class="bf-format-head">
+                  <ion-icon [name]="f.key === 'mobile' ? 'phone-portrait-outline' : 'desktop-outline'"></ion-icon>
+                  <div>
+                    <strong>{{ f.label }}</strong>
+                    <span>{{ f.where }}</span>
+                  </div>
+                  <span class="bf-size">{{ f.width }} × {{ f.height }} px</span>
+                </div>
+
+                <div class="bf-canvas" [style.aspect-ratio]="f.width + ' / ' + f.height">
+                  <div class="bf-safe" [style.inset]="safeInset(f).y + '% ' + safeInset(f).x + '%'">
+                    <span>Área segura · textos, logo e produto aqui</span>
+                  </div>
+                  <span class="bf-ratio">{{ f.ratioLabel }}</span>
+                </div>
+
+                <ul class="bf-rules">
+                  <li>Deixe <strong>{{ f.safe[0] }} px nas laterais</strong> e <strong>{{ f.safe[1] }} px em cima e embaixo</strong> sem nada importante
+                    {{ f.key === 'mobile' ? '(cantos arredondados e margem da tela)' : '(as setas do carrossel ficam nas laterais)' }}.</li>
+                  <li>Letras com pelo menos <strong>{{ f.minTextPx }} px</strong> de altura na arte.</li>
+                  @if (f.key === 'mobile') {
+                    <li>Composição empilhada ou centralizada: título curto (até 5 palavras) e um produto grande.</li>
+                  } @else {
+                    <li>Composição lado a lado: texto à esquerda, produto à direita, bastante respiro no meio.</li>
+                  }
+                </ul>
+              </div>
+            }
           </div>
-          <div class="spec-item">
-            <ion-icon name="document-outline" color="primary"></ion-icon>
-            <div>
-              <strong>Formato Aceito</strong>
-              <span>JPG, PNG ou WEBP</span>
-              <span class="spec-note">Máx. 2MB por arquivo</span>
-            </div>
-          </div>
-          <div class="spec-item">
-            <ion-icon name="phone-portrait-outline" color="primary"></ion-icon>
-            <div>
-              <strong>Design Mobile-First</strong>
-              <span>Margens internas de 16px</span>
-              <span class="spec-note">Texto visível no centro</span>
-            </div>
-          </div>
-          <div class="spec-item">
-            <ion-icon name="color-palette-outline" color="primary"></ion-icon>
-            <div>
-              <strong>Fundo Alternativo</strong>
-              <span>Escolha uma cor de fundo</span>
-              <span class="spec-note">Usado se sem imagem</span>
-            </div>
-          </div>
-        </div>
-        <div class="spec-preview-label">
-          <ion-icon name="phone-portrait-outline"></ion-icon>
-          Prévia de Dimensões no Mobile
-        </div>
-        <div class="spec-visual-preview">
-          <div class="preview-phone-frame">
-            <div class="preview-banner-area">
-              <span>Banner — 1080 × 400 px</span>
-              <span class="ratio-badge">Proporção 2.7:1</span>
-            </div>
+
+          <div class="bf-tips">
+            <div><ion-icon name="document-outline"></ion-icon><span><strong>Arquivo:</strong> JPG ou WEBP (PNG só se tiver transparência), até 2 MB. Exporte com qualidade 80%.</span></div>
+            <div><ion-icon name="text-outline"></ion-icon><span><strong>Texto:</strong> uma mensagem por banner. Oferta em destaque ("Até 40% OFF"), detalhe menor embaixo.</span></div>
+            <div><ion-icon name="contrast-outline"></ion-icon><span><strong>Contraste:</strong> texto claro em fundo escuro ou o contrário. Evite texto sobre foto com muitos detalhes.</span></div>
+            <div><ion-icon name="color-palette-outline"></ion-icon><span><strong>Sem imagem:</strong> o banner é montado com título, subtítulo, botão e a cor de fundo escolhida.</span></div>
           </div>
         </div>
       }
@@ -106,6 +107,13 @@
                 <div class="banner-preview-text" [style.color]="banner.textColor">
                   <strong>{{ banner.title }}</strong>
                   @if (banner.subtitle) { <span>{{ banner.subtitle }}</span> }
+                </div>
+              }
+
+              @if (banner.imageURL && !banner.desktopImageURL) {
+                <div class="bf-missing" title="No site aparece a arte do celular adaptada. Edite o banner e envie a versão 1920 × 480 px.">
+                  <ion-icon name="desktop-outline"></ion-icon>
+                  Sem arte para computador
                 </div>
               }
 
@@ -286,41 +294,85 @@
 
     <ion-content class="ion-padding form-modal-content">
 
-      <!-- PRÉVIA EM TEMPO REAL -->
-      <div class="live-preview-container">
-        <p class="preview-label">Prévia do Banner</p>
-        <div class="live-preview" [style.background]="previewImageUrl ? '' : form.backgroundColor">
-          @if (previewImageUrl) {
-            <img [src]="previewImageUrl" alt="preview">
-          } @else {
-            <div class="preview-content" [style.color]="form.textColor">
-              <strong>{{ form.title || 'Título do Banner' }}</strong>
-              <span>{{ form.subtitle || 'Subtítulo aqui' }}</span>
-              @if (form.buttonText) {
-                <div class="preview-btn">{{ form.buttonText }}</div>
+      <!-- ARTES: CELULAR E COMPUTADOR -->
+      <div class="form-section">
+        <div class="bf-form-head">
+          <label class="form-label">
+            <ion-icon name="image-outline"></ion-icon>
+            Artes do banner
+          </label>
+          <label class="bf-toggle">
+            <input type="checkbox" [(ngModel)]="showSafeZone">
+            Mostrar área segura
+          </label>
+        </div>
+
+        @for (f of formatList; track f.key) {
+          @let preview = previewFor(f.key);
+          @let check = imageChecks[f.key];
+          <div class="bf-slot">
+            <div class="bf-slot-head">
+              <ion-icon [name]="f.key === 'mobile' ? 'phone-portrait-outline' : 'desktop-outline'"></ion-icon>
+              <strong>{{ f.label }}</strong>
+              <span>{{ f.width }} × {{ f.height }} px · {{ f.ratioLabel }}</span>
+              @if (f.key === 'desktop') { <em>opcional</em> }
+            </div>
+
+            <!-- Prévia no formato real, com a moldura da área segura -->
+            <button type="button" class="bf-preview" [class.is-empty]="!preview"
+              [style.aspect-ratio]="f.width + ' / ' + f.height"
+              (click)="(f.key === 'mobile' ? mobileInput : desktopInput).click()">
+              @if (preview) {
+                <img [src]="preview" [alt]="'Arte ' + f.label">
+              } @else if (f.key === 'desktop' && previewImageUrl) {
+                <!-- Como o site mostra hoje, sem arte própria -->
+                <img class="bf-adapted-backdrop" [src]="previewImageUrl" alt="">
+                <img class="bf-adapted-art" [src]="previewImageUrl" alt="Arte do celular adaptada">
+                <span class="bf-adapted-note">Usando a arte do celular · clique para enviar a de computador</span>
+              } @else if (f.key === 'mobile') {
+                <div class="preview-content" [style.background]="form.backgroundColor" [style.color]="form.textColor">
+                  <strong>{{ form.title || 'Título do Banner' }}</strong>
+                  <span>{{ form.subtitle || 'Subtítulo aqui' }}</span>
+                  @if (form.buttonText) { <div class="preview-btn">{{ form.buttonText }}</div> }
+                </div>
+              } @else {
+                <span class="bf-empty">
+                  <ion-icon name="cloud-upload-outline"></ion-icon>
+                  Enviar arte {{ f.width }} × {{ f.height }} px
+                </span>
+              }
+              @if (showSafeZone) {
+                <span class="bf-safe bf-safe--overlay" [style.inset]="safeInset(f).y + '% ' + safeInset(f).x + '%'"></span>
+              }
+            </button>
+
+            <div class="bf-slot-actions">
+              <button type="button" class="bf-btn" (click)="(f.key === 'mobile' ? mobileInput : desktopInput).click()">
+                <ion-icon name="cloud-upload-outline"></ion-icon>
+                {{ preview ? 'Trocar arte' : 'Enviar arte' }}
+              </button>
+              @if (preview) {
+                <button type="button" class="bf-btn bf-btn--ghost" (click)="removeBannerImage(f.key, $event)">Remover</button>
+              }
+              @if (check && !check.errors.length) {
+                <span class="bf-dims" [class.is-ok]="!check.warnings.length">
+                  <ion-icon [name]="check.warnings.length ? 'alert-circle-outline' : 'checkmark-circle-outline'"></ion-icon>
+                  {{ check.width }} × {{ check.height }} px
+                </span>
               }
             </div>
-          }
-        </div>
-      </div>
 
-      <!-- UPLOAD DE IMAGEM -->
-      <div class="form-section">
-        <label class="form-label">
-          <ion-icon name="image-outline"></ion-icon>
-          Imagem do Banner
-        </label>
-        <div class="upload-area" (click)="fileInput.click()" [class.has-image]="previewImageUrl">
-          @if (!previewImageUrl) {
-            <ion-icon name="cloud-upload-outline"></ion-icon>
-            <span>Toque para selecionar imagem</span>
-            <small>JPG, PNG, WEBP — Máx. 2MB</small>
-          } @else {
-            <img [src]="previewImageUrl" alt="preview-mini">
-            <span class="change-img-label">Trocar imagem</span>
-          }
-        </div>
-        <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" style="display:none">
+            @if (check?.errors?.length || check?.warnings?.length) {
+              <ul class="bf-issues">
+                @for (e of check!.errors; track e) { <li class="is-error">{{ e }}</li> }
+                @for (w of check!.warnings; track w) { <li>{{ w }}</li> }
+              </ul>
+            }
+          </div>
+        }
+
+        <input #mobileInput type="file" accept="image/jpeg,image/png,image/webp" (change)="onBannerFileSelected($event, 'mobile')" hidden>
+        <input #desktopInput type="file" accept="image/jpeg,image/png,image/webp" (change)="onBannerFileSelected($event, 'desktop')" hidden>
       </div>
 
       <!-- TEXTO -->

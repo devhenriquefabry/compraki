@@ -1,6 +1,7 @@
 import { Component, QueryList, ViewChildren, OnDestroy, OnInit, inject } from '@angular/core';
 import { IonRouterOutlet, Platform, NavController } from '@ionic/angular';
 import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { FirebaseProducts } from './services/firebase-products';
@@ -28,6 +29,7 @@ import { NotificationService } from './services/notification.service';
 import { PresenceService } from './services/presence.service';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { isCurrentUserAdmin, onAuthUserChanged } from './core/auth-state';
+import { LayoutService } from './core/layout.service';
 
 @Component({
   selector: 'app-root',
@@ -41,7 +43,9 @@ export class AppComponent implements OnInit, OnDestroy {
   private fbProducts = inject(FirebaseProducts);
   private usersService = inject(FirebaseUsersService);
   private notifyService = inject(NotificationService);
-  private presenceService = inject(PresenceService); 
+  private presenceService = inject(PresenceService);
+  /** Liga o header de site em telas grandes (só no navegador). */
+  readonly layout = inject(LayoutService);
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
   
   private stopAuthWatch?: () => void;
@@ -49,6 +53,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   showSplash: boolean;
   splashAnimatingOut = false;
+  /** Controla a visibilidade do menu ADMINISTRAÇÃO/AUTOMAÇÃO na sidebar. */
+  isAdmin = false;
   
   constructor(
     private platform: Platform,
@@ -148,8 +154,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
       if (!user) {
         this.appUser = null;
+        this.isAdmin = false;
         return;
       }
+
+      // Só decide o que mostrar na sidebar pelo claim `admin` do ID token —
+      // nunca por `isAdmin` do documento, que é gravável pelo próprio dono.
+      isCurrentUserAdmin().then(isAdmin => {
+        this.isAdmin = isAdmin;
+      });
 
       this.stopUserDocWatch = this.usersService.watchUser(user.uid, (appUser) => {
         if (!appUser) {
@@ -190,7 +203,8 @@ export class AppComponent implements OnInit, OnDestroy {
           const user = this.fbProducts.getUser();
           if (user) {
             this.navCtrl.navigateRoot('/tabs/tab2');
-          } else {
+          } else if (Capacitor.isNativePlatform()) {
+            // No navegador a vitrine é aberta a visitantes (ver `storefrontGuard`).
             this.navCtrl.navigateRoot('/login');
           }
         }
@@ -201,9 +215,9 @@ export class AppComponent implements OnInit, OnDestroy {
       if (currentUrl === '/' || currentUrl === '/tabs' || currentUrl === '/tabs/tab2') {
         const user = this.fbProducts.getUser();
         
-        // Se não tem usuário, manda pro login independente do que estiver salvo
+        // Sem usuário: no app vai pro login; no navegador fica na vitrine.
         if (!user) {
-          this.navCtrl.navigateRoot('/login');
+          if (Capacitor.isNativePlatform()) this.navCtrl.navigateRoot('/login');
           return;
         }
 

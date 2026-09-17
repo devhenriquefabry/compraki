@@ -1,7 +1,8 @@
 import { NgIf } from '@angular/common';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import {  Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { safeRedirectTarget } from 'src/app/core/auth-redirect';
 import { IonicModule } from '@ionic/angular';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
@@ -33,7 +34,8 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
   constructor( 
     public firebaseProducts: FirebaseProducts,
     private usersService: FirebaseUsersService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) { }
 
   ngOnInit() {
@@ -98,7 +100,7 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
           this.loginForm.reset();
           
           setTimeout(() => {
-            this.router.navigate(['/tabs/tab2']);
+            this.router.navigateByUrl(safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirectTo')));
           }, 2000);
         }
        })
@@ -114,7 +116,7 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
         this.loginForm.reset();
         
         setTimeout(() => {
-          this.router.navigate(['/tabs/tab2']);
+          this.router.navigateByUrl(safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirectTo')));
         }, 2000);
       }
     });

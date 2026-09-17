@@ -1,0 +1,81 @@
+:host {
+  display: block;
+}
+
+.df {
+  background: var(--vn-navy-900);
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--vn-font-body);
+}
+
+.df-inner {
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+  max-width: calc(var(--vn-content-max) + 2 * var(--vn-gutter));
+  margin: 0 auto;
+  padding: 48px var(--vn-gutter) 40px;
+}
+
+.df-brand img {
+  height: 37px;
+  width: auto;
+}
+
+.df-tagline {
+  margin: 14px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--vn-font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.df-tagline span {
+  color: var(--vn-neon);
+}
+
+.df-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, auto));
+  gap: 56px;
+}
+
+.df-columns h2 {
+  margin: 0 0 14px;
+  color: #fff;
+  font-family: var(--vn-font-display);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.df-columns a {
+  display: block;
+  width: fit-content;
+  padding: 4px 0;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.df-columns a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--vn-neon);
+  outline-offset: 2px;
+}
+
+.df-legal {
+  display: flex;
+  justify-content: space-between;
+  max-width: calc(var(--vn-content-max) + 2 * var(--vn-gutter));
+  margin: 0 auto;
+  padding: 18px var(--vn-gutter) 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+}

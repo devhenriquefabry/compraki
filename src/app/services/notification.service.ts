@@ -50,6 +50,11 @@ export class NotificationService {
               this.showSaleAlert(orderId, newOrder);
             }
           }
+        }, (err) => {
+          // Sem handler aqui, o SDK loga "Uncaught Error in snapshot listener"
+          // em TODA sessão logada — mesmo quando o alerta de venda nunca é o
+          // problema real. Só silencia; não afeta o resto do app.
+          console.warn('Listener de novos pedidos parou (alerta de venda em tempo real desativado nesta sessão):', err);
         });
       }
     });

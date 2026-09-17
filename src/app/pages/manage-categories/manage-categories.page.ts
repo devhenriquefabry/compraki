@@ -5,6 +5,7 @@ import { Category, Subcategory } from 'src/app/interfaces/category';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Observable } from 'rxjs';
 import { IconSelectorModalComponent } from './icon-selector-modal/icon-selector-modal.component';
+import { DEFAULT_CATEGORIES } from 'src/app/core/default-categories';
 
 @Component({
   selector: 'app-manage-categories',
@@ -19,6 +20,7 @@ export class ManageCategoriesPage implements OnInit {
   
   public categories$!: Observable<Category[]>;
   public showAddCategory = false;
+  public isSeedingDefaults = false;
   
   public availableIcons: string[] = [
     'folder-outline', 'laptop-outline', 'shirt-outline', 'bed-outline', 'basketball-outline', 
@@ -48,6 +50,65 @@ export class ManageCategoriesPage implements OnInit {
     this.filteredIcons = this.availableIcons.filter(icon => 
       icon.toLowerCase().includes(term)
     );
+  }
+
+  /**
+   * Importa o conjunto sugerido de categorias (baseado no Mercado Livre).
+   * Mostra exatamente o que vai mudar antes de aplicar — inclusive a única
+   * renomeação (Casa e Decoração → Casa e Móveis) — e nunca duplica nem
+   * apaga categoria ou subcategoria já existente.
+   */
+  async importSuggestedCategories() {
+    const renames = DEFAULT_CATEGORIES.filter(c => c.renameFrom);
+    const renameNote = renames.length
+      ? ` ${renames.length === 1 ? 'Uma renomeação' : `${renames.length} renomeações`}: ${renames.map(c => `"${c.renameFrom}" → "${c.name}"`).join(', ')} (só se o nome ainda for esse).`
+      : '';
+
+    // Ionic 7+ não renderiza HTML em `message` por padrão (innerHTMLTemplatesEnabled:
+    // false) — texto puro, igual aos outros alerts desta página.
+    const alert = await this.alertCtrl.create({
+      header: 'Importar categorias sugeridas?',
+      message:
+        `Adiciona ${DEFAULT_CATEGORIES.length} categorias no molde do Mercado Livre, cada uma com subcategorias prontas. ` +
+        `Categoria que você já tem com o mesmo nome só ganha o que falta (ícone e subcategorias novas) — nada é substituído ou removido.${renameNote}`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Importar',
+          handler: () => { void this.runImportSuggestedCategories(); }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async runImportSuggestedCategories() {
+    if (this.isSeedingDefaults) return;
+    this.isSeedingDefaults = true;
+    try {
+      const result = await this.fbCategories.seedDefaults(DEFAULT_CATEGORIES);
+      const parts: string[] = [];
+      if (result.created.length) parts.push(`${result.created.length} criadas: ${result.created.join(', ')}.`);
+      if (result.updated.length) parts.push(`${result.updated.length} atualizadas: ${result.updated.join(', ')}.`);
+      if (result.unchanged.length) parts.push(`${result.unchanged.length} já estavam completas: ${result.unchanged.join(', ')}.`);
+
+      const done = await this.alertCtrl.create({
+        header: 'Categorias importadas',
+        message: parts.join(' ') || 'Nada para importar.',
+        buttons: ['OK']
+      });
+      await done.present();
+    } catch (err) {
+      console.error('Erro ao importar categorias sugeridas:', err);
+      const errAlert = await this.alertCtrl.create({
+        header: 'Erro ao importar',
+        message: 'Não foi possível importar as categorias. Verifique o console e tente de novo.',
+        buttons: ['OK']
+      });
+      await errAlert.present();
+    } finally {
+      this.isSeedingDefaults = false;
+    }
   }
 
   async addCategory() {

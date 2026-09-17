@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { authGuard, noAuthGuard } from './guards/auth.guard';
+import { authGuard, noAuthGuard, storefrontGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { SelectivePreloadStrategy } from './core/selective-preload.strategy';
 
@@ -16,9 +16,11 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Vitrine aberta no navegador; as abas de conta têm guard próprio
+    // (tabs-routing.module.ts).
     path: '',
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule),
-    canActivate: [authGuard]
+    canActivate: [storefrontGuard]
   },
   {
     path: 'login',
@@ -39,12 +41,12 @@ const routes: Routes = [
     path: 'product-details/:id',
     loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage),
     data: { preload: true },
-    canActivate: [authGuard]
+    canActivate: [storefrontGuard]
   },
   {
     path: 'home',
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule),
-    canActivate: [authGuard]
+    canActivate: [storefrontGuard]
   },
   {
     path: 'sign-in',
@@ -155,7 +157,7 @@ const routes: Routes = [
   {
     path: 'seller-profile/:sellerId',
     loadComponent: () => import('./pages/seller-profile/seller-profile.page').then(m => m.SellerProfilePage),
-    canActivate: [authGuard]
+    canActivate: [storefrontGuard]
   }
 
 

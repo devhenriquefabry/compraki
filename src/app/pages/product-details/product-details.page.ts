@@ -1,91 +1,173 @@
-import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ElementRef, NgZone, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, Subject, combineLatest, from, of } from 'rxjs';
-import { map, shareReplay, switchMap, takeUntil, take } from 'rxjs/operators';
-import { 
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, 
-  IonFooter, IonButton, IonIcon, IonModal, IonCard, IonSpinner, IonImg, IonText, IonThumbnail, IonLabel, IonItem
+import { Title } from '@angular/platform-browser';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { Observable, Subject, combineLatest, firstValueFrom, from, of } from 'rxjs';
+import { catchError, distinctUntilChanged, map, shareReplay, startWith, switchMap, takeUntil, take } from 'rxjs/operators';
+import {
+  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
+  IonFooter, IonButton, IonIcon, IonModal, IonSpinner, ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart, flash, chevronForwardOutline, ribbon, chatbubbleEllipsesOutline, bicycleOutline } from 'ionicons/icons';
+import {
+  heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, starOutline, checkmarkCircle,
+  closeCircle, cart, chevronForwardOutline, chevronBackOutline, chevronDown, chatbubbleEllipsesOutline, chatboxEllipsesOutline,
+  shieldCheckmarkOutline, returnDownBackOutline, cubeOutline, locationOutline, shareSocialOutline, removeOutline, addOutline,
+  flashOutline, giftOutline, cardOutline, cashOutline, qrCodeOutline, storefrontOutline, ribbonOutline, closeOutline,
+  createOutline, informationCircleOutline, timeOutline, pricetagOutline
+} from 'ionicons/icons';
 
-import { Product } from 'src/app/interfaces/product';
+import { Product, ProductSpec } from 'src/app/interfaces/product';
+import { Category } from 'src/app/interfaces/category';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { FirebaseCartService } from 'src/app/services/firebase-cart.service';
 import { FirebaseSavedService } from 'src/app/services/firebase-saved.service';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
+import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { PublicSellerProfile } from 'src/app/interfaces/seller';
 
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
 import { ProductSelectorComponent } from 'src/app/components/product-selector/product-selector.component';
 import { ChatBoxComponent } from 'src/app/components/chat-box/chat-box.component';
-import { trackById } from 'src/app/core/track-by';
+import { ProductRailComponent } from 'src/app/components/product-rail/product-rail.component';
+import { ProductGalleryComponent } from 'src/app/components/product-gallery/product-gallery.component';
+import { ProductReviewsComponent } from 'src/app/components/product-reviews/product-reviews.component';
+import { rememberViewedProduct } from 'src/app/core/recently-viewed';
+import { discountPercent, hasDiscount, priceMain } from 'src/app/core/product-pricing';
+import { LayoutService } from 'src/app/core/layout.service';
+import { requireAccount } from 'src/app/core/auth-redirect';
+import { onAuthUserChanged } from 'src/app/core/auth-state';
 
+/** Rótulos de condição como o comprador lê. */
+const CONDITION_LABELS: Record<Product['condition'], string> = {
+  'novo': 'Novo',
+  'usado-como-novo': 'Usado · como novo',
+  'usado-bom': 'Usado · bom estado',
+  'usado-aceitavel': 'Usado · aceitável',
+};
+
+const PAYMENT_META: Record<string, { label: string; icon: string }> = {
+  'PIX': { label: 'Pix', icon: 'qr-code-outline' },
+  'CARTÃO': { label: 'Cartão de crédito', icon: 'card-outline' },
+  'DINHEIRO': { label: 'Dinheiro', icon: 'cash-outline' },
+};
+
+interface SellerStats {
+  productCount: number;
+  soldCount: number;
+  averageRating: number | null;
+  activeProductCount: number;
+}
+
+/**
+ * Página do produto, no molde dos grandes marketplaces:
+ *
+ *  Desktop  galeria | informações | caixa de compra (fixa ao rolar)
+ *           características · descrição · opiniões  |  vendedor · pagamento
+ *           relacionados · mais do vendedor
+ *
+ *  Celular  título e nota acima das fotos, preço, compra inline, garantias,
+ *           vendedor, seções empilhadas; a barra fixa de compra só aparece
+ *           quando os botões inline saem da tela.
+ *
+ * Visitante sem conta vê tudo. Carrinho, favoritos, seguir e conversar pedem
+ * login e trazem a pessoa de volta para cá (`requireAccount`).
+ */
 @Component({
   selector: 'app-product-details',
   templateUrl: './product-details.page.html',
   styleUrls: ['./product-details.page.scss'],
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, 
-    IonFooter, IonButton, IonIcon, IonModal, IonCard, IonSpinner, 
-    MiniHeaderComponent, ProductSelectorComponent, ChatBoxComponent
+    CommonModule, RouterLink,
+    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
+    IonFooter, IonButton, IonIcon, IonModal, IonSpinner,
+    MiniHeaderComponent, ProductSelectorComponent, ChatBoxComponent, ProductRailComponent,
+    ProductGalleryComponent, ProductReviewsComponent
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class ProductDetailsPage implements OnInit, OnDestroy {
-  /** trackBy padrao — evita recriar a lista inteira a cada emissao. */
-  public trackById = trackById;
+  public readonly layout = inject(LayoutService);
+  private readonly titleService = inject(Title);
+  private readonly toastCtrl = inject(ToastController);
+  private readonly categoriesService = inject(FirebaseCategories);
+  private readonly zone = inject(NgZone);
 
   public product$: Observable<Product | null>;
+  /** `undefined` enquanto carrega; `null` quando o produto não existe. */
+  public productState$: Observable<Product | null | undefined>;
   public relatedProducts$: Observable<Product[]>;
-  /**
-   * Lista do seletor de fallback, exibido so quando a rota vem sem id.
-   * E uma pagina limitada — nao o catalogo inteiro.
-   */
+  /** Fallback exibido só quando a rota vem sem id. */
   public allProducts$: Observable<Product[]>;
   public seller$: Observable<PublicSellerProfile | null>;
   public sellerProducts$: Observable<Product[]>;
-  public sellerStats$: Observable<{ productCount: number; soldCount: number; averageRating: number | null; activeProductCount: number }>;
+  public moreFromSeller$: Observable<Product[]>;
+  public sellerStats$: Observable<SellerStats>;
   public sellerFollowerCount$: Observable<number>;
   public isFollowingSeller$: Observable<boolean>;
   public cartQuantity$: Observable<number>;
+  public breadcrumb$: Observable<{ category: Category | null; subcategoryName: string | null }>;
+
   public isSaved = false;
   public isFollowActionBusy = false;
   public isFollowingSeller = false;
+  public isAddingToCart = false;
   public currentUserId = '';
-  private destroy$ = new Subject<void>();
+  public quantity = 1;
+  public descriptionExpanded = false;
+  public specsExpanded = false;
+
+  /** Celular: a barra fixa aparece quando os botões inline saem da tela. */
+  public showStickyBuy = false;
+  private buyObserver?: IntersectionObserver;
 
   public isChatOpen = false;
   public activeChatId = '';
 
+  private destroy$ = new Subject<void>();
+  private stopAuthWatch?: () => void;
+
+  @ViewChild('inlineBuy') set inlineBuy(ref: ElementRef<HTMLElement> | undefined) {
+    this.observeInlineBuy(ref?.nativeElement);
+  }
+
   constructor(
-    private selectionService: ProductSelectionService, 
+    private selectionService: ProductSelectionService,
     private router: Router,
     private fbProducts: FirebaseProducts,
     private chatService: FirebaseChatService,
     private cartService: FirebaseCartService,
     private savedService: FirebaseSavedService,
     private fbUsers: FirebaseUsersService,
-    private route: ActivatedRoute
+    public route: ActivatedRoute
   ) {
-    addIcons({ heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, checkmarkCircle, gridOutline, closeCircle, cart, flash, chevronForwardOutline, ribbon, chatbubbleEllipsesOutline, bicycleOutline });
+    addIcons({
+      heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, starOutline, checkmarkCircle,
+      closeCircle, cart, chevronForwardOutline, chevronBackOutline, chevronDown, chatbubbleEllipsesOutline, chatboxEllipsesOutline,
+      shieldCheckmarkOutline, returnDownBackOutline, cubeOutline, locationOutline, shareSocialOutline, removeOutline, addOutline,
+      flashOutline, giftOutline, cardOutline, cashOutline, qrCodeOutline, storefrontOutline, ribbonOutline, closeOutline,
+      createOutline, informationCircleOutline, timeOutline, pricetagOutline
+    });
     this.currentUserId = this.fbProducts.getUser()?.uid || '';
-    
-    this.product$ = this.route.params.pipe(
-      switchMap(params => {
-        const id = params['id'];
-        if (id) {
-          return this.fbProducts.getById(id);
-        }
-        return this.selectionService.selectedProduct$;
-      })
+
+    const productId$ = this.route.params.pipe(map(params => params['id'] as string | undefined), distinctUntilChanged());
+
+    this.productState$ = productId$.pipe(
+      switchMap(id => id
+        ? this.fbProducts.getById(id).pipe(
+            catchError(() => of(null)),
+            startWith(undefined as Product | null | undefined)
+          )
+        : this.selectionService.selectedProduct$),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.product$ = this.productState$.pipe(
+      map(p => p ?? null),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
 
     this.allProducts$ = from(this.fbProducts.getPage({ pageSize: 50 })).pipe(
@@ -93,26 +175,32 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
       shareReplay({ bufferSize: 1, refCount: true })
     );
 
-    // Relacionados vem de uma consulta por categoria com `limit`. Antes esta
-    // tela baixava a colecao `products` inteira e jogava fora tudo menos 10.
-    this.relatedProducts$ = this.product$.pipe(
-      switchMap(current => this.fbProducts.getRelated(current, 10)),
+    // Consultas que dependem só do id/vendedor não repetem a cada emissão do
+    // produto em tempo real (estoque, nota recalculada...).
+    const stableProduct$ = this.product$.pipe(
+      distinctUntilChanged((a, b) => a?.id === b?.id && a?.sellerId === b?.sellerId),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.relatedProducts$ = stableProduct$.pipe(
+      switchMap(current => this.fbProducts.getRelated(current, 12)),
+      catchError(() => of([])),
       shareReplay({ bufferSize: 1, refCount: true })
     );
 
     // Perfil PUBLICO do vendedor (`sellers/{uid}`), nao o documento pessoal.
-    // `users/{uid}` guarda CPF, telefone e endereco e nao tem leitura publica.
-    this.seller$ = this.product$.pipe(
-      switchMap(p => {
-        if (p && p.sellerId) {
-          return from(this.fbUsers.getPublicSellerProfile(p.sellerId));
-        }
-        return of(null);
-      })
+    this.seller$ = stableProduct$.pipe(
+      switchMap(p => p?.sellerId ? from(this.fbUsers.getPublicSellerProfile(p.sellerId)).pipe(catchError(() => of(null))) : of(null)),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
 
-    this.sellerProducts$ = this.product$.pipe(
-      switchMap(p => p?.sellerId ? this.fbProducts.getBySeller(p.sellerId) : of([]))
+    this.sellerProducts$ = stableProduct$.pipe(
+      switchMap(p => p?.sellerId ? this.fbProducts.getBySeller(p.sellerId).pipe(catchError(() => of([]))) : of([])),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.moreFromSeller$ = combineLatest([stableProduct$, this.sellerProducts$]).pipe(
+      map(([current, products]) => products.filter(p => p.id !== current?.id && p.stock > 0).slice(0, 12))
     );
 
     this.sellerStats$ = this.sellerProducts$.pipe(
@@ -127,82 +215,181 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
           averageRating: ratings.length ? ratings.reduce((total, rating) => total + rating, 0) / ratings.length : null,
           activeProductCount: products.filter(product => product.stock > 0).length
         };
-      })
+      }),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
 
-    this.sellerFollowerCount$ = this.product$.pipe(
-      switchMap(p => p?.sellerId ? this.fbUsers.getSellerFollowerCount(p.sellerId) : of(0))
+    this.sellerFollowerCount$ = stableProduct$.pipe(
+      switchMap(p => p?.sellerId ? this.fbUsers.getSellerFollowerCount(p.sellerId).pipe(catchError(() => of(0))) : of(0)),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
 
-    this.isFollowingSeller$ = this.product$.pipe(
-      switchMap(p => p?.sellerId ? this.fbUsers.isFollowingSeller(p.sellerId) : of(false))
+    this.isFollowingSeller$ = stableProduct$.pipe(
+      switchMap(p => p?.sellerId ? this.fbUsers.isFollowingSeller(p.sellerId).pipe(catchError(() => of(false))) : of(false)),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
 
     this.cartQuantity$ = combineLatest([
       this.product$,
-      this.cartService.getAllCartItems()
+      this.cartService.getAllCartItems().pipe(catchError(() => of([])))
     ]).pipe(
       map(([product, cartItems]) => {
         if (!product || !cartItems) return 0;
         const item = cartItems.find(i => i.productId === product.id);
         return item ? item.quantity : 0;
+      }),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.breadcrumb$ = combineLatest([
+      stableProduct$,
+      this.categoriesService.getAll().pipe(catchError(() => of([] as Category[])), startWith([] as Category[]))
+    ]).pipe(
+      map(([product, categories]) => {
+        const category = categories.find(c => c.id === product?.categoryIds?.[0]) ?? null;
+        const sub = category?.subcategories?.find(s => s.id === product?.subcategoryIds?.[0]);
+        return { category, subcategoryName: sub?.name ?? null };
       })
     );
+  }
+
+  ngOnInit() {
+    this.isFollowingSeller$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(isFollowing => this.isFollowingSeller = isFollowing);
+
+    this.product$.pipe(
+      distinctUntilChanged((a, b) => a?.id === b?.id),
+      takeUntil(this.destroy$)
+    ).subscribe(p => {
+      if (!p?.id) return;
+      this.selectionService.setSelectedProduct(p);
+      rememberViewedProduct(p.id);
+      this.quantity = 1;
+      this.descriptionExpanded = false;
+      this.specsExpanded = false;
+      this.titleService.setTitle(`${p.name} | Vineon`);
+      void this.refreshSaved(p.id);
+    });
+
+    // Entrou ou saiu da conta com a página aberta: favoritos e dono mudam.
+    this.stopAuthWatch = onAuthUserChanged(user => {
+      this.currentUserId = user?.uid || '';
+      const current = this.selectionService.getCurrentProduct();
+      if (current?.id) void this.refreshSaved(current.id);
+    });
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    this.stopAuthWatch?.();
+    this.buyObserver?.disconnect();
+    this.titleService.setTitle('Vineon');
   }
 
-  ngOnInit() {
-    this.currentUserId = this.fbProducts.getUser()?.uid || this.currentUserId;
+  // ------------------------------------------------------------------ ações
 
-    this.isFollowingSeller$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(isFollowing => {
-        this.isFollowingSeller = isFollowing;
+  public decreaseQty() {
+    this.quantity = Math.max(1, this.quantity - 1);
+  }
+
+  public increaseQty(product: Product) {
+    this.quantity = Math.min(Math.max(1, product.stock || 1), this.quantity + 1);
+  }
+
+  public async addToCart(product: Product) {
+    if (!requireAccount(this.router) || this.isAddingToCart || !this.canBuy(product)) return;
+
+    this.isAddingToCart = true;
+    try {
+      await this.cartService.addToCart(product, this.quantity);
+      const toast = await this.toastCtrl.create({
+        message: this.quantity > 1 ? `${this.quantity} unidades adicionadas ao carrinho.` : 'Adicionado ao carrinho.',
+        duration: 3000,
+        position: this.layout.isDesktop() ? 'top' : 'bottom',
+        color: 'dark',
+        buttons: [{ text: 'Ver carrinho', handler: () => { this.router.navigate(['/tabs/cart']); } }]
       });
-
-    this.product$.pipe(takeUntil(this.destroy$)).subscribe(async p => {
-      if (p && p.id) {
-        this.selectionService.setSelectedProduct(p);
-        this.isSaved = await this.savedService.isProductSaved(p.id);
-      }
-    });
+      await toast.present();
+    } catch (e) {
+      console.error('Erro ao adicionar ao carrinho:', e);
+      this.showToast('Não foi possível adicionar ao carrinho. Tente de novo.', 'danger');
+    } finally {
+      this.isAddingToCart = false;
+    }
   }
 
-  public onProductSelect(productId: string) {
-    // `take(1)` encerra sozinho: antes cada clique deixava uma inscricao viva.
-    this.fbProducts.getById(productId).pipe(
-      take(1),
-      takeUntil(this.destroy$)
-    ).subscribe(selected => {
-      if (selected) {
-        this.selectionService.setSelectedProduct(selected);
+  /** Compra direta: garante o item no carrinho e vai para o pagamento. */
+  public async buyNow(product: Product) {
+    if (!requireAccount(this.router) || this.isAddingToCart || !this.canBuy(product)) return;
+
+    this.isAddingToCart = true;
+    try {
+      const inCart = await firstValueFrom(this.cartQuantity$);
+      if (!inCart) {
+        await this.cartService.addToCart(product, this.quantity);
       }
-    });
+      this.router.navigate(['/checkout']);
+    } catch (e) {
+      console.error('Erro ao iniciar compra:', e);
+      this.showToast('Não foi possível iniciar a compra. Tente de novo.', 'danger');
+    } finally {
+      this.isAddingToCart = false;
+    }
+  }
+
+  public async toggleFavorite(product: Product) {
+    if (!requireAccount(this.router) || !product.id) return;
+
+    const next = !this.isSaved;
+    this.isSaved = next; // otimista: o coração responde na hora
+    try {
+      if (next) {
+        await this.savedService.saveProduct(product);
+      } else {
+        await this.savedService.removeByProductId(product.id);
+      }
+    } catch (e) {
+      this.isSaved = !next;
+      console.error('Erro ao alternar favorito:', e);
+      this.showToast('Não foi possível atualizar os favoritos.', 'danger');
+    }
+  }
+
+  public async share(product: Product) {
+    const url = window.location.href;
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+    try {
+      if (nav.share) {
+        await nav.share({ title: product.name, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      this.showToast('Link copiado.', 'dark');
+    } catch {
+      // Compartilhamento cancelado pela pessoa: nada a fazer.
+    }
   }
 
   public async startChat(product: Product, seller?: PublicSellerProfile | null) {
-    if (!product.sellerId) {
-      console.error("Produto sem vendedor definido.");
-      return; 
-    }
+    if (!requireAccount(this.router)) return;
+    if (!product.sellerId) return;
 
     try {
       const chatId = await this.chatService.startChat(
         {
           uid: product.sellerId,
-          name: seller?.shopName || seller?.displayName || 'Vendedor do Anúncio',
+          name: seller?.shopName || seller?.displayName || 'Vendedor do anúncio',
           photoUrl: seller?.photoURL || undefined
         },
         { id: product.id!, name: product.name, photo: product.photoURL?.[0] }
       );
       this.activeChatId = chatId;
       this.isChatOpen = true;
-    } catch (e) {
-       console.error("Falha ao iniciar chat", e);
+    } catch (e: any) {
+      console.error('Falha ao iniciar chat', e);
+      this.showToast(e?.message || 'Não foi possível abrir a conversa.', 'danger');
     }
   }
 
@@ -211,88 +398,9 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     this.activeChatId = '';
   }
 
-  public async goToCheckout() {
-    const product = this.selectionService.getCurrentProduct();
-    if (product) {
-      try {
-        await this.cartService.addToCart(product, 1);
-      } catch (e) {
-        console.error('Erro ao adicionar ao carrinho:', e);
-      }
-    }
-    this.router.navigate(['/tabs/cart']);
-  }
-
-  public async toggleFavorite() {
-    const product = this.selectionService.getCurrentProduct();
-    if (!product || !product.id) return;
-
-    try {
-      if (this.isSaved) {
-        await this.savedService.removeByProductId(product.id);
-        this.isSaved = false;
-      } else {
-        await this.savedService.saveProduct(product);
-        this.isSaved = true;
-      }
-    } catch (e) {
-      console.error('Erro ao alternar favorito:', e);
-    }
-  }
-
-  public getFloating(number: number): string {
-    const transformedNumber = number.toFixed(2);
-    const parts = transformedNumber.split('.');
-    return parts[1];
-  }
-
-  public goToProduct(product: Product) {
-    this.selectionService.setSelectedProduct(product);
-    this.router.navigate(['/product-details', product.id]);
-  }
-
-  public goToSellerProfile(sellerId?: string) {
-    if (!sellerId) return;
-    this.router.navigate(['/seller-profile', sellerId]);
-  }
-
-  public getSellerInitials(seller: PublicSellerProfile | null): string {
-    const source = seller?.shopName || seller?.displayName || seller?.username || 'VC';
-    return source
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part: string) => part[0])
-      .join('')
-      .toUpperCase() || 'VC';
-  }
-
-  public formatCount(value: number): string {
-    return value.toLocaleString('pt-BR');
-  }
-
-  public formatCompactCount(value: number): string {
-    return value.toLocaleString('pt-BR', {
-      notation: 'compact',
-      maximumFractionDigits: 1
-    });
-  }
-
-  public formatRating(value: number | null): string {
-    return value === null ? '-' : value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  }
-
-  public getPaymentMethodsLabel(product: Product): string {
-    const methods = product.paymentMethods || [];
-    return methods.length ? methods.join(', ') : 'Não informado';
-  }
-
-  public isOwnSeller(seller: PublicSellerProfile | null): boolean {
-    return !!seller?.uid && seller.uid === this.currentUserId;
-  }
-
   public async toggleFollowSeller(seller: PublicSellerProfile, event?: Event) {
     event?.stopPropagation();
+    if (!requireAccount(this.router)) return;
     if (this.isOwnSeller(seller) || this.isFollowActionBusy) return;
 
     this.isFollowActionBusy = true;
@@ -304,17 +412,199 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Falha ao atualizar seguimento do vendedor:', error);
+      this.showToast('Não foi possível atualizar. Tente de novo.', 'danger');
     } finally {
       this.isFollowActionBusy = false;
     }
   }
 
-  public getDiscountPercent(price: number, priceDiscounted?: number): number | null {
-    if (!priceDiscounted || priceDiscounted <= price) return null;
-    return Math.round((1 - price / priceDiscounted) * 100);
+  public goToSellerProfile(sellerId?: string) {
+    if (!sellerId) return;
+    this.router.navigate(['/seller-profile', sellerId]);
   }
 
-  public priceOrganize(price:any, priceDiscounted:any) : number {
-    return price || priceDiscounted;
+  public editListing(product: Product) {
+    this.router.navigate(['/edit-product', product.id]);
+  }
+
+  public onProductSelect(productId: string) {
+    this.fbProducts.getById(productId).pipe(take(1), takeUntil(this.destroy$)).subscribe(selected => {
+      if (selected) this.selectionService.setSelectedProduct(selected);
+    });
+  }
+
+  public scrollToReviews(content: IonContent) {
+    const target = document.getElementById('opinioes');
+    if (target) content.scrollToPoint(0, target.offsetTop - 16, 400);
+  }
+
+  // --------------------------------------------------------------- exibição
+
+  public priceMain = priceMain;
+  public hasDiscount = hasDiscount;
+  public discountPercent = discountPercent;
+
+  /** Preço separado em reais e centavos, arredondado em centavos antes. */
+  public priceParts(value: number): { reais: string; cents: string } {
+    const totalCents = Math.round((value || 0) * 100);
+    return {
+      reais: Math.trunc(totalCents / 100).toLocaleString('pt-BR'),
+      cents: String(totalCents % 100).padStart(2, '0')
+    };
+  }
+
+  public formatMoney(value: number): string {
+    return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  public savings(product: Product): string {
+    return this.formatMoney(product.price - priceMain(product));
+  }
+
+  public conditionLabel(product: Product): string {
+    return CONDITION_LABELS[product.condition] || 'Usado';
+  }
+
+  public isNew(product: Product): boolean {
+    return product.condition === 'novo';
+  }
+
+  public paymentMethods(product: Product) {
+    return (product.paymentMethods || []).map(m => ({ key: m, ...(PAYMENT_META[m] || { label: m, icon: 'cash-outline' }) }));
+  }
+
+  public canBuy(product: Product): boolean {
+    return (product.stock ?? 0) > 0 && !this.isOwnProduct(product);
+  }
+
+  public isOwnProduct(product: Product): boolean {
+    return !!this.currentUserId && product.sellerId === this.currentUserId;
+  }
+
+  public stockLabel(product: Product): string {
+    const stock = product.stock ?? 0;
+    if (stock <= 0) return 'Sem estoque';
+    if (stock === 1) return 'Última unidade';
+    if (stock <= 5) return `Últimas ${stock} unidades`;
+    return `${stock} disponíveis`;
+  }
+
+  public shippingInfo(product: Product): { title: string; detail: string; icon: string; highlight: boolean } {
+    switch (product.shipping) {
+      case 'Frete Grátis':
+        return { title: 'Frete grátis', detail: 'O vendedor paga o envio para todo o Brasil.', icon: 'gift-outline', highlight: true };
+      case 'Entrega Expressa':
+        return { title: 'Entrega expressa', detail: 'Envio prioritário. Prazo e valor calculados no pagamento.', icon: 'flash-outline', highlight: true };
+      default:
+        return { title: 'Frete calculado no pagamento', detail: 'Informe o CEP no checkout para ver prazos e valores.', icon: 'cube-outline', highlight: false };
+    }
+  }
+
+  /**
+   * Ficha técnica: o que o vendedor preencheu mais o que o próprio anúncio já
+   * sabe (condição, dimensões, peso). Nada é inventado — campo vazio não entra.
+   */
+  public specRows(product: Product): ProductSpec[] {
+    const rows: ProductSpec[] = (product.specs || [])
+      .filter(s => s?.label?.trim() && s?.value?.trim())
+      .map(s => ({ label: s.label.trim(), value: s.value.trim() }));
+
+    rows.push({ label: 'Condição', value: this.conditionLabel(product) });
+
+    const dims = [product.width, product.height, product.length];
+    if (dims.every(d => typeof d === 'number' && d > 0)) {
+      rows.push({ label: 'Dimensões da embalagem', value: `${product.width} × ${product.height} × ${product.length} cm` });
+    }
+    if (typeof product.weight === 'number' && product.weight > 0) {
+      const weight = product.weight < 1
+        ? `${Math.round(product.weight * 1000)} g`
+        : `${product.weight.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kg`;
+      rows.push({ label: 'Peso com embalagem', value: weight });
+    }
+    if (product.location) rows.push({ label: 'Enviado de', value: product.location });
+
+    return rows;
+  }
+
+  /** Destaques curtos ao lado do preço: condição, envio, estoque, ofertas. */
+  public highlights(product: Product): string[] {
+    const list: string[] = [];
+    const brand = product.specs?.find(s => /^marca$/i.test(s.label?.trim()))?.value;
+    const model = product.specs?.find(s => /^modelo$/i.test(s.label?.trim()))?.value;
+    if (brand || model) list.push([brand, model].filter(Boolean).join(' · '));
+    list.push(this.isNew(product) ? 'Produto novo, nunca usado.' : `Produto usado, em estado ${this.conditionLabel(product).split('· ')[1] || 'informado pelo vendedor'}.`);
+    if (product.acceptOffers) list.push('O vendedor aceita propostas pelo chat.');
+    return list;
+  }
+
+  public descriptionIsLong(product: Product): boolean {
+    return (product.description?.length || 0) > 420;
+  }
+
+  public getSellerInitials(seller: PublicSellerProfile | null): string {
+    const source = seller?.shopName || seller?.displayName || seller?.username || 'VN';
+    return source.split(' ').filter(Boolean).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase() || 'VN';
+  }
+
+  public sellerName(seller: PublicSellerProfile | null): string {
+    return seller?.shopName || seller?.displayName || 'Loja Vineon';
+  }
+
+  public sellerSince(seller: PublicSellerProfile | null): string | null {
+    const raw = seller?.createdAt;
+    const date: Date | null = raw?.toDate ? raw.toDate() : raw ? new Date(raw) : null;
+    if (!date || Number.isNaN(date.getTime())) return null;
+    return date.getFullYear().toString();
+  }
+
+  public formatCount(value: number): string {
+    return (value || 0).toLocaleString('pt-BR');
+  }
+
+  public formatCompactCount(value: number): string {
+    return (value || 0).toLocaleString('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
+  }
+
+  public formatRating(value: number | null | undefined): string {
+    return value == null ? '–' : value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+
+  public starFill(rating: number, star: number): number {
+    return Math.max(0, Math.min(1, rating - (star - 1)));
+  }
+
+  public isOwnSeller(seller: PublicSellerProfile | null): boolean {
+    return !!seller?.uid && seller.uid === this.currentUserId;
+  }
+
+  // ---------------------------------------------------------------- interno
+
+  private async refreshSaved(productId: string) {
+    try {
+      this.isSaved = await this.savedService.isProductSaved(productId);
+    } catch {
+      this.isSaved = false;
+    }
+  }
+
+  private observeInlineBuy(el?: HTMLElement) {
+    this.buyObserver?.disconnect();
+    this.buyObserver = undefined;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      this.showStickyBuy = false;
+      return;
+    }
+    this.buyObserver = new IntersectionObserver(([entry]) => {
+      // Só mostra depois que os botões passaram para cima (não antes de chegar neles).
+      const show = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+      if (show !== this.showStickyBuy) this.zone.run(() => this.showStickyBuy = show);
+    });
+    this.buyObserver.observe(el);
+  }
+
+  private async showToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({ message, color, duration: 2600, position: 'bottom' });
+    await toast.present();
   }
 }
+

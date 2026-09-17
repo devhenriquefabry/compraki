@@ -2,11 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Product } from 'src/app/interfaces/product';
+import { Product, ProductSpec } from 'src/app/interfaces/product';
+import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
-import { NgFor, NgIf, AsyncPipe } from '@angular/common';
+import { NgFor, NgIf, AsyncPipe, CurrencyPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
@@ -16,20 +17,34 @@ import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.se
   selector: 'app-upload-product-form',
   templateUrl: './upload-product-form.component.html',
   styleUrls: ['./upload-product-form.component.scss'],
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent ],
-  standalone: true  
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent ],
+  standalone: true
 })
 export class UploadProductFormComponent  implements OnInit {
 
   public isFormValid : boolean = false;
-  public selectedPhotos: string[] = []; 
+  public selectedPhotos: string[] = [];
   private filesToUpload: File[] = [];
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
-  
-  public shippingOptions: ('Frete Grátis' | 'A combinar' | 'Entrega Expressa')[] = ['Frete Grátis', 'A combinar', 'Entrega Expressa'];
+
+  public conditionOptions: { value: 'novo' | 'usado-como-novo' | 'usado-bom' | 'usado-aceitavel'; label: string; hint: string }[] = [
+    { value: 'novo', label: 'Novo', hint: 'Lacrado, nunca usado' },
+    { value: 'usado-como-novo', label: 'Como novo', hint: 'Usado poucas vezes, sem marcas' },
+    { value: 'usado-bom', label: 'Bom estado', hint: 'Uso normal, pequenos sinais' },
+    { value: 'usado-aceitavel', label: 'Aceitável', hint: 'Funciona bem, com desgaste' },
+  ];
+
+  public shippingOptions: { value: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa'; label: string; hint: string; icon: string }[] = [
+    { value: 'Frete Grátis', label: 'Frete grátis', hint: 'Você assume o custo do envio', icon: 'gift-outline' },
+    { value: 'A combinar', label: 'A combinar', hint: 'Combine o frete com o comprador', icon: 'chatbubbles-outline' },
+    { value: 'Entrega Expressa', label: 'Expressa', hint: 'Envio prioritário', icon: 'flash-outline' },
+  ];
   public availablePaymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[] = ['PIX', 'CARTÃO', 'DINHEIRO'];
+
+  /** Campos obrigatórios do formulário, usados só para calcular o progresso exibido ao vendedor. */
+  private readonly requiredFields = ['name', 'condition', 'price', 'stock', 'description', 'categoryIds', 'shipping', 'paymentMethods', 'weight', 'width', 'height', 'length'];
 
   // Feedback modal
   public showFeedback = false;
@@ -47,6 +62,7 @@ export class UploadProductFormComponent  implements OnInit {
     stock: new FormControl<number>(1, [Validators.required]),
     acceptOffers: new FormControl(true),
     description: new FormControl('', [Validators.required]),
+    specs: new FormControl<ProductSpec[]>([]),
     categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
     subcategoryIds: new FormControl<string[]>([]),
     priceDiscounted: new FormControl<number | null>(null),
@@ -85,6 +101,23 @@ export class UploadProductFormComponent  implements OnInit {
       }
       this.submitProductForm.patchValue({ subcategoryIds: [] });
     });
+  }
+
+  get completionPercent(): number {
+    const done = this.requiredFields.filter(name => this.submitProductForm.get(name)?.valid).length;
+    return Math.round((done / this.requiredFields.length) * 100);
+  }
+
+  get conditionLabel(): string {
+    const value = this.submitProductForm.get('condition')?.value;
+    return this.conditionOptions.find(c => c.value === value)?.label || 'Novo';
+  }
+
+  get discountPercent(): number | null {
+    const price = this.submitProductForm.get('price')?.value;
+    const promo = this.submitProductForm.get('priceDiscounted')?.value;
+    if (!price || !promo || promo >= price) return null;
+    return Math.round((1 - promo / price) * 100);
   }
 
   selectCategory(catId: string) {
@@ -219,6 +252,7 @@ export class UploadProductFormComponent  implements OnInit {
           width: data.width!,
           height: data.height!,
           length: data.length!,
+          specs: cleanSpecs(data.specs),
           sellerId: currentUser.uid,
           createdAt: new Date(),
           updatedAt: new Date()

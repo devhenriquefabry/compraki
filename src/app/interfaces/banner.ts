@@ -10,7 +10,14 @@ export interface Banner {
   subtitle?: string;
   buttonText?: string;
   buttonLink?: string;
+  /** Arte do celular (app e site em tela pequena): 1080 × 400 px, 2,7:1. */
   imageURL: string;
+  /**
+   * Arte do computador (home do site): 1920 × 480 px, 4:1. Opcional — sem ela
+   * o site mostra a arte do celular inteira, centralizada sobre um fundo
+   * desfocado dela mesma. Ver `core/banner-formats.ts`.
+   */
+  desktopImageURL?: string;
   backgroundColor: string;
   textColor: string;
   status: 'active' | 'inactive' | 'scheduled';
