@@ -17,8 +17,17 @@ runConfig:
   memoryMiB: 512
   concurrency: 80
 
-  # Teto de containers. Protege a fatura se o site levar um pico de acesso.
-  maxInstances: 10
+  # Teto de containers. Alem de proteger a fatura, este numero esbarra numa
+  # cota do projeto: o Cloud Run soma maxInstances x cpu de TODOS os servicos
+  # da regiao, e as ~47 Cloud Functions (cada uma e um servico Cloud Run, todas
+  # com maxInstances 10) ja reservam perto de 470 vCPU em us-central1. Com 10
+  # aqui o rollout morre com "Quota exceeded for total allowable CPU per
+  # project per region".
+  #
+  # 2 instancias x 80 requisicoes simultaneas = 160 em paralelo, e o CDN
+  # responde a maior parte do trafego antes de chegar aqui. Para subir isto,
+  # baixe o MAX_INSTANCES das functions ou peca aumento de cota.
+  maxInstances: 2
 
   # Zero = nao paga container parado, mas a primeira visita depois de um tempo
   # ocioso espera o cold start (~1s). Se quiser o site sempre quente, troque
