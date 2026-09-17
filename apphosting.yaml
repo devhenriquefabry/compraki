@@ -24,3 +24,13 @@ runConfig:
   # ocioso espera o cold start (~1s). Se quiser o site sempre quente, troque
   # para 1 — custa da ordem de US$ 10-15/mes.
   minInstances: 0
+
+env:
+  # O puppeteer e devDependency (so a pasta automation/ usa, na maquina do
+  # dev), mas o build do App Hosting instala devDependencies para ter o
+  # Angular CLI — entao o postinstall dele baixaria um Chromium de ~150 MB
+  # que ninguem vai usar. Isto desliga o download.
+  - variable: PUPPETEER_SKIP_DOWNLOAD
+    value: "1"
+    availability:
+      - BUILD
