@@ -17,6 +17,8 @@
         </ion-button>
       </div>
 
+      <p class="product-variant" *ngIf="item.variantLabel">{{ item.variantLabel }}</p>
+
       <!-- Preço -->
       <div class="price-row">
         <span class="price-original" *ngIf="product.priceDiscounted">

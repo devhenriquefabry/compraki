@@ -118,6 +118,7 @@
         <img [src]="item.productData.photoURL?.[0] || 'assets/imagens/placeholder.png'">
         <div class="prod-info">
           <span class="name">{{ item.productData.name }}</span>
+          <span class="variant" *ngIf="item.variantLabel">{{ item.variantLabel }}</span>
           <span class="qty">Qtd: {{ item.quantity }}</span>
         </div>
         <div class="prod-total">

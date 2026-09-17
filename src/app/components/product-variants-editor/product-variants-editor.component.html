@@ -1,0 +1,143 @@
+<div class="pve">
+  <div class="pve-toggle">
+    <div class="pve-toggle-text">
+      <label>Este produto tem variações?</label>
+      <p>Cor, tamanho... o comprador escolhe uma combinação antes de comprar.</p>
+    </div>
+    <ion-toggle color="success" [checked]="hasVariants()" (ionChange)="toggle($event.detail.checked)"></ion-toggle>
+  </div>
+
+  @if (hasVariants()) {
+    <div class="pve-attributes">
+      @for (attr of attributes(); track $index; let i = $index) {
+        <div class="pve-attribute">
+          <div class="pve-attribute-head">
+            <input
+              class="pve-input pve-input--name"
+              type="text"
+              [value]="attr.name"
+              placeholder="Ex: Cor"
+              maxlength="30"
+              [attr.aria-label]="'Nome do atributo ' + (i + 1)"
+              (input)="renameAttribute(i, $event)">
+            <button type="button" class="pve-remove" (click)="removeAttribute(i)" aria-label="Remover atributo">
+              <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+            </button>
+          </div>
+
+          <div class="pve-values">
+            @for (value of attr.values; track value) {
+              <span class="pve-chip">
+                {{ value }}
+                <button type="button" (click)="removeValue(i, value)" [attr.aria-label]="'Remover valor ' + value">
+                  <ion-icon name="close" aria-hidden="true"></ion-icon>
+                </button>
+              </span>
+            }
+            <div class="pve-add-value">
+              <input
+                #valueInput
+                type="text"
+                placeholder="Adicionar valor e Enter"
+                maxlength="30"
+                [attr.aria-label]="'Novo valor de ' + (attr.name || 'atributo ' + (i + 1))"
+                (keydown.enter)="$event.preventDefault(); addValue(i, valueInput)">
+              <button type="button" (click)="addValue(i, valueInput)" aria-label="Adicionar valor">
+                <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          @if (i === 0 && attr.values.length > 0 && availablePhotos().length > 0) {
+            <div class="pve-images">
+              <span class="pve-images-label">Foto de cada {{ attr.name || 'valor' }} <small>(opcional)</small></span>
+              @for (value of attr.values; track value) {
+                <div class="pve-image-row">
+                  <span class="pve-image-value">{{ value }}</span>
+                  <div class="pve-image-options">
+                    @for (photo of availablePhotos(); track photo) {
+                      <button
+                        type="button"
+                        class="pve-photo-btn"
+                        [class.is-active]="imageFor(value) === photo"
+                        [attr.aria-label]="'Usar esta foto para ' + value"
+                        (click)="pickImage(value, photo)">
+                        <img [src]="photo" [alt]="value">
+                      </button>
+                    }
+                    @if (imageFor(value)) {
+                      <button type="button" class="pve-photo-clear" (click)="clearImage(value)">Remover</button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (attributes().length < maxAttributes) {
+        <div class="pve-add-attr">
+          @if (suggestions().length > 0) {
+            <div class="pve-suggest">
+              @for (label of suggestions(); track label) {
+                <button type="button" class="pve-suggest-chip" (click)="addAttribute(label)">+ {{ label }}</button>
+              }
+            </div>
+          }
+          <button type="button" class="pve-add" (click)="addAttribute()">
+            <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
+            Adicionar atributo{{ attributes().length ? ' (ex: Tamanho)' : '' }}
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (rows().length > 0) {
+      <div class="pve-matrix">
+        <div class="pve-matrix-head">
+          <span>Combinações</span>
+          <span class="pve-matrix-total">Estoque total: {{ totalStock() }}</span>
+        </div>
+
+        <div class="pve-matrix-table" [style.--pve-attr-count]="attributeNames().length">
+          <div class="pve-matrix-row pve-matrix-row--head">
+            @for (name of attributeNames(); track $index) { <span>{{ name || '—' }}</span> }
+            <span>Preço <small>(opcional)</small></span>
+            <span>Estoque</span>
+          </div>
+
+          @for (row of rows(); track $index) {
+            <div class="pve-matrix-row" [class.is-empty]="row.stock === 0">
+              @for (name of attributeNames(); track $index) {
+                <span class="pve-matrix-cell pve-matrix-cell--label">{{ row.attributes[name] }}</span>
+              }
+              <span class="pve-matrix-cell">
+                <div class="pve-matrix-input price">
+                  <span class="prefix">R$</span>
+                  <input
+                    type="number" min="0" step="0.01"
+                    [value]="row.price ?? ''"
+                    [placeholder]="basePrice() ? ('Padrão: ' + basePrice()) : '0,00'"
+                    [attr.aria-label]="'Preço para ' + rowLabel(row)"
+                    (input)="updateSkuPrice(row, $event)">
+                </div>
+              </span>
+              <span class="pve-matrix-cell">
+                <div class="pve-matrix-input">
+                  <input
+                    type="number" min="0" step="1"
+                    [value]="row.stock"
+                    [attr.aria-label]="'Estoque para ' + rowLabel(row)"
+                    (input)="updateSkuStock(row, $event)">
+                </div>
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (attributes().length > 0) {
+      <p class="pve-hint">Adicione ao menos um valor em cada atributo para gerar as combinações.</p>
+    }
+  }
+</div>

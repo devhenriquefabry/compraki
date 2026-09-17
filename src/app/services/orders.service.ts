@@ -42,10 +42,16 @@ export class OrdersService {
         for (const item of orderData.items) {
           if (item.productData && item.productData.id) {
             const productRef = doc(this.db, 'products', item.productData.id);
-            await updateDoc(productRef, {
+            const updates: Record<string, any> = {
               soldCount: increment(item.quantity),
               stock: increment(-item.quantity)
-            });
+            };
+            // Produto com variações: desconta também da combinação específica
+            // comprada (mapa, não lista — dá pra usar increment() num campo aninhado).
+            if (item.skuId) {
+              updates[`skus.${item.skuId}.stock`] = increment(-item.quantity);
+            }
+            await updateDoc(productRef, updates);
           }
         }
       }

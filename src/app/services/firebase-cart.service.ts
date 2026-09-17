@@ -98,35 +98,48 @@ export class FirebaseCartService {
     });
   }
 
-  async addToCart(product: Product, quantity: number = 1): Promise<void> {
+  /**
+   * `variant` só é passado quando o produto tem variações (`hasVariants`): é
+   * a combinação já resolvida (ver `findSku` em `core/product-variants.ts`),
+   * com o preço/estoque específicos dela. Dois itens do mesmo produto com
+   * combinações diferentes viram linhas separadas no carrinho.
+   */
+  async addToCart(
+    product: Product,
+    quantity: number = 1,
+    variant?: { skuId: string; label: string; selection: Record<string, string>; price: number; stock: number }
+  ): Promise<void> {
     const user = await this.waitForUser();
     const cartCol = this.getCartCollectionForUser(user.uid);
 
-    // Verificar se o produto já existe no carrinho
+    // Verificar se este produto (nesta combinação) já existe no carrinho
     const q = query(cartCol, where('productId', '==', product.id));
     const existing = await getDocs(q);
+    const sameVariant = existing.docs.find(d => (d.data()['skuId'] || null) === (variant?.skuId || null));
 
-    if (!existing.empty) {
+    if (sameVariant) {
       // Atualizar quantidade
-      const existingDoc = existing.docs[0];
-      const currentQty = existingDoc.data()['quantity'] || 1;
-      await updateDoc(existingDoc.ref, {
+      const currentQty = sameVariant.data()['quantity'] || 1;
+      await updateDoc(sameVariant.ref, {
         quantity: currentQty + quantity,
       });
     } else {
       // Adicionar novo item
       await addDoc(cartCol, {
         productId: product.id || null,
+        skuId: variant?.skuId || null,
+        variantLabel: variant?.label || null,
+        variantSelection: variant?.selection || null,
         quantity: quantity,
         addedAt: serverTimestamp(),
         productData: {
           id: product.id || null,
           name: product.name || '',
-          price: product.price || 0,
-          priceDiscounted: product.priceDiscounted || null,
+          price: variant ? variant.price : (product.price || 0),
+          priceDiscounted: variant ? null : (product.priceDiscounted || null),
           photoURL: product.photoURL || [],
           condition: product.condition || null,
-          stock: product.stock || 0,
+          stock: variant ? variant.stock : (product.stock || 0),
           shipping: product.shipping || null,
           paymentMethods: product.paymentMethods || [],
           categoryIds: product.categoryIds || [],

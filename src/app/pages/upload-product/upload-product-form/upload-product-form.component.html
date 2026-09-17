@@ -141,7 +141,7 @@
             </div>
             <span class="field-hint discount-hint" *ngIf="discountPercent">-{{ discountPercent }}% de desconto</span>
           </div>
-          <div class="form-group col-small">
+          <div class="form-group col-small" *ngIf="!hasVariants">
             <label>Estoque</label>
             <div class="input-wrapper stock-input">
               <input type="number" formControlName="stock" placeholder="1">
@@ -156,6 +156,30 @@
           </div>
           <ion-toggle color="success" formControlName="acceptOffers"></ion-toggle>
         </div>
+      </section>
+
+      <!-- VARIAÇÕES -->
+      <section class="form-card">
+        <header class="form-card-head">
+          <div class="fch-icon"><ion-icon name="color-palette-outline"></ion-icon></div>
+          <div class="fch-text">
+            <h2>Variações</h2>
+            <p>Cor, tamanho... cada combinação com seu próprio estoque (opcional)</p>
+          </div>
+        </header>
+
+        <app-product-variants-editor
+          [hasVariants]="hasVariants"
+          [attributes]="variantAttributes"
+          [skus]="variantSkus"
+          [variantImages]="variantImages"
+          [availablePhotos]="selectedPhotos"
+          [basePrice]="submitProductForm.controls.price.value"
+          (hasVariantsChange)="hasVariants = $event"
+          (attributesChange)="variantAttributes = $event"
+          (skusChange)="variantSkus = $event"
+          (variantImagesChange)="variantImages = $event">
+        </app-product-variants-editor>
       </section>
 
       <!-- ENTREGA E PAGAMENTO -->

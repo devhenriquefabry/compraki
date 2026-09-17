@@ -31,6 +31,21 @@ export interface Product {
     specs?: ProductSpec[];
 
     /**
+     * Variações (cor, tamanho...), no molde Mercado Livre/Shopee.
+     * Quando `hasVariants` é true, `price`/`stock` no topo viram valores
+     * agregados: `stock` é a soma de todas as combinações (`skus`), e `price`
+     * segue sendo o preço "a partir de" mostrado nas vitrines. O preço e o
+     * estoque de cada combinação específica moram em `skus`.
+     */
+    hasVariants?: boolean;
+    /** Até 2 atributos (ex: Cor, Tamanho), na ordem em que aparecem para o comprador. */
+    variantAttributes?: ProductVariantAttribute[];
+    /** Foto associada a cada valor do 1º atributo (ex: "Preto" -> URL da foto preta). */
+    variantImages?: Record<string, string>;
+    /** Uma combinação por chave (ver `skuKey` em `core/product-variants.ts`). */
+    skus?: Record<string, ProductSku>;
+
+    /**
      * Nota média, total de avaliações e contagem por estrela (chaves '1'..'5').
      * Escritos só pela Cloud Function `onProductReviewWritten`; as regras do
      * Firestore barram o vendedor de mexer neles.
@@ -47,4 +62,21 @@ export interface Product {
 export interface ProductSpec {
     label: string;
     value: string;
+}
+
+export interface ProductVariantAttribute {
+    /** Ex: "Cor", "Tamanho". */
+    name: string;
+    /** Ex: ["Preto", "Branco"]. Sem duplicatas. */
+    values: string[];
+}
+
+export interface ProductSku {
+    /** Chave estável derivada dos valores selecionados — ver `skuKey`. */
+    id: string;
+    /** Um valor por atributo do produto, ex: { Cor: "Preto", Tamanho: "M" }. */
+    attributes: Record<string, string>;
+    /** Sobrescreve o preço do produto para esta combinação; null usa o preço base. */
+    price?: number | null;
+    stock: number;
 }

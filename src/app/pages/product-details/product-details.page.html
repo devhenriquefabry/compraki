@@ -103,7 +103,7 @@
                   (click)="toggleFavorite(p)">
                   <ion-icon [name]="isSaved ? 'heart' : 'heart-outline'" aria-hidden="true"></ion-icon>
                 </button>
-                <app-product-gallery [photos]="p.photoURL" [productName]="p.name" [compact]="!layout.isDesktop()"></app-product-gallery>
+                <app-product-gallery [photos]="galleryPhotos(p)" [productName]="p.name" [compact]="!layout.isDesktop()"></app-product-gallery>
               </div>
             </div>
 
@@ -362,36 +362,73 @@
                 <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Editar anúncio
               </button>
             } @else if (p.stock > 0) {
-              <div class="pd-stock-row">
-                <span class="pd-stock" [class.is-low]="p.stock <= 5">
-                  {{ p.stock > 5 ? 'Estoque disponível' : stockLabel(p) }}
-                </span>
-                <div class="pd-qty" role="group" aria-label="Quantidade">
-                  <button type="button" (click)="decreaseQty()" [disabled]="quantity <= 1" aria-label="Diminuir quantidade">
-                    <ion-icon name="remove-outline" aria-hidden="true"></ion-icon>
-                  </button>
-                  <output aria-live="polite">{{ quantity }}</output>
-                  <button type="button" (click)="increaseQty(p)" [disabled]="quantity >= p.stock" aria-label="Aumentar quantidade">
-                    <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
-                  </button>
+              @if (p.hasVariants) {
+                <div class="pd-variants">
+                  @for (attr of variantAttributeNames(p); track attr; let isFirst = $first) {
+                    <div class="pd-variant-group">
+                      <span class="pd-variant-label">
+                        {{ attr }}@if (selectedVariant[attr]) {: <strong>{{ selectedVariant[attr] }}</strong>}
+                      </span>
+                      <div class="pd-variant-options">
+                        @for (value of variantValuesFor(p, attr); track value) {
+                          @let img = isFirst ? variantImageFor(p, value) : null;
+                          <button
+                            type="button"
+                            class="pd-variant-chip"
+                            [class.has-image]="img"
+                            [class.is-selected]="selectedVariant[attr] === value"
+                            [class.is-unavailable]="!isVariantValueAvailable(p, attr, value)"
+                            [attr.aria-pressed]="selectedVariant[attr] === value"
+                            (click)="selectVariantValue(attr, value)">
+                            @if (img) { <img [src]="img" [alt]="value"> }
+                            {{ value }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
-              </div>
-              @if (p.stock > 5) {
-                <span class="pd-stock-count">{{ stockLabel(p) }}</span>
               }
 
-              <button type="button" class="pd-btn pd-btn--primary pd-btn--block pd-btn--lg" [disabled]="isAddingToCart" (click)="buyNow(p)">
-                Comprar agora
-              </button>
-              <button type="button" class="pd-btn pd-btn--soft pd-btn--block pd-btn--lg" [disabled]="isAddingToCart" (click)="addToCart(p)">
-                @if (isAddingToCart) { <ion-spinner name="crescent" aria-hidden="true"></ion-spinner> }
-                Adicionar ao carrinho
-              </button>
-              @if (inCart) {
-                <a class="pd-incart" routerLink="/tabs/cart">
-                  <ion-icon name="cart" aria-hidden="true"></ion-icon>
-                  {{ inCart }} {{ inCart === 1 ? 'unidade' : 'unidades' }} no seu carrinho
-                </a>
+              @if (!variantFullySelected(p)) {
+                <p class="pd-variant-hint">Selecione {{ variantAttributeNames(p).join(' e ') }} para continuar.</p>
+              } @else if (effectiveStock(p) <= 0) {
+                <div class="pd-variant-soldout">
+                  <ion-icon name="close-circle" aria-hidden="true"></ion-icon>
+                  Esta combinação está esgotada. Escolha outra opção.
+                </div>
+              } @else {
+                <div class="pd-stock-row">
+                  <span class="pd-stock" [class.is-low]="effectiveStock(p) <= 5">
+                    {{ effectiveStock(p) > 5 ? 'Estoque disponível' : stockLabel(p) }}
+                  </span>
+                  <div class="pd-qty" role="group" aria-label="Quantidade">
+                    <button type="button" (click)="decreaseQty()" [disabled]="quantity <= 1" aria-label="Diminuir quantidade">
+                      <ion-icon name="remove-outline" aria-hidden="true"></ion-icon>
+                    </button>
+                    <output aria-live="polite">{{ quantity }}</output>
+                    <button type="button" (click)="increaseQty(p)" [disabled]="quantity >= effectiveStock(p)" aria-label="Aumentar quantidade">
+                      <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                    </button>
+                  </div>
+                </div>
+                @if (effectiveStock(p) > 5) {
+                  <span class="pd-stock-count">{{ stockLabel(p) }}</span>
+                }
+
+                <button type="button" class="pd-btn pd-btn--primary pd-btn--block pd-btn--lg" [disabled]="isAddingToCart" (click)="buyNow(p)">
+                  Comprar agora
+                </button>
+                <button type="button" class="pd-btn pd-btn--soft pd-btn--block pd-btn--lg" [disabled]="isAddingToCart" (click)="addToCart(p)">
+                  @if (isAddingToCart) { <ion-spinner name="crescent" aria-hidden="true"></ion-spinner> }
+                  Adicionar ao carrinho
+                </button>
+                @if (inCart) {
+                  <a class="pd-incart" routerLink="/tabs/cart">
+                    <ion-icon name="cart" aria-hidden="true"></ion-icon>
+                    {{ inCart }} {{ inCart === 1 ? 'unidade' : 'unidades' }} no seu carrinho
+                  </a>
+                }
               }
             } @else {
               <div class="pd-soldout">

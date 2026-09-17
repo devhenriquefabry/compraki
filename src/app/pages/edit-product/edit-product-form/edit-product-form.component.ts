@@ -2,8 +2,10 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Product, ProductSpec } from 'src/app/interfaces/product';
+import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
+import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
+import { cleanVariantImages, cleanVariants, totalVariantStock } from 'src/app/core/product-variants';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
@@ -16,7 +18,7 @@ import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinn
   templateUrl: './edit-product-form.component.html',
   styleUrls: ['./edit-product-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent]
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent]
 })
 export class EditProductFormComponent implements OnInit {
   private _product!: Product;
@@ -30,8 +32,14 @@ export class EditProductFormComponent implements OnInit {
   @Output() cancel = new EventEmitter<void>();
 
   public isFormValid: boolean = false;
-  public selectedPhotos: string[] = []; 
+  public selectedPhotos: string[] = [];
   private filesToUpload: File[] = [];
+
+  // ===== VARIAÇÕES (cor, tamanho...) =====
+  public hasVariants = false;
+  public variantAttributes: ProductVariantAttribute[] = [];
+  public variantSkus: Record<string, ProductSku> = {};
+  public variantImages: Record<string, string> = {};
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
@@ -97,6 +105,10 @@ export class EditProductFormComponent implements OnInit {
       this.editProductForm.patchValue({ ...product, specs: product.specs || [] });
       this.selectedPhotos = [...(product.photoURL || [])];
       this.filesToUpload = []; // Reset local files on product change
+      this.hasVariants = !!product.hasVariants;
+      this.variantAttributes = product.variantAttributes ? [...product.variantAttributes] : [];
+      this.variantSkus = product.skus ? { ...product.skus } : {};
+      this.variantImages = product.variantImages ? { ...product.variantImages } : {};
     }
   }
 
@@ -238,7 +250,13 @@ export class EditProductFormComponent implements OnInit {
     if (this.editProductForm.valid) {
       this.isLoading = true;
       try {
-        // 1. Identificar quais "fotos" no selectedPhotos são arquivos novos (data:base64) 
+        const { variantAttributes, skus } = cleanVariants(this.variantAttributes, this.variantSkus);
+        const variantsEnabled = this.hasVariants && variantAttributes.length > 0 && Object.keys(skus).length > 0;
+        if (this.hasVariants && !variantsEnabled) {
+          throw new Error('Adicione ao menos um atributo com um valor em "Variações", ou desative a opção.');
+        }
+
+        // 1. Identificar quais "fotos" no selectedPhotos são arquivos novos (data:base64)
         // e quais são URLs existentes.
         const currentUrls = this.selectedPhotos.filter(p => p.startsWith('http'));
         const newPhotoFiles = this.filesToUpload; // Já estão na ordem correta pois o drag-and-drop sincronizou os dois arrays
@@ -254,19 +272,35 @@ export class EditProductFormComponent implements OnInit {
         // Como o selectedPhotos contém tanto URLs quanto 'data:image...', precisamos reconstruir a lista final
         // mas aqui temos uma simplificação: as URLs novas vão para o final ou na ordem que os arquivos estavam.
         // Uma forma mais robusta é substituir os 'data:...' no selectedPhotos pelas URLs retornadas.
-        
+
         let fileIndex = 0;
+        const photoUrlByPreview = new Map<string, string>();
         const finalPhotoURL = this.selectedPhotos.map(photo => {
           if (photo.startsWith('data:')) {
-            return uploadedUrls[fileIndex++];
+            const url = uploadedUrls[fileIndex++];
+            photoUrlByPreview.set(photo, url);
+            return url;
           }
           return photo;
         });
 
+        // Fotos escolhidas para as variações podem apontar para a prévia local
+        // (base64) de um arquivo recém-adicionado; troca pela URL definitiva.
+        const rawVariantImages = variantsEnabled ? cleanVariantImages(variantAttributes, this.variantImages) : {};
+        const variantImages: Record<string, string> = {};
+        for (const [value, preview] of Object.entries(rawVariantImages)) {
+          variantImages[value] = photoUrlByPreview.get(preview) || preview;
+        }
+
         const updatedProduct = {
           ...this.editProductForm.value,
           specs: cleanSpecs(this.editProductForm.value.specs),
-          photoURL: finalPhotoURL
+          photoURL: finalPhotoURL,
+          stock: variantsEnabled ? totalVariantStock(skus) : this.editProductForm.value.stock,
+          hasVariants: variantsEnabled,
+          variantAttributes: variantsEnabled ? variantAttributes : [],
+          variantImages,
+          skus: variantsEnabled ? skus : {}
         } as Product;
 
         await this.servicoFirebase.update(updatedProduct);
@@ -283,7 +317,9 @@ export class EditProductFormComponent implements OnInit {
         this.isLoading = false;
         this.feedbackType = 'error';
         this.feedbackTitle = 'Erro ao Atualizar';
-        this.feedbackMessage = 'Verifique sua conexão e tente novamente.';
+        this.feedbackMessage = err instanceof Error && err.message.includes('Variações')
+          ? err.message
+          : 'Verifique sua conexão e tente novamente.';
         this.showFeedback = true;
       }
     }

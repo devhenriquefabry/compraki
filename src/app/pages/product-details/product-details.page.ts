@@ -18,6 +18,7 @@ import {
 } from 'ionicons/icons';
 
 import { Product, ProductSpec } from 'src/app/interfaces/product';
+import { findSku, variantAttributeNames, variantLabel } from 'src/app/core/product-variants';
 import { Category } from 'src/app/interfaces/category';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
@@ -117,6 +118,8 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   public isAddingToCart = false;
   public currentUserId = '';
   public quantity = 1;
+  /** Um valor por atributo escolhido pelo comprador, ex: { Cor: "Preto" }. */
+  public selectedVariant: Record<string, string> = {};
   public descriptionExpanded = false;
   public specsExpanded = false;
 
@@ -266,6 +269,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
       this.selectionService.setSelectedProduct(p);
       rememberViewedProduct(p.id);
       this.quantity = 1;
+      this.selectedVariant = {};
       this.descriptionExpanded = false;
       this.specsExpanded = false;
       this.titleService.setTitle(`${p.name} | Vineon`);
@@ -295,7 +299,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   public increaseQty(product: Product) {
-    this.quantity = Math.min(Math.max(1, product.stock || 1), this.quantity + 1);
+    this.quantity = Math.min(Math.max(1, this.effectiveStock(product) || 1), this.quantity + 1);
   }
 
   public async addToCart(product: Product) {
@@ -303,7 +307,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
 
     this.isAddingToCart = true;
     try {
-      await this.cartService.addToCart(product, this.quantity);
+      await this.cartService.addToCart(product, this.quantity, this.variantPayload(product));
       const toast = await this.toastCtrl.create({
         message: this.quantity > 1 ? `${this.quantity} unidades adicionadas ao carrinho.` : 'Adicionado ao carrinho.',
         duration: 3000,
@@ -320,15 +324,17 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     }
   }
 
-  /** Compra direta: garante o item no carrinho e vai para o pagamento. */
+  /** Compra direta: garante o item (nesta combinação) no carrinho e vai para o pagamento. */
   public async buyNow(product: Product) {
     if (!requireAccount(this.router) || this.isAddingToCart || !this.canBuy(product)) return;
 
     this.isAddingToCart = true;
     try {
-      const inCart = await firstValueFrom(this.cartQuantity$);
-      if (!inCart) {
-        await this.cartService.addToCart(product, this.quantity);
+      const variant = this.variantPayload(product);
+      const cartItems = await firstValueFrom(this.cartService.getAllCartItems().pipe(catchError(() => of([]))));
+      const alreadyInCart = cartItems.some(i => i.productId === product.id && (i.skuId || null) === (variant?.skuId || null));
+      if (!alreadyInCart) {
+        await this.cartService.addToCart(product, this.quantity, variant);
       }
       this.router.navigate(['/checkout']);
     } catch (e) {
@@ -474,7 +480,9 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   public canBuy(product: Product): boolean {
-    return (product.stock ?? 0) > 0 && !this.isOwnProduct(product);
+    if (this.isOwnProduct(product)) return false;
+    if (product.hasVariants && !this.variantFullySelected(product)) return false;
+    return this.effectiveStock(product) > 0;
   }
 
   public isOwnProduct(product: Product): boolean {
@@ -482,11 +490,86 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   public stockLabel(product: Product): string {
-    const stock = product.stock ?? 0;
+    const stock = this.effectiveStock(product);
     if (stock <= 0) return 'Sem estoque';
     if (stock === 1) return 'Última unidade';
     if (stock <= 5) return `Últimas ${stock} unidades`;
     return `${stock} disponíveis`;
+  }
+
+  // ------------------------------------------------------------- variações
+
+  /** Nomes dos atributos (ex: ["Cor", "Tamanho"]), na ordem cadastrada pelo vendedor. */
+  public variantAttributeNames = variantAttributeNames;
+
+  public variantValuesFor(product: Product, attrName: string): string[] {
+    return product.variantAttributes?.find(a => a.name === attrName)?.values || [];
+  }
+
+  /** Foto associada a um valor do 1º atributo (ex: cor -> foto daquela cor). */
+  public variantImageFor(product: Product, value: string): string | null {
+    return product.variantImages?.[value] || null;
+  }
+
+  /**
+   * Fotos da galeria: quando o 1º atributo (normalmente Cor) tem uma foto
+   * associada ao valor escolhido, ela vai pra frente — a galeria já reage
+   * sozinha a essa troca (ver efeito em `ProductGalleryComponent`).
+   */
+  public galleryPhotos(product: Product): string[] {
+    const photos = product.photoURL || [];
+    const firstAttr = product.variantAttributes?.[0]?.name;
+    const value = firstAttr ? this.selectedVariant[firstAttr] : undefined;
+    const variantPhoto = value ? this.variantImageFor(product, value) : null;
+    if (!variantPhoto) return photos;
+    return [variantPhoto, ...photos.filter(p => p !== variantPhoto)];
+  }
+
+  public selectVariantValue(attrName: string, value: string) {
+    this.selectedVariant = { ...this.selectedVariant, [attrName]: value };
+    this.quantity = 1;
+  }
+
+  public variantFullySelected(product: Product): boolean {
+    if (!product.hasVariants) return true;
+    return variantAttributeNames(product).every(name => !!this.selectedVariant[name]);
+  }
+
+  /**
+   * Estoque da combinação escolhida — ou o estoque agregado do produto,
+   * quando ele não tem variações. Sem variações, é exatamente `product.stock`
+   * de antes; nada muda para o catálogo existente.
+   */
+  public effectiveStock(product: Product): number {
+    if (!product.hasVariants) return product.stock ?? 0;
+    const sku = findSku(product, this.selectedVariant);
+    return sku ? Math.max(0, sku.stock) : 0;
+  }
+
+  /**
+   * Se existe, entre as combinações compatíveis com a seleção atual mais este
+   * valor, alguma com estoque — usado para "apagar" no seletor as opções que
+   * não têm mais estoque dado o que já foi escolhido.
+   */
+  public isVariantValueAvailable(product: Product, attrName: string, value: string): boolean {
+    const trial = { ...this.selectedVariant, [attrName]: value };
+    const entries = Object.entries(trial);
+    return Object.values(product.skus || {}).some(
+      sku => sku.stock > 0 && entries.every(([name, val]) => sku.attributes[name] === val)
+    );
+  }
+
+  private variantPayload(product: Product): { skuId: string; label: string; selection: Record<string, string>; price: number; stock: number } | undefined {
+    if (!product.hasVariants) return undefined;
+    const sku = findSku(product, this.selectedVariant);
+    if (!sku) return undefined;
+    return {
+      skuId: sku.id,
+      label: variantLabel(variantAttributeNames(product), this.selectedVariant),
+      selection: { ...this.selectedVariant },
+      price: sku.price ?? priceMain(product),
+      stock: sku.stock
+    };
   }
 
   public shippingInfo(product: Product): { title: string; detail: string; icon: string; highlight: boolean } {

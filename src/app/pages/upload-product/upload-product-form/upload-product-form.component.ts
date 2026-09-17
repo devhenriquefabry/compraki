@@ -2,8 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Product, ProductSpec } from 'src/app/interfaces/product';
+import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
+import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
+import { cleanVariantImages, cleanVariants, totalVariantStock } from 'src/app/core/product-variants';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
@@ -17,7 +19,7 @@ import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.se
   selector: 'app-upload-product-form',
   templateUrl: './upload-product-form.component.html',
   styleUrls: ['./upload-product-form.component.scss'],
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent ],
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent ],
   standalone: true
 })
 export class UploadProductFormComponent  implements OnInit {
@@ -25,6 +27,12 @@ export class UploadProductFormComponent  implements OnInit {
   public isFormValid : boolean = false;
   public selectedPhotos: string[] = [];
   private filesToUpload: File[] = [];
+
+  // ===== VARIAÇÕES (cor, tamanho...) =====
+  public hasVariants = false;
+  public variantAttributes: ProductVariantAttribute[] = [];
+  public variantSkus: Record<string, ProductSku> = {};
+  public variantImages: Record<string, string> = {};
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
@@ -229,13 +237,28 @@ export class UploadProductFormComponent  implements OnInit {
      if (this.submitProductForm.valid) {
       this.isLoading = true;
       try {
+        const { variantAttributes, skus } = cleanVariants(this.variantAttributes, this.variantSkus);
+        const variantsEnabled = this.hasVariants && variantAttributes.length > 0 && Object.keys(skus).length > 0;
+        if (this.hasVariants && !variantsEnabled) {
+          throw new Error('Adicione ao menos um atributo com um valor em "Variações", ou desative a opção.');
+        }
+
         const uploadPromises = this.filesToUpload.map(file => this.servicoFirebase.uploadImage(file));
         const uploadedUrls = await Promise.all(uploadPromises);
+        // Fotos escolhidas para as variações ainda apontam para a prévia local
+        // (base64); troca pela URL definitiva no Storage, na mesma ordem de upload.
+        const photoUrlByPreview = new Map(this.selectedPhotos.map((preview, i) => [preview, uploadedUrls[i]]));
 
         this.submitProductForm.patchValue({ photoURL: uploadedUrls });
 
         const currentUser = this.servicoFirebase.getUser();
         if (!currentUser) throw new Error("Usuário não autenticado");
+
+        const rawVariantImages = variantsEnabled ? cleanVariantImages(variantAttributes, this.variantImages) : {};
+        const variantImages: Record<string, string> = {};
+        for (const [value, preview] of Object.entries(rawVariantImages)) {
+          variantImages[value] = photoUrlByPreview.get(preview) || preview;
+        }
 
         const data = this.submitProductForm.value;
         const novoProduto: Product = {
@@ -243,7 +266,7 @@ export class UploadProductFormComponent  implements OnInit {
           name: data.name!,
           price: data.price!,
           condition: data.condition as any,
-          stock: data.stock!,
+          stock: variantsEnabled ? totalVariantStock(skus) : data.stock!,
           categoryIds: data.categoryIds!,
           subcategoryIds: data.subcategoryIds || [],
           paymentMethods: data.paymentMethods as any,
@@ -253,6 +276,10 @@ export class UploadProductFormComponent  implements OnInit {
           height: data.height!,
           length: data.length!,
           specs: cleanSpecs(data.specs),
+          hasVariants: variantsEnabled,
+          variantAttributes: variantsEnabled ? variantAttributes : [],
+          variantImages,
+          skus: variantsEnabled ? skus : {},
           sellerId: currentUser.uid,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -275,7 +302,9 @@ export class UploadProductFormComponent  implements OnInit {
         this.isLoading = false;
         this.feedbackType = 'error';
         this.feedbackTitle = 'Erro ao Publicar';
-        this.feedbackMessage = 'Verifique sua conexão e tente novamente.';
+        this.feedbackMessage = err instanceof Error && err.message.includes('Variações')
+          ? err.message
+          : 'Verifique sua conexão e tente novamente.';
         this.showFeedback = true;
       }
     }
@@ -287,6 +316,10 @@ export class UploadProductFormComponent  implements OnInit {
       this.submitProductForm.reset();
       this.selectedPhotos = [];
       this.filesToUpload = [];
+      this.hasVariants = false;
+      this.variantAttributes = [];
+      this.variantSkus = {};
+      this.variantImages = {};
       this.router.navigate(['/home']);
     }
   }

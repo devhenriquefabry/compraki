@@ -146,6 +146,7 @@
   .prod-info {
     flex: 1;
     .name { display: block; font-size: 14px; font-weight: 700; color: #333; }
+    .variant { display: block; font-size: 12px; font-weight: 600; color: #6b7685; margin-top: 1px; }
     .qty { font-size: 12px; color: #999; }
   }
   .prod-total { font-size: 14px; font-weight: 800; color: #333; }

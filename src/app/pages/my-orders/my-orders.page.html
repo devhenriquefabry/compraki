@@ -48,6 +48,7 @@
             </div>
             <div class="item-details">
               <h4>{{ item.productData.name }}</h4>
+              <p class="item-variant" *ngIf="item.variantLabel">{{ item.variantLabel }}</p>
               <p>{{ item.quantity }}x &bull; {{ (item.productData.priceDiscounted || item.productData.price) | currency:'BRL':'R$ ':'1.2-2' }}</p>
             </div>
           </div>
