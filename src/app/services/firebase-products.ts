@@ -27,8 +27,9 @@ import { Product } from '../interfaces/product';
 import { Observable, from, of } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { AppAddress } from '../interfaces/app-user';
-import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, onAuthStateChanged} from 'firebase/auth';
+import { Auth, getAuth, createUserWithEmailAndPassword, signOut, User, signInWithEmailAndPassword, signInWithCredential, signInWithPopup, GoogleAuthProvider, onAuthStateChanged} from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 import { Router } from '@angular/router';
 import { FirebaseUsersService } from './firebase-users.service';
 import { WhatsappInstancesService } from './whatsapp-instances.service';
@@ -341,18 +342,10 @@ async signInWithGoogle(): Promise<boolean> {
   this.carregando = true;
 
   try {
-    // 1. Dispara a bandeja nativa do Google no Android/iOS
-    const googleUser = await GoogleAuth.signIn();
+    const user = Capacitor.isNativePlatform()
+      ? await this.signInWithGoogleNative()
+      : await this.signInWithGoogleWeb();
 
-    if (!googleUser.authentication.idToken) {
-      throw new Error("Falha ao recuperar idToken do Google.");
-    }
-
-    // 2. Passar o token para o Firebase Auth
-    const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-    const result = await signInWithCredential(this.authenticator, credential);
-    const user = result.user;
-    
     // 🔥 Espelhando/Atualizando o usuário vindo do Google no Firestore de forma segura
     await this.usersService.ensureAppUserDocument(user);
 
@@ -362,16 +355,39 @@ async signInWithGoogle(): Promise<boolean> {
       telefone: user.phoneNumber || '',
       usuario: user.uid
     });
-    
+
     console.log('Bem-vindo, ' + user.displayName);
     return true;
   } catch (error) {
-    console.error("Erro ao logar com Google NATIVO:", error);
-    alert('Erro ao autenticar. Coloque o seu Web Client ID em capacitor.config.ts e strings.xml para o plugin funcionar.');
+    console.error("Erro ao logar com Google:", error);
+    alert('Não foi possível entrar com o Google agora. Tente novamente ou use e-mail e senha.');
     return false;
   } finally {
     this.carregando = false;
   }
+}
+
+/** Android/iOS: bandeja nativa do Google, via SDK do próprio sistema. */
+private async signInWithGoogleNative(): Promise<User> {
+  const googleUser = await GoogleAuth.signIn();
+
+  if (!googleUser.authentication.idToken) {
+    throw new Error("Falha ao recuperar idToken do Google.");
+  }
+
+  const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+  return (await signInWithCredential(this.authenticator, credential)).user;
+}
+
+/**
+ * Navegador: popup do próprio Firebase Auth, não a biblioteca antiga do
+ * Google (gapi.auth2, usada por @codetrix-studio/capacitor-google-auth na
+ * versão web). O Google desligou esse fluxo antigo para Client IDs criados
+ * de uns tempos pra cá — dá "idpiframe_initialization_failed" mesmo com a
+ * origem cadastrada certa no Console. signInWithPopup não depende dela.
+ */
+private async signInWithGoogleWeb(): Promise<User> {
+  return (await signInWithPopup(this.authenticator, new GoogleAuthProvider())).user;
 }
 
   signOut() {

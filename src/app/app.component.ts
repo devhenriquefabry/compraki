@@ -242,11 +242,17 @@ export class AppComponent implements OnInit, OnDestroy {
 
   initializeApp() {
     this.platform.ready().then(() => {
-      // Inicializa Google Auth para Web/Native de forma segura
-      // Usamos .catch() porque initialize() retorna uma Promise que pode rejeitar no navegador
-      GoogleAuth.initialize().catch(e => {
-        console.warn('Google Auth não inicializado (uso limitado ao celular ou se origin autorizada):', e);
-      });
+      // Só inicializa no Android/iOS: é o plugin nativo do Google (SDK do
+      // sistema), sem relação com o gapi.auth2 do navegador. No navegador o
+      // login usa signInWithPopup do próprio Firebase (ver
+      // firebase-products.ts), então chamar initialize() aqui só geraria um
+      // idpiframe_initialization_failed sem propósito — o Google desligou o
+      // gapi.auth2 para Client IDs novos.
+      if (Capacitor.isNativePlatform()) {
+        GoogleAuth.initialize().catch(e => {
+          console.warn('Google Auth nativo não inicializado:', e);
+        });
+      }
 
       // Fake Splash Screen Logic — só roda se a splash estiver visível
       if (this.showSplash) {
