@@ -8,6 +8,7 @@ import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinn
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { Subscription } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-login-form',
@@ -27,6 +28,12 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
   public loginSuccess: boolean = false;
   private usersSub?: Subscription;
   
+  // Atalho de contas de teste: so existe fora de producao. As regras do
+  // Firestore nao deixam visitante listar /users (e dado pessoal), entao em
+  // producao a lista nunca carregaria — e nao deve aparecer para o publico.
+  public readonly showTestAccounts = !environment.production;
+  public testUsersError = false;
+
   // Lista de usuários reais carregados do Firestore
   public testUsers: any[] = [];
   public defaultPassword = '123456'; // Senha padrão para testes
@@ -40,7 +47,9 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loginSuccess = false; // Reset state on initialization
-    this.loadRealUsers();
+    if (this.showTestAccounts) {
+      this.loadRealUsers();
+    }
     
     this.loginForm.valueChanges.subscribe((valores_dos_campos)=>{
       console.log(valores_dos_campos.email , valores_dos_campos.password)
@@ -52,7 +61,7 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
   }
 
   private loadRealUsers() {
-    this.usersSub = this.usersService.getAllUsers().subscribe(users => {
+    this.usersSub = this.usersService.getAllUsers().subscribe({ next: users => {
       const mappedUsers = users.map(user => ({
         label: user.displayName || 'Usuário sem nome',
         email: user.email,
@@ -64,7 +73,6 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
       const devAccount = { 
         label: 'Henrique (Dev)', 
         email: 'dev.henriquefabry@gmail.com', 
-        password: 'conde7/9', 
         icon: 'code-working' 
       };
 
@@ -72,7 +80,11 @@ export class LoginFormComponent  implements OnInit, OnDestroy {
       const otherUsers = mappedUsers.filter(u => u.email !== devAccount.email);
       
       this.testUsers = [devAccount, ...otherUsers];
-    });
+    }, error: err => {
+      // Sem permissao para listar /users (visitante nao logado ou nao admin).
+      console.warn('Contas de teste indisponiveis:', err?.code ?? err);
+      this.testUsersError = true;
+    } });
   }
 
   toggleIsLoading(){
