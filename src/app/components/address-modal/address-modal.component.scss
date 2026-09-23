@@ -1,0 +1,278 @@
+/*
+ * Formulário de endereço. Mesmos tokens das telas de pedido (tema
+ * vn-commerce), campos nativos grandes (46px) e rodapé fixo com o botão.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+
+:host {
+  @include vc.tokens;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+  font-family: var(--vc-body);
+}
+
+.am {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.am-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(14px + var(--ion-safe-area-top, 0px)) 12px 12px 20px;
+  border-bottom: 1px solid var(--vc-line);
+
+  h2 {
+    margin: 0;
+    font-family: var(--vc-display);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--vc-ink);
+  }
+}
+
+.am-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--vc-ground);
+  color: var(--vc-ink);
+  cursor: pointer;
+  ion-icon { font-size: 22px; }
+}
+
+.am-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 18px 20px 0;
+}
+
+/* ---------------------------------------------------------------- campos */
+
+.field {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+
+  > label, legend {
+    display: block;
+    margin-bottom: 6px;
+    padding: 0;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--vc-ink);
+
+    small { margin-left: 4px; font-weight: 600; color: var(--vc-muted); }
+  }
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+
+  .field { margin-bottom: 16px; }
+}
+
+.field--number { width: 116px; flex-shrink: 0; }
+.field--uf { width: 84px; flex-shrink: 0; }
+.field--grow { flex: 1; }
+
+.input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #C7CED8;
+  transition: box-shadow 0.15s;
+
+  &:focus-within { box-shadow: inset 0 0 0 2px var(--vc-green); }
+  &.is-invalid { box-shadow: inset 0 0 0 2px #C2410C; }
+  &.is-ok { box-shadow: inset 0 0 0 1.5px var(--vc-green); }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font: 600 16px var(--vc-body);
+    color: var(--vc-ink);
+
+    &::placeholder { font-weight: 500; color: #8A93A0; }
+    &:disabled { color: var(--vc-muted); }
+  }
+
+  ion-spinner { width: 20px; height: 20px; color: var(--vc-green); }
+  .ok { font-size: 20px; color: var(--vc-green); }
+}
+
+.input--mt { margin-top: 10px; }
+
+.hint {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--vc-muted);
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 700;
+    color: var(--vc-green);
+    text-decoration: none;
+    ion-icon { font-size: 13px; }
+  }
+}
+
+.hint-ok { font-weight: 800; color: var(--vc-green); }
+.hint-err { font-weight: 700; color: #C2410C; }
+.hint--row { margin: -10px 0 16px; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--vc-ink-2);
+  cursor: pointer;
+
+  input { width: 16px; height: 16px; margin: 0; accent-color: var(--vc-green); }
+}
+
+/* --------------------------------------------------------- tipo (chips) */
+
+.kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #C7CED8;
+  font: 700 14px var(--vc-body);
+  color: var(--vc-ink-2);
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.15s, color 0.15s;
+
+  ion-icon { font-size: 17px; }
+
+  &.is-on {
+    background: var(--vc-navy);
+    box-shadow: none;
+    color: #fff;
+    ion-icon { color: var(--vc-neon); }
+  }
+
+  &:focus-visible { outline: 2px solid var(--vc-green); outline-offset: 2px; }
+}
+
+/* ------------------------------------------------------------ interruptor */
+
+.switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--vc-ground);
+  cursor: pointer;
+
+  span { display: flex; flex-direction: column; gap: 2px; }
+  strong { font-size: 14px; font-weight: 800; color: var(--vc-ink); }
+  small { font-size: 12.5px; font-weight: 600; color: var(--vc-muted); }
+
+  input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+
+  i {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 13px;
+    background: #C7CED8;
+    transition: background-color 0.2s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(13, 20, 32, 0.25);
+      transition: transform 0.2s;
+    }
+  }
+
+  input:checked + i { background: var(--vc-green); }
+  input:checked + i::after { transform: translateX(18px); }
+  input:focus-visible + i { outline: 2px solid var(--vc-green); outline-offset: 2px; }
+}
+
+/* ----------------------------------------------------------------- rodapé */
+
+.am-foot {
+  position: sticky;
+  bottom: 0;
+  margin: 8px -20px 0;
+  padding: 12px 20px calc(12px + var(--ion-safe-area-bottom, 0px));
+  background: linear-gradient(to top, #fff 75%, rgba(255, 255, 255, 0));
+}
+
+.save {
+  width: 100%;
+  height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--vc-navy);
+  color: #fff;
+  font: 800 15.5px var(--vc-body);
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s;
+
+  &:hover { background: var(--vc-navy-2); }
+  &:active { transform: scale(0.99); }
+  &:focus-visible { outline: 2px solid var(--vc-green); outline-offset: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input, .kind, .switch i, .switch i::after, .save { transition: none; }
+}

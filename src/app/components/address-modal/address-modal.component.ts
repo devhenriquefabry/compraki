@@ -1,284 +1,203 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, Input, OnInit, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { IonicModule, ModalController, LoadingController } from '@ionic/angular';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { closeOutline, saveOutline, locationOutline, homeOutline, briefcaseOutline } from 'ionicons/icons';
-import { AddressService } from '../../services/address.service';
+import {
+  alertCircle, briefcaseOutline, checkmarkCircle, closeOutline, homeOutline, locationOutline, openOutline,
+} from 'ionicons/icons';
+import { Address, AddressService } from '../../services/address.service';
 
+type CepState = 'idle' | 'loading' | 'found' | 'generic' | 'not-found' | 'error';
+
+const PRESET_TYPES = ['Casa', 'Trabalho'];
+
+const UFS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'];
+
+/**
+ * Formulário de endereço (criar e editar).
+ *
+ * Começa pelo CEP: o ViaCEP devolve rua, bairro, cidade e UF, e a pessoa só
+ * completa número e complemento. CEP geral de cidade pequena (sem rua) deixa
+ * rua e bairro livres. O modal devolve o endereço pronto no `dismiss`; quem
+ * grava é a página, pelo AddressService.
+ */
 @Component({
   selector: 'app-address-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, IonicModule],
-  template: `
-    <ion-header class="ion-no-border">
-      <ion-toolbar>
-        <ion-title>{{ isEdit ? 'Editar Endereço' : 'Novo Endereço' }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="cancel()">
-            <ion-icon name="close-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content class="ion-padding modal-content">
-      <form [formGroup]="addressForm" (ngSubmit)="save()">
-        
-        <div class="form-section">
-          <div class="section-label">Tipo de Endereço</div>
-          <ion-radio-group formControlName="type" class="type-selector">
-            <div class="type-option">
-              <ion-radio value="Casa" labelPlacement="end">
-                <div class="radio-label">
-                  <ion-icon name="home-outline"></ion-icon>
-                  Casa
-                </div>
-              </ion-radio>
-            </div>
-            <div class="type-option">
-              <ion-radio value="Trabalho" labelPlacement="end">
-                <div class="radio-label">
-                  <ion-icon name="briefcase-outline"></ion-icon>
-                  Trabalho
-                </div>
-              </ion-radio>
-            </div>
-          </ion-radio-group>
-        </div>
-
-        <div class="form-section">
-          <div class="section-label">Informações de Entrega</div>
-          
-          <ion-item lines="none" class="custom-input">
-            <ion-label position="stacked">CEP</ion-label>
-            <ion-input formControlName="zipCode" placeholder="Ex: 01234-567" (ionInput)="onCepInput($event)" maxlength="9"></ion-input>
-          </ion-item>
-
-          <ion-item lines="none" class="custom-input">
-            <ion-label position="stacked">Rua / Logradouro</ion-label>
-            <ion-input formControlName="street" placeholder="Ex: Rua das Flores"></ion-input>
-          </ion-item>
-
-          <div class="row">
-            <ion-item lines="none" class="custom-input col-4">
-              <ion-label position="stacked">Número</ion-label>
-              <ion-input formControlName="number" placeholder="Ex: 123"></ion-input>
-            </ion-item>
-            <ion-item lines="none" class="custom-input col-8">
-              <ion-label position="stacked">Complemento</ion-label>
-              <ion-input formControlName="complement" placeholder="Ex: Apto 101"></ion-input>
-            </ion-item>
-          </div>
-
-          <ion-item lines="none" class="custom-input">
-            <ion-label position="stacked">Bairro</ion-label>
-            <ion-input formControlName="neighborhood" placeholder="Ex: Centro"></ion-input>
-          </ion-item>
-
-          <div class="row">
-            <ion-item lines="none" class="custom-input col-8">
-              <ion-label position="stacked">Cidade</ion-label>
-              <ion-input formControlName="city" placeholder="Ex: São Paulo"></ion-input>
-            </ion-item>
-            <ion-item lines="none" class="custom-input col-4">
-              <ion-label position="stacked">Estado</ion-label>
-              <ion-input formControlName="state" placeholder="Ex: SP" maxlength="2"></ion-input>
-            </ion-item>
-          </div>
-        </div>
-
-        <div class="footer-actions">
-          <ion-button expand="block" type="submit" [disabled]="!addressForm.valid" class="btn-save">
-            <ion-icon name="save-outline" slot="start"></ion-icon>
-            {{ isEdit ? 'Salvar Alterações' : 'Cadastrar Endereço' }}
-          </ion-button>
-        </div>
-      </form>
-    </ion-content>
-  `,
-  styles: [`
-    ion-toolbar {
-      --background: #ffffff;
-      --color: #333;
-      --border-style: none;
-      padding: 8px 4px;
-      
-      ion-title {
-        font-weight: 800;
-        font-size: 18px;
-      }
-    }
-
-    .modal-content {
-      --background: #f8f9fa;
-    }
-
-    .form-section {
-      margin-bottom: 24px;
-      
-      .section-label {
-        font-size: 12px;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: #888;
-        letter-spacing: 1px;
-        margin-bottom: 12px;
-        padding-left: 4px;
-      }
-    }
-
-    .type-selector {
-      display: flex;
-      gap: 12px;
-      
-      .type-option {
-        flex: 1;
-        background: #fff;
-        border-radius: 12px;
-        padding: 4px 12px;
-        border: 1px solid #eee;
-
-        ion-radio {
-          --color: #ddd;
-          --color-checked: #799d50;
-          width: 100%;
-          font-size: 14px;
-          font-weight: 600;
-          color: #333;
-          
-          .radio-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            ion-icon { font-size: 18px; }
-          }
-        }
-      }
-    }
-
-    .custom-input {
-      --background: #ffffff;
-      --border-radius: 12px;
-      margin-bottom: 12px;
-      border: 1px solid #eee;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-      
-      ion-label {
-        font-size: 11px;
-        font-weight: 700;
-        color: #799d50 !important;
-        margin-bottom: 4px;
-      }
-
-      ion-input {
-        --padding-top: 0;
-        font-size: 15px;
-        font-weight: 500;
-      }
-    }
-
-    .row {
-      display: flex;
-      gap: 12px;
-      
-      .col-4 { flex: 4; }
-      .col-8 { flex: 8; }
-    }
-
-    .footer-actions {
-      margin-top: 32px;
-      
-      .btn-save {
-        --background: #799d50;
-        --border-radius: 14px;
-        --box-shadow: 0 8px 20px rgba(121, 157, 80, 0.3);
-        height: 54px;
-        font-weight: 700;
-        font-size: 15px;
-      }
-    }
-  `]
+  imports: [CommonModule, ReactiveFormsModule, IonicModule],
+  templateUrl: './address-modal.component.html',
+  styleUrls: ['./address-modal.component.scss'],
 })
 export class AddressModalComponent implements OnInit {
-  @Input() address: any;
-  @Input() isEdit: boolean = false;
+  @Input() address: Partial<Address> | null = null;
+  @Input() isEdit = false;
+  /** Quando é o primeiro endereço da conta, ele vira padrão de qualquer jeito. */
+  @Input() isFirst = false;
 
-  private fb = inject(FormBuilder);
-  private modalCtrl = inject(ModalController);
-  private loadingCtrl = inject(LoadingController);
-  private addressService = inject(AddressService);
-  
-  addressForm!: FormGroup;
-  isLoadingCep: boolean = false;
+  private readonly fb = inject(FormBuilder);
+  private readonly modalCtrl = inject(ModalController);
+  private readonly addressService = inject(AddressService);
+
+  readonly ufs = UFS;
+  readonly presetTypes = PRESET_TYPES;
+  readonly cepState = signal<CepState>('idle');
+  readonly cepCity = signal('');
+  readonly submitted = signal(false);
+  readonly kind = signal<'Casa' | 'Trabalho' | 'Outro'>('Casa');
+
+  private readonly numberInput = viewChild<ElementRef<HTMLInputElement>>('numberInput');
+  private lastCep = '';
+
+  form!: FormGroup;
 
   constructor() {
-    addIcons({ closeOutline, saveOutline, locationOutline, homeOutline, briefcaseOutline });
+    addIcons({ alertCircle, briefcaseOutline, checkmarkCircle, closeOutline, homeOutline, locationOutline, openOutline });
   }
 
   ngOnInit() {
-    this.initForm();
+    const a = this.address ?? {};
+    const type = a.type || 'Casa';
+    this.kind.set(PRESET_TYPES.includes(type) ? (type as 'Casa' | 'Trabalho') : 'Outro');
+
+    this.form = this.fb.group({
+      id: [a.id || ''],
+      customType: [PRESET_TYPES.includes(type) ? '' : type, [Validators.maxLength(30)]],
+      zipCode: [formatCep(a.zipCode || ''), [Validators.required, Validators.pattern(/^\d{5}-\d{3}$/)]],
+      street: [a.street || '', [Validators.required, Validators.maxLength(120)]],
+      number: [a.number || '', [Validators.required, Validators.maxLength(10)]],
+      noNumber: [a.number === 'S/N'],
+      complement: [a.complement || '', [Validators.maxLength(60)]],
+      reference: [a.reference || '', [Validators.maxLength(80)]],
+      neighborhood: [a.neighborhood || '', [Validators.required, Validators.maxLength(80)]],
+      city: [a.city || '', [Validators.required, Validators.maxLength(80)]],
+      state: [(a.state || '').toUpperCase(), [Validators.required, Validators.pattern(/^[A-Z]{2}$/)]],
+      isDefault: [!!a.isDefault || this.isFirst],
+    });
+
+    if (a.number === 'S/N') this.form.get('number')!.disable();
+    if (this.isEdit && a.city) {
+      this.cepState.set('found');
+      this.cepCity.set(`${a.city}/${a.state}`);
+      this.lastCep = (a.zipCode || '').replace(/\D/g, '');
+    }
   }
 
-  initForm() {
-    this.addressForm = this.fb.group({
-      id: [this.address?.id || ''],
-      type: [this.address?.type || 'Casa', Validators.required],
-      street: [this.address?.street || '', Validators.required],
-      number: [this.address?.number || '', Validators.required],
-      complement: [this.address?.complement || ''],
-      neighborhood: [this.address?.neighborhood || '', Validators.required],
-      city: [this.address?.city || '', Validators.required],
-      state: [this.address?.state || '', [Validators.required, Validators.maxLength(2)]],
-      zipCode: [this.address?.zipCode || '', Validators.required],
-      isDefault: [this.address?.isDefault || false]
-    });
+  // ------------------------------------------------------------------ CEP
+
+  onCepInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const formatted = formatCep(input.value);
+    if (formatted !== input.value) input.value = formatted;
+    this.form.get('zipCode')!.setValue(formatted, { emitEvent: false });
+
+    const digits = formatted.replace(/\D/g, '');
+    if (digits.length === 8 && digits !== this.lastCep) void this.lookupCep(digits);
+    if (digits.length < 8) this.cepState.set('idle');
   }
+
+  private async lookupCep(digits: string) {
+    this.lastCep = digits;
+    this.cepState.set('loading');
+    try {
+      const data = await this.addressService.getCEP(digits);
+      if (this.lastCep !== digits) return;
+      this.form.patchValue({
+        street: data.logradouro || this.form.value.street,
+        neighborhood: data.bairro || this.form.value.neighborhood,
+        city: data.localidade,
+        state: data.uf,
+      });
+      this.cepCity.set(`${data.localidade}/${data.uf}`);
+      // CEP geral (cidade inteira): rua e bairro ficam por conta da pessoa.
+      this.cepState.set(data.logradouro ? 'found' : 'generic');
+      setTimeout(() => this.numberInput()?.nativeElement.focus(), 50);
+    } catch (err: any) {
+      if (this.lastCep !== digits) return;
+      this.cepState.set(err?.message === 'CEP não encontrado' ? 'not-found' : 'error');
+    }
+  }
+
+  // --------------------------------------------------------------- campos
+
+  setKind(kind: 'Casa' | 'Trabalho' | 'Outro') {
+    this.kind.set(kind);
+  }
+
+  toggleNoNumber(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    const number = this.form.get('number')!;
+    if (checked) {
+      number.setValue('S/N');
+      number.disable();
+    } else {
+      number.enable();
+      number.setValue('');
+      setTimeout(() => this.numberInput()?.nativeElement.focus(), 30);
+    }
+  }
+
+  onStateInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const upper = input.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+    input.value = upper;
+    this.form.get('state')!.setValue(upper);
+  }
+
+  /** Mensagem do campo, só depois de tentar salvar ou de sair do campo. */
+  error(name: string): string | null {
+    const c: AbstractControl | null = this.form.get(name);
+    if (!c || c.disabled || c.valid || !(c.touched || this.submitted())) return null;
+    if (c.hasError('required')) {
+      return {
+        zipCode: 'Informe o CEP.',
+        street: 'Informe a rua.',
+        number: 'Informe o número ou marque "Sem número".',
+        neighborhood: 'Informe o bairro.',
+        city: 'Informe a cidade.',
+        state: 'Informe a UF.',
+      }[name] ?? 'Campo obrigatório.';
+    }
+    if (c.hasError('pattern')) return name === 'zipCode' ? 'CEP tem 8 dígitos.' : 'Use a sigla, ex.: MG.';
+    if (c.hasError('maxlength')) return 'Texto longo demais.';
+    return null;
+  }
+
+  // ---------------------------------------------------------------- ações
 
   cancel() {
-    this.modalCtrl.dismiss();
+    this.modalCtrl.dismiss(null, 'cancel');
   }
 
   save() {
-    if (this.addressForm.valid) {
-      this.modalCtrl.dismiss(this.addressForm.value);
+    this.submitted.set(true);
+    const kind = this.kind();
+    const customType = (this.form.value.customType || '').trim();
+    const missingName = kind === 'Outro' && !customType;
+    if (this.form.invalid || missingName) {
+      this.form.markAllAsTouched();
+      return;
     }
-  }
 
-  async onCepInput(event: any) {
-    const value = event.target.value;
-    const cep = value.replace(/\D/g, '');
-    
-    if (cep.length === 8) {
-      const loading = await this.loadingCtrl.create({
-        message: 'Buscando endereço...',
-        spinner: 'crescent',
-        cssClass: 'custom-loading'
-      });
-      await loading.present();
-
-      this.isLoadingCep = true;
-      try {
-        const data = await this.addressService.getCEP(cep);
-        this.addressForm.patchValue({
-          street: data.logradouro,
-          neighborhood: data.bairro,
-          city: data.localidade,
-          state: data.uf
-        });
-        
-        // Formatar o CEP com hífen no input se não tiver
-        if (!value.includes('-')) {
-          this.addressForm.patchValue({
-            zipCode: `${cep.substring(0, 5)}-${cep.substring(5)}`
-          });
-        }
-      } catch (error) {
-        console.error('Erro ao buscar CEP:', error);
-      } finally {
-        this.isLoadingCep = false;
-        await loading.dismiss();
-      }
-    }
+    const v = this.form.getRawValue();
+    const address: Address = {
+      id: v.id,
+      type: kind === 'Outro' ? customType : kind,
+      zipCode: v.zipCode,
+      street: v.street.trim(),
+      number: v.noNumber ? 'S/N' : String(v.number).trim(),
+      complement: v.complement,
+      reference: v.reference,
+      neighborhood: v.neighborhood.trim(),
+      city: v.city.trim(),
+      state: v.state.toUpperCase(),
+      isDefault: !!v.isDefault,
+    };
+    this.modalCtrl.dismiss(address, 'save');
   }
+}
+
+function formatCep(value: string): string {
+  const d = (value || '').replace(/\D/g, '').slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }

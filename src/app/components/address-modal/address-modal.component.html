@@ -1,0 +1,148 @@
+<div class="am">
+  <header class="am-head">
+    <h2>{{ isEdit ? 'Editar endereço' : 'Novo endereço' }}</h2>
+    <button type="button" class="am-close" (click)="cancel()" aria-label="Fechar">
+      <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+    </button>
+  </header>
+
+  <form class="am-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+    <!-- CEP primeiro: ele preenche o resto -->
+    <div class="field">
+      <label for="am-cep">CEP</label>
+      <div class="input" [class.is-invalid]="error('zipCode')" [class.is-ok]="cepState() === 'found' || cepState() === 'generic'">
+        <input
+          id="am-cep"
+          type="text"
+          inputmode="numeric"
+          autocomplete="postal-code"
+          placeholder="00000-000"
+          maxlength="9"
+          formControlName="zipCode"
+          (input)="onCepInput($event)" />
+        @switch (cepState()) {
+          @case ('loading') { <ion-spinner name="crescent" aria-label="Buscando CEP"></ion-spinner> }
+          @case ('found') { <ion-icon name="checkmark-circle" class="ok" aria-hidden="true"></ion-icon> }
+          @case ('generic') { <ion-icon name="checkmark-circle" class="ok" aria-hidden="true"></ion-icon> }
+        }
+      </div>
+      <p class="hint" aria-live="polite">
+        @switch (cepState()) {
+          @case ('found') { <span class="hint-ok">{{ cepCity() }}</span> }
+          @case ('generic') { <span class="hint-ok">{{ cepCity() }}</span> · CEP geral da cidade: preencha rua e bairro. }
+          @case ('not-found') { <span class="hint-err">Não encontramos esse CEP.</span> Confira os números ou preencha à mão. }
+          @case ('error') { <span class="hint-err">Não foi possível buscar agora.</span> Preencha à mão. }
+          @default {
+            @if (error('zipCode'); as e) { <span class="hint-err">{{ e }}</span> }
+            @else {
+              <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">
+                Não sei meu CEP <ion-icon name="open-outline" aria-hidden="true"></ion-icon>
+              </a>
+            }
+          }
+        }
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="am-street">Rua ou avenida</label>
+      <div class="input" [class.is-invalid]="error('street')">
+        <input id="am-street" type="text" autocomplete="address-line1" formControlName="street" placeholder="Ex.: Rua Silas Pacheco" />
+      </div>
+      @if (error('street'); as e) { <p class="hint hint-err">{{ e }}</p> }
+    </div>
+
+    <div class="row">
+      <div class="field field--number">
+        <label for="am-number">Número</label>
+        <div class="input" [class.is-invalid]="error('number')">
+          <input id="am-number" #numberInput type="text" inputmode="numeric" formControlName="number" placeholder="Nº" />
+        </div>
+        <label class="check">
+          <input type="checkbox" formControlName="noNumber" (change)="toggleNoNumber($event)" />
+          <span>Sem número</span>
+        </label>
+      </div>
+      <div class="field field--grow">
+        <label for="am-complement">Complemento <small>opcional</small></label>
+        <div class="input">
+          <input id="am-complement" type="text" autocomplete="address-line2" formControlName="complement" placeholder="Apto, bloco, andar" />
+        </div>
+      </div>
+    </div>
+    @if (error('number'); as e) { <p class="hint hint-err hint--row">{{ e }}</p> }
+
+    <div class="field">
+      <label for="am-neighborhood">Bairro</label>
+      <div class="input" [class.is-invalid]="error('neighborhood')">
+        <input id="am-neighborhood" type="text" formControlName="neighborhood" placeholder="Ex.: Colina" />
+      </div>
+      @if (error('neighborhood'); as e) { <p class="hint hint-err">{{ e }}</p> }
+    </div>
+
+    <div class="row">
+      <div class="field field--grow">
+        <label for="am-city">Cidade</label>
+        <div class="input" [class.is-invalid]="error('city')">
+          <input id="am-city" type="text" autocomplete="address-level2" formControlName="city" placeholder="Ex.: Manhuaçu" />
+        </div>
+      </div>
+      <div class="field field--uf">
+        <label for="am-state">UF</label>
+        <div class="input" [class.is-invalid]="error('state')">
+          <input id="am-state" type="text" autocomplete="address-level1" formControlName="state" placeholder="MG" maxlength="2" list="am-ufs" (input)="onStateInput($event)" />
+          <datalist id="am-ufs">
+            @for (uf of ufs; track uf) { <option [value]="uf"></option> }
+          </datalist>
+        </div>
+      </div>
+    </div>
+    @if (error('city') || error('state'); as e) { <p class="hint hint-err hint--row">{{ e }}</p> }
+
+    <div class="field">
+      <label for="am-reference">Ponto de referência <small>opcional</small></label>
+      <div class="input">
+        <input id="am-reference" type="text" formControlName="reference" placeholder="Ex.: portão verde, ao lado da padaria" />
+      </div>
+      <p class="hint">Ajuda o entregador a achar você.</p>
+    </div>
+
+    <!-- Nome do endereço -->
+    <fieldset class="field">
+      <legend>Salvar como</legend>
+      <div class="kinds" role="radiogroup">
+        <button type="button" class="kind" role="radio" [attr.aria-checked]="kind() === 'Casa'" [class.is-on]="kind() === 'Casa'" (click)="setKind('Casa')">
+          <ion-icon name="home-outline" aria-hidden="true"></ion-icon> Casa
+        </button>
+        <button type="button" class="kind" role="radio" [attr.aria-checked]="kind() === 'Trabalho'" [class.is-on]="kind() === 'Trabalho'" (click)="setKind('Trabalho')">
+          <ion-icon name="briefcase-outline" aria-hidden="true"></ion-icon> Trabalho
+        </button>
+        <button type="button" class="kind" role="radio" [attr.aria-checked]="kind() === 'Outro'" [class.is-on]="kind() === 'Outro'" (click)="setKind('Outro')">
+          <ion-icon name="location-outline" aria-hidden="true"></ion-icon> Outro
+        </button>
+      </div>
+      @if (kind() === 'Outro') {
+        <div class="input input--mt" [class.is-invalid]="submitted() && !form.value.customType?.trim()">
+          <input type="text" formControlName="customType" placeholder="Ex.: Casa da mãe" aria-label="Nome do endereço" maxlength="30" />
+        </div>
+        @if (submitted() && !form.value.customType?.trim()) { <p class="hint hint-err">Dê um nome ao endereço.</p> }
+      }
+    </fieldset>
+
+    @if (!isFirst) {
+      <label class="switch">
+        <span>
+          <strong>Usar como endereço padrão</strong>
+          <small>É o que aparece primeiro no checkout.</small>
+        </span>
+        <input type="checkbox" formControlName="isDefault" role="switch" />
+        <i aria-hidden="true"></i>
+      </label>
+    }
+
+    <div class="am-foot">
+      <button type="submit" class="save">{{ isEdit ? 'Salvar alterações' : 'Salvar endereço' }}</button>
+    </div>
+  </form>
+</div>

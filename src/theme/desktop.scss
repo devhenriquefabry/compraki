@@ -85,3 +85,13 @@ html.vn-desktop-shell {
     }
   }
 }
+
+/* Formulário de endereço: no navegador largo vira um diálogo alto o bastante
+   para caber o formulário inteiro (o padrão do Ionic é 600x500). */
+@media (min-width: 768px) {
+  ion-modal.vn-address-modal {
+    --width: 560px;
+    --height: min(780px, 92vh);
+    --border-radius: 18px;
+  }
+}

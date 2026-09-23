@@ -1,65 +1,101 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Endereços</h1>
+    <button type="button" class="pg-icon-btn" (click)="addNewAddress()" aria-label="Adicionar endereço">
+      <ion-icon name="add" aria-hidden="true"></ion-icon>
+    </button>
+  </div>
 </ion-header>
 
-<ion-content class="ion-padding address-content">
-  
-  <div class="header-section">
-    <h1 class="page-title">Meu Endereço</h1>
-    <p class="subtitle">Gerencie seus endereços de entrega</p>
-  </div>
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (!loaded()) {
+      <div class="sk sk-primary" aria-hidden="true"></div>
+      <div class="sk sk-card" aria-hidden="true"></div>
+    } @else if (primary(); as p) {
 
-  <div class="address-list">
-    <div class="address-card" *ngFor="let addr of addresses" [class.is-default]="addr.isDefault">
-      <div class="card-header">
-        <div class="type-badge">
-          <ion-icon [name]="addr.type === 'Casa' ? 'home' : 'briefcase'"></ion-icon>
-          <span>{{ addr.type }}</span>
+      <!-- Endereço padrão: o que o checkout usa -->
+      <section class="primary" aria-labelledby="ad-primary">
+        <div class="primary-top">
+          <p class="primary-eyebrow" id="ad-primary">
+            <ion-icon name="location" aria-hidden="true"></ion-icon>
+            Entregar em
+          </p>
+          <span class="primary-tag">
+            <ion-icon [name]="icon(p)" aria-hidden="true"></ion-icon>{{ p.type }}
+          </span>
         </div>
-        <div class="default-badge" *ngIf="addr.isDefault">
-          Padrão
+        <p class="primary-street">{{ p.street }}, {{ p.number }}</p>
+        <p class="primary-line">
+          @if (p.complement) { {{ p.complement }} · }{{ line2(p) }}
+        </p>
+        <p class="primary-line primary-cep">CEP {{ p.zipCode }}</p>
+        @if (p.reference) {
+          <p class="primary-ref">Referência: {{ p.reference }}</p>
+        }
+        <div class="primary-foot">
+          <span class="primary-note"><ion-icon name="star" aria-hidden="true"></ion-icon> Padrão no checkout</span>
+          <span class="primary-actions">
+            <button type="button" class="primary-btn" (click)="deleteAddress(p)" aria-label="Excluir este endereço">
+              <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+            </button>
+            <button type="button" class="primary-btn primary-btn--edit" (click)="editAddress(p)">
+              <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Editar
+            </button>
+          </span>
         </div>
+      </section>
+
+      @if (others().length) {
+        <h2 class="list-title">Outros endereços</h2>
+      }
+
+      <ul class="list">
+        @for (a of others(); track a.id) {
+          <li class="card">
+            <div class="card-main">
+              <span class="card-icon" aria-hidden="true"><ion-icon [name]="icon(a)"></ion-icon></span>
+              <div class="card-text">
+                <strong>{{ a.type }}</strong>
+                <span>{{ line1(a) }}</span>
+                <span>{{ line2(a) }} · <span class="nowrap">CEP {{ a.zipCode }}</span></span>
+                @if (a.reference) { <span class="card-ref">Ref.: {{ a.reference }}</span> }
+              </div>
+            </div>
+            <div class="card-actions">
+              <button type="button" class="act act--main" (click)="setDefault(a)">Usar como padrão</button>
+              <button type="button" class="act" (click)="editAddress(a)" [attr.aria-label]="'Editar ' + a.type">
+                <ion-icon name="create-outline" aria-hidden="true"></ion-icon><span>Editar</span>
+              </button>
+              <button type="button" class="act act--danger" (click)="deleteAddress(a)" [attr.aria-label]="'Excluir ' + a.type">
+                <ion-icon name="trash-outline" aria-hidden="true"></ion-icon><span>Excluir</span>
+              </button>
+            </div>
+          </li>
+        }
+        <li>
+          <button type="button" class="add" (click)="addNewAddress()">
+            <span class="add-icon" aria-hidden="true"><ion-icon name="add"></ion-icon></span>
+            <span class="add-text">
+              <strong>Adicionar endereço</strong>
+              <small>Trabalho, casa de família, onde você quiser receber</small>
+            </span>
+          </button>
+        </li>
+      </ul>
+
+    } @else {
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="location-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Onde você quer receber?</h2>
+        <p>Cadastre um endereço para calcular o frete e finalizar compras mais rápido.</p>
+        <button type="button" class="btn btn--primary" (click)="addNewAddress()">
+          <ion-icon name="add" aria-hidden="true"></ion-icon> Adicionar endereço
+        </button>
       </div>
-
-      <div class="card-body">
-        <div class="address-info">
-          <h2 class="street">{{ addr.street }}, {{ addr.number }}</h2>
-          <p class="complement" *ngIf="addr.complement">{{ addr.complement }}</p>
-          <p class="location">{{ addr.neighborhood }} - {{ addr.city }}, {{ addr.state }}</p>
-          <p class="zip">CEP: {{ addr.zipCode }}</p>
-        </div>
-      </div>
-
-      <div class="card-footer">
-        <div class="actions">
-          <ion-button fill="clear" size="small" (click)="editAddress(addr)" class="btn-edit">
-            <ion-icon name="pencil" slot="start"></ion-icon>
-            Editar
-          </ion-button>
-          <ion-button fill="clear" size="small" color="danger" (click)="deleteAddress(addr.id)">
-            <ion-icon name="trash" slot="start"></ion-icon>
-            Excluir
-          </ion-button>
-        </div>
-        <ion-button *ngIf="!addr.isDefault" fill="outline" size="small" class="btn-default" (click)="setDefault(addr.id)">
-          Tornar Padrão
-        </ion-button>
-      </div>
-    </div>
+    }
   </div>
-
-  <div class="empty-state" *ngIf="addresses.length === 0">
-    <div class="icon-circle">
-      <ion-icon name="location-outline"></ion-icon>
-    </div>
-    <h2>Nenhum endereço salvo</h2>
-    <p>Adicione um endereço de entrega para facilitar suas compras.</p>
-  </div>
-
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="addNewAddress()" class="fab-green">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
-
 </ion-content>

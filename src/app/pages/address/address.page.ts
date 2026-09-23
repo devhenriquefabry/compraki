@@ -1,120 +1,121 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController, AlertController } from '@ionic/angular';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { AlertController, IonicModule, ModalController, NavController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { 
-  home, briefcase, pencil, trash, add, 
-  locationOutline, homeOutline, briefcaseOutline,
-  closeOutline, saveOutline
+import {
+  add, arrowBack, briefcaseOutline, createOutline, homeOutline, locationOutline, location, star, trashOutline,
 } from 'ionicons/icons';
-import { Subscription } from 'rxjs';
-import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
 import { AddressModalComponent } from '../../components/address-modal/address-modal.component';
-import { AddressService, Address } from '../../services/address.service';
+import { Address, AddressService } from '../../services/address.service';
 
 @Component({
   selector: 'app-address',
   templateUrl: './address.page.html',
   styleUrls: ['./address.page.scss'],
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonicModule,
-    MiniHeaderComponent,
-    AddressModalComponent
-  ]
+  imports: [CommonModule, IonicModule],
 })
-export class AddressPage implements OnInit, OnDestroy {
-  addresses: Address[] = [];
-  private sub!: Subscription;
+export class AddressPage {
+  private readonly modalCtrl = inject(ModalController);
+  private readonly alertCtrl = inject(AlertController);
+  private readonly toastCtrl = inject(ToastController);
+  private readonly navCtrl = inject(NavController);
+  private readonly addressService = inject(AddressService);
 
-  private modalCtrl = inject(ModalController);
-  private alertCtrl = inject(AlertController);
-  private addressService = inject(AddressService);
+  readonly addresses = toSignal(this.addressService.addresses$, { initialValue: [] as Address[] });
+  readonly loaded = toSignal(this.addressService.loaded$, { initialValue: false });
 
-  constructor() { 
-    addIcons({ 
-      home, briefcase, pencil, trash, add, 
-      locationOutline, homeOutline, briefcaseOutline,
-      closeOutline, saveOutline
-    });
+  readonly primary = computed(() => this.addresses().find(a => a.isDefault) ?? this.addresses()[0] ?? null);
+  readonly others = computed(() => this.addresses().filter(a => a !== this.primary()));
+
+  constructor() {
+    addIcons({ add, arrowBack, briefcaseOutline, createOutline, homeOutline, locationOutline, location, star, trashOutline });
   }
 
-  ngOnInit() {
-    this.sub = this.addressService.addresses$.subscribe(items => {
-      this.addresses = items;
-    });
+  icon(a: Address): string {
+    if (a.type === 'Casa') return 'home-outline';
+    if (a.type === 'Trabalho') return 'briefcase-outline';
+    return 'location-outline';
   }
 
-  ngOnDestroy() {
-    if (this.sub) this.sub.unsubscribe();
+  line1(a: Address): string {
+    return `${a.street}, ${a.number}${a.complement ? ' · ' + a.complement : ''}`;
   }
 
-  setDefault(addressId: string) {
-    this.addressService.setDefault(addressId);
+  line2(a: Address): string {
+    return [a.neighborhood, `${a.city}/${a.state}`].filter(Boolean).join(' · ');
   }
 
-  async deleteAddress(addressId: string) {
-    const alert = await this.alertCtrl.create({
-      header: 'Confirmar Exclusão',
-      message: 'Tem certeza que deseja excluir este endereço? Esta ação não pode ser desfeita.',
-      buttons: [
-        {
-          text: 'Cancelar',
-          role: 'cancel',
-          cssClass: 'secondary'
-        },
-        {
-          text: 'Excluir',
-          role: 'destructive',
-          handler: () => {
-            this.addressService.deleteAddress(addressId);
-          }
-        }
-      ]
-    });
-
-    await alert.present();
-  }
-
-  async editAddress(address: Address) {
-    const modal = await this.modalCtrl.create({
-      component: AddressModalComponent,
-      componentProps: {
-        address: { ...address },
-        isEdit: true
-      },
-      breakpoints: [0, 0.8, 1],
-      initialBreakpoint: 0.8
-    });
-
-    await modal.present();
-
-    const { data } = await modal.onWillDismiss();
-    if (data) {
-      this.addressService.updateAddress(data);
-    }
+  goBack() {
+    if (window.history.length > 1) this.navCtrl.back();
+    else this.navCtrl.navigateRoot('/tabs/my-account');
   }
 
   async addNewAddress() {
+    await this.openForm(null);
+  }
+
+  async editAddress(address: Address) {
+    await this.openForm(address);
+  }
+
+  private async openForm(address: Address | null) {
     const modal = await this.modalCtrl.create({
       component: AddressModalComponent,
       componentProps: {
-        isEdit: false
+        address: address ? { ...address } : null,
+        isEdit: !!address,
+        isFirst: !address && this.addresses().length === 0,
       },
-      breakpoints: [0, 0.8, 1],
-      initialBreakpoint: 0.8
+      cssClass: 'vn-address-modal',
     });
-
     await modal.present();
 
-    const { data } = await modal.onWillDismiss();
-    if (data) {
-      // Gera um ID simples para o mock
-      data.id = Math.random().toString(36).substr(2, 9);
-      this.addressService.addAddress(data);
+    const { data, role } = await modal.onWillDismiss<Address>();
+    if (role !== 'save' || !data) return;
+    try {
+      await this.addressService.saveAddress(data);
+      this.toast(address ? 'Endereço atualizado.' : 'Endereço salvo.', 'success');
+    } catch (err) {
+      console.error('Falha ao salvar endereço', err);
+      this.toast('Não foi possível salvar o endereço. Tente de novo.', 'danger');
     }
+  }
+
+  async setDefault(address: Address) {
+    try {
+      await this.addressService.setDefault(address.id);
+      this.toast(`"${address.type}" agora é seu endereço padrão.`, 'dark');
+    } catch (err) {
+      console.error(err);
+      this.toast('Não foi possível trocar o endereço padrão.', 'danger');
+    }
+  }
+
+  async deleteAddress(address: Address) {
+    const alert = await this.alertCtrl.create({
+      header: 'Excluir endereço?',
+      message: `${this.line1(address)} será removido da sua conta.`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Excluir', role: 'destructive' },
+      ],
+    });
+    await alert.present();
+    if ((await alert.onDidDismiss()).role !== 'destructive') return;
+
+    try {
+      await this.addressService.deleteAddress(address.id);
+      this.toast('Endereço excluído.', 'dark');
+    } catch (err) {
+      console.error(err);
+      this.toast('Não foi possível excluir o endereço.', 'danger');
+    }
+  }
+
+  private async toast(message: string, color: string) {
+    const t = await this.toastCtrl.create({ message, duration: 2600, color, position: 'bottom' });
+    await t.present();
   }
 }

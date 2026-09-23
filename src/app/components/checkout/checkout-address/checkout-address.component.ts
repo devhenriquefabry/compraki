@@ -31,9 +31,17 @@ export class CheckoutAddressComponent implements OnInit {
         
         // Sincroniza com o estado do checkout para a API usar o CEP correto
         if (this.selectedAddress) {
+          // O endereço inteiro, não só CEP e número: é daqui que o pedido tira
+          // rua, bairro e cidade. Sem isso o vendedor recebia "Endereço Salvo".
+          const a = this.selectedAddress;
           this.stateService.addressData = {
-            postalCode: this.selectedAddress.zipCode,
-            addressNumber: this.selectedAddress.number
+            postalCode: a.zipCode,
+            addressNumber: a.number,
+            street: a.street,
+            neighborhood: a.neighborhood,
+            city: a.city,
+            state: a.state,
+            complement: [a.complement, a.reference ? `Ref.: ${a.reference}` : ''].filter(Boolean).join(' · ')
           };
         }
       } else {
