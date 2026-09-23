@@ -1,0 +1,345 @@
+/*
+ * Histórico de compras (extrato)
+ * ----------------------------------------------------------------------------
+ * "Minhas compras" acompanha pedido andando; aqui é o extrato do que já foi
+ * pago: quanto, onde, quando. O gráfico é uma série só (gasto por mês), em
+ * barras finas de um verde, com dica ao passar o dedo/mouse; tocar num mês
+ * filtra o extrato por ele.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(880px);
+@include vc.buttons;
+@include vc.empty;
+@include vc.skeleton;
+@include vc.sheet;
+@include vc.ledger;
+@include vc.desktop-header(880px);
+@include vc.reduced-motion;
+
+.pg-icon-btn:disabled { opacity: 0.4; }
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 12px;
+}
+
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.8);
+
+  ion-icon { font-size: 16px; color: var(--vc-neon); }
+  strong { color: var(--vc-neon); }
+}
+
+/* ------------------------------------------------------------- gráfico */
+
+.chart-peak {
+  font-family: var(--vc-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--vc-muted);
+}
+
+.chip-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border-radius: 999px;
+  background: var(--vc-navy);
+  color: #fff;
+  font-family: var(--vc-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  &::first-letter { text-transform: uppercase; }
+  ion-icon { font-size: 15px; color: var(--vc-neon); }
+}
+
+.bars {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 168px;
+  padding-top: 8px;
+}
+
+.bar {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border-radius: 6px;
+
+  &.is-empty { cursor: default; }
+}
+
+.bar-track {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Linha de base recessiva. */
+  border-bottom: 1px solid var(--vc-line);
+}
+
+.bar-fill {
+  width: min(70%, 22px);
+  border-radius: 4px 4px 0 0;
+  background: var(--vc-green);
+  transition: height 0.35s ease, background-color 0.15s, opacity 0.15s;
+}
+
+.bar.is-dim .bar-fill { opacity: 0.28; }
+.bar.is-on .bar-fill { background: var(--vc-navy); opacity: 1; }
+.bar:not(.is-empty):hover .bar-fill { background: #3E6A0A; }
+.bar.is-on:hover .bar-fill { background: var(--vc-navy-2); }
+
+.bar-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--vc-muted);
+}
+
+.bar.is-on .bar-label { color: var(--vc-ink); }
+
+.tip {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 1px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--vc-navy);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(13, 20, 32, 0.22);
+
+  strong { font-family: var(--vc-display); font-size: 13.5px; color: #fff; }
+}
+
+/* As primeiras e últimas barras ancoram a dica na borda, para não cortar. */
+.bar:nth-child(-n + 2) .tip { left: 0; transform: none; }
+.bar:nth-last-child(-n + 2) .tip { left: auto; right: 0; transform: none; }
+
+/* --------------------------------------------------------------- lojas */
+
+.stores {
+  display: grid;
+  gap: 4px;
+  margin: 0 -8px;
+  padding: 0;
+  list-style: none;
+}
+
+.store {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'name value' 'bar value';
+  align-items: center;
+  gap: 4px 16px;
+  padding: 8px;
+  border-radius: 10px;
+  text-decoration: none;
+  &:hover { background: var(--vc-ground); }
+}
+
+.store-name {
+  grid-area: name;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--vc-ink);
+  ion-icon { flex-shrink: 0; color: var(--vc-muted); }
+}
+
+.store-bar {
+  grid-area: bar;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--vc-ground);
+  overflow: hidden;
+  span { display: block; height: 100%; border-radius: 3px; background: var(--vc-green); }
+}
+
+.store-value {
+  grid-area: value;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--vc-display);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--vc-ink);
+  small { font-family: var(--vc-body); font-size: 12px; font-weight: 600; color: var(--vc-muted); }
+}
+
+/* -------------------------------------------------------------- extrato */
+
+.month { margin-top: 18px; }
+
+.month-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 4px 8px;
+  font-family: var(--vc-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vc-ink);
+
+  span:first-child::first-letter { text-transform: uppercase; }
+}
+
+.month-total { font-size: 14px; color: var(--vc-ink-2); font-variant-numeric: tabular-nums; }
+
+.entries {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+}
+
+.entries li + li .entry { box-shadow: inset 0 1px 0 var(--vc-line); border-radius: 0; }
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 68px;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: left;
+
+  &:hover { background: #F7F9FA; }
+
+  img {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--vc-ground);
+    box-shadow: inset 0 0 0 1px var(--vc-line);
+  }
+
+  > ion-icon { flex-shrink: 0; font-size: 16px; color: var(--vc-muted); }
+}
+
+.entry-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entry-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--vc-ink);
+  em { font-style: normal; font-weight: 600; color: var(--vc-muted); }
+}
+
+.entry-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--vc-muted);
+}
+
+.entry-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+
+  strong {
+    font-family: var(--vc-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--vc-ink);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tag {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #F2F7E6;
+  color: var(--vc-green);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.tag--refund { background: #FDF1EB; color: var(--vc-rust); }
+
+.entry.is-refunded .entry-side strong {
+  color: var(--vc-muted);
+  text-decoration: line-through;
+}
+
+.pg-empty--inline { padding: 32px 24px; }
+
+/* ----------------------------------------------------------- esqueleto */
+
+.sk-ledger { height: 176px; margin-bottom: 12px; border-radius: 16px; }
+.sk-chart { height: 232px; border-radius: 14px; }
+
+/* --------------------------------------------------------------- desktop */
+
+:host-context(html.vn-desktop-shell) {
+  .pg-wrap { padding: 14px 0 48px; }
+
+  .top {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: stretch;
+
+    .ledger, .chart { margin-bottom: 12px; }
+  }
+
+  .ledger { display: flex; flex-direction: column; }
+  .ledger-split { margin-top: auto; }
+  .sheet { padding: 20px 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill { transition: none; }
+}

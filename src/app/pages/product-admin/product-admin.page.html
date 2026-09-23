@@ -1,104 +1,256 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
-</ion-header>
-
-<ion-content class="ion-padding custom-bg">
-  <div class="page-container" *ngIf="!isLoading && product">
-    
-    <!-- Product Header -->
-    <div class="product-banner">
-      <img [src]="product.photoURL?.[0] || 'assets/imagens/placeholder.png'">
-      <div class="name-overlay">
-        <h1>{{ product.name }}</h1>
-        <ion-badge color="light" mode="ios">{{ product.stock }} em estoque</ion-badge>
-      </div>
-    </div>
-
-    <!-- Custom Segments / Tabs -->
-    <div class="custom-tabs">
-      <div class="tab-item" [class.active]="activeTab === 'DETAILS'" (click)="activeTab = 'DETAILS'">
-        Gerenciar
-      </div>
-      <div class="tab-item" [class.active]="activeTab === 'STATS'" (click)="activeTab = 'STATS'">
-        Estatísticas
-      </div>
-    </div>
-
-    <!-- Content: DETAILS -->
-    <div *ngIf="activeTab === 'DETAILS'" class="tab-content animate-fade">
-      
-      <ion-card class="admin-option-card">
-        <ion-list lines="inset">
-          <ion-item button [routerLink]="['/edit-product', product.id]">
-            <ion-icon name="create-outline" slot="start" color="primary"></ion-icon>
-            <ion-label>
-              <h3>Editar informações</h3>
-              <p>Mudar preço, fotos ou descrição</p>
-            </ion-label>
-          </ion-item>
-          
-          <ion-item lines="none">
-            <ion-icon name="cash-outline" slot="start" color="success"></ion-icon>
-            <ion-label>
-              <h3>Preço Atual</h3>
-              <p>{{ formatPrice(product.price) }}</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-      </ion-card>
-
-      <ion-button expand="block" fill="outline" color="danger" class="ion-margin-top" (click)='deleteProduct()'>
-        <ion-icon name="trash-outline" slot="start"></ion-icon>
-        Excluir Produto
-      </ion-button>
-    </div>
-
-    <!-- Content: STATS -->
-    <div *ngIf="activeTab === 'STATS'" class="tab-content animate-fade">
-      
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="icon-wrap saves">
-            <ion-icon name="heart"></ion-icon>
-          </div>
-          <span class="val">{{ stats?.savedCount }}</span>
-          <span class="lab">Salvos</span>
-        </div>
-
-        <div class="stat-box">
-          <div class="icon-wrap sales">
-            <ion-icon name="cart"></ion-icon>
-          </div>
-          <span class="val">{{ stats?.totalSales }}</span>
-          <span class="lab">Vendidos</span>
-        </div>
-
-        <div class="stat-box full">
-          <div class="icon-wrap time">
-            <ion-icon name="timer"></ion-icon>
-          </div>
-          <div>
-            <span class="val">{{ stats?.avgSellingTime }}</span>
-            <span class="lab">Tempo médio de venda</span>
-          </div>
-        </div>
-      </div>
-
-      <ion-card class="insight-card">
-        <ion-card-header>
-          <ion-card-subtitle>Análise de Performance</ion-card-subtitle>
-          <ion-card-title>Status do Produto</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          Este item está com uma conversão <strong>acima da média</strong>. Manter os salvamentos altos garante maior visibilidade nos recomendados.
-        </ion-card-content>
-      </ion-card>
-
-    </div>
-
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Meu anúncio</h1>
+    @if (product()) {
+      <button type="button" class="pg-icon-btn" (click)="openListing()" aria-label="Ver como comprador">
+        <ion-icon name="eye-outline" aria-hidden="true"></ion-icon>
+      </button>
+      <button type="button" class="pg-icon-btn" (click)="share()" aria-label="Compartilhar anúncio">
+        <ion-icon name="share-social-outline" aria-hidden="true"></ion-icon>
+      </button>
+    }
   </div>
 
-  <div *ngIf="isLoading" class="ion-text-center ion-padding">
-    <ion-spinner name="crescent"></ion-spinner>
+  @if (product()) {
+    <nav class="pg-tabs" role="tablist" aria-label="Seções do anúncio">
+      @for (t of tabs; track t.id) {
+        <button
+          type="button"
+          role="tab"
+          class="pg-tab"
+          [class.is-active]="tab() === t.id"
+          [attr.aria-selected]="tab() === t.id"
+          (click)="selectTab(t.id)">
+          {{ t.label }}
+        </button>
+      }
+    </nav>
+  }
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (isLoading()) {
+      <div class="sk sk-hero" aria-hidden="true"></div>
+      <div class="sk sk-block" aria-hidden="true"></div>
+    } @else if (product(); as p) {
+
+      <!-- Produto -->
+      <section class="hero" aria-label="Anúncio">
+        <button type="button" class="hero-photo" (click)="openListing()" aria-label="Ver anúncio publicado">
+          <img [src]="p.photoURL?.[0] || 'assets/imagens/placeholder.png'" [alt]="p.name" />
+          @if ((p.photoURL?.length ?? 0) > 1) {
+            <span class="hero-photo-count"><ion-icon name="images-outline" aria-hidden="true"></ion-icon>{{ p.photoURL?.length }}</span>
+          }
+        </button>
+        <div class="hero-body">
+          <h2 class="hero-name">{{ p.name }}</h2>
+          <p class="hero-price">
+            @if (hasPromo()) {
+              <strong>{{ p.priceDiscounted | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              <s>{{ p.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</s>
+            } @else {
+              <strong>{{ p.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+            }
+            @if (p.hasVariants) { <span class="hero-from">a partir de</span> }
+          </p>
+          <ul class="chips">
+            @if (p.stock > 0) {
+              <li class="chip chip--ok"><span class="dot" aria-hidden="true"></span>Ativo</li>
+              <li class="chip">{{ p.stock }} em estoque</li>
+            } @else {
+              <li class="chip chip--warn"><span class="dot" aria-hidden="true"></span>Sem estoque</li>
+            }
+            @if (p.hasVariants && p.skus) {
+              <li class="chip"><ion-icon name="layers-outline" aria-hidden="true"></ion-icon>{{ (p.skus | keyvalue).length }} variações</li>
+            }
+            @if (metrics().rating !== null) {
+              <li class="chip"><ion-icon name="star" class="star" aria-hidden="true"></ion-icon>{{ metrics().rating | number:'1.1-1':'pt-BR' }} ({{ metrics().reviews }})</li>
+            }
+          </ul>
+          @if (toDate(p.createdAt); as created) {
+            <p class="hero-date">Publicado em {{ formatDay(created, true) }}</p>
+          }
+        </div>
+      </section>
+
+      @if (tab() === 'overview') {
+        <!-- Números -->
+        <section class="kpis" aria-label="Números do anúncio">
+          <div class="kpi">
+            <ion-icon name="cart-outline" aria-hidden="true"></ion-icon>
+            <strong>{{ metrics().units }}</strong>
+            <span>{{ metrics().units === 1 ? 'unidade vendida' : 'unidades vendidas' }}</span>
+          </div>
+          <div class="kpi">
+            <ion-icon name="cash-outline" aria-hidden="true"></ion-icon>
+            <strong>{{ metrics().revenue | currency:'BRL':'symbol':'1.0-0':'pt-BR' }}</strong>
+            <span>faturado</span>
+          </div>
+          <div class="kpi">
+            <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+            <strong>{{ metrics().saved }}</strong>
+            <span>{{ metrics().saved === 1 ? 'pessoa salvou' : 'pessoas salvaram' }}</span>
+          </div>
+          <div class="kpi">
+            <ion-icon name="star" aria-hidden="true"></ion-icon>
+            <strong>{{ metrics().rating !== null ? (metrics().rating | number:'1.1-1':'pt-BR') : '—' }}</strong>
+            <span>{{ metrics().reviews ? metrics().reviews + (metrics().reviews === 1 ? ' avaliação' : ' avaliações') : 'sem avaliações' }}</span>
+          </div>
+        </section>
+
+        <div class="split">
+          <!-- Qualidade -->
+          <section class="sheet" aria-labelledby="pa-quality">
+            <div class="quality-head">
+              <div class="ring" [style.--p]="score() / checks().length" role="img" [attr.aria-label]="score() + ' de ' + checks().length + ' itens em dia'">
+                <span>{{ score() }}<small>/{{ checks().length }}</small></span>
+              </div>
+              <div>
+                <h2 class="sheet-title" id="pa-quality">Qualidade do anúncio</h2>
+                <p class="quality-sub">
+                  {{ score() === checks().length ? 'Tudo em dia. Anúncio completo vende mais rápido.' : 'Complete os itens abaixo para o anúncio passar mais confiança.' }}
+                </p>
+              </div>
+            </div>
+            <ul class="checks">
+              @for (c of checks(); track c.id) {
+                <li [class.is-ok]="c.ok">
+                  <ion-icon [name]="c.ok ? 'checkmark-circle' : 'alert-circle'" aria-hidden="true"></ion-icon>
+                  <div>
+                    <strong>{{ c.label }}</strong>
+                    @if (!c.ok) { <span>{{ c.hint }}</span> }
+                  </div>
+                </li>
+              }
+            </ul>
+            @if (score() < checks().length) {
+              <button type="button" class="btn btn--outline btn--block" (click)="edit()">
+                <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Completar anúncio
+              </button>
+            }
+          </section>
+
+          <!-- Vendas recentes -->
+          <section class="sheet" aria-labelledby="pa-sales">
+            <h2 class="sheet-title" id="pa-sales">
+              Vendas recentes
+              @if (sales().length > recentSales().length) {
+                <a class="sheet-link" routerLink="/my-sales">Ver todas</a>
+              }
+            </h2>
+            @if (recentSales().length) {
+              <ul class="sales">
+                @for (s of recentSales(); track s.id) {
+                  <li>
+                    <button type="button" class="sale-row" (click)="openSale(s.id)">
+                      <span class="sale-main">
+                        <strong>{{ s.buyer }} · {{ s.quantity }} un.</strong>
+                        <small>{{ s.date }}@if (s.variants) { · {{ s.variants }}}</small>
+                      </span>
+                      <span class="sale-side">
+                        <strong>{{ s.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                        <small [attr.data-stage]="s.stage">{{ s.stageLabel }}</small>
+                      </span>
+                      <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="none">Nenhuma venda ainda. Quando alguém comprar, aparece aqui.</p>
+            }
+          </section>
+        </div>
+      } @else {
+        <div class="split">
+          <!-- Edição rápida -->
+          <section class="sheet" aria-labelledby="pa-quick">
+            <h2 class="sheet-title" id="pa-quick">Preço e estoque</h2>
+            @if (p.hasVariants) {
+              <p class="note">Este anúncio tem variações: preço e estoque ficam em cada combinação (cor, tamanho...).</p>
+              <button type="button" class="btn btn--outline btn--block" (click)="edit()">
+                <ion-icon name="layers-outline" aria-hidden="true"></ion-icon> Editar variações
+              </button>
+            } @else {
+              <form class="quick" (ngSubmit)="saveQuickEdit()">
+                <label class="field">
+                  <span>Preço</span>
+                  <span class="input"><em>R$</em>
+                    <input type="number" inputmode="decimal" min="0.01" step="0.01" name="price" required
+                      [ngModel]="draftPrice()" (ngModelChange)="draftPrice.set($event)" />
+                  </span>
+                </label>
+                <label class="field">
+                  <span>Preço promocional <small>opcional</small></span>
+                  <span class="input"><em>R$</em>
+                    <input type="number" inputmode="decimal" min="0.01" step="0.01" name="promo" placeholder="Sem promoção"
+                      [ngModel]="draftPromo()" (ngModelChange)="draftPromo.set($event === '' ? null : $event)" />
+                  </span>
+                </label>
+                <label class="field">
+                  <span>Estoque</span>
+                  <span class="input">
+                    <input type="number" inputmode="numeric" min="0" step="1" name="stock" required
+                      [ngModel]="draftStock()" (ngModelChange)="draftStock.set($event)" />
+                    <em>un.</em>
+                  </span>
+                </label>
+                <div class="quick-actions">
+                  @if (dirty()) {
+                    <button type="button" class="btn btn--ghost" (click)="discardDraft()">Descartar</button>
+                  }
+                  <button type="submit" class="btn btn--primary" [disabled]="!dirty() || saving()">
+                    {{ saving() ? 'Salvando...' : 'Salvar alterações' }}
+                  </button>
+                </div>
+              </form>
+            }
+          </section>
+
+          <div>
+            <!-- Atalhos -->
+            <section class="sheet sheet--flush" aria-label="Ações do anúncio">
+              <button type="button" class="row" (click)="edit()">
+                <span class="row-icon"><ion-icon name="create-outline" aria-hidden="true"></ion-icon></span>
+                <span class="row-text"><strong>Editar anúncio completo</strong><small>Fotos, descrição, ficha técnica e variações</small></span>
+                <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+              </button>
+              <button type="button" class="row" (click)="openListing()">
+                <span class="row-icon"><ion-icon name="eye-outline" aria-hidden="true"></ion-icon></span>
+                <span class="row-text"><strong>Ver como comprador</strong><small>Abre a página pública do anúncio</small></span>
+                <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+              </button>
+              <button type="button" class="row" (click)="share()">
+                <span class="row-icon"><ion-icon name="share-social-outline" aria-hidden="true"></ion-icon></span>
+                <span class="row-text"><strong>Compartilhar</strong><small>Envie o link no WhatsApp ou redes</small></span>
+                <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+              </button>
+            </section>
+
+            <!-- Zona de perigo -->
+            <section class="danger" aria-labelledby="pa-danger">
+              <div>
+                <h2 id="pa-danger">Excluir anúncio</h2>
+                <p>Tira o produto da vitrine de vez. Vendas já feitas continuam no histórico.</p>
+              </div>
+              <button type="button" class="btn btn--danger-outline" (click)="deleteProduct()">
+                <ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Excluir
+              </button>
+            </section>
+          </div>
+        </div>
+      }
+    } @else {
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="alert-circle" aria-hidden="true"></ion-icon></div>
+        <h2>Anúncio não encontrado</h2>
+        <p>Ele pode ter sido excluído.</p>
+        <a class="btn btn--primary" routerLink="/my-products">Ver meus anúncios</a>
+      </div>
+    }
   </div>
 </ion-content>

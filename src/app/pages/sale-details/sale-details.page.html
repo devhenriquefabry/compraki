@@ -1,149 +1,280 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">
+      Venda @if (view(); as v) { <span class="sd-id">#{{ v.shortId }}</span> }
+    </h1>
+    @if (view()) {
+      <button type="button" class="pg-icon-btn" (click)="talkToBuyer()" aria-label="Conversar com o comprador">
+        <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon>
+      </button>
+    }
+  </div>
 </ion-header>
 
-<ion-content class="ion-padding custom-bg">
-  <div class="page-container" *ngIf="!isLoading && sale">
-    
-    <!-- Status Card -->
-    <ion-card class="status-card">
-      <div class="status-header">
-        <ion-badge color="success" mode="ios">Venda Confirmada</ion-badge>
-        <span class="order-id">#{{ sale.id?.substring(0,8)?.toUpperCase() }}</span>
-      </div>
-      
-      <div class="status-selector">
-        <label>Status da Entrega</label>
-        <ion-select [(ngModel)]="shipmentStatus" (ionChange)="updateStatus()" interface="popover">
-          <ion-select-option value="PREPARING">Preparando Envio</ion-select-option>
-          <ion-select-option value="SHIPPED">Enviado / Em Trânsito</ion-select-option>
-          <ion-select-option value="DELIVERED">Entregue</ion-select-option>
-          <ion-select-option value="PROBLEM">Problema na entrega</ion-select-option>
-        </ion-select>
-      </div>
-    </ion-card>
-
-    <!-- Buyer Info -->
-    <div class="section-title">Dados do Comprador</div>
-    <ion-card class="info-card buyer-section">
-      <div class="user-main">
-        <ion-avatar>
-          <img src="assets/imagens/avatar-placeholder.png">
-        </ion-avatar>
-        <div class="user-names">
-          <h3>{{ sale.customerData.name }}</h3>
-          <p>{{ sale.customerData.email }}</p>
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (isLoading()) {
+      <div class="sd-grid" aria-hidden="true">
+        <div class="sd-main">
+          <div class="sk sk-hero"></div>
+          <div class="sk sk-block"></div>
         </div>
+        <div class="sd-aside"><div class="sk sk-block"></div></div>
       </div>
-      <div class="contact-grid">
-        <div class="contact-item">
-          <ion-icon name="phone-portrait-outline"></ion-icon>
-          <span>{{ sale.customerData.phone }}</span>
+    } @else if (view(); as v) {
+      <div class="sd-grid">
+        <div class="sd-main">
+
+          <!-- Situação e próximo passo -->
+          <section class="status" [attr.data-stage]="v.stage" aria-labelledby="sd-status">
+            <div class="status-top">
+              <div>
+                <p class="status-eyebrow">Situação</p>
+                <h2 class="status-title" id="sd-status">{{ v.statusLabel }}</h2>
+              </div>
+              <strong class="status-amount">{{ v.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+            </div>
+
+            @if (v.track >= 0) {
+              <ol class="trail" [class.trail--done]="v.stage === 'done'" [attr.aria-label]="'Etapa ' + (v.track + 1) + ' de ' + trackSteps.length">
+                @for (step of trackSteps; track step; let i = $index) {
+                  <li class="trail-step" [class.is-done]="i < v.track" [class.is-current]="i === v.track" [attr.aria-current]="i === v.track ? 'step' : null">
+                    <span class="trail-node" aria-hidden="true"></span>
+                    <span class="trail-label">{{ step }}</span>
+                  </li>
+                }
+              </ol>
+            }
+
+            <div class="status-next">
+              @switch (v.stage) {
+                @case ('pay') {
+                  <p><ion-icon name="time-outline" aria-hidden="true"></ion-icon> Aguardando o pagamento do comprador. <strong>Não envie ainda.</strong></p>
+                }
+                @case ('preparing') {
+                  <p [class.is-late]="v.shipBy?.late">
+                    <ion-icon name="cube-outline" aria-hidden="true"></ion-icon>
+                    @if (v.shipBy?.late) { O prazo de envio passou em {{ v.shipBy?.label }}. Poste o quanto antes. }
+                    @else { Embale e poste até <strong>{{ v.shipBy?.label }}</strong>. }
+                  </p>
+                  <div class="status-actions">
+                    <button type="button" class="btn btn--primary" (click)="markShipped()" [disabled]="busy()">Marcar como enviada</button>
+                  </div>
+                }
+                @case ('shipping') {
+                  @if (v.order.shipmentStatus === 'PROBLEM') {
+                    <p class="is-late"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon> Você sinalizou um problema na entrega. O comprador foi avisado para falar com você.</p>
+                  } @else {
+                    <p><ion-icon name="cube-outline" aria-hidden="true"></ion-icon> A caminho do comprador. Quando o rastreio mostrar a entrega, marque como entregue.</p>
+                  }
+                  <div class="status-actions">
+                    @if (v.trackingCode) {
+                      <button type="button" class="btn btn--accent" (click)="track()">Rastrear</button>
+                    }
+                    @if (v.order.shipmentStatus === 'PROBLEM') {
+                      <button type="button" class="btn btn--primary" (click)="markShipped()" [disabled]="busy()">Voltar para enviada</button>
+                    } @else {
+                      <button type="button" class="btn btn--primary" (click)="markDelivered()" [disabled]="busy()">Marcar como entregue</button>
+                    }
+                  </div>
+                }
+                @case ('done') {
+                  <p><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+                    @if (v.released) { Entregue. O valor foi liberado em {{ v.release }}. }
+                    @else if (v.release) { Entregue. O valor é liberado a partir de {{ v.release }}. }
+                    @else { Entregue. }
+                  </p>
+                }
+                @case ('refund') {
+                  <p class="is-late"><ion-icon name="shield-half-outline" aria-hidden="true"></ion-icon>
+                    {{ v.statusLabel }}.
+                    @if (v.order.refundInfo?.reason) { Motivo: “{{ v.order.refundInfo?.reason }}” }
+                  </p>
+                  @if (v.order.refundInfo?.adminNotes) {
+                    <p class="status-note">Equipe Vineon: {{ v.order.refundInfo?.adminNotes }}</p>
+                  }
+                }
+                @case ('cancelled') {
+                  <p>Pedido cancelado. Não envie.</p>
+                }
+              }
+            </div>
+          </section>
+
+          <!-- Envio -->
+          @if (v.paid && v.stage !== 'refund' && v.stage !== 'cancelled') {
+            <section class="sheet" aria-labelledby="sd-ship">
+              <h2 class="sheet-title" id="sd-ship">Envio</h2>
+
+              <dl class="kv">
+                @if (v.order.shippingInfo?.serviceName) {
+                  <div><dt>Serviço</dt><dd>{{ v.order.shippingInfo?.serviceName }}</dd></div>
+                }
+                @if (v.order.shippingInfo?.deliveryTime) {
+                  <div><dt>Prazo da transportadora</dt><dd>{{ v.order.shippingInfo?.deliveryTime }} dias úteis</dd></div>
+                }
+                <div>
+                  <dt>Rastreio</dt>
+                  <dd>
+                    @if (v.trackingCode) {
+                      <span class="code">{{ v.trackingCode }}</span>
+                      <button type="button" class="copy-btn" (click)="copy(v.trackingCode, 'Código de rastreio')" aria-label="Copiar código de rastreio">
+                        <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+                      </button>
+                    } @else {
+                      <span class="muted">Não informado</span>
+                    }
+                  </dd>
+                </div>
+              </dl>
+
+              <div class="ship-actions">
+                @if (v.order.shippingInfo) {
+                  @if (!v.order.shippingInfo.shipmentId) {
+                    <button type="button" class="btn btn--outline" (click)="generateShippingLabel()">
+                      <ion-icon name="barcode-outline" aria-hidden="true"></ion-icon> Gerar etiqueta
+                    </button>
+                  } @else {
+                    <button type="button" class="btn btn--outline" (click)="printLabel()">
+                      <ion-icon name="print-outline" aria-hidden="true"></ion-icon> Imprimir etiqueta
+                    </button>
+                  }
+                }
+                <button type="button" class="btn btn--ghost" (click)="editTracking()">
+                  {{ v.trackingCode ? 'Alterar rastreio' : 'Adicionar rastreio' }}
+                </button>
+                @if (v.stage === 'shipping' && v.order.shipmentStatus !== 'PROBLEM') {
+                  <button type="button" class="btn btn--ghost btn--danger" (click)="reportProblem()">Problema na entrega</button>
+                }
+              </div>
+            </section>
+          }
+
+          <!-- Produtos -->
+          <section class="sheet" aria-labelledby="sd-items">
+            <h2 class="sheet-title" id="sd-items">
+              {{ v.items.length === 1 ? 'Produto vendido' : v.items.length + ' produtos vendidos' }}
+            </h2>
+            <ul class="sd-items">
+              @for (item of v.items; track item.key) {
+                <li>
+                  <button type="button" class="sd-item" (click)="openProduct(item.productId)" [disabled]="!item.productId">
+                    <img [src]="item.photo" alt="" loading="lazy" />
+                    <span class="sd-item-body">
+                      <span class="sd-item-name">{{ item.name }}</span>
+                      @if (item.variant) { <span class="sd-variant">{{ item.variant }}</span> }
+                      <span class="sd-item-meta">
+                        {{ item.quantity }} × {{ item.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                        @if (item.listPrice) { <s>{{ item.listPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</s> }
+                      </span>
+                    </span>
+                    <strong class="sd-item-total">{{ item.price * item.quantity | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
         </div>
-        <div class="contact-item">
-          <ion-icon name="document-text-outline"></ion-icon>
-          <span>CPF: {{ sale.customerData.cpf }}</span>
-        </div>
+
+        <aside class="sd-aside">
+          <!-- Dinheiro -->
+          <section class="sheet" aria-labelledby="sd-money">
+            <h2 class="sheet-title" id="sd-money">Resumo</h2>
+            <dl class="kv">
+              <div><dt>Seus produtos</dt><dd>{{ v.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              @if (v.onlySeller && v.shipping) {
+                <div><dt>Frete pago pelo comprador</dt><dd>{{ v.shipping | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              }
+              @if (v.onlySeller) {
+                <div class="kv-total"><dt>Total do pedido</dt><dd>{{ v.order.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              } @else {
+                <div class="kv-total"><dt>Sua venda</dt><dd>{{ v.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              }
+            </dl>
+
+            @if (v.paid && v.stage !== 'refund') {
+              <p class="payout" [class.is-released]="v.released">
+                <ion-icon [name]="v.released ? 'checkmark-circle' : 'time-outline'" aria-hidden="true"></ion-icon>
+                @if (v.released) { Valor liberado em {{ v.release }}. }
+                @else if (v.release) { Fica retido até {{ v.release }} como garantia ao comprador. }
+              </p>
+            }
+          </section>
+
+          <!-- Comprador -->
+          <section class="sheet" aria-labelledby="sd-buyer">
+            <h2 class="sheet-title" id="sd-buyer">Comprador</h2>
+            <p class="buyer-name">{{ v.order.customerData.name }}</p>
+            <ul class="contact">
+              @if (v.order.customerData.phone) {
+                <li>
+                  <a [href]="'tel:' + v.order.customerData.phone"><ion-icon name="call-outline" aria-hidden="true"></ion-icon>{{ v.order.customerData.phone }}</a>
+                </li>
+              }
+              @if (v.order.customerData.email) {
+                <li>
+                  <a [href]="'mailto:' + v.order.customerData.email"><ion-icon name="mail-outline" aria-hidden="true"></ion-icon>{{ v.order.customerData.email }}</a>
+                </li>
+              }
+            </ul>
+            @if (v.order.customerData.cpf) {
+              <button type="button" class="cpf" (click)="copy(v.order.customerData.cpf, 'CPF')">
+                CPF para nota fiscal: <span class="code">{{ v.order.customerData.cpf }}</span>
+                <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+              </button>
+            }
+            <button type="button" class="btn btn--outline btn--block" (click)="talkToBuyer()">
+              <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon> Conversar
+            </button>
+          </section>
+
+          <!-- Endereço -->
+          @if (v.addressLines.length) {
+            <section class="sheet" aria-labelledby="sd-address">
+              <h2 class="sheet-title" id="sd-address">Endereço de entrega</h2>
+              <address class="address">
+                @for (line of v.addressLines; track line) { <span>{{ line }}</span> }
+              </address>
+              <div class="address-actions">
+                <button type="button" class="btn btn--ghost" (click)="copy(v.addressLines.join(', '), 'Endereço')">
+                  <ion-icon name="copy-outline" aria-hidden="true"></ion-icon> Copiar
+                </button>
+                @if (v.mapsUrl) {
+                  <a class="btn btn--ghost" [href]="v.mapsUrl" target="_blank" rel="noopener">
+                    <ion-icon name="map-outline" aria-hidden="true"></ion-icon> Abrir no mapa
+                  </a>
+                }
+              </div>
+            </section>
+          }
+
+          <!-- Pedido -->
+          <section class="sheet" aria-labelledby="sd-order">
+            <h2 class="sheet-title" id="sd-order">Pedido</h2>
+            <dl class="kv">
+              <div>
+                <dt>Número</dt>
+                <dd>
+                  <button type="button" class="link-btn" (click)="copy(v.id, 'Número do pedido')">#{{ v.shortId }}</button>
+                </dd>
+              </div>
+              <div><dt>Feito em</dt><dd>{{ v.placedAt }}</dd></div>
+              @if (v.paidAt) { <div><dt>Pago em</dt><dd>{{ v.paidAt }}</dd></div> }
+              <div><dt>Pagamento</dt><dd>{{ paymentLabel[v.order.paymentMethod] }}</dd></div>
+            </dl>
+          </section>
+        </aside>
       </div>
-    </ion-card>
-
-    <!-- Address -->
-    <div class="section-title">Endereço de Entrega</div>
-    <ion-card class="info-card address-section">
-      <div class="address-main">
-        <ion-icon name="location-outline" color="primary" class="main-icon"></ion-icon>
-        <div class="address-text">
-          <p class="street">{{ sale.addressData.street }}, {{ sale.addressData.number }}</p>
-          <p class="city">{{ sale.addressData.city }} - {{ sale.addressData.state }}</p>
-          <p class="zip">CEP: {{ sale.addressData.postalCode }}</p>
-        </div>
+    } @else {
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Venda não encontrada</h2>
+        <p>Ela pode ter sido removida, ou este pedido não é da sua loja.</p>
+        <a class="btn btn--primary" routerLink="/my-sales">Ver minhas vendas</a>
       </div>
-      <ion-button expand="block" fill="clear" color="secondary" size="small" class="map-btn">
-        <ion-icon name="map-outline" slot="start"></ion-icon>
-        Ver no Google Maps
-      </ion-button>
-    </ion-card>
-
-    <!-- Melhor Envio Label Section -->
-    <div class="section-title" *ngIf="sale.shippingInfo">Logística Melhor Envio</div>
-    <ion-card class="info-card shipping-card" *ngIf="sale.shippingInfo">
-      <div class="shipping-header">
-        <div class="carrier-info">
-          <ion-icon name="cube-outline" color="primary"></ion-icon>
-          <div>
-            <h3>{{ sale.shippingInfo.serviceName }}</h3>
-            <p>Valor pago pelo frete: {{ formatPrice(sale.shippingInfo.price) }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="shipping-actions ion-padding">
-        <!-- Se não tiver etiqueta gerada -->
-        <ion-button 
-          *ngIf="!sale.shippingInfo.shipmentId" 
-          expand="block" 
-          color="success" 
-          (click)="generateShippingLabel()"
-          [disabled]="sale.status === 'PENDING'"
-        >
-          <ion-icon name="barcode-outline" slot="start"></ion-icon>
-          Gerar Etiqueta de Envio
-        </ion-button>
-
-        <!-- Se tiver etiqueta gerada -->
-        <div *ngIf="sale.shippingInfo.shipmentId" class="label-info">
-          <div class="tracking-box">
-            <span class="label">Rastreio:</span>
-            <span class="value">{{ sale.shippingInfo.trackingCode || 'Processando...' }}</span>
-          </div>
-          
-          <div class="action-buttons">
-            <ion-button expand="block" fill="outline" color="primary" (click)="printLabel()">
-              <ion-icon name="print-outline" slot="start"></ion-icon>
-              Imprimir Etiqueta
-            </ion-button>
-            <ion-button expand="block" fill="clear" color="secondary" (click)="trackShipment()">
-              <ion-icon name="search-outline" slot="start"></ion-icon>
-              Rastrear Encomenda
-            </ion-button>
-          </div>
-        </div>
-      </div>
-    </ion-card>
-
-    <!-- Items -->
-    <div class="section-title">Produtos Vendidos</div>
-    <div class="items-list">
-      <div *ngFor="let item of sale.items" class="product-mini-card">
-        <img [src]="item.productData.photoURL?.[0] || 'assets/imagens/placeholder.png'">
-        <div class="prod-info">
-          <span class="name">{{ item.productData.name }}</span>
-          <span class="variant" *ngIf="item.variantLabel">{{ item.variantLabel }}</span>
-          <span class="qty">Qtd: {{ item.quantity }}</span>
-        </div>
-        <div class="prod-total">
-          {{ formatPrice(item.productData.price * item.quantity) }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Summary -->
-    <div class="summary-section">
-      <div class="row">
-        <span>Subtotal</span>
-        <span>{{ formatPrice(sale.total) }}</span>
-      </div>
-      <div class="row total">
-        <span>Sua Venda</span>
-        <span>{{ formatPrice(sale.total) }}</span>
-      </div>
-    </div>
-
-    <div style="height: 40px;"></div>
-
-  </div>
-
-  <div *ngIf="isLoading" class="ion-text-center ion-padding">
-    <ion-spinner name="crescent"></ion-spinner>
+    }
   </div>
 </ion-content>

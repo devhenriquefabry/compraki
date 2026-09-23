@@ -49,6 +49,38 @@ export class SalesService {
     });
   }
 
+  /** Venda em tempo real (a tela de detalhe reflete o que o comprador confirma). */
+  watchSale(id: string): Observable<Order | null> {
+    return new Observable<Order | null>(subscriber =>
+      onSnapshot(
+        doc(this.db, 'orders', id),
+        snap => subscriber.next(snap.exists() ? ({ ...snap.data(), id: snap.id } as Order) : null),
+        err => subscriber.error(err)
+      )
+    );
+  }
+
+  /**
+   * Loja postou o pedido. O código de rastreio é opcional: sem ele o comprador
+   * vê "A caminho" e a loja pode informar depois.
+   */
+  async markShipped(orderId: string, trackingCode?: string): Promise<void> {
+    const code = trackingCode?.trim().toUpperCase();
+    await updateDoc(doc(this.db, 'orders', orderId), {
+      shipmentStatus: 'SHIPPED',
+      shippedAt: serverTimestamp(),
+      ...(code ? { 'shippingInfo.trackingCode': code } : {}),
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  async setTrackingCode(orderId: string, trackingCode: string): Promise<void> {
+    await updateDoc(doc(this.db, 'orders', orderId), {
+      'shippingInfo.trackingCode': trackingCode.trim().toUpperCase(),
+      updatedAt: serverTimestamp()
+    });
+  }
+
   async getSaleById(id: string): Promise<Order | null> {
     const docRef = doc(this.db, 'orders', id);
     const snap = await getDoc(docRef);

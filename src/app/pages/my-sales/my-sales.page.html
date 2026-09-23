@@ -1,63 +1,254 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+
+    @if (searchOpen()) {
+      <label class="pg-search">
+        <span class="vn-sr-only">Buscar nas vendas</span>
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <input
+          #searchInput
+          type="search"
+          placeholder="Comprador, produto ou nº do pedido"
+          autocomplete="off"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (keydown.escape)="toggleSearch()" />
+      </label>
+      <button type="button" class="pg-text-btn" (click)="toggleSearch()">Cancelar</button>
+    } @else {
+      <h1 class="pg-title">Minhas vendas</h1>
+      <button type="button" class="pg-icon-btn" (click)="toggleSearch()" aria-label="Buscar nas vendas">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </button>
+      <button type="button" class="pg-icon-btn" (click)="openListings()" aria-label="Meus anúncios">
+        <ion-icon name="pricetags-outline" aria-hidden="true"></ion-icon>
+      </button>
+    }
+  </div>
+
+  <nav class="pg-tabs" #tabStrip role="tablist" aria-label="Filtrar vendas por etapa" (keydown)="onTabKeydown($event)">
+    @for (t of tabs; track t.id) {
+      <button
+        type="button"
+        role="tab"
+        class="pg-tab"
+        [class.is-active]="tab() === t.id"
+        [attr.aria-selected]="tab() === t.id"
+        [attr.tabindex]="tab() === t.id ? 0 : -1"
+        (click)="selectTab(t.id, $event)">
+        {{ t.label }}
+        @if (t.id === 'preparing' && counts().preparing) {
+          <span class="pg-tab-count" [attr.aria-label]="counts().preparing + ' para enviar'">{{ counts().preparing }}</span>
+        }
+      </button>
+    }
+  </nav>
 </ion-header>
 
-<ion-content class="ion-padding custom-bg">
-  <div class="page-container">
-    
-    <div class="header-section">
-      <h1 class="page-title">Minhas Vendas</h1>
-      <p class="subtitle">Acompanhe seus pedidos recebidos</p>
-    </div>
+<ion-content class="pg-content">
+  <div class="pg-wrap" role="tabpanel">
 
-    <!-- Loading -->
-    <div *ngIf="isLoading" class="ion-text-center ion-padding">
-      <ion-spinner name="crescent" color="primary"></ion-spinner>
-      <p>Buscando vendas...</p>
-    </div>
-
-    <!-- Empty State -->
-    <div *ngIf="!isLoading && sales.length === 0" class="empty-state">
-      <ion-icon name="cash-outline"></ion-icon>
-      <h3>Nenhuma venda ainda</h3>
-      <p>Seus produtos estão online, logo as vendas vão chegar!</p>
-    </div>
-
-    <!-- Lista de Vendas -->
-    <div class="sales-list" *ngIf="!isLoading && sales.length > 0">
-      
-      <div *ngFor="let s of sales" class="sale-card" [routerLink]="['/sale-details', s.id]">
-        <div class="sale-header">
-          <span class="order-id">#{{ s.id?.substring(0,8)?.toUpperCase() }}</span>
-          <span class="order-date">{{ formatDate(s.createdAt) }}</span>
-        </div>
-
-        <div class="sale-body">
-          <div class="items-preview">
-            <div *ngFor="let item of s.items.slice(0, 3)" class="item-thumb">
-              <img [src]="item.productData.photoURL?.[0] || 'assets/imagens/placeholder.png'">
+    @if (isLoading()) {
+      <div class="sk sk-ledger" aria-hidden="true"></div>
+      @for (s of skeletons; track s) {
+        <div class="sc sc--skeleton" aria-hidden="true">
+          <div class="sk sk-line sk-w40"></div>
+          <div class="sk-row">
+            <div class="sk sk-thumb"></div>
+            <div class="sk-col">
+              <div class="sk sk-line sk-w80"></div>
+              <div class="sk sk-line sk-w30"></div>
             </div>
-            <div *ngIf="s.items.length > 3" class="more-items">+{{ s.items.length - 3 }}</div>
-          </div>
-
-          <div class="sale-total">
-            <span class="label">Total</span>
-            <span class="value">{{ s.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</span>
           </div>
         </div>
-
-        <div class="sale-footer">
-          <div class="buyer-name">
-            <ion-icon name="person-circle-outline"></ion-icon>
-            {{ s.customerData.name }}
-          </div>
-          <ion-badge [color]="s.status === 'RECEIVED' ? 'success' : 'medium'" mode="ios">
-            {{ getStatusLabel(s.status) }}
-          </ion-badge>
-        </div>
+      }
+    } @else if (loadError()) {
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Não conseguimos carregar suas vendas</h2>
+        <p>Verifique a conexão e tente de novo.</p>
+        <button type="button" class="btn btn--primary" (click)="load()">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Tentar de novo
+        </button>
       </div>
+    } @else {
 
-    </div>
+      @if (counts().all) {
+        @let s = summary();
+        <!-- Resumo financeiro da loja -->
+        <section class="ledger" aria-label="Resumo das vendas">
+          <div class="ledger-main">
+            <span class="ledger-label">Vendido em {{ s.monthName }}</span>
+            <strong class="ledger-value">{{ s.month | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+          </div>
+          <dl class="ledger-split">
+            <div>
+              <dt>A liberar</dt>
+              <dd>{{ s.held | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd>
+            </div>
+            <div>
+              <dt>Liberado</dt>
+              <dd>{{ s.released | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd>
+            </div>
+          </dl>
+          @if (counts().preparing) {
+            <button type="button" class="ledger-cta" (click)="selectTab('preparing')">
+              <ion-icon name="cube-outline" aria-hidden="true"></ion-icon>
+              {{ counts().preparing }} {{ counts().preparing === 1 ? 'pedido para enviar' : 'pedidos para enviar' }}
+              <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+            </button>
+          }
+          <p class="ledger-note">O valor de cada venda fica retido 7 dias após a compra, como garantia ao comprador, e depois é liberado.</p>
+        </section>
+      }
 
+      @if (!visible().length) {
+        @let copy = emptyCopy(tab());
+        <div class="pg-empty">
+          <div class="pg-empty-mark"><ion-icon name="cash-outline" aria-hidden="true"></ion-icon></div>
+          @if (search()) {
+            <h2>Nada encontrado para “{{ search() }}”</h2>
+            <p>Busque pelo nome do comprador, do produto ou pelo número do pedido.</p>
+          } @else {
+            <h2>{{ copy.title }}</h2>
+            <p>{{ copy.text }}</p>
+            @if (tab() === 'all') {
+              <a class="btn btn--primary" routerLink="/my-products">Ver meus anúncios</a>
+            }
+          }
+        </div>
+      } @else {
+        @for (v of visible(); track v.id) {
+          <article class="sc" [attr.data-stage]="v.stage">
+            <header class="sc-head">
+              <span class="sc-buyer">
+                <span class="sc-avatar" aria-hidden="true">{{ v.initial }}</span>
+                <span class="sc-buyer-text">
+                  <strong>{{ v.buyer }}</strong>
+                  <small>#{{ v.shortId }} · {{ v.placedAt }}</small>
+                </span>
+              </span>
+              <span class="sc-status">{{ v.statusLabel }}</span>
+            </header>
+
+            <button type="button" class="sc-body" (click)="openSale(v)" [attr.aria-label]="'Abrir venda ' + v.shortId">
+              <ul class="sc-items">
+                @for (item of v.items; track item.key; let i = $index) {
+                  @if (i < collapsedItems || isExpanded(v)) {
+                    <li class="sc-item">
+                      <img class="sc-thumb" [src]="item.photo" alt="" loading="lazy" />
+                      <span class="sc-item-body">
+                        <span class="sc-item-name">{{ item.name }}</span>
+                        <span class="sc-item-meta">
+                          @if (item.variant) { <span class="sc-variant">{{ item.variant }}</span> }
+                          <span class="sc-qty">x{{ item.quantity }}</span>
+                        </span>
+                        <span class="sc-price">
+                          @if (item.listPrice) { <s>{{ item.listPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</s> }
+                          {{ item.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                        </span>
+                      </span>
+                    </li>
+                  }
+                }
+              </ul>
+            </button>
+
+            @if (v.items.length > collapsedItems) {
+              <button type="button" class="sc-more" (click)="toggleItems(v, $event)" [attr.aria-expanded]="isExpanded(v)">
+                {{ isExpanded(v) ? 'Mostrar menos' : 'Ver mais ' + (v.items.length - collapsedItems) + (v.items.length - collapsedItems === 1 ? ' produto' : ' produtos') }}
+              </button>
+            }
+
+            <p class="sc-total">Sua venda: <strong>{{ v.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong></p>
+
+            @switch (v.stage) {
+              @case ('pay') {
+                <div class="panel panel--pay">
+                  <ion-icon class="panel-icon" name="time-outline" aria-hidden="true"></ion-icon>
+                  <div class="panel-body">
+                    <p class="panel-title">Aguardando o pagamento</p>
+                    <p>Não envie ainda. Assim que o pagamento cair, a venda vai para "A enviar".</p>
+                  </div>
+                </div>
+              }
+              @case ('refund') {
+                <div class="panel panel--refund">
+                  <ion-icon class="panel-icon" name="shield-half-outline" aria-hidden="true"></ion-icon>
+                  <div class="panel-body">
+                    <p class="panel-title">{{ v.statusLabel }}</p>
+                    @if (v.order.refundInfo?.reason) {
+                      <p>Motivo do comprador: “{{ v.order.refundInfo?.reason }}”</p>
+                    }
+                  </div>
+                </div>
+              }
+              @case ('cancelled') {}
+              @default {
+                <div class="panel panel--route">
+                  <div class="panel-body">
+                    @switch (v.stage) {
+                      @case ('preparing') {
+                        <p class="panel-title" [class.is-late]="v.shipBy?.late">
+                          {{ v.shipBy?.late ? 'Prazo de envio passou em ' + v.shipBy?.label : 'Envie até ' + v.shipBy?.label }}
+                        </p>
+                        @if (v.destination) {
+                          <p><ion-icon name="location-outline" aria-hidden="true"></ion-icon> Para {{ v.destination }}@if (v.order.shippingInfo?.serviceName) { · {{ v.order.shippingInfo?.serviceName }}}</p>
+                        }
+                      }
+                      @case ('shipping') {
+                        <p class="panel-title">A caminho do comprador</p>
+                        @if (v.trackingCode) {
+                          <p>
+                            Rastreio: <span class="code">{{ v.trackingCode }}</span>
+                            <button type="button" class="copy-btn" (click)="copy(v.trackingCode, 'Código de rastreio', $event)" aria-label="Copiar código de rastreio">
+                              <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+                            </button>
+                          </p>
+                        } @else {
+                          <p>Sem código de rastreio. Adicione nos detalhes da venda.</p>
+                        }
+                      }
+                      @case ('done') {
+                        <p class="panel-title">Entregue</p>
+                        @if (v.order.escrowInfo?.status === 'RELEASED') {
+                          <p>Valor liberado em {{ v.payout }}.</p>
+                        } @else if (v.payout) {
+                          <p>Valor liberado a partir de {{ v.payout }}.</p>
+                        }
+                      }
+                    }
+
+                    <ol class="trail" [class.trail--done]="v.stage === 'done'" [attr.aria-label]="'Etapa ' + (v.track + 1) + ' de ' + trackSteps.length">
+                      @for (step of trackSteps; track step; let i = $index) {
+                        <li class="trail-step" [class.is-done]="i < v.track" [class.is-current]="i === v.track" [attr.aria-current]="i === v.track ? 'step' : null">
+                          <span class="trail-node" aria-hidden="true"></span>
+                          <span class="trail-label">{{ step }}</span>
+                        </li>
+                      }
+                    </ol>
+                  </div>
+                </div>
+              }
+            }
+
+            <div class="sc-actions">
+              <button type="button" class="btn btn--ghost" (click)="openSale(v)">Ver detalhes</button>
+              @if (v.stage === 'preparing') {
+                <button type="button" class="btn btn--primary" (click)="markShipped(v, $event)">
+                  <ion-icon name="cube-outline" aria-hidden="true"></ion-icon> Marcar como enviada
+                </button>
+              }
+              @if (v.stage === 'shipping' && v.trackingCode) {
+                <button type="button" class="btn btn--accent" (click)="track(v, $event)">Rastrear</button>
+              }
+            </div>
+          </article>
+        }
+      }
+    }
   </div>
 </ion-content>

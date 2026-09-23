@@ -255,6 +255,11 @@ export class FirebaseProducts {
     return updateDoc(itemDocRef, data);
   }
 
+  /** Grava só os campos informados (ex.: preço e estoque pela tela do anúncio). */
+  updateFields(id: string, fields: { price?: number; priceDiscounted?: number | null; stock?: number }) {
+    return updateDoc(doc(this.db, 'products', id), { ...fields, updatedAt: new Date() });
+  }
+
   delete(id: string) {
     return deleteDoc(doc(this.db, 'products', id));
   }

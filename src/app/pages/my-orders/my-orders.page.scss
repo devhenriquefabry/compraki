@@ -10,194 +10,25 @@
  * dentro de um nó marinho.
  */
 
+@use '../../../theme/vn-commerce' as vc;
+
 /* O ion-modal se move para fora da página, então os tokens vão nele também. */
 :host,
 .mo-refund-modal {
-  --mo-navy: var(--vn-navy-800, #14202E);
-  --mo-navy-2: var(--vn-navy-700, #1F2E40);
-  --mo-neon: var(--vn-neon, #DEFF1A);
-  --mo-green: var(--vn-neon-ink, #4D7C0F);
-  --mo-ground: var(--vn-ground, #EDF0F3);
-  --mo-ink: var(--vn-ink, #0D1420);
-  --mo-ink-2: var(--vn-ink-2, #3A4452);
-  --mo-muted: var(--vn-ink-muted, #5B6573);
-  --mo-line: var(--vn-line, #DDE2E8);
-  --mo-amber: #A04A07;
-  --mo-rust: #9A3412;
-  --mo-display: var(--vn-font-display, 'Sora', 'Nunito', system-ui, sans-serif);
-  --mo-body: var(--vn-font-body, 'Nunito', system-ui, sans-serif);
+  @include vc.tokens;
 }
 
-button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  cursor: pointer;
-
-  &:disabled { cursor: default; }
-}
-
-:is(button, a):focus-visible {
-  outline: 2px solid var(--mo-green);
-  outline-offset: 2px;
-  border-radius: 8px;
-}
-
-/* ------------------------------------------------------------------ topo */
-
-.mo-header {
-  background: var(--mo-navy);
-  padding-top: var(--ion-safe-area-top, 0);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.mo-bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 56px;
-  padding: 0 6px;
-  color: #fff;
-}
-
-.mo-title {
-  flex: 1;
-  margin: 0 0 0 4px;
-  font-family: var(--mo-display);
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #fff;
-}
-
-.mo-icon-btn {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  color: #fff;
-  transition: background-color 0.15s;
-
-  ion-icon { font-size: 23px; }
-  &:hover { background: rgba(255, 255, 255, 0.08); }
-  &:focus-visible { outline-color: var(--mo-neon); border-radius: 50%; }
-}
-
-.mo-search {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-
-  &:focus-within { box-shadow: 0 0 0 2px var(--mo-neon); }
-
-  ion-icon { font-size: 18px; flex-shrink: 0; }
-
-  input {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: #fff;
-    font: 600 15px var(--mo-body);
-
-    &::placeholder { color: rgba(255, 255, 255, 0.55); }
-    &::-webkit-search-cancel-button { filter: invert(1); }
-  }
-}
-
-.mo-text-btn {
-  height: 44px;
-  padding: 0 10px;
-  color: #fff;
-  font-weight: 700;
-  font-size: 14px;
-  &:focus-visible { outline-color: var(--mo-neon); }
-}
-
-.mo-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 0 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
-  &::-webkit-scrollbar { display: none; }
-}
-
-.mo-tab {
-  position: relative;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 46px;
-  padding: 0 12px;
-  scroll-snap-align: center;
-  color: rgba(255, 255, 255, 0.64);
-  font-size: 14.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: color 0.15s;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    bottom: 0;
-    height: 3px;
-    border-radius: 3px 3px 0 0;
-    background: var(--mo-neon);
-    transform: scaleX(0);
-    transition: transform 0.2s ease;
-  }
-
-  &:hover { color: #fff; }
-
-  &.is-active {
-    color: #fff;
-    &::after { transform: scaleX(1); }
-  }
-
-  &:focus-visible { outline-color: var(--mo-neon); outline-offset: -4px; }
-}
-
-.mo-tab-count {
-  display: inline-grid;
-  place-items: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: var(--mo-neon);
-  color: var(--mo-ink);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
-}
+@include vc.base;
+@include vc.header;
+@include vc.content;
+@include vc.trail;
+@include vc.buttons;
+@include vc.empty;
+@include vc.skeleton;
+@include vc.desktop-header;
+@include vc.reduced-motion;
 
 /* ----------------------------------------------------------------- lista */
-
-.mo-content {
-  --background: var(--mo-ground);
-}
-
-.mo-wrap {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 10px 10px 40px;
-  font-family: var(--mo-body);
-}
 
 .oc {
   margin-bottom: 10px;
@@ -230,7 +61,7 @@ button {
   gap: 8px;
   min-width: 0;
   min-height: 32px;
-  color: var(--mo-ink);
+  color: var(--vc-ink);
   text-align: left;
 }
 
@@ -240,10 +71,10 @@ button {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px var(--mo-line);
+  box-shadow: 0 0 0 1px var(--vc-line);
 }
 
-.oc-store-icon { font-size: 20px; color: var(--mo-ink-2); flex-shrink: 0; }
+.oc-store-icon { font-size: 20px; color: var(--vc-ink-2); flex-shrink: 0; }
 
 .oc-store-name {
   overflow: hidden;
@@ -253,20 +84,20 @@ button {
   font-weight: 800;
 }
 
-.oc-store-chevron { font-size: 14px; color: var(--mo-muted); flex-shrink: 0; }
+.oc-store-chevron { font-size: 14px; color: var(--vc-muted); flex-shrink: 0; }
 
 .oc-status {
   flex-shrink: 0;
   font-size: 14px;
   font-weight: 700;
-  color: var(--mo-ink-2);
+  color: var(--vc-ink-2);
 }
 
-.oc[data-stage='pay'] .oc-status { color: var(--mo-amber); }
+.oc[data-stage='pay'] .oc-status { color: var(--vc-amber); }
 .oc[data-stage='shipping'] .oc-status,
-.oc[data-stage='done'] .oc-status { color: var(--mo-green); }
-.oc[data-stage='refund'] .oc-status { color: var(--mo-rust); }
-.oc[data-stage='cancelled'] .oc-status { color: var(--mo-muted); }
+.oc[data-stage='done'] .oc-status { color: var(--vc-green); }
+.oc[data-stage='refund'] .oc-status { color: var(--vc-rust); }
+.oc[data-stage='cancelled'] .oc-status { color: var(--vc-muted); }
 
 .oc-items {
   list-style: none;
@@ -291,8 +122,8 @@ button {
   flex-shrink: 0;
   border-radius: 10px;
   object-fit: cover;
-  background: var(--mo-ground);
-  box-shadow: inset 0 0 0 1px var(--mo-line);
+  background: var(--vc-ground);
+  box-shadow: inset 0 0 0 1px var(--vc-line);
 }
 
 .oc-item-body {
@@ -311,7 +142,7 @@ button {
   font-size: 14.5px;
   font-weight: 600;
   line-height: 1.3;
-  color: var(--mo-ink);
+  color: var(--vc-ink);
 }
 
 .oc-item-meta {
@@ -320,7 +151,7 @@ button {
   justify-content: space-between;
   gap: 8px;
   font-size: 12.5px;
-  color: var(--mo-muted);
+  color: var(--vc-muted);
 }
 
 .oc-variant {
@@ -329,7 +160,7 @@ button {
   white-space: nowrap;
   padding: 1px 6px;
   border-radius: 4px;
-  background: var(--mo-ground);
+  background: var(--vc-ground);
 }
 
 .oc-qty { margin-left: auto; font-weight: 700; }
@@ -337,17 +168,17 @@ button {
 .oc-price {
   margin-top: auto;
   text-align: right;
-  font-family: var(--mo-display);
+  font-family: var(--vc-display);
   font-size: 15px;
   font-weight: 600;
-  color: var(--mo-ink);
+  color: var(--vc-ink);
 
   s {
     margin-right: 4px;
-    font-family: var(--mo-body);
+    font-family: var(--vc-body);
     font-size: 12.5px;
     font-weight: 600;
-    color: var(--mo-muted);
+    color: var(--vc-muted);
   }
 }
 
@@ -361,7 +192,7 @@ button {
   margin-top: 6px;
   font-size: 13px;
   font-weight: 700;
-  color: var(--mo-muted);
+  color: var(--vc-muted);
 
   ion-icon { transition: transform 0.2s; }
   .is-flipped { transform: rotate(180deg); }
@@ -371,14 +202,14 @@ button {
   margin: 12px 0 0;
   text-align: right;
   font-size: 13.5px;
-  color: var(--mo-ink-2);
+  color: var(--vc-ink-2);
 
   strong {
     margin-left: 2px;
-    font-family: var(--mo-display);
+    font-family: var(--vc-display);
     font-size: 17px;
     font-weight: 700;
-    color: var(--mo-ink);
+    color: var(--vc-ink);
   }
 }
 
@@ -392,7 +223,7 @@ button {
   border-radius: 12px;
   font-size: 13.5px;
   line-height: 1.45;
-  color: var(--mo-ink-2);
+  color: var(--vc-ink-2);
 
   p { margin: 0; }
 }
@@ -409,26 +240,26 @@ button {
 
 .oc-panel--route {
   background: #F2F7E6;
-  .oc-panel-title { color: var(--mo-green); }
+  .oc-panel-title { color: var(--vc-green); }
 }
 
 .oc-panel--pay {
   background: #FFF6E9;
-  .oc-panel-icon, .oc-panel-title { color: var(--mo-amber); }
+  .oc-panel-icon, .oc-panel-title { color: var(--vc-amber); }
 }
 
 .oc-panel--refund {
   background: #FDF1EB;
-  .oc-panel-icon, .oc-panel-title { color: var(--mo-rust); }
+  .oc-panel-icon, .oc-panel-title { color: var(--vc-rust); }
 }
 
-.oc-warn { color: var(--mo-rust); font-weight: 700; }
+.oc-warn { color: var(--vc-rust); font-weight: 700; }
 
 .oc-code {
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--mo-ink);
+  color: var(--vc-ink);
 }
 
 .oc-copy {
@@ -438,7 +269,7 @@ button {
   height: 32px;
   margin: -8px 0;
   vertical-align: middle;
-  color: var(--mo-green);
+  color: var(--vc-green);
   ion-icon { font-size: 16px; }
 }
 
@@ -447,113 +278,11 @@ button {
   padding: 4px 0;
   font-size: 13px;
   font-weight: 700;
-  color: var(--mo-ink-2);
+  color: var(--vc-ink-2);
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-color: rgba(58, 68, 82, 0.35);
 }
-
-/* Trilha de entrega: Pago → Preparando → A caminho → Entregue. */
-.trail {
-  display: flex;
-  margin: 14px -6px 2px;
-  padding: 0;
-  list-style: none;
-}
-
-.trail-step {
-  --node: 10px;
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-
-  /* Segmento que liga este marco ao anterior. */
-  & + &::before {
-    content: '';
-    position: absolute;
-    top: 7px;
-    right: 50%;
-    left: -50%;
-    height: 2px;
-    border-radius: 2px;
-    background: #D3DCC2;
-  }
-
-  &.is-done::before,
-  &.is-current::before { background: var(--mo-green); }
-}
-
-.trail-node {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-
-  &::before {
-    content: '';
-    width: var(--node);
-    height: var(--node);
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: inset 0 0 0 2px #C4CEB2;
-  }
-}
-
-.trail-step.is-done .trail-node::before {
-  background: var(--mo-green);
-  box-shadow: none;
-}
-
-/* O marco atual: nó marinho com miolo neon (neon só sobre escuro). */
-.trail-step.is-current .trail-node {
-  &::before {
-    width: 16px;
-    height: 16px;
-    background: radial-gradient(circle, var(--mo-neon) 0 3.5px, var(--mo-navy) 4px);
-    box-shadow: none;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    border: 2px solid var(--mo-navy);
-    opacity: 0;
-    animation: trail-pulse 2.4s ease-out infinite;
-  }
-}
-
-/* Entregue: o nó final fica marcado, mas sem pulsar — não há mais o que esperar. */
-.trail--done .trail-step.is-current .trail-node::after { display: none; }
-
-@keyframes trail-pulse {
-  0% { opacity: 0.35; transform: scale(0.7); }
-  70%, 100% { opacity: 0; transform: scale(1.35); }
-}
-
-.trail-label {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--mo-muted);
-}
-
-.trail-step.is-done .trail-label,
-.trail-step.is-current .trail-label {
-  font-weight: 800;
-  color: var(--mo-ink);
-}
-
 /* ---------------------------------------------------------------- ações */
 
 .oc-actions {
@@ -566,54 +295,6 @@ button {
   &:empty { display: none; }
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 42px;
-  padding: 0 18px;
-  border-radius: 10px;
-  font-family: var(--mo-body);
-  font-size: 14.5px;
-  font-weight: 800;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
-
-  &:active { transform: scale(0.98); }
-  ion-icon { font-size: 16px; }
-}
-
-.btn--primary {
-  background: var(--mo-navy);
-  color: #fff;
-
-  ion-icon { color: var(--mo-neon); }
-  &:hover { background: var(--mo-navy-2); }
-}
-
-.btn--outline {
-  background: #fff;
-  color: var(--mo-ink);
-  box-shadow: inset 0 0 0 1.5px #C7CED8;
-  &:hover { box-shadow: inset 0 0 0 1.5px var(--mo-ink-2); }
-}
-
-.btn--accent {
-  background: #fff;
-  color: var(--mo-green);
-  box-shadow: inset 0 0 0 1.5px var(--mo-green);
-  &:hover { background: #F2F7E6; }
-}
-
-.btn--ghost {
-  color: var(--mo-ink-2);
-  padding: 0 12px;
-  &:hover { background: var(--mo-ground); }
-}
-
-.btn--block { width: 100%; }
 
 .oc-meta {
   display: flex;
@@ -621,9 +302,9 @@ button {
   justify-content: space-between;
   gap: 12px;
   padding: 8px 0 10px;
-  border-top: 1px dashed var(--mo-line);
+  border-top: 1px dashed var(--vc-line);
   font-size: 12.5px;
-  color: var(--mo-muted);
+  color: var(--vc-muted);
 }
 
 .oc-id {
@@ -633,63 +314,13 @@ button {
   min-height: 32px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--mo-muted);
+  color: var(--vc-muted);
 
   ion-icon { font-size: 14px; }
-  &:hover { color: var(--mo-ink); }
+  &:hover { color: var(--vc-ink); }
 }
 
-/* ------------------------------------------------ vazio, erro, esqueleto */
 
-.mo-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 64px 24px;
-  text-align: center;
-
-  h2 {
-    margin: 12px 0 0;
-    font-family: var(--mo-display);
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--mo-ink);
-  }
-
-  p {
-    max-width: 320px;
-    margin: 0 0 12px;
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--mo-muted);
-  }
-}
-
-.mo-empty-mark {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  background: var(--mo-navy);
-  color: #fff;
-
-  ion-icon { font-size: 34px; }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--mo-neon);
-    box-shadow: 0 0 0 3px var(--mo-navy);
-  }
-}
 
 .oc--skeleton {
   display: grid;
@@ -698,31 +329,12 @@ button {
   animation: none;
 }
 
-.sk {
-  border-radius: 8px;
-  background: linear-gradient(90deg, #EEF1F4 25%, #F7F8FA 50%, #EEF1F4 75%) 0 0 / 200% 100%;
-  animation: sk-shimmer 1.3s linear infinite;
-}
-
-.sk-row { display: flex; gap: 12px; }
-.sk-col { flex: 1; display: grid; gap: 8px; align-content: start; }
-.sk-line { height: 14px; }
-.sk-w30 { width: 30%; }
-.sk-w40 { width: 40%; }
-.sk-w80 { width: 80%; }
-.sk-thumb { width: 76px; height: 76px; border-radius: 10px; }
-.sk-panel { height: 64px; border-radius: 12px; }
-
-@keyframes sk-shimmer {
-  to { background-position: -200% 0; }
-}
-
 /* ------------------------------------------------------ modal devolução */
 
 .rf {
   max-width: 520px;
   margin: 0 auto;
-  font-family: var(--mo-body);
+  font-family: var(--vc-body);
 }
 
 .rf-note {
@@ -731,18 +343,18 @@ button {
   padding: 14px;
   border-radius: 12px;
   background: #F2F7E6;
-  color: var(--mo-ink-2);
+  color: var(--vc-ink-2);
 
-  ion-icon { font-size: 22px; flex-shrink: 0; color: var(--mo-green); }
+  ion-icon { font-size: 22px; flex-shrink: 0; color: var(--vc-green); }
   p { margin: 0; font-size: 14px; line-height: 1.5; }
 }
 
 .rf-order {
   margin: 20px 0 16px;
-  font-family: var(--mo-display);
+  font-family: var(--vc-display);
   font-size: 16px;
   font-weight: 600;
-  color: var(--mo-ink);
+  color: var(--vc-ink);
 }
 
 .rf-label {
@@ -750,7 +362,7 @@ button {
   margin-bottom: 6px;
   font-size: 14px;
   font-weight: 800;
-  color: var(--mo-ink);
+  color: var(--vc-ink);
 }
 
 .rf-textarea {
@@ -759,92 +371,27 @@ button {
   border: 1.5px solid #C7CED8;
   border-radius: 10px;
   resize: vertical;
-  font: 500 15px/1.5 var(--mo-body);
-  color: var(--mo-ink);
+  font: 500 15px/1.5 var(--vc-body);
+  color: var(--vc-ink);
   background: #fff;
 
-  &:focus { outline: 0; border-color: var(--mo-green); box-shadow: 0 0 0 3px rgba(77, 124, 15, 0.15); }
+  &:focus { outline: 0; border-color: var(--vc-green); box-shadow: 0 0 0 3px rgba(77, 124, 15, 0.15); }
   &::placeholder { color: #8A93A0; }
 }
 
 .rf-hint {
   margin: 6px 0 20px;
   font-size: 12.5px;
-  color: var(--mo-muted);
+  color: var(--vc-muted);
 }
 
 /* -------------------------------------------------------------- desktop */
-
-/*
- * No site o header de loja (marinho) já fica fixo em cima. Repetir outra faixa
- * marinha colaria as duas; aqui o topo vira título de página e as abas viram
- * uma barra branca, com o sublinhado marinho no lugar do neon.
- */
 :host-context(html.vn-desktop-shell) {
-  .mo-header {
-    background: var(--mo-ground);
-    padding-top: 12px;
-    box-shadow: none;
-  }
-
-  .mo-bar,
-  .mo-tabs {
-    max-width: 720px;
-    margin: 0 auto;
-  }
-
-  .mo-bar { padding: 0; height: 60px; color: var(--mo-ink); }
-  .mo-back { display: none; }
-
-  .mo-title {
-    margin: 0;
-    font-size: 26px;
-    color: var(--mo-ink);
-  }
-
-  .mo-icon-btn {
-    color: var(--mo-ink);
-    &:hover { background: rgba(13, 20, 32, 0.06); }
-    &:focus-visible { outline-color: var(--mo-green); }
-  }
-
-  .mo-search {
-    background: #fff;
-    color: var(--mo-muted);
-    box-shadow: inset 0 0 0 1px var(--mo-line);
-    &:focus-within { box-shadow: inset 0 0 0 2px var(--mo-green); }
-    input { color: var(--mo-ink); &::placeholder { color: #8A93A0; } }
-  }
-
-  .mo-text-btn { color: var(--mo-ink); }
-
-  .mo-tabs {
-    padding: 0 6px;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
-  }
-
-  .mo-tab {
-    flex: 1;
-    justify-content: center;
-    color: var(--mo-muted);
-    &::after { background: var(--mo-navy); }
-    &:hover, &.is-active { color: var(--mo-ink); }
-    &:focus-visible { outline-color: var(--mo-green); }
-  }
-
-  .mo-tab-count {
-    background: var(--mo-navy);
-    color: var(--mo-neon);
-  }
-
-  .mo-wrap { padding: 14px 0 48px; }
-
+  .pg-wrap { padding: 14px 0 48px; }
   .oc { padding: 18px 20px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .oc, .sk, .trail-step.is-current .trail-node::after { animation: none; }
-  .mo-tab::after, .oc-more ion-icon, .btn { transition: none; }
+  .oc { animation: none; }
+  .oc-more ion-icon { transition: none; }
 }

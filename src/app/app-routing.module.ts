@@ -106,6 +106,11 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'purchase-history',
+    loadComponent: () => import('./pages/purchase-history/purchase-history.page').then(m => m.PurchaseHistoryPage),
+    canActivate: [authGuard]
+  },
+  {
     path: 'payment-success',
     loadChildren: () => import('./pages/payment-success/payment-success.module').then( m => m.PaymentSuccessPageModule),
     canActivate: [authGuard]

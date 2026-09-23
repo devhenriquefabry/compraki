@@ -1,11 +1,11 @@
-<ion-header class="ion-no-border mo-header">
-  <div class="mo-bar">
-    <button type="button" class="mo-icon-btn mo-back" (click)="goBack()" aria-label="Voltar">
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
       <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
     </button>
 
     @if (searchOpen()) {
-      <label class="mo-search">
+      <label class="pg-search">
         <span class="vn-sr-only">Buscar nas compras</span>
         <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
         <input
@@ -17,39 +17,39 @@
           (ngModelChange)="search.set($event)"
           (keydown.escape)="toggleSearch()" />
       </label>
-      <button type="button" class="mo-text-btn" (click)="toggleSearch()">Cancelar</button>
+      <button type="button" class="pg-text-btn" (click)="toggleSearch()">Cancelar</button>
     } @else {
-      <h1 class="mo-title">Minhas compras</h1>
-      <button type="button" class="mo-icon-btn" (click)="toggleSearch()" aria-label="Buscar nas compras">
+      <h1 class="pg-title">Minhas compras</h1>
+      <button type="button" class="pg-icon-btn" (click)="toggleSearch()" aria-label="Buscar nas compras">
         <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
       </button>
-      <button type="button" class="mo-icon-btn" (click)="openChats()" aria-label="Conversas com lojas">
+      <button type="button" class="pg-icon-btn" (click)="openChats()" aria-label="Conversas com lojas">
         <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon>
       </button>
     }
   </div>
 
-  <nav class="mo-tabs" #tabStrip role="tablist" aria-label="Filtrar compras por etapa" (keydown)="onTabKeydown($event)">
+  <nav class="pg-tabs" #tabStrip role="tablist" aria-label="Filtrar compras por etapa" (keydown)="onTabKeydown($event)">
     @for (t of tabs; track t.id) {
       <button
         type="button"
         role="tab"
-        class="mo-tab"
+        class="pg-tab"
         [class.is-active]="tab() === t.id"
         [attr.aria-selected]="tab() === t.id"
         [attr.tabindex]="tab() === t.id ? 0 : -1"
         (click)="selectTab(t.id, $event)">
         {{ t.label }}
         @if (isCounted(t.id) && counts()[t.id]) {
-          <span class="mo-tab-count" [attr.aria-label]="counts()[t.id] + ' pedidos'">{{ counts()[t.id] }}</span>
+          <span class="pg-tab-count" [attr.aria-label]="counts()[t.id] + ' pedidos'">{{ counts()[t.id] }}</span>
         }
       </button>
     }
   </nav>
 </ion-header>
 
-<ion-content class="mo-content">
-  <div class="mo-wrap" role="tabpanel">
+<ion-content class="pg-content">
+  <div class="pg-wrap" role="tabpanel">
 
     @if (isLoading()) {
       @for (s of skeletons; track s) {
@@ -66,8 +66,8 @@
         </div>
       }
     } @else if (loadError()) {
-      <div class="mo-empty">
-        <div class="mo-empty-mark"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon></div>
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon></div>
         <h2>Não conseguimos carregar suas compras</h2>
         <p>Verifique a conexão e tente de novo.</p>
         <button type="button" class="btn btn--primary" (click)="load()">
@@ -76,8 +76,8 @@
       </div>
     } @else if (!visible().length) {
       @let copy = emptyCopy(tab());
-      <div class="mo-empty">
-        <div class="mo-empty-mark"><ion-icon name="bag-handle-outline" aria-hidden="true"></ion-icon></div>
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="bag-handle-outline" aria-hidden="true"></ion-icon></div>
         @if (search()) {
           <h2>Nada encontrado para “{{ search() }}”</h2>
           <p>Busque pelo nome do produto ou pelo número do pedido.</p>

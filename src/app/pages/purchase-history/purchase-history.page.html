@@ -1,0 +1,174 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Histórico de compras</h1>
+    <button type="button" class="pg-icon-btn" (click)="exportCsv()" [disabled]="!filtered().length" aria-label="Baixar extrato em CSV">
+      <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+    </button>
+  </div>
+
+  <nav class="pg-tabs" role="tablist" aria-label="Período">
+    @for (p of periods; track p.id) {
+      <button
+        type="button"
+        role="tab"
+        class="pg-tab"
+        [class.is-active]="!month() && period() === p.id"
+        [attr.aria-selected]="!month() && period() === p.id"
+        (click)="setPeriod(p.id)">
+        {{ p.label }}
+      </button>
+    }
+  </nav>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (isLoading()) {
+      <div class="sk sk-ledger" aria-hidden="true"></div>
+      <div class="sk sk-chart" aria-hidden="true"></div>
+    } @else if (loadError()) {
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Não conseguimos carregar seu histórico</h2>
+        <p>Verifique a conexão e tente de novo.</p>
+        <button type="button" class="btn btn--primary" (click)="load()">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Tentar de novo
+        </button>
+      </div>
+    } @else if (!entries().length) {
+      <div class="pg-empty">
+        <div class="pg-empty-mark"><ion-icon name="receipt-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Nenhuma compra paga ainda</h2>
+        <p>Quando um pagamento for aprovado, a compra entra aqui com valor, loja e data.</p>
+        <a class="btn btn--primary" routerLink="/tabs/tab2">Explorar produtos</a>
+      </div>
+    } @else {
+      @let t = totals();
+
+      <div class="top">
+        <!-- Quanto gastou -->
+        <section class="ledger" aria-label="Resumo do período">
+          <span class="ledger-label">
+            {{ selectedMonthLabel() ? 'Gasto em ' + selectedMonthLabel() : 'Você gastou' }}
+          </span>
+          <strong class="ledger-value">{{ t.spent | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+          <dl class="ledger-split">
+            <div>
+              <dt>Compras</dt>
+              <dd>{{ t.count }}</dd>
+            </div>
+            <div>
+              <dt>Ticket médio</dt>
+              <dd>{{ t.average | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd>
+            </div>
+          </dl>
+          @if (t.saved > 0) {
+            <p class="saved">
+              <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
+              Você economizou <strong>{{ t.saved | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong> com promoções
+            </p>
+          }
+        </section>
+
+        <!-- Gasto por mês -->
+        <section class="sheet chart" aria-labelledby="ph-chart">
+          <h2 class="sheet-title" id="ph-chart">
+            Gasto por mês
+            @if (selectedMonthLabel()) {
+              <button type="button" class="chip-clear" (click)="clearMonth()">
+                {{ selectedMonthLabel() }} <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+                <span class="vn-sr-only">Limpar mês</span>
+              </button>
+            } @else if (peak().total) {
+              <span class="chart-peak">Maior: {{ peak().label }} · {{ peak().total | currency:'BRL':'symbol':'1.0-0':'pt-BR' }}</span>
+            }
+          </h2>
+
+          <div class="bars" role="group" aria-label="Gasto nos últimos 12 meses. Toque num mês para ver só ele." (mouseleave)="hovered.set(null)">
+            @for (b of bars(); track b.key) {
+              <button
+                type="button"
+                class="bar"
+                [class.is-dim]="!b.inPeriod"
+                [class.is-on]="month() === b.key"
+                [class.is-empty]="!b.count"
+                [attr.aria-label]="b.long + ': ' + (b.total | currency:'BRL':'symbol':'1.2-2':'pt-BR') + ', ' + b.count + (b.count === 1 ? ' compra' : ' compras')"
+                [attr.aria-pressed]="month() === b.key"
+                (mouseenter)="hovered.set(b.key)"
+                (focus)="hovered.set(b.key)"
+                (blur)="hovered.set(null)"
+                (click)="pickMonth(b)">
+                @if (hovered() === b.key && b.count) {
+                  <span class="tip" role="tooltip">
+                    <strong>{{ b.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                    {{ b.long }} · {{ b.count }} {{ b.count === 1 ? 'compra' : 'compras' }}
+                  </span>
+                }
+                <span class="bar-track"><span class="bar-fill" [style.height.%]="b.height"></span></span>
+                <span class="bar-label">{{ b.label }}</span>
+              </button>
+            }
+          </div>
+        </section>
+      </div>
+
+      @if (topStores().length) {
+        <section class="sheet" aria-labelledby="ph-stores">
+          <h2 class="sheet-title" id="ph-stores">Onde você mais comprou</h2>
+          <ol class="stores">
+            @for (s of topStores(); track s.id) {
+              <li>
+                <a class="store" [routerLink]="['/seller-profile', s.id]">
+                  <span class="store-name"><ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>{{ sellerName(s.id) }}</span>
+                  <span class="store-bar" aria-hidden="true"><span [style.width.%]="s.share"></span></span>
+                  <span class="store-value">
+                    {{ s.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    <small>{{ s.count }} {{ s.count === 1 ? 'compra' : 'compras' }}</small>
+                  </span>
+                </a>
+              </li>
+            }
+          </ol>
+        </section>
+      }
+
+      <!-- Extrato -->
+      @if (!groups().length) {
+        <div class="pg-empty pg-empty--inline">
+          <h2>Nenhuma compra neste período</h2>
+          <p>Escolha um período maior acima.</p>
+        </div>
+      }
+      @for (g of groups(); track g.key) {
+        <section class="month" [attr.aria-label]="g.label">
+          <h2 class="month-head">
+            <span>{{ g.label }}</span>
+            <span class="month-total">{{ g.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+          </h2>
+          <ul class="entries">
+            @for (e of g.entries; track e.id) {
+              <li>
+                <button type="button" class="entry" [class.is-refunded]="e.refunded" (click)="openOrder(e)">
+                  <img [src]="e.photo" alt="" loading="lazy" />
+                  <span class="entry-body">
+                    <span class="entry-title">{{ e.title }}@if (e.extra) { <em> + {{ e.extra }} {{ e.extra === 1 ? 'item' : 'itens' }}</em> }</span>
+                    <span class="entry-meta">{{ storeName(e) }} · {{ e.dateLabel }} · {{ e.method }}</span>
+                  </span>
+                  <span class="entry-side">
+                    <strong>{{ e.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                    @if (e.refunded) { <small class="tag tag--refund">Estornado</small> }
+                    @else if (e.saved > 0) { <small class="tag">−{{ e.saved | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</small> }
+                  </span>
+                  <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    }
+  </div>
+</ion-content>

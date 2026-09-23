@@ -1,0 +1,856 @@
+/*
+ * Base visual das telas de pedido da Vineon (Minhas compras, Histórico,
+ * Vendas, Detalhe da venda, Gerenciar anúncio).
+ * ----------------------------------------------------------------------------
+ * Marinho no topo, neon só sobre fundo escuro, `--vn-neon-ink` para verde em
+ * fundo claro (regra do neon em theme/desktop.scss). Cada página chama os
+ * mixins que usa; o que é só dela fica no próprio .scss.
+ */
+
+@mixin tokens {
+  --vc-navy: var(--vn-navy-800, #14202E);
+  --vc-navy-2: var(--vn-navy-700, #1F2E40);
+  --vc-neon: var(--vn-neon, #DEFF1A);
+  --vc-green: var(--vn-neon-ink, #4D7C0F);
+  --vc-ground: var(--vn-ground, #EDF0F3);
+  --vc-ink: var(--vn-ink, #0D1420);
+  --vc-ink-2: var(--vn-ink-2, #3A4452);
+  --vc-muted: var(--vn-ink-muted, #5B6573);
+  --vc-line: var(--vn-line, #DDE2E8);
+  --vc-amber: #A04A07;
+  --vc-rust: #9A3412;
+  --vc-display: var(--vn-font-display, 'Sora', 'Nunito', system-ui, sans-serif);
+  --vc-body: var(--vn-font-body, 'Nunito', system-ui, sans-serif);
+}
+
+@mixin base {
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+
+    &:disabled { cursor: default; }
+  }
+
+  :is(button, a):focus-visible {
+    outline: 2px solid var(--vc-green);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+/* Topo marinho: barra com voltar/título/ações e, embaixo, abas roláveis. */
+@mixin header {
+  .pg-header {
+    background: var(--vc-navy);
+    padding-top: var(--ion-safe-area-top, 0);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .pg-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 56px;
+    padding: 0 6px;
+    color: #fff;
+  }
+
+  .pg-title {
+    flex: 1;
+    margin: 0 0 0 4px;
+    font-family: var(--vc-display);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+
+  .pg-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    color: #fff;
+    transition: background-color 0.15s;
+
+    ion-icon { font-size: 23px; }
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+    &:focus-visible { outline-color: var(--vc-neon); border-radius: 50%; }
+  }
+
+  .pg-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+
+    &:focus-within { box-shadow: 0 0 0 2px var(--vc-neon); }
+
+    ion-icon { font-size: 18px; flex-shrink: 0; }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #fff;
+      font: 600 15px var(--vc-body);
+
+      &::placeholder { color: rgba(255, 255, 255, 0.55); }
+      &::-webkit-search-cancel-button { filter: invert(1); }
+    }
+  }
+
+  .pg-text-btn {
+    height: 44px;
+    padding: 0 10px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    &:focus-visible { outline-color: var(--vc-neon); }
+  }
+
+  .pg-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .pg-tab {
+    position: relative;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 46px;
+    padding: 0 12px;
+    scroll-snap-align: center;
+    color: rgba(255, 255, 255, 0.64);
+    font-size: 14.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: color 0.15s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--vc-neon);
+      transform: scaleX(0);
+      transition: transform 0.2s ease;
+    }
+
+    &:hover { color: #fff; }
+
+    &.is-active {
+      color: #fff;
+      &::after { transform: scaleX(1); }
+    }
+
+    &:focus-visible { outline-color: var(--vc-neon); outline-offset: -4px; }
+  }
+
+  .pg-tab-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--vc-neon);
+    color: var(--vc-ink);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+  }
+}
+
+@mixin content($max: 720px) {
+  .pg-content {
+    --background: var(--vc-ground);
+  }
+
+  .pg-wrap {
+    max-width: $max;
+    margin: 0 auto;
+    padding: 10px 10px 40px;
+    font-family: var(--vc-body);
+  }
+}
+
+/* Trilha de etapas: o marco atual é um nó marinho com miolo neon. */
+@mixin trail {
+
+  /* Trilha de entrega: Pago → Preparando → A caminho → Entregue. */
+  .trail {
+    display: flex;
+    margin: 14px -6px 2px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .trail-step {
+    --node: 10px;
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+
+    /* Segmento que liga este marco ao anterior. */
+    & + &::before {
+      content: '';
+      position: absolute;
+      top: 7px;
+      right: 50%;
+      left: -50%;
+      height: 2px;
+      border-radius: 2px;
+      background: #D3DCC2;
+    }
+
+    &.is-done::before,
+    &.is-current::before { background: var(--vc-green); }
+  }
+
+  .trail-node {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+
+    &::before {
+      content: '';
+      width: var(--node);
+      height: var(--node);
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: inset 0 0 0 2px #C4CEB2;
+    }
+  }
+
+  .trail-step.is-done .trail-node::before {
+    background: var(--vc-green);
+    box-shadow: none;
+  }
+
+  /* O marco atual: nó marinho com miolo neon (neon só sobre escuro). */
+  .trail-step.is-current .trail-node {
+    &::before {
+      width: 16px;
+      height: 16px;
+      background: radial-gradient(circle, var(--vc-neon) 0 3.5px, var(--vc-navy) 4px);
+      box-shadow: none;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid var(--vc-navy);
+      opacity: 0;
+      animation: trail-pulse 2.4s ease-out infinite;
+    }
+  }
+
+  /* Entregue: o nó final fica marcado, mas sem pulsar — não há mais o que esperar. */
+  .trail--done .trail-step.is-current .trail-node::after { display: none; }
+
+  @keyframes trail-pulse {
+    0% { opacity: 0.35; transform: scale(0.7); }
+    70%, 100% { opacity: 0; transform: scale(1.35); }
+  }
+
+  .trail-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--vc-muted);
+  }
+
+  .trail-step.is-done .trail-label,
+  .trail-step.is-current .trail-label {
+    font-weight: 800;
+    color: var(--vc-ink);
+  }
+}
+
+@mixin buttons {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-family: var(--vc-body);
+    font-size: 14.5px;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+
+    &:active { transform: scale(0.98); }
+    ion-icon { font-size: 16px; }
+  }
+
+  .btn--primary {
+    background: var(--vc-navy);
+    color: #fff;
+
+    ion-icon { color: var(--vc-neon); }
+    &:hover { background: var(--vc-navy-2); }
+  }
+
+  .btn--outline {
+    background: #fff;
+    color: var(--vc-ink);
+    box-shadow: inset 0 0 0 1.5px #C7CED8;
+    &:hover { box-shadow: inset 0 0 0 1.5px var(--vc-ink-2); }
+  }
+
+  .btn--accent {
+    background: #fff;
+    color: var(--vc-green);
+    box-shadow: inset 0 0 0 1.5px var(--vc-green);
+    &:hover { background: #F2F7E6; }
+  }
+
+  .btn--ghost {
+    color: var(--vc-ink-2);
+    padding: 0 12px;
+    &:hover { background: var(--vc-ground); }
+  }
+
+  .btn--block { width: 100%; }
+}
+
+@mixin empty {
+  .pg-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 64px 24px;
+    text-align: center;
+
+    h2 {
+      margin: 12px 0 0;
+      font-family: var(--vc-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--vc-ink);
+    }
+
+    p {
+      max-width: 320px;
+      margin: 0 0 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--vc-muted);
+    }
+  }
+
+  .pg-empty-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: var(--vc-navy);
+    color: #fff;
+
+    ion-icon { font-size: 34px; }
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--vc-neon);
+      box-shadow: 0 0 0 3px var(--vc-navy);
+    }
+  }
+}
+
+@mixin skeleton {
+  .sk {
+    border-radius: 8px;
+    background: linear-gradient(90deg, #EEF1F4 25%, #F7F8FA 50%, #EEF1F4 75%) 0 0 / 200% 100%;
+    animation: sk-shimmer 1.3s linear infinite;
+  }
+
+  .sk-row { display: flex; gap: 12px; }
+  .sk-col { flex: 1; display: grid; gap: 8px; align-content: start; }
+  .sk-line { height: 14px; }
+  .sk-w30 { width: 30%; }
+  .sk-w40 { width: 40%; }
+  .sk-w80 { width: 80%; }
+  .sk-thumb { width: 76px; height: 76px; border-radius: 10px; }
+  .sk-panel { height: 64px; border-radius: 12px; }
+
+  @keyframes sk-shimmer {
+    to { background-position: -200% 0; }
+  }
+}
+
+/*
+ * No site o header de loja (marinho) já fica fixo em cima. Repetir outra faixa
+ * marinha colaria as duas; aqui o topo vira título de página e as abas viram
+ * uma barra branca, com o sublinhado marinho no lugar do neon.
+ */
+@mixin desktop-header($max: 720px) {
+  :host-context(html.vn-desktop-shell) {
+    .pg-header {
+      background: var(--vc-ground);
+      padding-top: 12px;
+      box-shadow: none;
+    }
+
+    .pg-bar,
+    .pg-tabs {
+      max-width: $max;
+      margin: 0 auto;
+    }
+
+    .pg-bar { padding: 0; height: 60px; color: var(--vc-ink); }
+    .pg-back { display: none; }
+
+    .pg-title {
+      margin: 0;
+      font-size: 26px;
+      color: var(--vc-ink);
+    }
+
+    .pg-icon-btn {
+      color: var(--vc-ink);
+      &:hover { background: rgba(13, 20, 32, 0.06); }
+      &:focus-visible { outline-color: var(--vc-green); }
+    }
+
+    .pg-search {
+      background: #fff;
+      color: var(--vc-muted);
+      box-shadow: inset 0 0 0 1px var(--vc-line);
+      &:focus-within { box-shadow: inset 0 0 0 2px var(--vc-green); }
+      input { color: var(--vc-ink); &::placeholder { color: #8A93A0; } }
+    }
+
+    .pg-text-btn { color: var(--vc-ink); }
+
+    .pg-tabs {
+      padding: 0 6px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+    }
+
+    .pg-tab {
+      flex: 1;
+      justify-content: center;
+      color: var(--vc-muted);
+      &::after { background: var(--vc-navy); }
+      &:hover, &.is-active { color: var(--vc-ink); }
+      &:focus-visible { outline-color: var(--vc-green); }
+    }
+
+    .pg-tab-count {
+      background: var(--vc-navy);
+      color: var(--vc-neon);
+    }
+  }
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    .sk, .trail-step.is-current .trail-node::after { animation: none; }
+    .pg-tab::after, .btn { transition: none; }
+  }
+}
+
+/* Painel da etapa dentro do card: verde (andando), âmbar (pagamento), ferrugem (devolução). */
+@mixin panel {
+  .panel {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--vc-ink-2);
+
+    p { margin: 0; }
+    p ion-icon { vertical-align: -2px; margin-right: 2px; }
+  }
+
+  .panel-body { flex: 1; min-width: 0; }
+  .panel-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+  .panel-title {
+    margin-bottom: 2px !important;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .panel--route {
+    background: #F2F7E6;
+    .panel-title { color: var(--vc-green); }
+    .panel-title.is-late { color: var(--vc-rust); }
+  }
+
+  .panel--pay {
+    background: #FFF6E9;
+    .panel-icon, .panel-title { color: var(--vc-amber); }
+  }
+
+  .panel--refund {
+    background: #FDF1EB;
+    .panel-icon, .panel-title { color: var(--vc-rust); }
+  }
+
+  .code {
+    font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--vc-ink);
+  }
+
+  .copy-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    margin: -8px 0;
+    vertical-align: middle;
+    color: var(--vc-green);
+    ion-icon { font-size: 16px; }
+  }
+}
+
+/* Card de pedido: cabeçalho, produtos com miniatura e total. `$p` é o prefixo. */
+@mixin order-card($p) {
+  .#{$p} {
+    margin-bottom: 10px;
+    padding: 14px 14px 0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+    animation: vc-card-in 0.32s ease both;
+
+    @for $i from 1 through 6 {
+      &:nth-of-type(#{$i}) { animation-delay: #{($i - 1) * 40}ms; }
+    }
+  }
+
+  @keyframes vc-card-in {
+    from { opacity: 0; transform: translateY(8px); }
+  }
+
+  .#{$p}-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .#{$p}-status {
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--vc-ink-2);
+  }
+
+  .#{$p}[data-stage='pay'] .#{$p}-status { color: var(--vc-amber); }
+  .#{$p}[data-stage='shipping'] .#{$p}-status,
+  .#{$p}[data-stage='done'] .#{$p}-status { color: var(--vc-green); }
+  .#{$p}[data-stage='refund'] .#{$p}-status { color: var(--vc-rust); }
+  .#{$p}[data-stage='cancelled'] .#{$p}-status { color: var(--vc-muted); }
+
+  .#{$p}-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .#{$p}-item {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+  }
+
+  .#{$p}-thumb {
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    object-fit: cover;
+    background: var(--vc-ground);
+    box-shadow: inset 0 0 0 1px var(--vc-line);
+  }
+
+  .#{$p}-item-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .#{$p}-item-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--vc-ink);
+  }
+
+  .#{$p}-item-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--vc-muted);
+  }
+
+  .#{$p}-variant {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--vc-ground);
+  }
+
+  .#{$p}-qty { margin-left: auto; font-weight: 700; }
+
+  .#{$p}-price {
+    margin-top: auto;
+    text-align: right;
+    font-family: var(--vc-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--vc-ink);
+
+    s {
+      margin-right: 4px;
+      font-family: var(--vc-body);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--vc-muted);
+    }
+  }
+
+  .#{$p}-more {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--vc-muted);
+  }
+
+  .#{$p}-total {
+    margin: 12px 0 0;
+    text-align: right;
+    font-size: 13.5px;
+    color: var(--vc-ink-2);
+
+    strong {
+      margin-left: 2px;
+      font-family: var(--vc-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--vc-ink);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .#{$p} { animation: none; }
+  }
+}
+
+/* Cartão marinho de números: o único lugar claro-sobre-escuro fora do topo. */
+@mixin ledger {
+  .ledger {
+    position: relative;
+    margin-bottom: 12px;
+    padding: 18px 18px 16px;
+    border-radius: 16px;
+    background: var(--vc-navy);
+    color: #fff;
+    overflow: hidden;
+
+    /* Um arco neon no canto: eco do traço do logotipo, sem virar enfeite. */
+    &::before {
+      content: '';
+      position: absolute;
+      top: -48px;
+      right: -48px;
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      border: 2px solid rgba(222, 255, 26, 0.35);
+      pointer-events: none;
+    }
+  }
+
+  .ledger-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.72);
+    &::first-letter { text-transform: uppercase; }
+  }
+
+  .ledger-value {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--vc-display);
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ledger-split {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+
+    dt { font-size: 12.5px; font-weight: 700; color: rgba(255, 255, 255, 0.66); }
+    dd {
+      margin: 2px 0 0;
+      font-family: var(--vc-display);
+      font-size: 16px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .ledger-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    margin-top: 14px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: var(--vc-neon);
+    color: var(--vc-ink);
+    font-size: 13.5px;
+    font-weight: 800;
+
+    ion-icon { font-size: 16px; }
+    &:focus-visible { outline-color: #fff; }
+  }
+
+  .ledger-note {
+    margin: 12px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* Cartão branco genérico com título de seção (detalhe da venda, anúncio, histórico). */
+@mixin sheet {
+  .sheet {
+    margin-bottom: 12px;
+    padding: 16px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+  }
+
+  .sheet-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-family: var(--vc-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--vc-ink);
+  }
+
+  .sheet-link {
+    font-family: var(--vc-body);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--vc-green);
+    text-decoration: none;
+  }
+
+  /* Linhas rótulo/valor (resumo financeiro, dados do pedido). */
+  .kv {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+
+    > div {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    dt { color: var(--vc-muted); font-weight: 600; }
+    dd { margin: 0; color: var(--vc-ink); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .kv-total {
+      margin-top: 4px;
+      padding-top: 10px;
+      border-top: 1px solid var(--vc-line);
+      dt { color: var(--vc-ink); font-weight: 800; }
+      dd { font-family: var(--vc-display); font-size: 18px; }
+    }
+  }
+}

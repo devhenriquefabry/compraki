@@ -279,6 +279,10 @@ export class MyAccountPage implements OnInit, OnDestroy {
     this.navCtrl.navigateForward('/my-orders');
   }
 
+  goToPurchaseHistory() {
+    this.navCtrl.navigateForward('/purchase-history');
+  }
+
   goToSaved() {
     this.navCtrl.navigateForward('/tabs/saved');
   }
