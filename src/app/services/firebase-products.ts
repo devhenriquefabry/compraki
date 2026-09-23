@@ -339,12 +339,17 @@ export class FirebaseProducts {
 }
 
 async signInWithGoogle(): Promise<boolean> {
-  this.carregando = true;
-
   try {
+    // Sem spinner enquanto a escolha de conta está aberta: se o usuário fecha
+    // o popup no "x", o Chrome bloqueia o `popup.closed` (COOP da página do
+    // Google) e o signInWithPopup às vezes nunca rejeita — o overlay ficaria
+    // travado para sempre. Com a tela livre, basta clicar de novo: o Firebase
+    // cancela o popup pendente (auth/cancelled-popup-request) e abre outro.
     const user = Capacitor.isNativePlatform()
       ? await this.signInWithGoogleNative()
       : await this.signInWithGoogleWeb();
+
+    this.carregando = true;
 
     // 🔥 Espelhando/Atualizando o usuário vindo do Google no Firestore de forma segura
     await this.usersService.ensureAppUserDocument(user);
@@ -359,12 +364,30 @@ async signInWithGoogle(): Promise<boolean> {
     console.log('Bem-vindo, ' + user.displayName);
     return true;
   } catch (error) {
+    if (this.isGoogleSignInCancel(error)) {
+      return false;
+    }
     console.error("Erro ao logar com Google:", error);
     alert('Não foi possível entrar com o Google agora. Tente novamente ou use e-mail e senha.');
     return false;
   } finally {
     this.carregando = false;
   }
+}
+
+/** Usuário desistiu (fechou o popup/bandeja ou abriu outro): não é erro. */
+private isGoogleSignInCancel(error: unknown): boolean {
+  const e = error as { code?: unknown; message?: unknown } | null;
+  const code = String(e?.code ?? '');
+  if (
+    code === 'auth/popup-closed-by-user' ||
+    code === 'auth/cancelled-popup-request' ||
+    code === 'auth/user-cancelled' ||
+    code === '12501' // Android: GoogleSignInStatusCodes.SIGN_IN_CANCELLED
+  ) {
+    return true;
+  }
+  return /cancel/i.test(String(e?.message ?? ''));
 }
 
 /** Android/iOS: bandeja nativa do Google, via SDK do próprio sistema. */
