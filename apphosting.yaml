@@ -10,6 +10,19 @@
 # gateway, token de webhook e afins continuam no `functions/.env`, usados so
 # pelas Cloud Functions.
 
+# Servidor proprio em vez do gerado pelo adaptador Angular: alem de servir o
+# build com fallback de SPA, o server.mjs faz proxy de /__/auth/* para
+# compraki-mcu.firebaseapp.com, o que deixa o login do Google rodar no
+# dominio www.vineonsite.com.br (authDomain em environment.prod.ts).
+# Sem dependencia npm: o container so precisa de www/ e do server.mjs.
+scripts:
+  buildCommand: npm run build
+  runCommand: node server.mjs
+
+outputFiles:
+  serverApp:
+    include: [www, server.mjs]
+
 runConfig:
   # Servidor de arquivo estatico: o minimo ja sobra. A maior parte das
   # requisicoes nem chega aqui, o CDN do App Hosting responde antes.

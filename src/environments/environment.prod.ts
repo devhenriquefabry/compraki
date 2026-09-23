@@ -5,7 +5,11 @@ export const environment = {
 
   firebase: {
     apiKey: "AIzaSyBD5AH1b1_p6AghhPx3Nr0fBVab8djRbkI",
-    authDomain: "compraki-mcu.firebaseapp.com",
+    // Dominio proprio: o popup do Google mostra "Prosseguir para
+    // www.vineonsite.com.br". Funciona porque o server.mjs faz proxy de
+    // /__/auth/* para compraki-mcu.firebaseapp.com. O dev (environment.ts)
+    // continua no firebaseapp.com, ja que o `ng serve` nao tem esse proxy.
+    authDomain: "www.vineonsite.com.br",
     databaseURL: "https://compraki-mcu-default-rtdb.firebaseio.com",
     projectId: "compraki-mcu",
     storageBucket: "compraki-mcu.firebasestorage.app",
