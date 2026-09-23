@@ -2,7 +2,9 @@ import { CartItem } from './cart-item';
 
 export type OrderStatus = 'PENDING' | 'RECEIVED' | 'CONFIRMED' | 'DELIVERED' | 'IN_ESCROW' | 'CANCELLED' | 'REFUNDED';
 
-export type EscrowStatus = 'HOLDING' | 'RELEASED' | 'REFUNDED';
+export type ShipmentStatus = 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'PROBLEM';
+
+export type EscrowStatus ='HOLDING' | 'RELEASED' | 'REFUNDED';
 
 export type RefundRequestStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
 
@@ -89,6 +91,14 @@ export interface Order {
     trackingCode?: string;
     labelUrl?: string;
   };
+
+  /**
+   * Andamento da entrega, independente do pagamento. O vendedor muda na tela
+   * de venda; o comprador só marca `DELIVERED` ao confirmar o recebimento.
+   */
+  shipmentStatus?: ShipmentStatus;
+  /** Quando o comprador confirmou que recebeu. */
+  deliveryConfirmedAt?: any;
 
   // Sistema de Escrow — retenção de 7 dias
   escrowInfo?: EscrowInfo;

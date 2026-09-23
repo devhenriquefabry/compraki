@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule, ToastController } from '@ionic/angular';
 import { of, switchMap } from 'rxjs';
 import { requireAccount } from '../../core/auth-redirect';
@@ -40,7 +40,15 @@ export class ProductReviewsComponent {
 
   private readonly reviewsService = inject(ProductReviewsService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly toast = inject(ToastController);
+
+  /**
+   * `?avaliar=1` vem do botão "Avaliar" de Minhas compras: abre o formulário
+   * assim que a elegibilidade confirmar a compra. Vale uma vez por visita.
+   */
+  private pendingAutoOpen = this.route.snapshot.queryParamMap.has('avaliar');
 
   readonly maxLength = REVIEW_MAX_LENGTH;
   readonly starLabels = STAR_LABELS;
@@ -101,7 +109,14 @@ export class ProductReviewsComponent {
       this.formOpen.set(false);
       this.reviewsService
         .getEligibility(product)
-        .then(result => this.eligibility.set(result))
+        .then(result => {
+          this.eligibility.set(result);
+          if (this.pendingAutoOpen && result.kind === 'can-review') {
+            this.pendingAutoOpen = false;
+            this.openForm();
+            setTimeout(() => this.host.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+          }
+        })
         .catch(() => this.eligibility.set({ kind: 'not-buyer' }));
     });
   }

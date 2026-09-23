@@ -1,115 +1,322 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+<ion-header class="ion-no-border mo-header">
+  <div class="mo-bar">
+    <button type="button" class="mo-icon-btn mo-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+
+    @if (searchOpen()) {
+      <label class="mo-search">
+        <span class="vn-sr-only">Buscar nas compras</span>
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <input
+          #searchInput
+          type="search"
+          placeholder="Produto ou nº do pedido"
+          autocomplete="off"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (keydown.escape)="toggleSearch()" />
+      </label>
+      <button type="button" class="mo-text-btn" (click)="toggleSearch()">Cancelar</button>
+    } @else {
+      <h1 class="mo-title">Minhas compras</h1>
+      <button type="button" class="mo-icon-btn" (click)="toggleSearch()" aria-label="Buscar nas compras">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </button>
+      <button type="button" class="mo-icon-btn" (click)="openChats()" aria-label="Conversas com lojas">
+        <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon>
+      </button>
+    }
+  </div>
+
+  <nav class="mo-tabs" #tabStrip role="tablist" aria-label="Filtrar compras por etapa" (keydown)="onTabKeydown($event)">
+    @for (t of tabs; track t.id) {
+      <button
+        type="button"
+        role="tab"
+        class="mo-tab"
+        [class.is-active]="tab() === t.id"
+        [attr.aria-selected]="tab() === t.id"
+        [attr.tabindex]="tab() === t.id ? 0 : -1"
+        (click)="selectTab(t.id, $event)">
+        {{ t.label }}
+        @if (isCounted(t.id) && counts()[t.id]) {
+          <span class="mo-tab-count" [attr.aria-label]="counts()[t.id] + ' pedidos'">{{ counts()[t.id] }}</span>
+        }
+      </button>
+    }
+  </nav>
 </ion-header>
 
-<ion-content class="ion-padding custom-bg">
-  <div class="orders-container">
-    
-    <div class="header-section">
-      <h1 class="page-title">Meus Pedidos</h1>
-      <p class="subtitle">Acompanhe suas compras e pagamentos</p>
-    </div>
+<ion-content class="mo-content">
+  <div class="mo-wrap" role="tabpanel">
 
-    <!-- Filtros de Status -->
-    <div class="status-filter">
-      <div class="filter-chip" [class.active]="filter === 'ALL'" (click)="setFilter('ALL')">Todos</div>
-      <div class="filter-chip" [class.active]="filter === 'PAID'" (click)="setFilter('PAID')">
-        <ion-icon name="checkmark-done-circle-outline"></ion-icon> Pagos
+    @if (isLoading()) {
+      @for (s of skeletons; track s) {
+        <div class="oc oc--skeleton" aria-hidden="true">
+          <div class="sk sk-line sk-w40"></div>
+          <div class="sk-row">
+            <div class="sk sk-thumb"></div>
+            <div class="sk-col">
+              <div class="sk sk-line sk-w80"></div>
+              <div class="sk sk-line sk-w30"></div>
+            </div>
+          </div>
+          <div class="sk sk-panel"></div>
+        </div>
+      }
+    } @else if (loadError()) {
+      <div class="mo-empty">
+        <div class="mo-empty-mark"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon></div>
+        <h2>Não conseguimos carregar suas compras</h2>
+        <p>Verifique a conexão e tente de novo.</p>
+        <button type="button" class="btn btn--primary" (click)="load()">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Tentar de novo
+        </button>
       </div>
-      <div class="filter-chip" [class.active]="filter === 'PENDING'" (click)="setFilter('PENDING')">Pendentes</div>
-    </div>
+    } @else if (!visible().length) {
+      @let copy = emptyCopy(tab());
+      <div class="mo-empty">
+        <div class="mo-empty-mark"><ion-icon name="bag-handle-outline" aria-hidden="true"></ion-icon></div>
+        @if (search()) {
+          <h2>Nada encontrado para “{{ search() }}”</h2>
+          <p>Busque pelo nome do produto ou pelo número do pedido.</p>
+        } @else {
+          <h2>{{ copy.title }}</h2>
+          <p>{{ copy.text }}</p>
+          @if (tab() === 'all' || tab() === 'done') {
+            <a class="btn btn--primary" routerLink="/tabs/tab2">Explorar produtos</a>
+          }
+        }
+      </div>
+    } @else {
+      @for (v of visible(); track v.id) {
+        <article class="oc" [attr.data-stage]="v.stage" [attr.aria-label]="'Pedido ' + v.shortId + ', ' + v.statusLabel">
 
-    <div *ngIf="isLoading" class="ion-text-center ion-padding">
-      <ion-spinner color="primary"></ion-spinner>
-    </div>
+          <!-- Loja e etapa -->
+          <header class="oc-head">
+            <button type="button" class="oc-store" (click)="openStore(v)" [disabled]="v.sellerIds.length !== 1">
+              @if (sellerPhoto(v); as photo) {
+                <img class="oc-store-avatar" [src]="photo" alt="" loading="lazy" />
+              } @else {
+                <ion-icon class="oc-store-icon" name="storefront-outline" aria-hidden="true"></ion-icon>
+              }
+              <span class="oc-store-name">{{ sellerName(v) }}</span>
+              @if (v.sellerIds.length === 1) {
+                <ion-icon class="oc-store-chevron" name="chevron-forward" aria-hidden="true"></ion-icon>
+              }
+            </button>
+            <span class="oc-status">{{ v.statusLabel }}</span>
+          </header>
 
-    <div *ngIf="!isLoading && filteredOrders.length === 0" class="empty-state">
-      <ion-icon name="bag-handle-outline"></ion-icon>
-      <h3>Nenhum pedido encontrado</h3>
-      <p>Você ainda não realizou compras com este status.</p>
-      <ion-button fill="outline" shape="round" color="primary" routerLink="/tabs/tab2" class="ion-margin-top">
-        Ver Produtos
-      </ion-button>
-    </div>
+          <!-- Produtos -->
+          <ul class="oc-items">
+            @for (item of v.items; track item.key; let i = $index) {
+              @if (i < collapsedItems || isExpanded(v)) {
+                <li>
+                  <button type="button" class="oc-item" (click)="openProduct(item)" [disabled]="!item.productId">
+                    <img class="oc-thumb" [src]="item.photo" [alt]="item.name" loading="lazy" />
+                    <span class="oc-item-body">
+                      <span class="oc-item-name">{{ item.name }}</span>
+                      <span class="oc-item-meta">
+                        @if (item.variant) { <span class="oc-variant">{{ item.variant }}</span> }
+                        <span class="oc-qty">x{{ item.quantity }}</span>
+                      </span>
+                      <span class="oc-price">
+                        @if (item.listPrice) {
+                          <s>{{ item.listPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</s>
+                        }
+                        {{ item.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              }
+            }
+          </ul>
 
-    <div class="orders-list">
-      <ion-card *ngFor="let order of filteredOrders" class="order-card">
-        <div class="order-header">
-          <div class="order-id">Pedido #{{ order.id?.substring(0, 8) }}</div>
-          <div class="order-status-badge" [ngClass]="order.status.toLowerCase()">
-            {{ getStatusLabel(order.status) }}
+          @if (v.items.length > collapsedItems) {
+            <button type="button" class="oc-more" (click)="toggleItems(v)" [attr.aria-expanded]="isExpanded(v)">
+              {{ isExpanded(v) ? 'Mostrar menos' : 'Ver mais ' + (v.items.length - collapsedItems) + (v.items.length - collapsedItems === 1 ? ' produto' : ' produtos') }}
+              <ion-icon name="chevron-down" aria-hidden="true" [class.is-flipped]="isExpanded(v)"></ion-icon>
+            </button>
+          }
+
+          <p class="oc-total">
+            Total de {{ v.count }} {{ v.count === 1 ? 'item' : 'itens' }}:
+            <strong>{{ v.order.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+          </p>
+
+          <!-- Painel da etapa -->
+          @switch (v.stage) {
+            @case ('pay') {
+              <div class="oc-panel oc-panel--pay">
+                <ion-icon class="oc-panel-icon" name="time-outline" aria-hidden="true"></ion-icon>
+                <div class="oc-panel-body">
+                  @if (v.order.paymentAlert) {
+                    <p class="oc-panel-title">Pagamento em conferência</p>
+                    <p>O valor pago não bateu com o total do pedido. Estamos verificando e avisamos por aqui.</p>
+                  } @else if (v.order.paymentMethod === 'CREDIT_CARD') {
+                    <p class="oc-panel-title">Pagamento em processamento</p>
+                    <p>A operadora do cartão ainda está analisando. Costuma levar poucos minutos.</p>
+                  } @else if (v.due?.overdue) {
+                    <p class="oc-panel-title">A cobrança venceu em {{ v.due?.label }}</p>
+                    <p>Se você já pagou, a confirmação pode levar alguns minutos para aparecer.</p>
+                  } @else {
+                    <p class="oc-panel-title">Pague até {{ v.due?.label }}</p>
+                    <p>Via {{ paymentLabel[v.order.paymentMethod] }}. O pedido vai para a loja assim que o pagamento cair.</p>
+                  }
+                </div>
+              </div>
+            }
+
+            @case ('refund') {
+              <div class="oc-panel oc-panel--refund">
+                <ion-icon class="oc-panel-icon" name="shield-half-outline" aria-hidden="true"></ion-icon>
+                <div class="oc-panel-body">
+                  <p class="oc-panel-title">{{ v.statusLabel }}</p>
+                  @if (v.order.refundInfo?.adminNotes) {
+                    <p>{{ v.order.refundInfo?.adminNotes }}</p>
+                  } @else if (v.order.refundInfo?.status === 'REQUESTED') {
+                    <p>Recebemos seu pedido de devolução e a equipe Vineon está analisando.</p>
+                  } @else if (v.order.refundInfo?.status === 'COMPLETED' || v.order.status === 'REFUNDED') {
+                    <p>O valor foi devolvido pelo mesmo meio de pagamento da compra.</p>
+                  }
+                </div>
+              </div>
+            }
+
+            @case ('cancelled') {}
+
+            @default {
+              <div class="oc-panel oc-panel--route">
+                <div class="oc-panel-body">
+                  @switch (v.stage) {
+                    @case ('preparing') {
+                      <p class="oc-panel-title">{{ v.window ? 'Previsão de entrega: ' + v.window : 'A loja está preparando seu pedido' }}</p>
+                      <p>Pagamento aprovado. A loja está separando e embalando seu pedido.</p>
+                    }
+                    @case ('shipping') {
+                      <p class="oc-panel-title">{{ v.window ? 'Previsão de entrega: ' + v.window : 'Seu pedido está a caminho' }}</p>
+                      @if (v.order.shipmentStatus === 'PROBLEM') {
+                        <p class="oc-warn">A loja sinalizou um problema na entrega. Fale com ela pelo chat.</p>
+                      }
+                      @if (v.trackingCode) {
+                        <p>
+                          Rastreio: <span class="oc-code">{{ v.trackingCode }}</span>
+                          <button type="button" class="oc-copy" (click)="copy(v.trackingCode, 'Código de rastreio')" aria-label="Copiar código de rastreio">
+                            <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+                          </button>
+                        </p>
+                      } @else {
+                        <p>O código de rastreio aparece aqui quando a loja informar.</p>
+                      }
+                    }
+                    @case ('done') {
+                      <p class="oc-panel-title">Pedido entregue</p>
+                      <p>Conte como foi: sua avaliação ajuda quem vai comprar depois.</p>
+                    }
+                  }
+
+                  <ol class="trail" [class.trail--done]="v.stage === 'done'" [attr.aria-label]="'Etapa ' + (v.track + 1) + ' de ' + trackSteps.length">
+                    @for (step of trackSteps; track step; let i = $index) {
+                      <li
+                        class="trail-step"
+                        [class.is-done]="i < v.track"
+                        [class.is-current]="i === v.track"
+                        [attr.aria-current]="i === v.track ? 'step' : null">
+                        <span class="trail-node" aria-hidden="true"></span>
+                        <span class="trail-label">{{ step }}</span>
+                      </li>
+                    }
+                  </ol>
+
+                  @if (v.refundable) {
+                    <button type="button" class="oc-link" (click)="openRefundModal(v)">Problema com o pedido? Solicitar devolução</button>
+                  }
+                </div>
+              </div>
+            }
+          }
+
+          <!-- Ações da etapa -->
+          <div class="oc-actions">
+            @switch (v.stage) {
+              @case ('pay') {
+                <button type="button" class="btn btn--ghost" (click)="talkToStore(v)">Falar com a loja</button>
+                <button type="button" class="btn btn--primary" (click)="pay(v)">
+                  {{ v.order.paymentMethod === 'CREDIT_CARD' ? 'Ver cobrança' : 'Pagar agora' }}
+                </button>
+              }
+              @case ('preparing') {
+                <button type="button" class="btn btn--outline" (click)="talkToStore(v)">Falar com a loja</button>
+              }
+              @case ('shipping') {
+                <button type="button" class="btn btn--accent" (click)="trackOrder(v)">Rastrear pedido</button>
+                <button type="button" class="btn btn--primary" (click)="confirmReceipt(v)">Recebi o pedido</button>
+              }
+              @case ('done') {
+                <button type="button" class="btn btn--outline" (click)="buyAgain(v)">Comprar novamente</button>
+                <button type="button" class="btn btn--primary" (click)="review(v)">
+                  <ion-icon name="star" aria-hidden="true"></ion-icon> Avaliar
+                </button>
+              }
+              @case ('refund') {
+                <button type="button" class="btn btn--outline" (click)="talkToStore(v)">Falar com a loja</button>
+              }
+              @case ('cancelled') {
+                <button type="button" class="btn btn--outline" (click)="buyAgain(v)">Comprar novamente</button>
+              }
+            }
           </div>
-        </div>
 
-        <div class="order-items">
-          <div *ngFor="let item of order.items" class="order-item">
-            <div class="item-img">
-              <img [src]="item.productData.photoURL?.[0] || 'assets/imagens/placeholder.png'" alt="Produto">
-            </div>
-            <div class="item-details">
-              <h4>{{ item.productData.name }}</h4>
-              <p class="item-variant" *ngIf="item.variantLabel">{{ item.variantLabel }}</p>
-              <p>{{ item.quantity }}x &bull; {{ (item.productData.priceDiscounted || item.productData.price) | currency:'BRL':'R$ ':'1.2-2' }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="order-footer">
-          <div class="order-date">
-            <ion-icon name="calendar-outline"></ion-icon>
-            {{ formatDate(order.createdAt) }}
-          </div>
-          <div class="order-total">
-            <small>Total:</small> <span>{{ order.total | currency:'BRL':'R$ ':'1.2-2' }}</span>
-          </div>
-        </div>
-
-        <!-- Botões de Ação para Devolução -->
-        <div class="order-actions" *ngIf="canRequestRefund(order) || order.refundInfo?.status">
-          <ion-button *ngIf="canRequestRefund(order)" expand="block" color="danger" fill="outline" size="small" (click)="openRefundModal(order)">
-            Solicitar Devolução / Disputa
-          </ion-button>
-
-          <div *ngIf="order.refundInfo?.status" class="refund-status-indicator" [ngClass]="(order.refundInfo?.status || '').toLowerCase()">
-            <ion-icon name="information-circle"></ion-icon>
-            Status da Devolução: {{ order.refundInfo?.status }}
-          </div>
-        </div>
-      </ion-card>
-    </div>
-
+          <footer class="oc-meta">
+            <button type="button" class="oc-id" (click)="copy(v.id, 'Número do pedido')" [attr.aria-label]="'Copiar número do pedido ' + v.shortId">
+              <ion-icon name="receipt-outline" aria-hidden="true"></ion-icon>
+              Pedido #{{ v.shortId }}
+            </button>
+            <span>{{ v.placedAt }} · {{ paymentLabel[v.order.paymentMethod] }}</span>
+          </footer>
+        </article>
+      }
+    }
   </div>
 </ion-content>
 
-<!-- MODAL DE SOLICITAÇÃO DE DEVOLUÇÃO -->
-<ion-modal [isOpen]="isRefundModalOpen" (didDismiss)="closeRefundModal()">
+<!-- Solicitação de devolução -->
+<ion-modal [isOpen]="isRefundModalOpen" (didDismiss)="closeRefundModal()" class="mo-refund-modal">
   <ng-template>
     <ion-header>
-      <ion-toolbar color="light">
-        <ion-title>Solicitar Devolução</ion-title>
+      <ion-toolbar>
+        <ion-title>Solicitar devolução</ion-title>
         <ion-buttons slot="end">
           <ion-button (click)="closeRefundModal()">Cancelar</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="ion-padding custom-bg">
-      <div class="modal-body" *ngIf="refundOrder">
-        <div class="warning-box">
-          <ion-icon name="shield-half-outline"></ion-icon>
-          <p>Você tem até 7 dias corridos após a compra para solicitar a devolução e receber o estorno integral, conforme o Código de Defesa do Consumidor.</p>
+    <ion-content class="ion-padding">
+      @if (refundOrder) {
+        <div class="rf">
+          <div class="rf-note">
+            <ion-icon name="shield-half-outline" aria-hidden="true"></ion-icon>
+            <p>Você tem até 7 dias corridos depois da compra para pedir a devolução e receber o valor integral, como garante o Código de Defesa do Consumidor.</p>
+          </div>
+
+          <p class="rf-order">Pedido #{{ refundOrder.id?.substring(0, 8)?.toUpperCase() }}</p>
+
+          <label class="rf-label" for="rf-reason">O que aconteceu?</label>
+          <textarea
+            id="rf-reason"
+            class="rf-textarea"
+            rows="5"
+            maxlength="1000"
+            placeholder="Ex.: o produto chegou com defeito na tela"
+            [(ngModel)]="refundReason"></textarea>
+          <p class="rf-hint">Mínimo de 10 caracteres.</p>
+
+          <button type="button" class="btn btn--primary btn--block" (click)="submitRefundRequest()">Enviar solicitação</button>
         </div>
-
-        <h4 class="product-title">Pedido #{{ refundOrder.id?.substring(0,8)?.toUpperCase() }}</h4>
-        
-        <ion-item class="reason-input">
-          <ion-label position="stacked">Motivo da Devolução *</ion-label>
-          <ion-textarea [(ngModel)]="refundReason" rows="5" placeholder="Descreva por que deseja devolver o produto..."></ion-textarea>
-        </ion-item>
-
-        <ion-button expand="block" color="primary" class="ion-margin-top" (click)="submitRefundRequest()">
-          Enviar Solicitação
-        </ion-button>
-      </div>
+      }
     </ion-content>
   </ng-template>
 </ion-modal>
