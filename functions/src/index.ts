@@ -35,6 +35,15 @@ export {
 
 export { asaasWebhook } from './payments/asaas-webhook';
 
+export {
+  createCoraCharge,
+  getCoraCharge,
+  syncCoraCharge,
+  simulateCoraPayment
+} from './payments/cora';
+
+export { coraWebhook } from './payments/cora-webhook';
+
 const WHATSAPP_MEDIA_CACHE_COLLECTION = 'whatsappMediaCache';
 const WHATSAPP_MEDIA_CACHE_STATS_DOC = 'whatsappMediaCacheStats/global';
 const WHATSAPP_MEDIA_STORAGE_PREFIX = 'whatsapp-media';

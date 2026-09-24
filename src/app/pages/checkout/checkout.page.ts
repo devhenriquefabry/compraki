@@ -3,6 +3,8 @@ import { CartItem } from 'src/app/interfaces/cart-item';
 import { AppUser } from 'src/app/interfaces/app-user';
 import { FirebaseCartService } from 'src/app/services/firebase-cart.service';
 import { AsaasService, AsaasPaymentResult, CreditCardData, CreditCardHolderInfo } from 'src/app/services/asaas.service';
+import { CoraCharge, CoraService } from 'src/app/services/cora.service';
+import { Order } from 'src/app/interfaces/order';
 import { CheckoutStateService } from 'src/app/services/checkout-state.service';
 import { LoadingController, AlertController, NavController, ToastController } from '@ionic/angular';
 import { OrdersService } from 'src/app/services/orders.service';
@@ -29,6 +31,7 @@ export class CheckoutPage implements OnInit {
   private navCtrl = inject(NavController);
   private toastCtrl = inject(ToastController);
   private asaasService = inject(AsaasService);
+  private coraService = inject(CoraService);
   private stateService = inject(CheckoutStateService);
   private loadingCtrl = inject(LoadingController);
   private alertCtrl = inject(AlertController);
@@ -103,16 +106,7 @@ export class CheckoutPage implements OnInit {
          throw new Error("Por favor, preencha Nome e CPF nos dados do comprador.");
       }
       
-      // O servidor resolve o cliente Asaas a partir do ID token: reaproveita o
-      // cadastro se o CPF já existir e guarda o vínculo em `users/{uid}`.
-      // O app não escolhe mais para qual cliente a cobrança vai.
       const buyerEmail = this.appUser?.email || undefined;
-      const customer = await this.asaasService.createCustomer({
-        name: data.buyerName,
-        cpfCnpj: data.buyerCpf,
-        email: buyerEmail,
-        phone: data.buyerPhone
-      });
 
       const total = this.cartTotal;
       if (total <= 0) throw new Error("Carrinho vazio ou valor inválido.");
@@ -121,16 +115,37 @@ export class CheckoutPage implements OnInit {
       dueDate.setDate(dueDate.getDate() + 3); // 3 dias de vencimento
       const dueString = dueDate.toISOString().split('T')[0];
 
-      let paymentResult: AsaasPaymentResult;
+      // PIX e boleto saem pelo Cora (conta PJ do lojista); cartão pelo Asaas.
+      let paymentResult: AsaasPaymentResult | null = null;
+      let coraCharge: CoraCharge | null = null;
 
       if (data.method === 'PIX' || data.method === 'BOLETO') {
-         paymentResult = await this.asaasService.createPayment(
-           customer.id,
-           data.method,
-           total,
-           dueString
-         );
+         const address = this.stateService.addressData;
+         coraCharge = await this.coraService.createCharge({
+           billingType: data.method,
+           value: total,
+           dueDate: dueString,
+           customer: { name: data.buyerName, cpfCnpj: data.buyerCpf, email: buyerEmail },
+           address: {
+             street: address.street,
+             number: address.addressNumber,
+             district: address.neighborhood,
+             city: address.city,
+             state: address.state,
+             complement: address.complement,
+             zipCode: address.postalCode
+           }
+         });
       } else if (data.method === 'CREDIT_CARD') {
+         // O servidor resolve o cliente Asaas a partir do ID token: reaproveita
+         // o cadastro se o CPF já existir e guarda o vínculo em `users/{uid}`.
+         const customer = await this.asaasService.createCustomer({
+           name: data.buyerName,
+           cpfCnpj: data.buyerCpf,
+           email: buyerEmail,
+           phone: data.buyerPhone
+         });
+
          const expiryParts = data.cardData.expiry.split('/');
          const cardData: CreditCardData = {
            holderName: data.cardData.holderName,
@@ -172,13 +187,27 @@ export class CheckoutPage implements OnInit {
       const releaseDate = new Date();
       releaseDate.setDate(releaseDate.getDate() + 7);
 
+      // Firestore recusa campo `undefined`: só entra o id de quem cobrou.
+      const paymentRef: Partial<Order> = coraCharge
+        ? {
+            paymentProvider: 'cora',
+            coraInvoiceId: coraCharge.id,
+            coraPayment: {
+              pixCode: coraCharge.pixCode,
+              bankSlipUrl: coraCharge.bankSlipUrl,
+              digitableLine: coraCharge.digitableLine,
+              sandbox: coraCharge.sandbox
+            }
+          }
+        : { paymentProvider: 'asaas', asaasPaymentId: paymentResult!.id };
+
       const orderId = await this.ordersService.createOrder({
         userId: user?.uid || 'guest',
         items: [...this.cartItems],
         total: total,
         status: 'PENDING',
         paymentMethod: data.method as any,
-        asaasPaymentId: paymentResult.id,
+        ...paymentRef,
         sellerIds: sellerIds,
         escrowInfo: {
           status: 'HOLDING',
@@ -209,21 +238,10 @@ export class CheckoutPage implements OnInit {
 
       // 5. Navegar conforme o método
       if (data.method === 'PIX') {
-          // O QR Code ja vem em `createPayment`; a consulta abaixo e o
-          // fallback para quando o Asaas ainda nao o tinha pronto.
-          const qr = (paymentResult.pixQrCode
-            ?? await this.asaasService.getPixQrCode(paymentResult.id)) as
-            { payload?: string; encodedImage?: string } | null;
-          this.router.navigate(['/pix-payment'], { 
-            queryParams: { 
-              orderId: orderId,
-              paymentId: paymentResult.id,
-              pixCode: qr?.payload,
-              qrCode: qr?.encodedImage
-            }
-          });
+          // A tela de PIX lê o código do próprio pedido e acompanha o status.
+          this.router.navigate(['/pix-payment'], { queryParams: { orderId } });
       } else if (data.method === 'BOLETO') {
-          await this.showSuccessAlert('Boleto Gerado!', `Link do Boleto: \n\n ${paymentResult.bankSlipUrl}`);
+          await this.showBoletoAlert(coraCharge!);
           await this.cartService.clearCart();
           this.navCtrl.navigateRoot('/tabs/tab2');
       } else {
@@ -233,7 +251,7 @@ export class CheckoutPage implements OnInit {
           // a Cloud Function `asaasWebhook`, pelo Admin SDK — o cliente nao
           // confirma o proprio pagamento (as regras do Firestore tambem barram).
           // Para cartao aprovado o webhook chega em segundos.
-          const approved = ['CONFIRMED', 'RECEIVED'].includes(paymentResult.status);
+          const approved = ['CONFIRMED', 'RECEIVED'].includes(paymentResult!.status);
           await this.showSuccessAlert(
             approved ? 'Sucesso!' : 'Pagamento em análise',
             approved
@@ -256,6 +274,37 @@ export class CheckoutPage implements OnInit {
       });
       await toast.present();
     }
+  }
+
+  /** Boleto do Cora: linha digitável em texto e o PDF num botão. */
+  private async showBoletoAlert(charge: CoraCharge) {
+    const buttons: any[] = [];
+    if (charge.digitableLine) {
+      buttons.push({
+        text: 'Copiar linha',
+        handler: () => {
+          navigator.clipboard.writeText(charge.digitableLine!).catch(() => undefined);
+        }
+      });
+    }
+    if (charge.bankSlipUrl) {
+      buttons.push({
+        text: 'Abrir boleto',
+        handler: () => {
+          window.open(charge.bankSlipUrl!, '_blank', 'noopener');
+        }
+      });
+    }
+    buttons.push({ text: 'OK', role: 'cancel' });
+
+    const alert = await this.alertCtrl.create({
+      header: charge.sandbox ? 'Boleto gerado (teste)' : 'Boleto gerado!',
+      subHeader: charge.digitableLine ? `Linha digitável: ${charge.digitableLine}` : undefined,
+      message: 'O boleto também fica disponível em Meus pedidos.',
+      buttons
+    });
+    await alert.present();
+    await alert.onDidDismiss();
   }
 
   async showSuccessAlert(header: string, message: string, imageSrc?: string) {

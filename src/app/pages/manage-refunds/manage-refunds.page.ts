@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ToastController, LoadingController } from '@ionic/angular';
+import { IonicModule, ToastController, LoadingController, AlertController } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { RefundsService } from '../../services/refunds.service';
 import { AsaasService } from '../../services/asaas.service';
@@ -38,6 +38,7 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
   private refundsService = inject(RefundsService);
   private asaasService = inject(AsaasService);
   private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
   private loadingCtrl = inject(LoadingController);
 
   // Modal State
@@ -130,6 +131,12 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
   }
 
   async approveRefund() {
+    // PIX e boleto do Cora: a API do Cora não estorna cobrança recebida. O
+    // dinheiro volta por PIX feito no app do Cora; aqui só se registra.
+    if (this.selectedRefundOrder?.id && this.selectedRefundOrder.coraInvoiceId) {
+      return this.approveCoraRefund();
+    }
+
     if (!this.selectedRefundOrder?.id || !this.selectedRefundOrder?.asaasPaymentId) {
       this.showToast('Pedido inválido ou sem ID de pagamento Asaas.', 'danger');
       return;
@@ -153,6 +160,35 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
     } catch (err: any) {
       console.error(err);
       this.showToast('Erro ao estornar: ' + (err.message || 'Falha na API Asaas'), 'danger');
+    } finally {
+      loading.dismiss();
+    }
+  }
+
+  private async approveCoraRefund() {
+    const order = this.selectedRefundOrder!;
+    const alert = await this.alertCtrl.create({
+      header: 'Estorno pelo Cora',
+      message: `Este pedido foi pago pelo Cora (${order.paymentMethod}). Devolva R$ ${order.total.toFixed(2)} ao comprador por PIX no app do Cora e só então confirme aqui.`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Já devolvi', role: 'confirm' }
+      ]
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    if (role !== 'confirm') return;
+
+    const loading = await this.loadingCtrl.create({ message: 'Registrando estorno...' });
+    await loading.present();
+    try {
+      await this.refundsService.approveRefund(order.id!, 'admin-id', this.adminNotes);
+      await this.refundsService.completeRefundProcess(order.id!, `cora-manual-${order.coraInvoiceId}`);
+      this.showToast('Estorno registrado.', 'success');
+      this.closeRefundModal();
+    } catch (err: any) {
+      console.error(err);
+      this.showToast('Erro ao registrar estorno: ' + (err.message || 'falha'), 'danger');
     } finally {
       loading.dismiss();
     }

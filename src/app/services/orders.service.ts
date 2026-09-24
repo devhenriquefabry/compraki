@@ -89,6 +89,19 @@ export class OrdersService {
     });
   }
 
+  /** Acompanha um pedido em tempo real (tela de PIX espera o pagamento cair). */
+  watchOrder(orderId: string): Observable<Order | null> {
+    return new Observable<Order | null>(subscriber => {
+      const unsub = onSnapshot(
+        doc(this.db, 'orders', orderId),
+        snap => subscriber.next(snap.exists() ? ({ ...snap.data(), id: snap.id } as Order) : null),
+        err => subscriber.error(err)
+      );
+
+      return () => unsub();
+    });
+  }
+
   async getOrderById(orderId: string): Promise<Order | null> {
     const q = query(this.getOrdersCollection(), where('id', '==', orderId));
     // Since we usually have the ID from the route, we can use doc()

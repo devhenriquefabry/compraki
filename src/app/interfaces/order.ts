@@ -43,7 +43,21 @@ export interface Order {
   total: number;
   status: OrderStatus;
   paymentMethod: 'PIX' | 'BOLETO' | 'CREDIT_CARD';
+  /**
+   * Quem cobra: `cora` (PIX e boleto) ou `asaas` (cartão). Pedido antigo, sem
+   * o campo, é do Asaas.
+   */
+  paymentProvider?: 'asaas' | 'cora';
   asaasPaymentId?: string;
+  /** Fatura do Cora (inv_...). É por ela que o webhook acha o pedido. */
+  coraInvoiceId?: string;
+  /** Dados para reabrir a cobrança do Cora sem nova chamada. */
+  coraPayment?: {
+    pixCode?: string | null;
+    bankSlipUrl?: string | null;
+    digitableLine?: string | null;
+    sandbox?: boolean;
+  };
   sellerIds: string[]; // Lista de IDs de todos os vendedores envolvidos no pedido
   createdAt: any;
   updatedAt?: any;
@@ -57,9 +71,9 @@ export interface Order {
    * NAO vira pago nesse caso — precisa de conferencia manual.
    */
   paymentAlert?: {
-    reason: 'VALUE_MISMATCH';
-    expectedValue: number;
-    paidValue: number;
+    reason: 'VALUE_MISMATCH' | 'OWNER_MISMATCH';
+    expectedValue?: number;
+    paidValue?: number;
     detectedAt: any;
   };
 

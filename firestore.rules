@@ -287,6 +287,7 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny([
                'total', 'userId', 'sellerIds', 'items', 'asaasPaymentId',
+               'coraInvoiceId', 'paymentProvider',
                'status', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy'
              ]));
 
@@ -310,6 +311,13 @@ service cloud.firestore {
 
     // Trava de idempotencia do webhook do Asaas. So o Admin SDK escreve.
     match /asaasWebhookEvents/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Dono de cada fatura do Cora, gravado por `createCoraCharge`. So o Admin
+    // SDK escreve; e por ele que o servidor confere quem pode pagar/consultar.
+    match /coraCharges/{invoiceId} {
       allow read: if isAdmin();
       allow write: if false;
     }

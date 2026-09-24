@@ -36,6 +36,7 @@ import { waitForAuthUser } from 'src/app/core/auth-state';
 import { Order } from 'src/app/interfaces/order';
 import { PublicSellerProfile } from 'src/app/interfaces/seller';
 import { AsaasService } from 'src/app/services/asaas.service';
+import { CoraService } from 'src/app/services/cora.service';
 import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { OrdersService } from 'src/app/services/orders.service';
@@ -117,6 +118,7 @@ export class MyOrdersPage {
   private readonly usersService = inject(FirebaseUsersService);
   private readonly chatService = inject(FirebaseChatService);
   private readonly asaasService = inject(AsaasService);
+  private readonly coraService = inject(CoraService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly navCtrl = inject(NavController);
@@ -351,6 +353,8 @@ export class MyOrdersPage {
   // ------------------------------------------------------------------ ações
 
   async pay(view: OrderView) {
+    if (view.order.coraInvoiceId) return this.payCora(view);
+
     const paymentId = view.order.asaasPaymentId;
     if (!paymentId) {
       this.showToast('Não encontramos a cobrança deste pedido. Fale com a loja.', 'warning');
@@ -373,6 +377,31 @@ export class MyOrdersPage {
       this.showToast('Não foi possível abrir a cobrança agora. Tente de novo em instantes.', 'danger');
     } finally {
       loading.dismiss();
+    }
+  }
+
+  /** Cobrança do Cora: PIX volta para a tela do QR; boleto abre o PDF. */
+  private async payCora(view: OrderView) {
+    const order = view.order;
+
+    if (order.paymentMethod === 'PIX') {
+      this.router.navigate(['/pix-payment'], { queryParams: { orderId: view.id } });
+      return;
+    }
+
+    // A janela abre já no clique: navegador de celular bloqueia pop-up aberto
+    // depois de um `await`.
+    const tab = window.open('', '_blank');
+    try {
+      const url = order.coraPayment?.bankSlipUrl
+        || (await this.coraService.getCharge(order.coraInvoiceId!)).bankSlipUrl;
+      if (!url) throw new Error('sem bankSlipUrl');
+      if (tab) tab.location.href = url;
+      else window.location.href = url;
+    } catch (err) {
+      console.error('Falha ao abrir boleto', err);
+      tab?.close();
+      this.showToast('Não foi possível abrir o boleto agora. Tente de novo em instantes.', 'danger');
     }
   }
 

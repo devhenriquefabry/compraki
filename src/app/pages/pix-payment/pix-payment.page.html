@@ -15,7 +15,8 @@
 
     <ion-card class="pix-card">
       <div class="qr-container ion-text-center">
-        <img [src]="'data:image/png;base64,' + qrCode" alt="QR Code PIX" class="qr-image">
+        <img *ngIf="qrDataUrl; else qrLoading" [src]="qrDataUrl" alt="QR Code PIX" class="qr-image">
+        <ng-template #qrLoading><ion-spinner name="crescent"></ion-spinner></ng-template>
         <div class="qr-overlay">
           <ion-icon name="qr-code-outline"></ion-icon>
         </div>
@@ -34,16 +35,22 @@
 
       <div class="timer-box">
         <ion-icon name="time-outline"></ion-icon>
-        <span>Este código expira em 3 dias.</span>
+        <span>Este código expira em 3 dias. Assim que o pagamento cair, esta tela avança sozinha.</span>
       </div>
+
+      <ion-button expand="block" fill="outline" shape="round" (click)="checkPayment()" [disabled]="checking || !pixCode">
+        <ion-spinner *ngIf="checking" name="dots" slot="start"></ion-spinner>
+        <ion-icon *ngIf="!checking" name="refresh-outline" slot="start"></ion-icon>
+        Já paguei, verificar
+      </ion-button>
     </ion-card>
 
-    <!-- Ferramenta de desenvolvimento: confirma o pedido sem cobrança real.
-         Em produção daria produto de graça, por isso nunca é renderizada lá. -->
-    <div class="simulation-section" *ngIf="canSimulatePayment">
+    <!-- Só aparece com a cobrança emitida no stage do Cora (dinheiro de
+         mentira). O servidor recusa a simulação em produção de qualquer jeito. -->
+    <div class="simulation-section" *ngIf="sandbox">
       <div class="simulation-alert">
         <ion-icon name="bug-outline"></ion-icon>
-        <p>Ambiente de Testes: Use o botão abaixo para confirmar o recebimento sem precisar pagar de verdade.</p>
+        <p>Ambiente de testes (sandbox do Cora): o botão abaixo paga esta cobrança de mentira e o pedido segue pelo fluxo real, via webhook.</p>
       </div>
       
       <ion-button expand="block" shape="round" color="success" (click)="simulatePayment()" class="simulate-btn">

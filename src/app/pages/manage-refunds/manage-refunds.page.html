@@ -203,7 +203,7 @@
           <p><strong>Comprador:</strong> {{ selectedRefundOrder.customerData?.name }}</p>
           <p><strong>Motivo da Devolução:</strong> {{ selectedRefundOrder.refundInfo?.reason }}</p>
           <p><strong>Valor:</strong> {{ formatCurrency(selectedRefundOrder.total) }}</p>
-          <p><strong>ID Asaas:</strong> {{ selectedRefundOrder.asaasPaymentId || 'N/A' }}</p>
+          <p><strong>ID do pagamento:</strong> {{ selectedRefundOrder.asaasPaymentId || selectedRefundOrder.coraInvoiceId || 'N/A' }}</p>
         </div>
 
         <div class="action-form">

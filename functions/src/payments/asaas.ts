@@ -204,7 +204,9 @@ export const createAsaasPayment = onRequest(defaultRuntime, async (req, res) => 
   const body = (req.body || {}) as CreatePaymentPayload;
   const { billingType, value, dueDate, description, creditCard, creditCardHolderInfo } = body;
 
-  if (!billingType || !['BOLETO', 'CREDIT_CARD', 'PIX'].includes(billingType)) {
+  // PIX e boleto saem pelo Cora (`./cora.ts`); o Asaas ficou só com cartão.
+  // Cobrança PIX/boleto nova aqui cairia na conta errada.
+  if (billingType !== 'CREDIT_CARD') {
     res.status(400).json({ error: 'Forma de pagamento inválida.' });
     return;
   }
@@ -240,17 +242,15 @@ export const createAsaasPayment = onRequest(defaultRuntime, async (req, res) => 
       externalReference: user.uid
     };
 
-    if (billingType === 'CREDIT_CARD') {
-      if (!creditCard || !creditCardHolderInfo) {
-        res.status(400).json({ error: 'Dados do cartão incompletos.' });
-        return;
-      }
-      // TODO (Fase 1): trocar por `creditCardToken` gerado no front pelo SDK
-      // do Asaas, para que número e CCV nunca passem por aqui.
-      payload['creditCard'] = creditCard;
-      payload['creditCardHolderInfo'] = creditCardHolderInfo;
-      payload['remoteIp'] = req.ip;
+    if (!creditCard || !creditCardHolderInfo) {
+      res.status(400).json({ error: 'Dados do cartão incompletos.' });
+      return;
     }
+    // TODO (Fase 1): trocar por `creditCardToken` gerado no front pelo SDK
+    // do Asaas, para que número e CCV nunca passem por aqui.
+    payload['creditCard'] = creditCard;
+    payload['creditCardHolderInfo'] = creditCardHolderInfo;
+    payload['remoteIp'] = req.ip;
 
     const payment = await requestAsaas('/payments', { method: 'POST', body: payload }) as {
       id: string;
@@ -259,23 +259,13 @@ export const createAsaasPayment = onRequest(defaultRuntime, async (req, res) => 
       bankSlipUrl?: string;
     };
 
-    // PIX precisa do QR Code numa segunda chamada.
-    let pixQrCode: unknown = null;
-    if (billingType === 'PIX') {
-      pixQrCode = await requestAsaas(`/payments/${payment.id}/pixQrCode`).catch((error) => {
-        logger.warn('Falha ao obter QR Code PIX', { paymentId: payment.id, error });
-        return null;
-      });
-    }
-
     logger.info('Cobrança criada', { uid: user.uid, paymentId: payment.id, billingType });
 
     res.status(200).json({
       id: payment.id,
       status: payment.status,
       invoiceUrl: payment.invoiceUrl,
-      bankSlipUrl: payment.bankSlipUrl,
-      pixQrCode
+      bankSlipUrl: payment.bankSlipUrl
     });
   } catch (error) {
     respondError(res, error, 'Erro ao processar pagamento.');
