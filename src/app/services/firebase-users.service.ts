@@ -247,7 +247,7 @@ export class FirebaseUsersService {
     if (!currentUser) throw new Error('Sessão expirada. Faça login novamente.');
 
     const token = await currentUser.getIdToken();
-    const baseUrl = `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
+    const baseUrl = environment.functionsBaseUrl;
 
     const response = await fetch(`${baseUrl}/${fnName}`, {
       method: 'POST',

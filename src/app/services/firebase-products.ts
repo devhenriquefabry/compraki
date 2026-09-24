@@ -559,7 +559,7 @@ private async signInWithGoogleWeb(): Promise<User> {
     functionName: string,
     options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {}
   ): Promise<T> {
-    const baseUrl = `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
+    const baseUrl = environment.functionsBaseUrl;
     const response = await fetch(`${baseUrl}/${functionName}`, {
       method: options.method || 'GET',
       headers: {

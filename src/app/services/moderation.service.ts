@@ -31,7 +31,7 @@ export interface NewReport {
 @Injectable({ providedIn: 'root' })
 export class ModerationService {
   private readonly db: Firestore;
-  private readonly functionsBaseUrl = `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
+  private readonly functionsBaseUrl = environment.functionsBaseUrl;
 
   constructor() {
     const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();

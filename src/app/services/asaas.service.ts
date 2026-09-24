@@ -55,8 +55,7 @@ export interface AsaasPaymentResult {
   providedIn: 'root'
 })
 export class AsaasService {
-  private readonly functionsBaseUrl =
-    `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
+  private readonly functionsBaseUrl = environment.functionsBaseUrl;
 
   private async authorizedFetch<T>(fnName: string, init: RequestInit = {}): Promise<T> {
     const user = getFirebaseAuth().currentUser;

@@ -70,6 +70,21 @@
               "sourceMap": true,
               "namedChunks": true
             },
+            "emulator": {
+              "optimization": false,
+              "sourceMap": true,
+              "namedChunks": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.emulator.ts"
+                },
+                {
+                  "replace": "src/app/core/emulator-bootstrap.ts",
+                  "with": "src/app/core/emulator-bootstrap.emulator.ts"
+                }
+              ]
+            },
             "ci": {
               "progress": false
             }
@@ -87,6 +102,10 @@
             },
             "development": {
               "buildTarget": "app:build:development"
+            },
+            "emulator": {
+              "buildTarget": "app:build:emulator",
+              "port": 4210
             },
             "ci": {
               "progress": false

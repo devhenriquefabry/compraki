@@ -21,6 +21,9 @@ export const environment = {
     measurementId: "G-92Q7R0CQR0"
   },
 
+  /** Base das Cloud Functions HTTP. No build `emulator` aponta para o emulador local. */
+  functionsBaseUrl: 'https://us-central1-compraki-mcu.cloudfunctions.net',
+
   /**
    * Liga/desliga o cache robusto de mídias do WhatsApp (Storage + Firestore + IndexedDB).
    * Em release seguinte, removeremos o fallback `dataUrl` e este flag vira default.

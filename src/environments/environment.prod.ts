@@ -18,6 +18,8 @@ export const environment = {
     measurementId: "G-92Q7R0CQR0"
   },
 
+  functionsBaseUrl: 'https://us-central1-compraki-mcu.cloudfunctions.net',
+
   mediaCacheEnabled: true,
 
   /**

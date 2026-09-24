@@ -76,7 +76,7 @@ export interface EvolutionMediaResolutionResponse {
 })
 export class WhatsappInstancesService {
   private auth: Auth;
-  private functionsBaseUrl = `https://us-central1-${environment.firebase.projectId}.cloudfunctions.net`;
+  private functionsBaseUrl = environment.functionsBaseUrl;
 
   constructor() {
     const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
