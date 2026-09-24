@@ -7,6 +7,8 @@ import { trashOutline, addCircleOutline, removeCircleOutline } from 'ionicons/ic
 import { CartItem } from '../../interfaces/cart-item';
 import { Product } from '../../interfaces/product';
 import { ProductSelectionService } from '../../services/product-selection-service';
+import { AppConfigService } from '../../services/app-config.service';
+import { hasFreeShipping } from '../../core/product-pricing';
 
 @Component({
   selector: 'app-cart-item-card',
@@ -22,13 +24,18 @@ export class CartItemCardComponent {
 
   constructor(
     private router: Router,
-    private selectionService: ProductSelectionService
+    private selectionService: ProductSelectionService,
+    private appConfig: AppConfigService
   ) {
     addIcons({ trashOutline, addCircleOutline, removeCircleOutline });
   }
 
   get product(): Product {
     return this.item.productData;
+  }
+
+  get freeShipping(): boolean {
+    return hasFreeShipping(this.product, this.appConfig.freeShippingRule());
   }
 
   get effectivePrice(): number {

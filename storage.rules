@@ -94,6 +94,32 @@ service firebase.storage {
         && isImage();
     }
 
+    // ------------------------------------------ nota fiscal / declaracao
+
+    // Anexada pela loja na tela da venda (SalesService.attachFiscalDocument).
+    // Le: comprador, lojas do pedido e admin. Escreve/apaga: so a loja dona da
+    // pasta, e ela precisa estar no pedido. PDF ou foto, ate 10 MB.
+    function orderData(orderId) {
+      return firestore.get(/databases/(default)/documents/orders/$(orderId)).data;
+    }
+
+    function isOrderParty(orderId) {
+      let o = orderData(orderId);
+      return isSignedIn() && (
+        request.auth.uid == o.userId ||
+        (o.sellerIds is list && request.auth.uid in o.sellerIds)
+      );
+    }
+
+    match /orders/{orderId}/fiscal/{sellerId}/{fileName} {
+      allow read: if isAdmin() || isOrderParty(orderId);
+      allow create, update: if isUser(sellerId)
+        && request.auth.uid in orderData(orderId).sellerIds
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('application/pdf|image/(jpeg|png|webp)');
+      allow delete: if isUser(sellerId) || isAdmin();
+    }
+
     // ---------------------------------------------------------------- chat
 
     // Fotos e audios trocados numa conversa (chat-box.component.ts -> upload).

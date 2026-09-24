@@ -22,6 +22,11 @@
 
   <!-- Quotes List -->
   <div *ngIf="!isLoading && !error" class="quotes-list animate-fade">
+    <div *ngIf="freeShipping && !readOnly && quotes.length > 0" class="free-note">
+      <ion-icon name="gift-outline"></ion-icon>
+      <span>Seu pedido tem <strong>frete grátis</strong>. Escolha só a forma de envio.</span>
+    </div>
+
     <div *ngIf="quotes.length === 0 && !readOnly" class="empty-state">
       <p>Nenhuma transportadora disponível para este endereço.</p>
     </div>
@@ -48,7 +53,12 @@
         </div>
 
         <div class="quote-price">
-          <span class="price-val">{{ formatPrice(quote.price) }}</span>
+          @if (freeShipping) {
+            <s class="price-old">{{ formatPrice(quote.price) }}</s>
+            <span class="price-val price-val--free">Grátis</span>
+          } @else {
+            <span class="price-val">{{ formatPrice(quote.price) }}</span>
+          }
           <div class="radio-indicator">
             <div class="inner-circle"></div>
           </div>
@@ -74,7 +84,7 @@
           </div>
 
           <div class="quote-price">
-            <span class="price-val">{{ formatPrice(quote.price) }}</span>
+            <span class="price-val" [class.price-val--free]="freeShipping">{{ freeShipping ? 'Grátis' : formatPrice(quote.price) }}</span>
           </div>
         </div>
       </div>

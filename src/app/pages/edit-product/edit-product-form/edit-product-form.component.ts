@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -10,7 +10,8 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
 import { NgFor, NgIf, CommonModule } from '@angular/common';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { ProductNameGuardService } from 'src/app/services/product-name-guard.service';
 import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 @Component({
@@ -20,7 +21,10 @@ import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinn
   standalone: true,
   imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent]
 })
-export class EditProductFormComponent implements OnInit {
+export class EditProductFormComponent implements OnInit, OnDestroy {
+  private readonly nameGuard = inject(ProductNameGuardService);
+  private nameGuardSub?: Subscription;
+
   private _product!: Product;
   @Input() set product(value: Product) {
     this._product = value;
@@ -79,6 +83,12 @@ export class EditProductFormComponent implements OnInit {
   ) { }
 
   ngOnInit() {
+    // Termos proibidos pelo admin: aviso na hora e botão de salvar travado.
+    const nameControl = this.editProductForm.controls.name;
+    nameControl.addValidators(this.nameGuard.validator());
+    nameControl.updateValueAndValidity({ emitEvent: false });
+    this.nameGuardSub = this.nameGuard.watch(nameControl);
+
     this.categories$ = this.servicoCategorias.getAll();
     this.categories$.subscribe(cats => {
       this.allCategories = cats;
@@ -246,7 +256,21 @@ export class EditProductFormComponent implements OnInit {
     this.previewImage = null;
   }
 
+  ngOnDestroy() {
+    this.nameGuardSub?.unsubscribe();
+  }
+
+  /** Termo proibido no título, para a mensagem embaixo do campo. */
+  get blockedTerm(): string | null {
+    return this.editProductForm.controls.name.errors?.['blockedWord'] ?? null;
+  }
+
   async submit() {
+    if (this.nameGuard.check(this.editProductForm.controls.name.value)) {
+      this.editProductForm.controls.name.updateValueAndValidity();
+      await this.nameGuard.showBlockedAlert();
+      return;
+    }
     if (this.editProductForm.valid) {
       this.isLoading = true;
       try {

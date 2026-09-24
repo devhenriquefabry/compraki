@@ -33,6 +33,12 @@ export interface PublicSellerProfile {
   shopInstagram?: string;
   shopWhatsApp?: string;
 
+  /**
+   * Conta suspensa por violar os termos. Escrito só pela Cloud Function
+   * `setAccountSuspension` — não vem do espelho de `users/`.
+   */
+  suspended?: boolean;
+
   createdAt?: any;
   updatedAt?: any;
 }

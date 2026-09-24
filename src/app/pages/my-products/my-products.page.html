@@ -42,6 +42,9 @@
               <span class="price">{{ formatPrice(p.priceDiscounted || p.price) }}</span>
               <span class="stock" [class.low]="p.stock < 5">Estoq: {{ p.stock }}</span>
             </div>
+            <span class="moderation-tag" *ngIf="p.moderation?.hidden" [title]="p.moderation?.note || ''">
+              Fora do ar · {{ moderationLabel[p.moderation!.reason] }}
+            </span>
           </div>
 
           <div class="product-actions">

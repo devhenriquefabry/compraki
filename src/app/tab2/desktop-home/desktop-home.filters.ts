@@ -1,4 +1,5 @@
 import { ParamMap } from '@angular/router';
+import { FreeShippingRule } from '../../interfaces/app-config';
 import { Product } from '../../interfaces/product';
 import { hasDiscount, hasFreeShipping, priceMain } from '../../core/product-pricing';
 
@@ -51,7 +52,8 @@ export function hasActiveFilters(filters: StoreFilters): boolean {
 export function filterProducts(
   products: Product[],
   filters: StoreFilters,
-  skip: Array<keyof StoreFilters> = []
+  skip: Array<keyof StoreFilters> = [],
+  freeShippingRule: FreeShippingRule | null = null
 ): Product[] {
   const term = normalize(filters.q);
 
@@ -61,7 +63,7 @@ export function filterProducts(
       if (!haystack.includes(term)) return false;
     }
     if (filters.cat && !skip.includes('cat') && !product.categoryIds?.includes(filters.cat)) return false;
-    if (filters.frete && !skip.includes('frete') && !hasFreeShipping(product)) return false;
+    if (filters.frete && !skip.includes('frete') && !hasFreeShipping(product, freeShippingRule)) return false;
     if (filters.ofertas && !skip.includes('ofertas') && !hasDiscount(product)) return false;
 
     const price = priceMain(product);

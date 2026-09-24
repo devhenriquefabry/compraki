@@ -25,6 +25,11 @@ export interface AppUser {
   onlineSince?: any;
   lastActive?: any;
   isChatBanned?: boolean;
+  /**
+   * Conta derrubada por violar os termos. Escrito só pela Cloud Function
+   * `setAccountSuspension` (que também bloqueia o login no Firebase Auth).
+   */
+  suspended?: { at?: any; by?: string; reason?: string } | null;
   isAdmin?: boolean;
   super_admin?: boolean;
   

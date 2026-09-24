@@ -239,6 +239,19 @@
             }
           }
 
+          <!-- Andamento completo, em tempo real (pagamento → entrega) -->
+          <button type="button" class="oc-timeline-toggle" (click)="toggleTimeline(v)" [attr.aria-expanded]="isTimelineOpen(v)" [attr.aria-controls]="'tl-' + v.id">
+            <ion-icon name="git-commit-outline" aria-hidden="true"></ion-icon>
+            {{ isTimelineOpen(v) ? 'Ocultar andamento' : 'Acompanhar pedido' }}
+            @if (v.order.fiscalDocuments && !isTimelineOpen(v)) { <span class="oc-timeline-badge">Nota fiscal</span> }
+            <ion-icon name="chevron-down" aria-hidden="true" [class.is-flipped]="isTimelineOpen(v)"></ion-icon>
+          </button>
+          @if (isTimelineOpen(v)) {
+            <div class="oc-timeline" [id]="'tl-' + v.id">
+              <app-order-timeline [order]="v.order"></app-order-timeline>
+            </div>
+          }
+
           <!-- Ações da etapa -->
           <div class="oc-actions">
             @switch (v.stage) {

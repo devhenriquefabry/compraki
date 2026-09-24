@@ -1,0 +1,240 @@
+/*
+ * Base das abas novas do painel admin (Pedidos, Denúncias, Ajustes).
+ * ----------------------------------------------------------------------------
+ * Mesma paleta das abas existentes (fundo #f8fafc, linhas #e2e8f0, verde
+ * #799d50 da marca no painel). Cada página chama `@include adm.base;` e
+ * acrescenta só o que é dela.
+ */
+
+@mixin base {
+  :host {
+    display: block;
+    --adm-bg: #f8fafc;
+    --adm-card: #ffffff;
+    --adm-line: #e2e8f0;
+    --adm-ink: #0f172a;
+    --adm-ink-2: #334155;
+    --adm-muted: #64748b;
+    --adm-accent: #799d50;
+    --adm-accent-soft: #eef5e6;
+    --adm-warn: #b45309;
+    --adm-warn-soft: #fef3c7;
+    --adm-danger: #b91c1c;
+    --adm-danger-soft: #fee2e2;
+    --adm-info: #1d4ed8;
+    --adm-info-soft: #dbeafe;
+    color: var(--adm-ink);
+    background: var(--adm-bg);
+    min-height: 100%;
+  }
+
+  .adm {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 20px 48px;
+  }
+
+  .adm-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    h2 { margin: 0; font-size: 1.35rem; font-weight: 800; }
+    p { margin: 4px 0 0; color: var(--adm-muted); font-size: 0.9rem; }
+  }
+
+  .adm-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--adm-accent);
+    font-size: 0.8rem;
+    font-weight: 700;
+
+    &::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 3px var(--adm-accent-soft);
+    }
+  }
+
+  .adm-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .adm-stat {
+    padding: 14px 16px;
+    border: 1px solid var(--adm-line);
+    border-radius: 14px;
+    background: var(--adm-card);
+
+    span { display: block; color: var(--adm-muted); font-size: 0.78rem; font-weight: 600; }
+    strong { display: block; margin-top: 4px; font-size: 1.4rem; font-weight: 800; }
+    &.is-warn strong { color: var(--adm-warn); }
+    &.is-danger strong { color: var(--adm-danger); }
+  }
+
+  .adm-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .adm-search {
+    flex: 1 1 260px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid var(--adm-line);
+    border-radius: 12px;
+    background: var(--adm-card);
+
+    ion-icon { color: var(--adm-muted); }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 42px;
+      border: 0;
+      background: transparent;
+      font: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    &:focus-within { border-color: var(--adm-accent); }
+  }
+
+  .adm-chips {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .adm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--adm-line);
+    border-radius: 999px;
+    background: var(--adm-card);
+    color: var(--adm-ink-2);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    small {
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--adm-bg);
+      color: var(--adm-muted);
+      font-size: 0.72rem;
+    }
+
+    &.is-active {
+      border-color: var(--adm-ink);
+      background: var(--adm-ink);
+      color: #fff;
+      small { background: rgba(255, 255, 255, 0.18); color: #fff; }
+    }
+
+    &.is-alert small { background: var(--adm-danger-soft); color: var(--adm-danger); }
+  }
+
+  .adm-card {
+    border: 1px solid var(--adm-line);
+    border-radius: 14px;
+    background: var(--adm-card);
+  }
+
+  .adm-card + .adm-card { margin-top: 10px; }
+
+  .adm-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--adm-bg);
+    color: var(--adm-ink-2);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+
+    &.is-ok { background: var(--adm-accent-soft); color: #4d7c0f; }
+    &.is-warn { background: var(--adm-warn-soft); color: var(--adm-warn); }
+    &.is-danger { background: var(--adm-danger-soft); color: var(--adm-danger); }
+    &.is-info { background: var(--adm-info-soft); color: var(--adm-info); }
+  }
+
+  .adm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--adm-line);
+    border-radius: 10px;
+    background: var(--adm-card);
+    color: var(--adm-ink-2);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { border-color: var(--adm-ink-2); }
+    &:disabled { opacity: 0.5; cursor: default; }
+
+    &--primary { border-color: var(--adm-ink); background: var(--adm-ink); color: #fff; }
+    &--accent { border-color: var(--adm-accent); background: var(--adm-accent); color: #fff; }
+    &--danger { border-color: var(--adm-danger); background: var(--adm-danger); color: #fff; }
+    &--ghost-danger { color: var(--adm-danger); }
+  }
+
+  .adm-empty {
+    padding: 48px 16px;
+    color: var(--adm-muted);
+    text-align: center;
+
+    ion-icon { font-size: 40px; opacity: 0.6; }
+    p { margin: 8px 0 0; }
+  }
+
+  .adm-error {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--adm-danger-soft);
+    color: var(--adm-danger);
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  :is(button, a, input, textarea):focus-visible {
+    outline: 2px solid var(--adm-accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 600px) {
+    .adm { padding: 14px 12px 40px; }
+  }
+}

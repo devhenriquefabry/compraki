@@ -26,7 +26,7 @@ export class EditProductPage implements OnInit, OnDestroy {
   ngOnInit() {
     // Lista lateral para escolher outro produto do proprio vendedor.
     const uid = this.fbProducts.getUser()?.uid;
-    this.allProducts$ = uid ? this.fbProducts.getBySeller(uid) : of([]);
+    this.allProducts$ = uid ? this.fbProducts.getBySeller(uid, true) : of([]);
 
     // Le o ID da URL e carrega o produto automaticamente.
     // Antes havia um subscribe dentro de outro subscribe sobre o catalogo

@@ -24,6 +24,8 @@ export { onProductSaved, onProductUnsaved, recomputeSavedCounts } from './counte
 
 export { onProductReviewWritten } from './reviews';
 
+export { moderateProductName, onStorefrontConfigWritten, setAccountSuspension } from './moderation';
+
 export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
 
 export {

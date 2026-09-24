@@ -2,10 +2,11 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { IonicModule, ModalController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   alertCircleOutline,
+  flagOutline,
   bagHandleOutline,
   bicycleOutline,
   calendarOutline,
@@ -39,6 +40,7 @@ import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { requireAccount } from 'src/app/core/auth-redirect';
+import { ReportModalComponent } from 'src/app/components/report-modal/report-modal.component';
 
 interface SellerStats {
   productCount: number;
@@ -74,11 +76,13 @@ export class SellerProfilePage implements OnInit, OnDestroy {
   private productsService = inject(FirebaseProducts);
   private usersService = inject(FirebaseUsersService);
   private chatService = inject(FirebaseChatService);
+  private modalCtrl = inject(ModalController);
   private destroy$ = new Subject<void>();
 
   constructor() {
     addIcons({
       alertCircleOutline,
+      flagOutline,
       bagHandleOutline,
       bicycleOutline,
       calendarOutline,
@@ -240,6 +244,21 @@ export class SellerProfilePage implements OnInit, OnDestroy {
     } finally {
       this.isFollowActionBusy = false;
     }
+  }
+
+  public async reportSeller(seller: PublicSellerProfile) {
+    if (!requireAccount(this.router)) return;
+    const modal = await this.modalCtrl.create({
+      component: ReportModalComponent,
+      componentProps: {
+        targetType: 'seller',
+        targetId: seller.uid,
+        sellerId: seller.uid,
+        targetName: this.getDisplayName(seller),
+        targetPhoto: seller.photoURL || null,
+      },
+    });
+    await modal.present();
   }
 
   public async startChat(seller: PublicSellerProfile) {

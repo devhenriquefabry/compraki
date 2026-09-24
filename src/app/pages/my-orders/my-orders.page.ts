@@ -42,6 +42,7 @@ import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { OrdersService } from 'src/app/services/orders.service';
 import { RefundsService } from 'src/app/services/refunds.service';
 import { SalesService } from 'src/app/services/sales.service';
+import { OrderTimelineComponent } from 'src/app/components/order-timeline/order-timeline.component';
 import {
   COUNTED_TABS,
   ORDER_TABS,
@@ -109,7 +110,7 @@ interface OrderView {
   templateUrl: './my-orders.page.html',
   styleUrls: ['./my-orders.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, RouterModule],
+  imports: [CommonModule, FormsModule, IonicModule, RouterModule, OrderTimelineComponent],
 })
 export class MyOrdersPage {
   private readonly ordersService = inject(OrdersService);
@@ -142,6 +143,8 @@ export class MyOrdersPage {
   readonly searchOpen = signal(false);
   readonly search = signal('');
   readonly expanded = signal<ReadonlySet<string>>(new Set());
+  /** Pedidos com a linha do tempo completa aberta. */
+  readonly openTimelines = signal<ReadonlySet<string>>(new Set());
 
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
   private readonly tabStrip = viewChild<ElementRef<HTMLElement>>('tabStrip');
@@ -331,6 +334,19 @@ export class MyOrdersPage {
 
   toggleItems(view: OrderView) {
     this.expanded.update(current => {
+      const next = new Set(current);
+      if (next.has(view.id)) next.delete(view.id);
+      else next.add(view.id);
+      return next;
+    });
+  }
+
+  isTimelineOpen(view: OrderView) {
+    return this.openTimelines().has(view.id);
+  }
+
+  toggleTimeline(view: OrderView) {
+    this.openTimelines.update(current => {
       const next = new Set(current);
       if (next.has(view.id)) next.delete(view.id);
       else next.add(view.id);

@@ -171,3 +171,28 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Frete grátis (vendedor ou regra da loja) */
+.free-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #ecfdf3;
+  color: #166534;
+  font-size: 13px;
+
+  ion-icon { font-size: 18px; flex-shrink: 0; }
+}
+
+.price-old {
+  display: block;
+  color: #8a94a3;
+  font-size: 12px;
+}
+
+.price-val--free {
+  color: #15803d !important;
+}

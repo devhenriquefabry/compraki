@@ -197,7 +197,7 @@ export class DevProductsPage implements OnInit, OnDestroy {
 
   loadProducts() {
     this.isLoading = true;
-    this.productSub = this.firebaseProducts.getAll().subscribe({
+    this.productSub = this.firebaseProducts.getAll(true).subscribe({
       next: (data) => {
         this.products = data.map(p => {
           // Converte Timestamps do Firestore para objetos Date do JS

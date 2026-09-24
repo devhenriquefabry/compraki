@@ -1,0 +1,106 @@
+<div class="adm">
+  <header class="adm-head">
+    <div>
+      <h2>Denúncias</h2>
+      <p>Anúncios e vendedores denunciados. Tire do ar, suspenda a conta ou descarte. <span class="adm-live">Ao vivo</span></p>
+    </div>
+  </header>
+
+  <div class="adm-toolbar">
+    <div class="adm-chips" role="tablist" aria-label="Situação">
+      <button type="button" role="tab" class="adm-chip" [class.is-active]="status() === 'open'" [class.is-alert]="openCount() > 0"
+              [attr.aria-selected]="status() === 'open'" (click)="status.set('open')">
+        Abertas <small>{{ openCount() }}</small>
+      </button>
+      <button type="button" role="tab" class="adm-chip" [class.is-active]="status() === 'resolved'"
+              [attr.aria-selected]="status() === 'resolved'" (click)="status.set('resolved')">
+        Resolvidas
+      </button>
+    </div>
+    <div class="adm-chips" aria-label="Tipo">
+      <button type="button" class="adm-chip" [class.is-active]="type() === 'all'" (click)="type.set('all')">Tudo</button>
+      <button type="button" class="adm-chip" [class.is-active]="type() === 'product'" (click)="type.set('product')">Anúncios</button>
+      <button type="button" class="adm-chip" [class.is-active]="type() === 'seller'" (click)="type.set('seller')">Vendedores</button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
+  } @else if (error()) {
+    <p class="adm-error" role="alert">{{ error() }}</p>
+  } @else if (!groups().length) {
+    <div class="adm-empty">
+      <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+      <p>{{ status() === 'open' ? 'Nenhuma denúncia aberta. Tudo em ordem.' : 'Nenhuma denúncia resolvida ainda.' }}</p>
+    </div>
+  } @else {
+    @for (g of groups(); track g.key) {
+      <article class="adm-card mr-card" [attr.aria-busy]="busyKey() === g.key">
+        <header class="mr-head">
+          @if (g.targetPhoto) {
+            <img class="mr-thumb" [src]="g.targetPhoto" alt="" loading="lazy" />
+          } @else {
+            <span class="mr-thumb mr-thumb--icon"><ion-icon [name]="g.targetType === 'product' ? 'pricetag-outline' : 'person-outline'" aria-hidden="true"></ion-icon></span>
+          }
+          <div class="mr-title">
+            <span class="adm-tag" [class.is-info]="g.targetType === 'product'" [class.is-warn]="g.targetType === 'seller'">
+              {{ g.targetType === 'product' ? 'Anúncio' : 'Vendedor' }}
+            </span>
+            <strong>{{ g.targetName }}</strong>
+            <small>Última denúncia: {{ g.latest }}</small>
+          </div>
+          <span class="mr-count" [class.is-hot]="g.reports.length >= 3" [attr.aria-label]="g.reports.length + ' denúncias'">
+            <ion-icon name="flag-outline" aria-hidden="true"></ion-icon>{{ g.reports.length }}
+          </span>
+        </header>
+
+        <div class="mr-reasons">
+          @for (r of g.reasons; track r.label) {
+            <span class="adm-tag">{{ r.label }}{{ r.count > 1 ? ' ×' + r.count : '' }}</span>
+          }
+        </div>
+
+        <ul class="mr-reports">
+          @for (r of g.reports.slice(0, 4); track r.id) {
+            <li>
+              <p class="mr-meta"><strong>{{ r.reporterName }}</strong> · {{ reasonLabel(r.reason) }} · {{ stamp(r.createdAt) }}</p>
+              @if (r.details) { <p class="mr-details">“{{ r.details }}”</p> }
+            </li>
+          }
+          @if (g.reports.length > 4) {
+            <li class="mr-more">+ {{ g.reports.length - 4 }} denúncia(s)</li>
+          }
+        </ul>
+
+        @if (g.resolution) {
+          <p class="mr-resolution">
+            <strong>{{ g.resolutionLabel }}</strong>
+            @if (g.resolutionNote) { — {{ g.resolutionNote }} }
+          </p>
+        }
+
+        <footer class="mr-actions">
+          @if (g.targetType === 'product') {
+            <a class="adm-btn" [routerLink]="['/product-details', g.targetId]" target="_blank">Ver anúncio</a>
+          }
+          <a class="adm-btn" [routerLink]="['/seller-profile', g.sellerId]" target="_blank">Ver loja</a>
+          <a class="adm-btn" [routerLink]="['/admin/users']" [queryParams]="{ user: g.sellerId }">Cadastro</a>
+
+          <span class="mr-spacer"></span>
+
+          @if (status() === 'open') {
+            <button type="button" class="adm-btn" (click)="dismiss(g)" [disabled]="!!busyKey()">Descartar</button>
+            @if (g.targetType === 'product') {
+              <button type="button" class="adm-btn adm-btn--primary" (click)="takeDown(g)" [disabled]="!!busyKey()">Tirar anúncio do ar</button>
+            }
+            <button type="button" class="adm-btn adm-btn--danger" (click)="suspend(g)" [disabled]="!!busyKey()">Suspender conta</button>
+          } @else {
+            <button type="button" class="adm-btn" (click)="undo(g)" [disabled]="!!busyKey()">
+              {{ g.resolution === 'account_suspended' ? 'Reativar conta' : g.resolution === 'product_removed' ? 'Recolocar no ar' : 'Reabrir' }}
+            </button>
+          }
+        </footer>
+      </article>
+    }
+  }
+</div>

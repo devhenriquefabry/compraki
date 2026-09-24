@@ -35,7 +35,14 @@ service cloud.firestore {
 
     // Campos que definem privilegio ou punicao: so admin encosta.
     function privilegedFields() {
-      return ['isAdmin', 'super_admin', 'role', 'admin', 'isChatBanned'];
+      return ['isAdmin', 'super_admin', 'role', 'admin', 'isChatBanned', 'suspended'];
+    }
+
+    // Conta derrubada pelo admin (`setAccountSuspension`). O login ja fica
+    // bloqueado no Auth, mas um ID token emitido antes continua valido por ate
+    // 1 hora — por isso as escritas que importam conferem aqui tambem.
+    function isSuspended() {
+      return exists(/databases/$(database)/documents/accountSuspensions/$(request.auth.uid));
     }
 
     function touchesPrivileged() {
@@ -65,13 +72,20 @@ service cloud.firestore {
       return ['rating', 'reviewCount', 'ratingBreakdown'];
     }
 
+    // Campos que o vendedor nao escreve: nota agregada (funcao de avaliacoes) e
+    // `moderation` (anuncio fora do ar — admin e funcao `moderateProductName`).
+    function sellerLockedProductFields() {
+      return reviewAggregateFields().concat(['moderation']);
+    }
+
     match /products/{productId} {
       allow read: if true;
 
       allow create: if isAdmin() || (
         isSignedIn()
         && request.resource.data.sellerId == request.auth.uid
-        && !request.resource.data.keys().hasAny(reviewAggregateFields())
+        && !request.resource.data.keys().hasAny(sellerLockedProductFields())
+        && !isSuspended()
       );
 
       // Valida o dono ATUAL do documento e impede transferir a posse.
@@ -80,7 +94,8 @@ service cloud.firestore {
         && resource.data.sellerId == request.auth.uid
         && request.resource.data.sellerId == resource.data.sellerId
         && !request.resource.data.diff(resource.data).affectedKeys()
-             .hasAny(reviewAggregateFields())
+             .hasAny(sellerLockedProductFields())
+        && !isSuspended()
       );
 
       allow delete: if isAdmin() || (
@@ -135,6 +150,14 @@ service cloud.firestore {
     }
 
     match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Ajustes que o admin muda pelo painel (aba Ajustes): frete gratis por
+    // valor, termos proibidos em anuncio, redes sociais. Leitura publica — a
+    // vitrine de visitante precisa. NUNCA guardar segredo aqui (isso e `settings/`).
+    match /appConfig/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
@@ -243,6 +266,7 @@ service cloud.firestore {
         allow create: if isAdmin() || (
           isChatParticipant(chatId)
           && request.resource.data.senderId == request.auth.uid
+          && !isSuspended()
         );
 
         // Mensagem enviada nao se reescreve; historico e imutavel.
@@ -268,7 +292,8 @@ service cloud.firestore {
       ));
 
       allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.userId == request.auth.uid
+        && !isSuspended();
 
       // Comprador e vendedor mexem em entrega e observacao, nunca no dinheiro
       // nem no `status`.
@@ -289,17 +314,71 @@ service cloud.firestore {
                'total', 'userId', 'sellerIds', 'items', 'asaasPaymentId',
                'coraInvoiceId', 'paymentProvider',
                'status', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy'
-             ]));
+             ])
+        // Nota fiscal / declaracao de conteudo: so a loja anexa.
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['fiscalDocuments'])
+          || (resource.data.sellerIds is list && request.auth.uid in resource.data.sellerIds)
+        ));
 
       allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------- denuncias
 
+    // Denuncias de conversa (chat-box). A aba Conversas do admin lista tudo.
     match /reports/{reportId} {
       allow read: if isAdmin();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
+    }
+
+    // Denuncias de anuncio e de vendedor (aba Denuncias do admin).
+    // Id = `{targetType}_{targetId}_{uid}`: uma por pessoa por alvo. Quem
+    // denunciou le a propria (o app mostra "voce ja denunciou"); o denunciado
+    // nunca sabe quem foi.
+    match /contentReports/{reportId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.reporterId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && !isSuspended()
+        && isValidContentReport()
+        && reportId == request.resource.data.targetType + '_'
+             + request.resource.data.targetId + '_' + request.auth.uid;
+
+      allow update, delete: if isAdmin();
+    }
+
+    function isValidContentReport() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['targetType', 'targetId', 'sellerId', 'targetName', 'targetPhoto',
+                               'reason', 'details', 'reporterId', 'reporterName', 'status', 'createdAt'])
+        && d.reporterId == request.auth.uid
+        && d.sellerId != request.auth.uid
+        && d.targetType in ['product', 'seller']
+        && d.targetId is string && d.targetId.size() > 0 && d.targetId.size() <= 128
+        && d.sellerId is string && d.sellerId.size() > 0
+        && d.targetName is string && d.targetName.size() <= 200
+        && d.reason in ['prohibited', 'fraud', 'counterfeit', 'misleading', 'offensive',
+                        'no_delivery', 'abusive', 'fake_profile', 'other']
+        && d.details is string && d.details.size() <= 1000
+        && d.reporterName is string && d.reporterName.size() <= 80
+        && d.status == 'open'
+        && d.createdAt == request.time;
+    }
+
+    // Marca de conta suspensa. So a funcao `setAccountSuspension` escreve; o
+    // dono le a propria.
+    match /accountSuspensions/{uid} {
+      allow read: if isAdmin() || isUser(uid);
+      allow write: if false;
+    }
+
+    // Historico de suspensoes/reativacoes (quem, quando, por que). So o Admin SDK escreve.
+    match /moderationLog/{entryId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // ------------------------------------------------ operacao / diagnostico

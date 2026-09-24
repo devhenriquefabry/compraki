@@ -31,6 +31,8 @@ export class CheckoutStateService {
     serviceId: null,
     serviceName: '',
     price: 0,
+    quotedPrice: 0,
+    freeShipping: false,
     deliveryTime: 0
   };
 

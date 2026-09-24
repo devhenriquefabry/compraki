@@ -23,6 +23,7 @@ import {
 
 import { getDownloadURL, ref, getStorage, uploadBytes } from 'firebase/storage';
 import { Product } from '../interfaces/product';
+import { isProductHidden } from '../core/product-moderation';
 
 import { Observable, from, of } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
@@ -34,6 +35,9 @@ import { Router } from '@angular/router';
 import { FirebaseUsersService } from './firebase-users.service';
 import { WhatsappInstancesService } from './whatsapp-instances.service';
 import { environment } from '../../environments/environment';
+
+const SUSPENDED_ACCOUNT_MESSAGE =
+  'Esta conta foi suspensa por violar os termos de uso do Vineon. Se acha que foi um engano, fale com o suporte.';
 
 /** Uma pagina do catalogo, com o cursor para pedir a proxima. */
 export interface ProductPage {
@@ -102,6 +106,11 @@ export class FirebaseProducts {
     return snapshot.docs.map(d => ({ ...(d.data() as any), id: d.id } as Product));
   }
 
+  /** Vitrine não mostra anúncio fora do ar por moderação (`product.moderation`). */
+  private visible(products: Product[]): Product[] {
+    return products.filter(p => !isProductHidden(p));
+  }
+
   /**
    * Catálogo inteiro, em tempo real.
    *
@@ -111,7 +120,7 @@ export class FirebaseProducts {
    * junto com o catálogo. Ainda é usado pela vitrine principal, que será
    * migrada para rolagem paginada.
    */
-  getAll(): Observable<Product[]> {
+  getAll(includeHidden = false): Observable<Product[]> {
     if (!this.allProductsStream) {
       this.allProductsStream = new Observable<Product[]>(subscriber => {
         const productCol = collection(this.db, 'products');
@@ -123,7 +132,10 @@ export class FirebaseProducts {
       }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
     }
 
-    return this.allProductsStream;
+    // O painel admin (`includeHidden`) precisa ver o que está fora do ar.
+    return includeHidden
+      ? this.allProductsStream
+      : this.allProductsStream.pipe(map(products => this.visible(products)));
   }
 
   /**
@@ -165,7 +177,7 @@ export class FirebaseProducts {
     const docs = snapshot.docs.slice(0, pageSize);
 
     return {
-      products: docs.map(d => ({ ...(d.data() as any), id: d.id } as Product)),
+      products: this.visible(docs.map(d => ({ ...(d.data() as any), id: d.id } as Product))),
       cursor: docs.length > 0 ? docs[docs.length - 1] : null,
       hasMore: snapshot.docs.length > pageSize
     };
@@ -190,7 +202,7 @@ export class FirebaseProducts {
     );
 
     return from(getDocs(q)).pipe(
-      map(snapshot => this.mapSnapshot(snapshot)
+      map(snapshot => this.visible(this.mapSnapshot(snapshot))
         .filter(p => p.id !== product.id)
         .slice(0, max)),
       shareReplay({ bufferSize: 1, refCount: true })
@@ -220,8 +232,18 @@ export class FirebaseProducts {
     return stream;
   }
 
-  /** Produtos de um vendedor, em tempo real. Compartilhado por sellerId. */
-  getBySeller(sellerId: string): Observable<Product[]> {
+  /**
+   * Produtos de um vendedor, em tempo real. Compartilhado por sellerId.
+   *
+   * @param includeHidden `true` nas telas do próprio vendedor (Meus anúncios,
+   * editar), que mostram também o que a moderação tirou do ar.
+   */
+  getBySeller(sellerId: string, includeHidden = false): Observable<Product[]> {
+    const stream = this.sellerStream(sellerId);
+    return includeHidden ? stream : stream.pipe(map(products => this.visible(products)));
+  }
+
+  private sellerStream(sellerId: string): Observable<Product[]> {
     const cached = this.sellerStreamCache.get(sellerId);
     if (cached) return cached;
 
@@ -373,11 +395,18 @@ async signInWithGoogle(): Promise<boolean> {
       return false;
     }
     console.error("Erro ao logar com Google:", error);
-    alert('Não foi possível entrar com o Google agora. Tente novamente ou use e-mail e senha.');
+    alert(this.isSuspendedAccount(error)
+      ? SUSPENDED_ACCOUNT_MESSAGE
+      : 'Não foi possível entrar com o Google agora. Tente novamente ou use e-mail e senha.');
     return false;
   } finally {
     this.carregando = false;
   }
+}
+
+/** Conta derrubada pelo admin (`setAccountSuspension` desativa o usuário no Auth). */
+private isSuspendedAccount(error: unknown): boolean {
+  return String((error as { code?: unknown } | null)?.code ?? '') === 'auth/user-disabled';
 }
 
 /** Usuário desistiu (fechou o popup/bandeja ou abriu outro): não é erro. */
@@ -469,7 +498,9 @@ private async signInWithGoogleWeb(): Promise<User> {
       
     } catch (error) {
       console.log(error)
-      alert('erro ao fazer login, verifique suas credenciais e tente novamente')
+      alert(this.isSuspendedAccount(error)
+        ? SUSPENDED_ACCOUNT_MESSAGE
+        : 'erro ao fazer login, verifique suas credenciais e tente novamente')
       return false
       
     }

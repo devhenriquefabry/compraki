@@ -323,6 +323,7 @@
                 </section>
               }
 
+
               <section class="pd-sheet pd-sheet--pad" aria-labelledby="pd-pay-title">
                 <h2 class="pd-h2" id="pd-pay-title">Meios de pagamento</h2>
                 <ul class="pd-pay-list">
@@ -334,6 +335,17 @@
                 </ul>
                 <p class="pd-muted pd-small">O pagamento é feito dentro do Vineon. Não pague por fora da plataforma.</p>
               </section>
+
+              @if (!seller || !isOwnSeller(seller)) {
+                <div class="pd-report">
+                  <button type="button" class="pd-report-link" (click)="openReport('product', p, seller)">
+                    <ion-icon name="flag-outline" aria-hidden="true"></ion-icon> Denunciar anúncio
+                  </button>
+                  @if (seller) {
+                    <button type="button" class="pd-report-link" (click)="openReport('seller', p, seller)">Denunciar vendedor</button>
+                  }
+                </div>
+              }
             </div>
           </div>
 

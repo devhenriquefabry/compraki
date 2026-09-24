@@ -86,6 +86,16 @@
                 Instagram
               </button>
             </div>
+
+            <p class="suspended-note" *ngIf="seller.suspended" role="status">
+              <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+              Esta conta está suspensa por violar os termos de uso do Vineon. Os anúncios estão fora do ar.
+            </p>
+
+            <button type="button" class="report-link" *ngIf="!isOwnProfile(seller) && !seller.suspended" (click)="reportSeller(seller)">
+              <ion-icon name="flag-outline" aria-hidden="true"></ion-icon>
+              Denunciar loja
+            </button>
           </div>
         </section>
 

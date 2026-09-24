@@ -232,6 +232,8 @@ export class CheckoutPage implements OnInit {
           serviceId: this.stateService.shippingData.serviceId,
           serviceName: this.stateService.shippingData.serviceName,
           price: this.stateService.shippingData.price,
+          freeShipping: this.stateService.shippingData.freeShipping === true,
+          quotedPrice: this.stateService.shippingData.quotedPrice ?? this.stateService.shippingData.price,
           deliveryTime: this.stateService.shippingData.deliveryTime
         }
       });

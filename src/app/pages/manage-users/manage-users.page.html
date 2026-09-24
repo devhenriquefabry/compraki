@@ -308,11 +308,19 @@
                     <ion-icon name="key-outline"></ion-icon>
                     {{ user.isAdmin ? 'Remover Admin' : 'Tornar Admin' }}
                   </button>
+                  <button class="act-btn danger" (click)="toggleSuspension(user)" [disabled]="actionLoading">
+                    <ion-icon [name]="user.suspended ? 'refresh-circle-outline' : 'ban-outline'"></ion-icon>
+                    {{ user.suspended ? 'Reativar Conta' : 'Suspender Conta' }}
+                  </button>
                   <button class="act-btn danger" (click)="deleteUser(user)" [disabled]="actionLoading">
                     <ion-icon name="trash-outline"></ion-icon>
                     Excluir Conta
                   </button>
                 </div>
+                <p class="suspension-note" *ngIf="user.suspended">
+                  Conta suspensa em {{ formatDateTime(user.suspended.at) }}<span *ngIf="user.suspended.reason"> — {{ user.suspended.reason }}</span>.
+                  A pessoa não consegue entrar e os anúncios estão fora do ar.
+                </p>
               </div>
             </div>
 

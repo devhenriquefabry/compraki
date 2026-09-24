@@ -12,6 +12,7 @@ import { MyAccountPage } from './my-account.page';
 import { CustomHeaderComponent } from 'src/app/components/custom-header/custom-header.component';
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
 import { ProfileCardComponent } from 'src/app/components/profile-card/profile-card.component';
+import { SocialLinksComponent } from 'src/app/components/social-links/social-links.component';
 
 @NgModule({
   imports: [
@@ -22,6 +23,7 @@ import { ProfileCardComponent } from 'src/app/components/profile-card/profile-ca
     CustomHeaderComponent,
     MiniHeaderComponent,
     ProfileCardComponent,
+    SocialLinksComponent,
     MyAccountPageRoutingModule
   ],
   declarations: [MyAccountPage]

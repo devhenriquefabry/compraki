@@ -1,0 +1,140 @@
+<div class="adm">
+  <header class="adm-head">
+    <div>
+      <h2>Pedidos</h2>
+      <p>Andamento de todos os pedidos do app, do pagamento à entrega. <span class="adm-live">Ao vivo</span></p>
+    </div>
+  </header>
+
+  <div class="adm-stats">
+    <div class="adm-stat"><span>Pedidos hoje</span><strong>{{ stats().todayCount }}</strong></div>
+    <div class="adm-stat"><span>Pago hoje</span><strong>{{ stats().todayRevenue }}</strong></div>
+    <div class="adm-stat"><span>A enviar</span><strong>{{ stats().toShip }}</strong></div>
+    <div class="adm-stat"><span>A caminho</span><strong>{{ stats().onTheWay }}</strong></div>
+    <div class="adm-stat" [class.is-danger]="stats().attention > 0"><span>Precisam de atenção</span><strong>{{ stats().attention }}</strong></div>
+  </div>
+
+  <div class="adm-toolbar">
+    <label class="adm-search">
+      <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      <span class="vn-sr-only">Buscar pedidos</span>
+      <input type="search" placeholder="Nº do pedido, comprador, e-mail, CPF, produto ou rastreio"
+             [ngModel]="search()" (ngModelChange)="onSearch($event)" autocomplete="off" />
+    </label>
+  </div>
+
+  <div class="adm-chips" role="tablist" aria-label="Filtrar por etapa">
+    @for (f of filters(); track f.id) {
+      <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === f.id" [class.is-alert]="f.alert && counts()[f.id] > 0"
+              [attr.aria-selected]="filter() === f.id" (click)="setFilter(f.id)">
+        {{ f.label }} <small>{{ counts()[f.id] }}</small>
+      </button>
+    }
+  </div>
+
+  <div class="mo-list">
+    @if (loading()) {
+      <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
+    } @else if (error()) {
+      <p class="adm-error" role="alert">{{ error() }}</p>
+    } @else if (!filtered().length) {
+      <div class="adm-empty">
+        <ion-icon name="receipt-outline" aria-hidden="true"></ion-icon>
+        <p>{{ search() ? 'Nenhum pedido encontrado para essa busca.' : 'Nenhum pedido nesta etapa.' }}</p>
+      </div>
+    } @else {
+      @for (row of visible(); track row.id) {
+        <article class="adm-card mo-card" [class.is-open]="openId() === row.id">
+          <button type="button" class="mo-row" (click)="toggle(row)" [attr.aria-expanded]="openId() === row.id" [attr.aria-controls]="'mo-' + row.id">
+            <span class="mo-id">
+              <strong>#{{ row.shortId }}</strong>
+              <small>{{ row.placedAt }}</small>
+            </span>
+            <span class="mo-main">
+              <strong>{{ row.summary }}</strong>
+              <small>{{ row.buyer }} · {{ row.count }} {{ row.count === 1 ? 'item' : 'itens' }} · {{ row.method }}</small>
+            </span>
+            <span class="mo-tags">
+              <span class="adm-tag" [ngClass]="stageTone[row.stage]">{{ row.stageLabel }}</span>
+              @for (a of row.alerts; track a.label) {
+                <span class="adm-tag" [ngClass]="'is-' + a.tone">{{ a.label }}</span>
+              }
+            </span>
+            <strong class="mo-total">{{ row.total }}</strong>
+            <ion-icon class="mo-chevron" name="chevron-down-outline" aria-hidden="true"></ion-icon>
+          </button>
+
+          @if (openId() === row.id) {
+            @let o = row.order;
+            <div class="mo-detail" [id]="'mo-' + row.id">
+              <section class="mo-col">
+                <h3>Andamento</h3>
+                <app-order-timeline [order]="o"></app-order-timeline>
+              </section>
+
+              <section class="mo-col">
+                <h3>Comprador</h3>
+                <dl class="mo-kv">
+                  <div><dt>Nome</dt><dd>{{ customer(o).name || '—' }}</dd></div>
+                  @if (customer(o).email) { <div><dt>E-mail</dt><dd>{{ customer(o).email }}</dd></div> }
+                  @if (customer(o).phone) { <div><dt>Telefone</dt><dd>{{ customer(o).phone }}</dd></div> }
+                  @if (addressOf(o); as address) { <div><dt>Entrega</dt><dd>{{ address }}</dd></div> }
+                </dl>
+                <a class="adm-btn mo-link" [routerLink]="['/admin/users']" [queryParams]="{ user: o.userId }">Ver cadastro do comprador</a>
+
+                <h3>Itens</h3>
+                <ul class="mo-items">
+                  @for (item of itemsOf(o); track item.key) {
+                    <li>
+                      <img [src]="item.photo" alt="" loading="lazy" />
+                      <span>
+                        <strong>{{ item.name }}</strong>
+                        <small>
+                          @if (item.variant) { {{ item.variant }} · }
+                          {{ item.quantity }} × {{ item.price }}
+                          @if (item.sellerId) { · {{ sellerName(item.sellerId) }} }
+                        </small>
+                      </span>
+                    </li>
+                  }
+                </ul>
+
+                <h3>Pagamento e frete</h3>
+                <dl class="mo-kv">
+                  <div><dt>Total</dt><dd>{{ row.total }}</dd></div>
+                  <div><dt>Forma</dt><dd>{{ row.method }}{{ o.paymentProvider ? ' · ' + (o.paymentProvider === 'cora' ? 'Cora' : 'Asaas') : '' }}</dd></div>
+                  @if (o.shippingInfo) {
+                    <div><dt>Frete</dt><dd>
+                      {{ o.shippingInfo.serviceName || '—' }} ·
+                      @if (o.shippingInfo.freeShipping) {
+                        grátis para o comprador (etiqueta {{ formatBRL(o.shippingInfo.quotedPrice || 0) }})
+                      } @else {
+                        {{ formatBRL(o.shippingInfo.price || 0) }}
+                      }
+                    </dd></div>
+                  }
+                  @if (o.escrowInfo) {
+                    <div><dt>Repasse</dt><dd>{{ o.escrowInfo.status === 'RELEASED' ? 'Liberado à loja' : o.escrowInfo.status === 'REFUNDED' ? 'Estornado' : 'Retido (garantia)' }}</dd></div>
+                  }
+                  <div><dt>Lojas</dt><dd>
+                    @for (uid of o.sellerIds; track uid; let last = $last) {
+                      <a [routerLink]="['/seller-profile', uid]">{{ sellerName(uid) }}</a>{{ last ? '' : ', ' }}
+                    }
+                  </dd></div>
+                  <div><dt>ID</dt><dd class="mo-mono">{{ row.id }}</dd></div>
+                </dl>
+              </section>
+            </div>
+          }
+        </article>
+      }
+
+      @if (filtered().length > visible().length) {
+        <button type="button" class="adm-btn mo-more" (click)="showMore()">
+          Mostrar mais ({{ filtered().length - visible().length }})
+        </button>
+      }
+      <p class="mo-foot">Mostrando os 500 pedidos mais recentes.</p>
+    }
+  </div>
+</div>

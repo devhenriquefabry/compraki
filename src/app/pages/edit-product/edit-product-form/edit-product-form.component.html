@@ -51,9 +51,13 @@
     <div class="form-group">
       <label>Título do Produto</label>
       <div class="input-wrapper">
-        <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM">
+        <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM" [attr.aria-invalid]="!!blockedTerm" [attr.aria-describedby]="blockedTerm ? 'name-blocked' : null">
         <ion-icon name="checkmark" color="success" *ngIf="editProductForm.get('name')?.valid"></ion-icon>
       </div>
+      <p class="field-blocked" id="name-blocked" role="alert" *ngIf="blockedTerm">
+        <ion-icon name="ban-outline" aria-hidden="true"></ion-icon>
+        Esse produto não é aceito no Vineon.
+      </p>
     </div>
 
     <div class="form-group">

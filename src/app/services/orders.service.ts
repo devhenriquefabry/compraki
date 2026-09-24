@@ -3,7 +3,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, updateDoc, doc, 
   query, where, orderBy, onSnapshot, serverTimestamp, 
-  Firestore, getDocs, increment
+  Firestore, getDocs, increment, limit
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { Observable } from 'rxjs';
@@ -85,6 +85,22 @@ export class OrdersService {
         subscriber.next(orders);
       }, (err) => subscriber.error(err));
 
+      return () => unsub();
+    });
+  }
+
+  /**
+   * Todos os pedidos do app, mais recentes primeiro, em tempo real. Só admin
+   * lê (firestore.rules). `max` segura o custo: o painel mostra os últimos N.
+   */
+  watchAllOrders(max = 300): Observable<Order[]> {
+    return new Observable<Order[]>(subscriber => {
+      const q = query(this.getOrdersCollection(), orderBy('createdAt', 'desc'), limit(max));
+      const unsub = onSnapshot(
+        q,
+        snapshot => subscriber.next(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order))),
+        err => subscriber.error(err)
+      );
       return () => unsub();
     });
   }

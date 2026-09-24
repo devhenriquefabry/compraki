@@ -1,0 +1,130 @@
+<div class="adm">
+  <header class="adm-head">
+    <div>
+      <h2>Ajustes da loja</h2>
+      <p>Mudanças valem na hora para todo mundo que está com o app aberto.</p>
+    </div>
+  </header>
+
+  @if (!loaded()) {
+    <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
+  } @else {
+    <div class="as-grid">
+      <!-- ============================================== FRETE GRÁTIS -->
+      <section class="adm-card as-card" aria-labelledby="as-ship">
+        <header class="as-card-head">
+          <span class="as-icon"><ion-icon name="gift-outline" aria-hidden="true"></ion-icon></span>
+          <div>
+            <h3 id="as-ship">Frete grátis por valor</h3>
+            <p>Todo produto com preço a partir do valor mínimo sai com frete grátis — e o selo aparece no produto.</p>
+          </div>
+          <ion-toggle
+            class="as-toggle"
+            aria-label="Ligar frete grátis por valor"
+            [checked]="config().freeShipping.enabled"
+            [disabled]="savingShipping()"
+            (ionChange)="toggleFreeShipping($event.detail.checked)">
+          </ion-toggle>
+        </header>
+
+        <label class="as-field">
+          <span>Valor mínimo do produto</span>
+          <div class="as-money">
+            <em>R$</em>
+            <input type="number" inputmode="decimal" min="1" step="0.01" [(ngModel)]="minValue" placeholder="200,00" />
+            <button type="button" class="adm-btn adm-btn--primary" (click)="saveMinValue()" [disabled]="!shippingDirty || !minValueValid || savingShipping()">Salvar</button>
+          </div>
+        </label>
+
+        <p class="as-status" [class.is-on]="config().freeShipping.enabled">
+          @if (config().freeShipping.enabled) {
+            <strong>Ligado:</strong> produtos a partir de {{ formatBRL(config().freeShipping.minValue) }} têm frete grátis.
+          } @else {
+            <strong>Desligado.</strong> Só vale o frete grátis que o próprio vendedor oferece no anúncio.
+          }
+        </p>
+        <p class="as-note">
+          No checkout, o pedido sai sem frete quando todos os itens têm frete grátis. A etiqueta continua sendo comprada
+          pelo Melhor Envio — o custo real fica registrado no pedido (aba Pedidos).
+        </p>
+      </section>
+
+      <!-- ========================================= PALAVRAS PROIBIDAS -->
+      <section class="adm-card as-card" aria-labelledby="as-words">
+        <header class="as-card-head">
+          <span class="as-icon as-icon--danger"><ion-icon name="ban-outline" aria-hidden="true"></ion-icon></span>
+          <div>
+            <h3 id="as-words">Produtos não aceitos</h3>
+            <p>Termos que não podem aparecer no nome do anúncio. Quem digita vê na hora: “Esse produto não é aceito”.</p>
+          </div>
+        </header>
+
+        <form class="as-add" (ngSubmit)="addWord()">
+          <label class="vn-sr-only" for="as-new-word">Novo termo proibido</label>
+          <input id="as-new-word" name="newWord" type="text" [(ngModel)]="newWord" placeholder="Ex.: arma*, cigarro eletrônico, vape" autocomplete="off" />
+          <button type="submit" class="adm-btn adm-btn--primary" [disabled]="!newWord.trim() || savingWords()">Bloquear</button>
+        </form>
+        <p class="as-note">
+          Sem acento e sem diferença de maiúsculas. A palavra precisa aparecer inteira: “arma” bloqueia “Arma de pressão”, mas não “Armário”.
+          Use <code>*</code> no fim para pegar variações: <code>arma*</code> bloqueia “armas” e “armamento” — mas também “armário”, então use com cuidado
+          e confira no teste abaixo. Separe vários termos com vírgula.
+        </p>
+
+        @if (words().length) {
+          <ul class="as-words" aria-label="Termos bloqueados">
+            @for (w of words(); track w) {
+              <li>
+                {{ w }}
+                <button type="button" (click)="removeWord(w)" [disabled]="savingWords()" [attr.aria-label]="'Liberar ' + w">
+                  <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="as-empty">Nenhum termo bloqueado ainda.</p>
+        }
+
+        <label class="as-field as-test">
+          <span>Testar um título</span>
+          <input type="text" [(ngModel)]="testTitle" placeholder="Digite um nome de produto" autocomplete="off" />
+        </label>
+        @if (testTitle.trim()) {
+          <p class="as-test-result" [class.is-blocked]="testResult">
+            @if (testResult) { Bloqueado pelo termo “{{ testResult }}”. } @else { Liberado. }
+          </p>
+        }
+        <p class="as-note">
+          Anúncios já publicados que tenham um termo novo da lista saem do ar sozinhos em instantes (e voltam se o termo for liberado).
+          O vendedor vê o aviso em Meus anúncios.
+        </p>
+      </section>
+
+      <!-- ============================================ REDES SOCIAIS -->
+      <section class="adm-card as-card as-card--wide" aria-labelledby="as-social">
+        <header class="as-card-head">
+          <span class="as-icon as-icon--info"><ion-icon name="share-social-outline" aria-hidden="true"></ion-icon></span>
+          <div>
+            <h3 id="as-social">Redes sociais da Vineon</h3>
+            <p>Aparecem no rodapé do site e no fim da tela Conta do app. Rede em branco não aparece.</p>
+          </div>
+        </header>
+
+        <div class="as-social">
+          @for (n of networks; track n.id) {
+            <label class="as-field">
+              <span><ion-icon [name]="n.icon" aria-hidden="true"></ion-icon> {{ n.label }}</span>
+              <input type="url" inputmode="url" [name]="n.id" [(ngModel)]="social[n.id]" [placeholder]="n.placeholder" autocomplete="off" />
+            </label>
+          }
+        </div>
+
+        <div class="as-actions">
+          <button type="button" class="adm-btn adm-btn--primary" (click)="saveSocial()" [disabled]="savingSocial()">
+            {{ savingSocial() ? 'Salvando…' : 'Salvar redes sociais' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+</div>

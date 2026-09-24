@@ -6,8 +6,8 @@ import { AlertController, IonicModule, LoadingController, NavController, ToastCo
 import { addIcons } from 'ionicons';
 import {
   alertCircleOutline, arrowBack, barcodeOutline, callOutline, chatbubblesOutline, checkmarkCircle,
-  copyOutline, cubeOutline, locationOutline, mailOutline, mapOutline, printOutline, shieldHalfOutline,
-  timeOutline,
+  copyOutline, cubeOutline, documentAttachOutline, documentTextOutline, locationOutline, mailOutline, mapOutline,
+  printOutline, shieldHalfOutline, timeOutline,
 } from 'ionicons/icons';
 import { firstValueFrom } from 'rxjs';
 
@@ -16,7 +16,7 @@ import {
   REFUND_LABEL, SALE_STAGE_LABEL, SALE_TRACK_STEPS, formatDay, isPaid, listUnitPrice,
   orderStage, paidUnitPrice, productIdOf, sellerAmount, sellerItems, shipByDate, toDate, trackIndex, trackingUrl,
 } from 'src/app/core/order-stage';
-import { Order } from 'src/app/interfaces/order';
+import { FISCAL_DOCUMENT_LABEL, FiscalDocumentType, Order } from 'src/app/interfaces/order';
 import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { MelhorEnvioService } from 'src/app/services/melhor-envio.service';
 import { SalesService } from 'src/app/services/sales.service';
@@ -52,6 +52,12 @@ export class SaleDetailsPage {
   readonly sale = signal<Order | null>(null);
   readonly sellerId = signal<string | null>(null);
   readonly busy = signal(false);
+
+  // Nota fiscal / declaração de conteúdo desta loja
+  readonly fiscalLabel = FISCAL_DOCUMENT_LABEL;
+  readonly fiscalType = signal<FiscalDocumentType>('NFE');
+  fiscalNumber = '';
+  readonly uploadingFiscal = signal(false);
 
   readonly view = computed(() => {
     const order = this.sale();
@@ -95,6 +101,8 @@ export class SaleDetailsPage {
       release: release ? formatDay(release, true) : null,
       released: order.escrowInfo?.status === 'RELEASED',
       trackingCode: order.shippingInfo?.trackingCode || null,
+      fiscal: order.fiscalDocuments?.[seller] ?? null,
+      fiscalAt: formatDay(toDate(order.fiscalDocuments?.[seller]?.uploadedAt), true),
       addressLines: a
         ? [
             `${a.street}, ${a.number}${a.complement ? ' – ' + a.complement : ''}`,
@@ -113,8 +121,8 @@ export class SaleDetailsPage {
   constructor() {
     addIcons({
       alertCircleOutline, arrowBack, barcodeOutline, callOutline, chatbubblesOutline, checkmarkCircle,
-      copyOutline, cubeOutline, locationOutline, mailOutline, mapOutline, printOutline, shieldHalfOutline,
-      timeOutline,
+      copyOutline, cubeOutline, documentAttachOutline, documentTextOutline, locationOutline, mailOutline, mapOutline,
+      printOutline, shieldHalfOutline, timeOutline,
     });
     inject(DestroyRef).onDestroy(() => this.stop?.());
     void this.load();
@@ -242,6 +250,52 @@ export class SaleDetailsPage {
       tab?.close();
       this.toast('Não foi possível abrir a etiqueta.', 'danger');
     }
+  }
+
+  // ------------------------------------------ nota fiscal / declaração
+
+  /** PDF ou foto, até 10 MB (mesmo teto do storage.rules). */
+  async onFiscalFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const v = this.view();
+    if (!file || !v) return;
+
+    if (!/^(application\/pdf|image\/(jpeg|png|webp))$/.test(file.type)) {
+      this.toast('Envie um PDF ou uma foto (JPG, PNG).', 'warning');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.toast('Arquivo muito grande. O limite é 10 MB.', 'warning');
+      return;
+    }
+
+    this.uploadingFiscal.set(true);
+    try {
+      await this.salesService.attachFiscalDocument(v.id, file, { type: this.fiscalType(), number: this.fiscalNumber }, v.fiscal);
+      this.fiscalNumber = '';
+      this.toast(`${FISCAL_DOCUMENT_LABEL[this.fiscalType()]} anexada. O comprador já pode ver.`, 'success');
+    } catch (err) {
+      console.error('Falha ao anexar documento', err);
+      this.toast('Não foi possível enviar o arquivo. Tente de novo.', 'danger');
+    } finally {
+      this.uploadingFiscal.set(false);
+    }
+  }
+
+  async removeFiscal() {
+    const v = this.view();
+    if (!v?.fiscal) return;
+    const alert = await this.alertCtrl.create({
+      header: 'Remover documento?',
+      message: 'O comprador deixa de ver o arquivo no pedido.',
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Remover', role: 'confirm' }],
+    });
+    await alert.present();
+    if ((await alert.onDidDismiss()).role !== 'confirm') return;
+    const doc = v.fiscal;
+    await this.run(() => this.salesService.removeFiscalDocument(v.id, doc), 'Documento removido.');
   }
 
   // ----------------------------------------------------------- comprador

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RouterLink } from '@angular/router';
 import { Product } from '../../interfaces/product';
 import { ProductSelectionService } from '../../services/product-selection-service';
+import { AppConfigService } from '../../services/app-config.service';
 import { discountPercent, hasDiscount, hasFreeShipping, installmentHint, priceMain } from '../../core/product-pricing';
 
 const PLACEHOLDER_IMAGE = 'assets/imagens/imagem-placeholder.png';
@@ -26,6 +27,7 @@ export class StorefrontCardComponent {
   readonly product = input.required<Product>();
 
   private readonly selection = inject(ProductSelectionService);
+  private readonly appConfig = inject(AppConfigService);
 
   readonly view = computed(() => {
     const product = this.product();
@@ -45,7 +47,7 @@ export class StorefrontCardComponent {
         : null,
       off: discountPercent(product),
       installment: installmentHint(product),
-      freeShipping: hasFreeShipping(product),
+      freeShipping: hasFreeShipping(product, this.appConfig.freeShippingRule()),
       express: product.shipping === 'Entrega Expressa',
       used: !!product.condition && product.condition !== 'novo',
     };

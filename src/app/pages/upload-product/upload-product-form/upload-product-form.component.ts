@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -10,7 +10,8 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
 import { NgFor, NgIf, AsyncPipe, CurrencyPipe } from '@angular/common';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { ProductNameGuardService } from 'src/app/services/product-name-guard.service';
 import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.service';
@@ -22,7 +23,10 @@ import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.se
   imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent ],
   standalone: true
 })
-export class UploadProductFormComponent  implements OnInit {
+export class UploadProductFormComponent  implements OnInit, OnDestroy {
+  private readonly nameGuard = inject(ProductNameGuardService);
+  private nameGuardSub?: Subscription;
+
 
   public isFormValid : boolean = false;
   public selectedPhotos: string[] = [];
@@ -92,6 +96,12 @@ export class UploadProductFormComponent  implements OnInit {
   ) { }
 
   ngOnInit() {
+    // Termos proibidos pelo admin: aviso na hora e botão de publicar travado.
+    const nameControl = this.submitProductForm.controls.name;
+    nameControl.addValidators(this.nameGuard.validator());
+    nameControl.updateValueAndValidity({ emitEvent: false });
+    this.nameGuardSub = this.nameGuard.watch(nameControl);
+
     this.categories$ = this.servicoCategorias.getAll();
     this.categories$.subscribe(cats => this.allCategories = cats);
 
@@ -233,7 +243,21 @@ export class UploadProductFormComponent  implements OnInit {
     this.previewImage = null;
   }
 
+  ngOnDestroy() {
+    this.nameGuardSub?.unsubscribe();
+  }
+
+  /** Termo proibido no título, para a mensagem embaixo do campo. */
+  get blockedTerm(): string | null {
+    return this.submitProductForm.controls.name.errors?.['blockedWord'] ?? null;
+  }
+
   public async submit () {
+     if (this.nameGuard.check(this.submitProductForm.controls.name.value)) {
+       this.submitProductForm.controls.name.updateValueAndValidity();
+       await this.nameGuard.showBlockedAlert();
+       return;
+     }
      if (this.submitProductForm.valid) {
       this.isLoading = true;
       try {

@@ -1,0 +1,80 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>{{ title }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" aria-label="Fechar">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="rm">
+  <div class="rm-wrap">
+    <div class="rm-target">
+      @if (targetPhoto) {
+        <img [src]="targetPhoto" alt="" />
+      } @else {
+        <span class="rm-target-icon"><ion-icon name="flag-outline" aria-hidden="true"></ion-icon></span>
+      }
+      <div>
+        <small>{{ targetType === 'product' ? 'Anúncio' : 'Vendedor' }}</small>
+        <strong>{{ targetName }}</strong>
+      </div>
+    </div>
+
+    @if (checking()) {
+      <div class="rm-center"><ion-spinner name="crescent"></ion-spinner></div>
+    } @else if (sent()) {
+      <div class="rm-done">
+        <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+        <h2>Denúncia enviada</h2>
+        <p>Obrigado por ajudar a manter o Vineon seguro. A equipe vai analisar e tomar as medidas necessárias. Quem foi denunciado não sabe quem denunciou.</p>
+        <button type="button" class="rm-btn rm-btn--primary" (click)="close()">Fechar</button>
+      </div>
+    } @else if (already()) {
+      <div class="rm-done">
+        <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+        <h2>Você já denunciou</h2>
+        <p>Recebemos sua denúncia anterior e ela está com a equipe. Não precisa enviar de novo.</p>
+        <button type="button" class="rm-btn rm-btn--primary" (click)="close()">Fechar</button>
+      </div>
+    } @else {
+      <fieldset class="rm-reasons">
+        <legend>Qual o problema?</legend>
+        @for (r of reasons; track r.id) {
+          <label class="rm-reason" [class.is-selected]="reason === r.id">
+            <input type="radio" name="reason" [value]="r.id" [(ngModel)]="reason" />
+            <span>
+              <strong>{{ r.label }}</strong>
+              @if (r.hint) { <small>{{ r.hint }}</small> }
+            </span>
+          </label>
+        }
+      </fieldset>
+
+      <label class="rm-label" for="rm-details">
+        Conte o que aconteceu {{ needsDetails ? '' : '(opcional)' }}
+      </label>
+      <textarea
+        id="rm-details"
+        class="rm-textarea"
+        rows="4"
+        maxlength="1000"
+        [(ngModel)]="details"
+        placeholder="Detalhes ajudam a equipe a decidir mais rápido"></textarea>
+      @if (needsDetails) {
+        <p class="rm-hint">Mínimo de 10 caracteres.</p>
+      }
+
+      @if (error()) {
+        <p class="rm-error" role="alert">{{ error() }}</p>
+      }
+
+      <button type="button" class="rm-btn rm-btn--primary rm-btn--block" [disabled]="!canSubmit" (click)="submit()">
+        @if (sending()) { <ion-spinner name="crescent"></ion-spinner> } @else { Enviar denúncia }
+      </button>
+      <p class="rm-fine">Denúncia falsa ou de má-fé também viola os termos de uso.</p>
+    }
+  </div>
+</ion-content>

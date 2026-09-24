@@ -344,3 +344,74 @@
   .status-amount { font-size: 22px; }
   .sheet { padding: 20px 22px; }
 }
+
+/* ------------------------------------ nota fiscal / declaração de conteúdo */
+.fiscal-help {
+  margin: 0 0 12px;
+  color: var(--vc-ink-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fiscal-type {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--vc-ground);
+
+  button {
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: var(--vc-ink-2);
+    font-size: 13px;
+    font-weight: 700;
+
+    &.is-active { background: #fff; color: var(--vc-ink); box-shadow: 0 1px 2px rgba(13, 20, 32, 0.12); }
+  }
+}
+
+.fiscal-number {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+
+  input {
+    padding: 10px 12px;
+    border: 1px solid var(--vc-line);
+    border-radius: 10px;
+    font: inherit;
+    font-weight: 500;
+
+    &:focus { outline: 2px solid var(--vc-green); outline-offset: 1px; }
+  }
+}
+
+.fiscal-upload { margin-top: 14px; }
+
+label.btn { cursor: pointer; }
+label.btn.is-busy { opacity: 0.6; pointer-events: none; }
+
+.fiscal-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-line);
+  border-radius: 10px;
+
+  > ion-icon { font-size: 26px; color: var(--vc-green); flex-shrink: 0; }
+}
+
+.fiscal-file-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  strong { font-size: 14px; }
+  span { color: var(--vc-muted); font-size: 12px; overflow-wrap: anywhere; }
+}

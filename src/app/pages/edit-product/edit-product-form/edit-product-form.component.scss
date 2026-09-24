@@ -569,3 +569,16 @@
     to { transform: translateY(0); opacity: 1; }
   }
 }
+
+/* Título com termo proibido (lista do admin) */
+.field-blocked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+
+  ion-icon { font-size: 16px; }
+}

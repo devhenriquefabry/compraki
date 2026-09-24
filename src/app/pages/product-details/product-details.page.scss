@@ -1445,3 +1445,30 @@ a {
     transition: none;
   }
 }
+
+/* Denúncia: discreta, no fim da coluna lateral */
+.pd-report {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  padding: 4px 0 8px;
+}
+
+.pd-report-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: #6b7280;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+
+  ion-icon { font-size: 13px; }
+  &:hover { color: #9a3412; }
+}

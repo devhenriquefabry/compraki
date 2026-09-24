@@ -2,11 +2,12 @@ import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { 
   getFirestore, collection, query, where, orderBy, 
-  onSnapshot, Firestore, doc, updateDoc, serverTimestamp, getDoc 
+  onSnapshot, Firestore, doc, updateDoc, serverTimestamp, getDoc, deleteField
 } from 'firebase/firestore';
+import { deleteObject, getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import { Observable } from 'rxjs';
-import { Order } from '../interfaces/order';
+import { FiscalDocument, FiscalDocumentType, Order } from '../interfaces/order';
 
 import { environment } from '../../environments/environment';
 const firebaseConfig = environment.firebase;
@@ -45,8 +46,62 @@ export class SalesService {
     const orderRef = doc(this.db, 'orders', orderId);
     await updateDoc(orderRef, {
       shipmentStatus: status,
+      // Data de cada marco alimenta a linha do tempo do comprador e do admin.
+      ...(status === 'DELIVERED' ? { deliveredAt: serverTimestamp() } : {}),
+      ...(status === 'PROBLEM' ? { shipmentProblemAt: serverTimestamp() } : {}),
       updatedAt: serverTimestamp()
     });
+  }
+
+  /**
+   * Anexa (ou troca) a nota fiscal / declaração de conteúdo desta loja no
+   * pedido. O arquivo antigo, se houver, é apagado depois que o novo entra.
+   */
+  async attachFiscalDocument(
+    orderId: string,
+    file: File,
+    meta: { type: FiscalDocumentType; number?: string | null },
+    previous?: FiscalDocument | null
+  ): Promise<void> {
+    const uid = getAuth().currentUser?.uid;
+    if (!uid) throw new Error('Sessão expirada. Entre de novo.');
+
+    const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-80);
+    const path = `orders/${orderId}/fiscal/${uid}/${Date.now()}_${safeName}`;
+    const storageRef = ref(getStorage(), path);
+    await uploadBytes(storageRef, file, { contentType: file.type });
+    const url = await getDownloadURL(storageRef);
+
+    const document: FiscalDocument = {
+      type: meta.type,
+      url,
+      path,
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size,
+      number: meta.number?.trim() || null,
+      uploadedAt: serverTimestamp(),
+      uploadedBy: uid
+    };
+
+    await updateDoc(doc(this.db, 'orders', orderId), {
+      [`fiscalDocuments.${uid}`]: document,
+      updatedAt: serverTimestamp()
+    });
+
+    if (previous?.path && previous.path !== path) {
+      await deleteObject(ref(getStorage(), previous.path)).catch(() => undefined);
+    }
+  }
+
+  async removeFiscalDocument(orderId: string, current: FiscalDocument): Promise<void> {
+    const uid = getAuth().currentUser?.uid;
+    if (!uid) throw new Error('Sessão expirada. Entre de novo.');
+    await updateDoc(doc(this.db, 'orders', orderId), {
+      [`fiscalDocuments.${uid}`]: deleteField(),
+      updatedAt: serverTimestamp()
+    });
+    await deleteObject(ref(getStorage(), current.path)).catch(() => undefined);
   }
 
   /** Venda em tempo real (a tela de detalhe reflete o que o comprador confirma). */

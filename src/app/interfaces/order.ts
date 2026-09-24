@@ -100,6 +100,10 @@ export interface Order {
     serviceId: number;
     serviceName: string;
     price: number;
+    /** Pedido saiu com frete grátis (vendedor ou regra da loja); `price` é 0. */
+    freeShipping?: boolean;
+    /** Valor da cotação do Melhor Envio — o custo real da etiqueta. */
+    quotedPrice?: number;
     deliveryTime: number;
     shipmentId?: string;
     trackingCode?: string;
@@ -111,12 +115,46 @@ export interface Order {
    * de venda; o comprador só marca `DELIVERED` ao confirmar o recebimento.
    */
   shipmentStatus?: ShipmentStatus;
+  /** Quando a loja marcou como enviada (`SalesService.markShipped`). */
+  shippedAt?: any;
+  /** Quando a loja marcou como entregue. */
+  deliveredAt?: any;
+  /** Quando a loja sinalizou problema na entrega. */
+  shipmentProblemAt?: any;
   /** Quando o comprador confirmou que recebeu. */
   deliveryConfirmedAt?: any;
+
+  /**
+   * Nota fiscal ou declaração de conteúdo, uma por loja do pedido (chave =
+   * uid do vendedor). Só vendedor do pedido escreve (firestore.rules); o
+   * arquivo fica em Storage `orders/{orderId}/fiscal/{sellerId}/`.
+   */
+  fiscalDocuments?: Record<string, FiscalDocument>;
 
   // Sistema de Escrow — retenção de 7 dias
   escrowInfo?: EscrowInfo;
 
   // Sistema de Devoluções
   refundInfo?: RefundInfo;
+}
+
+export type FiscalDocumentType = 'NFE' | 'CONTENT_DECLARATION';
+
+export const FISCAL_DOCUMENT_LABEL: Record<FiscalDocumentType, string> = {
+  NFE: 'Nota fiscal',
+  CONTENT_DECLARATION: 'Declaração de conteúdo',
+};
+
+export interface FiscalDocument {
+  type: FiscalDocumentType;
+  url: string;
+  /** Caminho no Storage, para trocar/remover o arquivo. */
+  path: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+  /** Número da NF-e ou chave de acesso, quando a loja informa. */
+  number?: string | null;
+  uploadedAt: any;
+  uploadedBy: string;
 }

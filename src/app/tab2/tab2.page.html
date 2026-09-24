@@ -152,7 +152,7 @@
       <span class="card-img-badge card-img-badge--off" *ngIf="hasDiscount(product)">
         {{ discountPercent(product) }}% OFF
       </span>
-      <span class="card-img-badge card-img-badge--full" *ngIf="product.shipping === 'Frete Grátis'">
+      <span class="card-img-badge card-img-badge--full" *ngIf="freeShipping(product)">
         Frete grátis
       </span>
       <img
@@ -175,8 +175,8 @@
         {{ installmentHint(product) }}
       </div>
       <div class="card-meta-row">
-        <span class="card-shipping-tag" [class.card-shipping-tag--highlight]="product.shipping === 'Frete Grátis'">
-          {{ product.shipping }}
+        <span class="card-shipping-tag" [class.card-shipping-tag--highlight]="freeShipping(product)">
+          {{ freeShipping(product) ? 'Frete Grátis' : product.shipping }}
         </span>
         <span class="card-location">
           <ion-icon name="location-outline" aria-hidden="true"></ion-icon>

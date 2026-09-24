@@ -7,6 +7,7 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { Product } from 'src/app/interfaces/product';
 import { Subscription } from 'rxjs';
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
+import { MODERATION_LABEL } from 'src/app/core/product-moderation';
 
 @Component({
   selector: 'app-my-products',
@@ -16,6 +17,8 @@ import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.
   imports: [CommonModule, FormsModule, IonicModule, RouterModule, MiniHeaderComponent]
 })
 export class MyProductsPage implements OnInit, OnDestroy {
+  /** Motivo de anúncio fora do ar, mostrado ao dono. */
+  readonly moderationLabel = MODERATION_LABEL;
 
   private fbProducts = inject(FirebaseProducts);
   private router = inject(Router);
@@ -41,7 +44,7 @@ export class MyProductsPage implements OnInit, OnDestroy {
     const user = this.fbProducts.getUser();
     
     if (user) {
-      this.sub = this.fbProducts.getBySeller(user.uid).subscribe({
+      this.sub = this.fbProducts.getBySeller(user.uid, true).subscribe({
         next: (products) => {
           this.myProducts = products;
           this.isLoading = false;

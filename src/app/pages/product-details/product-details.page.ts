@@ -8,13 +8,16 @@ import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
   IonFooter, IonButton, IonIcon, IonModal, IonSpinner, ToastController
 } from '@ionic/angular/standalone';
+// O controller standalone não é provido neste app (IonicModule.forRoot); o do
+// pacote principal é.
+import { ModalController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, starOutline, checkmarkCircle,
   closeCircle, cart, chevronForwardOutline, chevronBackOutline, chevronDown, chatbubbleEllipsesOutline, chatboxEllipsesOutline,
   shieldCheckmarkOutline, returnDownBackOutline, cubeOutline, locationOutline, shareSocialOutline, removeOutline, addOutline,
   flashOutline, giftOutline, cardOutline, cashOutline, qrCodeOutline, storefrontOutline, ribbonOutline, closeOutline,
-  createOutline, informationCircleOutline, timeOutline, pricetagOutline
+  createOutline, informationCircleOutline, timeOutline, pricetagOutline, flagOutline
 } from 'ionicons/icons';
 
 import { Product, ProductSpec } from 'src/app/interfaces/product';
@@ -36,7 +39,11 @@ import { ProductRailComponent } from 'src/app/components/product-rail/product-ra
 import { ProductGalleryComponent } from 'src/app/components/product-gallery/product-gallery.component';
 import { ProductReviewsComponent } from 'src/app/components/product-reviews/product-reviews.component';
 import { rememberViewedProduct } from 'src/app/core/recently-viewed';
-import { discountPercent, hasDiscount, priceMain } from 'src/app/core/product-pricing';
+import { discountPercent, hasDiscount, hasStoreFreeShipping, priceMain } from 'src/app/core/product-pricing';
+import { AppConfigService } from 'src/app/services/app-config.service';
+import { isProductHidden } from 'src/app/core/product-moderation';
+import { ReportModalComponent } from 'src/app/components/report-modal/report-modal.component';
+import { ReportTargetType } from 'src/app/interfaces/content-report';
 import { LayoutService } from 'src/app/core/layout.service';
 import { requireAccount } from 'src/app/core/auth-redirect';
 import { onAuthUserChanged } from 'src/app/core/auth-state';
@@ -96,6 +103,8 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   private readonly toastCtrl = inject(ToastController);
   private readonly categoriesService = inject(FirebaseCategories);
   private readonly zone = inject(NgZone);
+  private readonly appConfig = inject(AppConfigService);
+  private readonly modalCtrl = inject(ModalController);
 
   public product$: Observable<Product | null>;
   /** `undefined` enquanto carrega; `null` quando o produto não existe. */
@@ -152,7 +161,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
       closeCircle, cart, chevronForwardOutline, chevronBackOutline, chevronDown, chatbubbleEllipsesOutline, chatboxEllipsesOutline,
       shieldCheckmarkOutline, returnDownBackOutline, cubeOutline, locationOutline, shareSocialOutline, removeOutline, addOutline,
       flashOutline, giftOutline, cardOutline, cashOutline, qrCodeOutline, storefrontOutline, ribbonOutline, closeOutline,
-      createOutline, informationCircleOutline, timeOutline, pricetagOutline
+      createOutline, informationCircleOutline, timeOutline, pricetagOutline, flagOutline
     });
     this.currentUserId = this.fbProducts.getUser()?.uid || '';
 
@@ -165,6 +174,8 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
             startWith(undefined as Product | null | undefined)
           )
         : this.selectionService.selectedProduct$),
+      // Anúncio fora do ar (moderação) some para todo mundo menos o dono.
+      map(p => p && isProductHidden(p) && p.sellerId !== this.currentUserId ? null : p),
       shareReplay({ bufferSize: 1, refCount: true })
     );
 
@@ -572,7 +583,36 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     };
   }
 
+  /** Denunciar o anúncio ou o vendedor. Exige conta: a denúncia tem autor. */
+  public async openReport(targetType: ReportTargetType, product: Product, seller?: PublicSellerProfile | null) {
+    if (!requireAccount(this.router) || !product.id || !product.sellerId) return;
+    const modal = await this.modalCtrl.create({
+      component: ReportModalComponent,
+      componentProps: targetType === 'product'
+        ? {
+            targetType,
+            targetId: product.id,
+            sellerId: product.sellerId,
+            targetName: product.name,
+            targetPhoto: product.photoURL?.[0] || null,
+          }
+        : {
+            targetType,
+            targetId: product.sellerId,
+            sellerId: product.sellerId,
+            targetName: seller ? this.sellerName(seller) : 'Vendedor',
+            targetPhoto: seller?.photoURL || null,
+          },
+    });
+    await modal.present();
+  }
+
   public shippingInfo(product: Product): { title: string; detail: string; icon: string; highlight: boolean } {
+    const rule = this.appConfig.freeShippingRule();
+    if (hasStoreFreeShipping(product, rule)) {
+      const min = rule!.minValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      return { title: 'Frete grátis', detail: `Produtos a partir de ${min} têm frete grátis no Vineon.`, icon: 'gift-outline', highlight: true };
+    }
     switch (product.shipping) {
       case 'Frete Grátis':
         return { title: 'Frete grátis', detail: 'O vendedor paga o envio para todo o Brasil.', icon: 'gift-outline', highlight: true };

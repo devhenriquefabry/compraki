@@ -57,6 +57,30 @@ export interface Product {
     sellerId?: string;
     createdAt?: any;
     updatedAt?: any;
+
+    /**
+     * Anúncio fora do ar por moderação. Só admin e Cloud Function escrevem
+     * (firestore.rules): o vendedor não consegue se "desbloquear".
+     */
+    moderation?: ProductModeration;
+}
+
+export type ProductModerationReason =
+    /** Título com termo da lista de proibidos (função `moderateProductName`). */
+    | 'blocked_word'
+    /** Conta do vendedor suspensa (função `setAccountSuspension`). */
+    | 'account_suspended'
+    /** Admin tirou do ar pela aba Denúncias. */
+    | 'removed_by_admin';
+
+export interface ProductModeration {
+    hidden: boolean;
+    reason: ProductModerationReason;
+    /** Termo que bloqueou, quando `reason` é `blocked_word`. */
+    term?: string;
+    note?: string;
+    at?: any;
+    by?: string;
 }
 
 export interface ProductSpec {

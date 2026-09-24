@@ -11,7 +11,8 @@ import { Category } from '../interfaces/category';
 import { Subscription, Observable } from 'rxjs';
 import { trackById } from 'src/app/core/track-by';
 import { LayoutService } from '../core/layout.service';
-import { discountPercent, hasDiscount, installmentHint, priceMain } from '../core/product-pricing';
+import { discountPercent, hasDiscount, hasFreeShipping, installmentHint, priceMain } from '../core/product-pricing';
+import { AppConfigService } from '../services/app-config.service';
 
 @Component({
   selector: 'app-tab2',
@@ -52,6 +53,7 @@ export class Tab2Page implements OnInit, OnDestroy {
   private bannerService = inject(BannerService);
   private selectionService = inject(ProductSelectionService);
   private router = inject(Router);
+  private appConfig = inject(AppConfigService);
   /** No navegador em tela larga a Tab2 vira a home de site (`app-desktop-home`). */
   public layout = inject(LayoutService);
 
@@ -116,7 +118,8 @@ export class Tab2Page implements OnInit, OnDestroy {
 
     // Frete Grátis
     if (this.onlyFreeShipping) {
-      result = result.filter(p => p.shipping === 'Frete Grátis');
+      const rule = this.appConfig.freeShippingRule();
+      result = result.filter(p => hasFreeShipping(p, rule));
     }
 
     // Ordenação
@@ -169,6 +172,11 @@ export class Tab2Page implements OnInit, OnDestroy {
   public hasDiscount = hasDiscount;
   public discountPercent = discountPercent;
   public installmentHint = installmentHint;
+
+  /** Selo de frete grátis: do vendedor ou da regra da loja (painel admin). */
+  public freeShipping(product: Product): boolean {
+    return hasFreeShipping(product, this.appConfig.freeShippingRule());
+  }
 
   public getIcon(icon: any): string {
     if (typeof icon === 'string' && icon.trim() !== '') {

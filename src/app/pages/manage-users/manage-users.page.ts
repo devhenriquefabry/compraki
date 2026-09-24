@@ -9,12 +9,13 @@ import {
   peopleOutline, radioOutline, storefrontOutline, banOutline, 
   downloadOutline, checkmarkCircleOutline, lockOpenOutline, lockClosedOutline, 
   swapHorizontalOutline, personRemoveOutline, personAddOutline, trashOutline,
-  mapOutline, listOutline, locationOutline, businessOutline
+  mapOutline, listOutline, locationOutline, businessOutline, refreshCircleOutline
 } from 'ionicons/icons';
 import { AppUser } from '../../interfaces/app-user';
 import { Order } from '../../interfaces/order';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 import { FirebaseUsersService } from '../../services/firebase-users.service';
+import { ModerationService } from '../../services/moderation.service';
 
 type UserStatusFilter = 'all' | 'online' | 'offline' | 'unknown';
 type UserRoleFilter = 'all' | 'seller' | 'buyer';
@@ -96,13 +97,14 @@ export class ManageUsersPage implements OnInit, OnDestroy {
 
   constructor(
     private firebaseUsersService: FirebaseUsersService,
+    private moderationService: ModerationService,
     private route: ActivatedRoute
   ) {
     addIcons({
       peopleOutline, radioOutline, storefrontOutline, banOutline,
       downloadOutline, checkmarkCircleOutline, lockOpenOutline, lockClosedOutline,
       swapHorizontalOutline, personRemoveOutline, personAddOutline, trashOutline,
-      mapOutline, listOutline, locationOutline, businessOutline
+      mapOutline, listOutline, locationOutline, businessOutline, refreshCircleOutline
     });
   }
 
@@ -346,6 +348,49 @@ export class ManageUsersPage implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Derruba (ou reativa) a conta: bloqueia o login, encerra as sessões e tira
+   * do ar todos os anúncios da pessoa. Passa pela Cloud Function
+   * `setAccountSuspension`.
+   */
+  async toggleSuspension(user: AppUser): Promise<void> {
+    const uid = this.getUserId(user);
+    if (!uid) return;
+    const suspend = !user.suspended;
+    let reason = '';
+    if (suspend) {
+      const answer = window.prompt(
+        `Suspender a conta de ${this.getUserName(user)}?
+
+A pessoa é desconectada, não consegue mais entrar e todos os anúncios dela saem do ar.
+
+Motivo (obrigatório):`
+      );
+      if (answer === null) return;
+      reason = answer.trim();
+      if (!reason) {
+        this.errorMessage = 'Informe o motivo da suspensão.';
+        return;
+      }
+    } else if (!window.confirm(`Reativar a conta de ${this.getUserName(user)}? Os anúncios voltam ao ar.`)) {
+      return;
+    }
+
+    this.actionLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    try {
+      await this.moderationService.setAccountSuspension(uid, suspend, reason);
+      this.successMessage = suspend
+        ? `Conta de ${this.getUserName(user)} suspensa. Anúncios fora do ar.`
+        : `Conta de ${this.getUserName(user)} reativada.`;
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.actionLoading = false;
+    }
+  }
+
   toggleUserSelection(user: AppUser, checked: boolean): void {
     const uid = this.getUserId(user);
     if (!uid) return;
@@ -525,6 +570,9 @@ export class ManageUsersPage implements OnInit, OnDestroy {
 
     if (!user.phoneNumber) {
       badges.push({ label: 'Sem telefone', tone: 'info' });
+    }
+    if (user.suspended) {
+      badges.unshift({ label: 'Conta suspensa', tone: 'danger' });
     }
     if (user.isChatBanned) {
       badges.push({ label: 'Chat bloqueado', tone: 'warning' });

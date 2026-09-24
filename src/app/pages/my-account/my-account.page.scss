@@ -913,3 +913,10 @@ button:active {
     font-size: 10px;
   }
 }
+
+.account-social {
+  margin: 8px 0 24px;
+  text-align: center;
+
+  ::ng-deep .sl-list { justify-content: center; }
+}

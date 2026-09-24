@@ -153,6 +153,54 @@
             </section>
           }
 
+          <!-- Nota fiscal / declaração de conteúdo -->
+          @if (v.paid && v.stage !== 'cancelled') {
+            <section class="sheet" aria-labelledby="sd-fiscal">
+              <h2 class="sheet-title" id="sd-fiscal">Nota fiscal ou declaração de conteúdo</h2>
+
+              @if (v.fiscal; as doc) {
+                <div class="fiscal-file">
+                  <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                  <div class="fiscal-file-body">
+                    <strong>{{ fiscalLabel[doc.type] }}{{ doc.number ? ' nº ' + doc.number : '' }}</strong>
+                    <span>{{ doc.fileName }}@if (v.fiscalAt) { · anexada em {{ v.fiscalAt }} }</span>
+                  </div>
+                </div>
+                <div class="ship-actions">
+                  <a class="btn btn--outline" [href]="doc.url" target="_blank" rel="noopener">Ver arquivo</a>
+                  <label class="btn btn--ghost" [class.is-busy]="uploadingFiscal()">
+                    <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" class="vn-sr-only" (change)="onFiscalFile($event)" [disabled]="uploadingFiscal()" />
+                    {{ uploadingFiscal() ? 'Enviando…' : 'Trocar arquivo' }}
+                  </label>
+                  <button type="button" class="btn btn--ghost btn--danger" (click)="removeFiscal()" [disabled]="busy() || uploadingFiscal()">Remover</button>
+                </div>
+              } @else {
+                <p class="fiscal-help">
+                  Anexe a nota fiscal (ou, se você não emite nota, a declaração de conteúdo dos Correios).
+                  O comprador vê o documento no acompanhamento do pedido. Imprima uma via e mande junto com o produto.
+                </p>
+
+                <div class="fiscal-type" role="radiogroup" aria-label="Tipo de documento">
+                  <button type="button" role="radio" [attr.aria-checked]="fiscalType() === 'NFE'" [class.is-active]="fiscalType() === 'NFE'" (click)="fiscalType.set('NFE')">Nota fiscal</button>
+                  <button type="button" role="radio" [attr.aria-checked]="fiscalType() === 'CONTENT_DECLARATION'" [class.is-active]="fiscalType() === 'CONTENT_DECLARATION'" (click)="fiscalType.set('CONTENT_DECLARATION')">Declaração de conteúdo</button>
+                </div>
+
+                @if (fiscalType() === 'NFE') {
+                  <label class="fiscal-number">
+                    <span>Número ou chave de acesso (opcional)</span>
+                    <input type="text" inputmode="numeric" maxlength="60" [(ngModel)]="fiscalNumber" placeholder="Ex.: 000123 ou a chave de 44 dígitos" />
+                  </label>
+                }
+
+                <label class="btn btn--primary fiscal-upload" [class.is-busy]="uploadingFiscal()">
+                  <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" class="vn-sr-only" (change)="onFiscalFile($event)" [disabled]="uploadingFiscal()" />
+                  <ion-icon name="document-attach-outline" aria-hidden="true"></ion-icon>
+                  {{ uploadingFiscal() ? 'Enviando…' : 'Anexar arquivo (PDF ou foto)' }}
+                </label>
+              }
+            </section>
+          }
+
           <!-- Produtos -->
           <section class="sheet" aria-labelledby="sd-items">
             <h2 class="sheet-title" id="sd-items">

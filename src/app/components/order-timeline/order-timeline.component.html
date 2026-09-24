@@ -1,0 +1,31 @@
+<ol class="tl" aria-label="Andamento do pedido">
+  @for (step of steps(); track step.key) {
+    <li class="tl-step" [attr.data-state]="step.state" [attr.aria-current]="step.state === 'current' ? 'step' : null">
+      <span class="tl-node" aria-hidden="true"></span>
+      <div class="tl-body">
+        <p class="tl-label">
+          {{ step.label }}
+          @if (step.at) { <time class="tl-at">{{ step.at }}</time> }
+        </p>
+        @if (step.detail) { <p class="tl-detail">{{ step.detail }}</p> }
+      </div>
+    </li>
+  }
+</ol>
+
+@if (trackingCode() || fiscalDocuments().length) {
+  <div class="tl-links">
+    @if (trackingCode(); as code) {
+      <a class="tl-link" [href]="trackingLink(code)" target="_blank" rel="noopener">
+        <span class="tl-link-kind">Rastreio</span>
+        <span class="tl-link-name">{{ code }}</span>
+      </a>
+    }
+    @for (doc of fiscalDocuments(); track doc.url) {
+      <a class="tl-link" [href]="doc.url" target="_blank" rel="noopener" [attr.aria-label]="'Abrir ' + doc.label">
+        <span class="tl-link-kind">{{ doc.label }}{{ doc.number ? ' nº ' + doc.number : '' }}</span>
+        <span class="tl-link-name">{{ doc.fileName }}</span>
+      </a>
+    }
+  </div>
+}

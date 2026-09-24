@@ -7,6 +7,7 @@ import { Banner } from '../../interfaces/banner';
 import { Category } from '../../interfaces/category';
 import { Product } from '../../interfaces/product';
 import { discountPercent, hasDiscount, hasFreeShipping, priceMain } from '../../core/product-pricing';
+import { AppConfigService } from '../../services/app-config.service';
 import { getRecentlyViewedIds } from '../../core/recently-viewed';
 import { StorefrontDataService } from '../../services/storefront-data.service';
 import { DesktopFooterComponent } from '../../components/desktop-footer/desktop-footer.component';
@@ -79,6 +80,7 @@ export class DesktopHomeComponent {
   private readonly router = inject(Router);
   private readonly content = inject(IonContent, { optional: true });
   private readonly storefront = inject(StorefrontDataService);
+  private readonly appConfig = inject(AppConfigService);
 
   readonly placeholder = PLACEHOLDER_IMAGE;
   readonly railMin = RAIL_MIN;
@@ -108,7 +110,10 @@ export class DesktopHomeComponent {
       .sort((a, b) => (b.soldCount ?? 0) - (a.soldCount ?? 0))
   );
 
-  readonly freeShipping = computed(() => this.products().filter(hasFreeShipping));
+  readonly freeShipping = computed(() => {
+    const rule = this.appConfig.freeShippingRule();
+    return this.products().filter(p => hasFreeShipping(p, rule));
+  });
 
   readonly recentlyViewed = computed(() =>
     this.recentIds()
@@ -269,13 +274,13 @@ export class DesktopHomeComponent {
 
   // ---- Resultados ----
 
-  readonly results = computed(() => sortProducts(filterProducts(this.products(), this.filters()), this.filters()));
+  readonly results = computed(() => sortProducts(filterProducts(this.products(), this.filters(), [], this.appConfig.freeShippingRule()), this.filters()));
   readonly visibleResults = computed(() => this.results().slice(0, this.visibleCount()));
 
   /** Contagem por categoria com os outros filtros aplicados, como no Mercado Livre. */
   readonly categoryFacets = computed(() => {
     const filters = this.filters();
-    const base = filterProducts(this.products(), filters, ['cat']);
+    const base = filterProducts(this.products(), filters, ['cat'], this.appConfig.freeShippingRule());
     return this.categories()
       .map(category => ({
         category,
@@ -284,7 +289,7 @@ export class DesktopHomeComponent {
       .filter(facet => facet.count > 0 || facet.category.id === filters.cat);
   });
 
-  readonly priceRanges = computed(() => priceRanges(filterProducts(this.products(), this.filters(), ['min', 'max'])));
+  readonly priceRanges = computed(() => priceRanges(filterProducts(this.products(), this.filters(), ['min', 'max'], this.appConfig.freeShippingRule())));
 
   readonly resultsTitle = computed(() => {
     const f = this.filters();

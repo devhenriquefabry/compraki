@@ -5,7 +5,7 @@
     <!-- Imagem do produto -->
     <div class="image-container">
       <img [src]="(product.photoURL && product.photoURL[0]) || 'assets/placeholder.jpg'" [alt]="product.name" />
-      <div class="shipping-badge" *ngIf="product.shipping === 'Frete Grátis'">Frete Grátis</div>
+      <div class="shipping-badge" *ngIf="freeShipping">Frete Grátis</div>
     </div>
 
     <!-- Informações do produto -->
