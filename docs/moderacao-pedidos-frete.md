@@ -1,7 +1,7 @@
 # Moderação, acompanhamento de pedidos, frete grátis e redes sociais
 
-Rodada de 24/09/2026. Seis pedidos do cliente, no código mas **ainda não
-publicados** (nem regras, nem functions, nem site).
+Rodada de 24/09/2026. Seis pedidos do cliente, **publicados no mesmo dia**:
+regras do Firestore/Storage, as três functions novas e o site (commit 5367635).
 
 ## O que entrou
 
@@ -26,7 +26,7 @@ tira do ar os anúncios (`moderation.reason = 'account_suspended'`) e registra e
 `moderationLog`. Reativar desfaz tudo e só devolve ao ar o que saiu pela
 suspensão. Admin não pode ser suspenso (tire o claim antes).
 
-## Ordem de publicação
+## Ordem de publicação (usada no deploy de 24/09; repetir ao mexer de novo)
 
 1. **Regras** (as duas já compilam — conferido com `--dry-run`):
    `firebase deploy --only firestore:rules,storage`
