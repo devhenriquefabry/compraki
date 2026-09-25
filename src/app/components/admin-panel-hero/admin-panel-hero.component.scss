@@ -1,14 +1,16 @@
+/*
+ * Cabeçalho das seções do painel. A moldura (trilha, busca, conta) já está
+ * na casca do admin; aqui fica só o título da seção e as ações dela, sem
+ * cartão em volta — o conteúdo abaixo é que ganha destaque.
+ */
 .admin-panel-hero {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 22px;
-  margin-bottom: 16px;
-  background: linear-gradient(135deg, #ffffff 0%, #f7fbf3 100%);
-  border: 1px solid rgba(216, 245, 31, 0.22);
-  border-radius: 22px;
-  box-shadow: 0 12px 30px rgba(11, 22, 35, 0.04);
+  padding: 8px 2px 20px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #E3E8EF;
 }
 
 .admin-panel-hero__text {
@@ -18,29 +20,40 @@
 
 .admin-panel-hero__eyebrow {
   display: inline-flex;
-  color: #0B1623;
+  align-items: center;
+  gap: 8px;
+  color: #7B8798;
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 6px;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: #D8F51F;
+    box-shadow: 0 0 0 3px rgba(216, 245, 31, 0.25);
+  }
 }
 
 .admin-panel-hero__title {
   margin: 0;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Sora', sans-serif;
   color: #0B1623;
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  font-weight: 900;
-  letter-spacing: -1px;
-  line-height: 1.15;
+  font-size: clamp(1.6rem, 2.6vw, 2.15rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
 .admin-panel-hero__desc {
   margin: 8px 0 0;
-  max-width: 680px;
+  max-width: 640px;
   color: #64748b;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.55;
 }
 
@@ -64,18 +77,18 @@
 .admin-panel-hero__segmented {
   display: flex;
   gap: 6px;
-  padding: 5px;
-  background: rgba(216, 245, 31, 0.22);
-  border-radius: 14px;
+  padding: 4px;
+  background: #E9EDF2;
+  border-radius: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
 
   button {
     border: none;
-    border-radius: 10px;
-    padding: 10px 13px;
+    border-radius: 9px;
+    padding: 8px 13px;
     background: transparent;
-    color: #64748b;
+    color: #5B6778;
     font-size: 0.76rem;
     font-weight: 800;
     cursor: pointer;
@@ -85,7 +98,7 @@
     &.active {
       background: #fff;
       color: #0B1623;
-      box-shadow: 0 6px 16px rgba(216, 245, 31, 0.12);
+      box-shadow: 0 1px 3px rgba(11, 22, 35, 0.12);
     }
 
     &:hover:not(.active) {
@@ -137,13 +150,13 @@
   height: 38px;
   padding: 0 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #D8F51F;
   color: #0B1623;
   font-size: 0.76rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(216, 245, 31, 0.25);
+  box-shadow: 0 1px 2px rgba(11, 22, 35, 0.12);
   font-family: inherit;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 
@@ -153,7 +166,7 @@
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(216, 245, 31, 0.32);
+    box-shadow: 0 6px 16px rgba(11, 22, 35, 0.12);
   }
 }
 
@@ -163,10 +176,10 @@
   gap: 8px;
   height: 38px;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 0 14px;
   background: #fff;
-  color: #475569;
+  color: #0B1623;
   font-size: 0.76rem;
   font-weight: 800;
   cursor: pointer;
@@ -189,8 +202,8 @@
   .admin-panel-hero {
     flex-direction: column;
     align-items: stretch;
-    padding: 18px;
-    border-radius: 18px;
+    gap: 14px;
+    padding: 4px 2px 16px;
   }
 
   .admin-panel-hero__actions {

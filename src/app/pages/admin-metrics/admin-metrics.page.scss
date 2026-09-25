@@ -3,7 +3,7 @@
 }
 
 .metrics-bg {
-  --background: #f8fafc;
+  --background: #F3F5F8;
 }
 
 .dashboard-wrapper {
@@ -271,9 +271,9 @@
 .chart-card,
 .list-card {
   background: #fff;
-  border: 1px solid #edf2f7;
-  border-radius: 18px;
-  box-shadow: 0 8px 22px rgba(11, 22, 35, 0.035);
+  border: 1px solid #E6EBF1;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(11, 22, 35, 0.04);
 }
 
 .metric-card {
@@ -282,34 +282,25 @@
   position: relative;
   overflow: hidden;
 
-  &::after {
-    content: '';
-    position: absolute;
-    right: -28px;
-    top: -28px;
-    width: 82px;
-    height: 82px;
-    border-radius: 50%;
-    background: rgba(216, 245, 31, 0.08);
-  }
-
   span {
     display: block;
-    color: #64748b;
+    color: #7B8798;
     font-size: 0.7rem;
-    font-weight: 900;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.08em;
     margin-bottom: 8px;
   }
 
   strong {
     display: block;
     color: #0B1623;
+    font-family: 'Sora', sans-serif;
     font-size: clamp(1.35rem, 2vw, 1.8rem);
-    font-weight: 900;
-    letter-spacing: -0.8px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     line-height: 1.05;
+    font-variant-numeric: tabular-nums;
   }
 
   small {
@@ -328,7 +319,7 @@
 
   &:hover,
   &:focus-visible {
-    border-color: rgba(37, 99, 235, 0.28);
+    border-color: #0B1623;
     box-shadow: 0 14px 30px rgba(11, 22, 35, 0.08);
     outline: none;
     transform: translateY(-2px);
@@ -344,39 +335,33 @@
   margin-bottom: 12px;
   border-radius: 12px;
   color: #0B1623;
-  background: rgba(216, 245, 31, 0.1);
+  background: #EEF2F6;
 
   ion-icon {
     font-size: 20px;
   }
 }
 
-.metric-card.success .icon-bubble,
-.metric-card.success::after {
+/* Lima só como preenchimento: o destaque "ao vivo" ganha a bolha lima. */
+.metric-card.success .icon-bubble {
   color: #0B1623;
-  background: rgba(216, 245, 31, 0.1);
+  background: #D8F51F;
 }
 
 .metric-card.info .icon-bubble,
-.metric-card.info::after {
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.1);
+.metric-card.neutral .icon-bubble {
+  color: #0B1623;
+  background: #EEF2F6;
 }
 
-.metric-card.warning .icon-bubble,
-.metric-card.warning::after {
-  color: #d97706;
-  background: rgba(217, 119, 6, 0.12);
+.metric-card.warning .icon-bubble {
+  color: #b45309;
+  background: #FEF3C7;
 }
 
-.metric-card.danger .icon-bubble,
-.metric-card.danger::after {
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.1);
-}
-
-.metric-card.shipping::after {
-  background: rgba(14, 165, 233, 0.1);
+.metric-card.danger .icon-bubble {
+  color: #b91c1c;
+  background: #FEE2E2;
 }
 
 .section-block,
@@ -406,8 +391,9 @@
   h3 {
     margin: 0;
     color: #0B1623;
-    font-weight: 900;
-    letter-spacing: -0.4px;
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   h2 {
@@ -428,7 +414,7 @@
   ion-icon {
     padding: 9px;
     color: #0B1623;
-    background: rgba(216, 245, 31, 0.1);
+    background: #EEF2F6;
     border-radius: 12px;
     font-size: 19px;
   }
@@ -524,14 +510,14 @@
   height: 100%;
   display: flex;
   align-items: flex-end;
-  border-radius: 999px;
-  background: #f1f5f9;
+  border-radius: 10px;
+  background: #F1F4F8;
   overflow: hidden;
 
   span {
     width: 100%;
     display: block;
-    border-radius: 999px 999px 0 0;
+    border-radius: 8px 8px 0 0;
     background: #D8F51F;
     color: #0B1623;
   }
@@ -881,14 +867,7 @@
   .metric-card {
     min-height: 108px;
     padding: 12px;
-    border-radius: 15px;
-
-    &::after {
-      right: -34px;
-      top: -34px;
-      width: 78px;
-      height: 78px;
-    }
+    border-radius: 14px;
 
     span {
       font-size: 0.6rem;
@@ -1056,14 +1035,41 @@
 
   .live-status {
     width: 100%;
-    overflow-x: auto;
+    gap: 12px;
+    font-size: 0.62rem;
+
+    > span { text-align: right; }
   }
 
+  /* No celular os números vêm em pares: cabe o resumo inteiro numa tela. */
   .overview-grid,
   .compact-grid,
-  .loading-grid,
+  .loading-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
   .retention-grid {
     grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    min-height: 0;
+    padding: 14px;
+    border-radius: 14px;
+
+    span { font-size: 0.6rem; margin-bottom: 6px; }
+    strong { font-size: 1.3rem; }
+    small { margin-top: 6px; font-size: 0.68rem; line-height: 1.3; }
+  }
+
+  .icon-bubble {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+
+    ion-icon { font-size: 17px; }
   }
 
   .donut-layout {

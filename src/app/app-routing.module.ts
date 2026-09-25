@@ -147,6 +147,8 @@ const routes: Routes = [
   {
     path: 'admin/:tab',
     loadComponent: () => import('./pages/admin/admin.page').then( m => m.AdminPage),
+    // Trocar de seção não recria o painel (ver AppRouteStrategy).
+    data: { reuseAcrossParams: true },
     canActivate: [adminGuard]
   },
   {

@@ -7,7 +7,8 @@ import localePt from '@angular/common/locales/pt';
 
 registerLocaleData(localePt);
 
-import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { AppRouteStrategy } from './core/app-route-strategy';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -23,7 +24,7 @@ import { getFirestore, provideFirestore } from '@angular/fire/firestore';
   declarations: [AppComponent, BotStatusWidgetComponent],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, DesktopHeaderComponent, VineonSplashComponent],
   providers: [
-    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+    { provide: RouteReuseStrategy, useClass: AppRouteStrategy },
     { provide: LOCALE_ID, useValue: 'pt-BR' },
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => getFirestore()),
