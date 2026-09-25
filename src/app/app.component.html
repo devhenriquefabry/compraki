@@ -1,19 +1,6 @@
 <ion-app>
-  <!-- TRANSIÇÃO FALSO-SPLASH NATIVA -> WEB -->
-  <div class="custom-splash" *ngIf="showSplash" [class.animating-out]="splashAnimatingOut">
-
-    <!-- Pulso e brilho (Onda) atrás do logo -->
-    <div class="glow-ring"></div>
-
-    <!-- Foto do logo animada -->
-    <img src="assets/imagens/app-logo.png" alt="Vineon" class="splash-logo">
-
-    <!-- Bar de loading moderna -->
-    <div class="loading-bar-container">
-      <div class="loading-bar"></div>
-    </div>
-
-  </div>
+  <!-- Splash de entrada: uma vez por sessão (ver showSplash) -->
+  <app-vineon-splash *ngIf="showSplash" (done)="onSplashDone()"></app-vineon-splash>
 
   <ion-menu contentId="main-content" menuId="main-menu" class="main-sidebar">
     <ion-header class="ion-no-border">

@@ -39,6 +39,46 @@ import { environment } from '../../environments/environment';
 const SUSPENDED_ACCOUNT_MESSAGE =
   'Esta conta foi suspensa por violar os termos de uso do Vineon. Se acha que foi um engano, fale com o suporte.';
 
+function authErrorCode(error: unknown): string {
+  return String((error as { code?: unknown } | null)?.code ?? '');
+}
+
+/** Texto para a tela de login a partir do erro do Firebase Auth. */
+function loginErrorMessage(error: unknown): string {
+  switch (authErrorCode(error)) {
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+    case 'auth/invalid-email':
+      return 'E-mail ou senha incorretos. Confira e tente de novo.';
+    case 'auth/user-disabled':
+      return SUSPENDED_ACCOUNT_MESSAGE;
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.';
+    case 'auth/network-request-failed':
+      return 'Sem conexão com a internet. Verifique e tente de novo.';
+    default:
+      return 'Não foi possível entrar agora. Tente novamente.';
+  }
+}
+
+/** Texto para a tela de cadastro a partir do erro do Firebase Auth. */
+function signUpErrorMessage(error: unknown): string {
+  switch (authErrorCode(error)) {
+    case 'auth/email-already-in-use':
+      return 'Este e-mail já tem uma conta. Entre com ele ou recupere a senha.';
+    case 'auth/invalid-email':
+      return 'Digite um e-mail válido.';
+    case 'auth/weak-password':
+      return 'A senha precisa de pelo menos 6 caracteres.';
+    case 'auth/network-request-failed':
+      return 'Sem conexão com a internet. Verifique e tente de novo.';
+    default:
+      return 'Não foi possível criar a conta agora. Tente novamente.';
+  }
+}
+
 /** Uma pagina do catalogo, com o cursor para pedir a proxima. */
 export interface ProductPage {
   products: Product[];
@@ -295,7 +335,7 @@ export class FirebaseProducts {
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
   }
-  async signIn(email: string, password: string, name: string, cpf?: string, phone?: string, address?: AppAddress): Promise<boolean> {
+  async signIn(email: string, password: string, name: string, cpf?: string, phone?: string, address?: AppAddress): Promise<void> {
     this.carregando = true;
 
     try {
@@ -341,30 +381,19 @@ export class FirebaseProducts {
       });
       
       console.log('O ID do usuário no sistema é: ' + userCredential.user.uid);
-      return true; // Retorno em caso de sucesso
 
   } catch (error) {
-    const erroRetornadoTransformadoEmString = JSON.stringify(error)
-    console.warn(erroRetornadoTransformadoEmString);
-
-    if(erroRetornadoTransformadoEmString.includes('auth/email-already-in-use')){
-      alert('Email já em uso!')
-    }
-    else if(erroRetornadoTransformadoEmString.includes('auth/weak-password')){
-      alert('Senha fraca, sua senha deve conter no minimo 6 caracteres.')
-    }
-
-    else if(erroRetornadoTransformadoEmString.includes('auth/network-request-failed')){
-      alert('Sem conexão com a internet.')
-    }
-
-    return false; // Retorno em caso de erro
-
+    console.warn(JSON.stringify(error));
+    throw new Error(signUpErrorMessage(error));
   } finally {
     this.carregando = false;
   }
 }
 
+/**
+ * Login com Google. Devolve `false` se o usuário desistiu (fechou o popup);
+ * qualquer outra falha vira `Error` com mensagem pronta para a tela.
+ */
 async signInWithGoogle(): Promise<boolean> {
   try {
     // Sem spinner enquanto a escolha de conta está aberta: se o usuário fecha
@@ -395,10 +424,9 @@ async signInWithGoogle(): Promise<boolean> {
       return false;
     }
     console.error("Erro ao logar com Google:", error);
-    alert(this.isSuspendedAccount(error)
+    throw new Error(this.isSuspendedAccount(error)
       ? SUSPENDED_ACCOUNT_MESSAGE
       : 'Não foi possível entrar com o Google agora. Tente novamente ou use e-mail e senha.');
-    return false;
   } finally {
     this.carregando = false;
   }
@@ -482,32 +510,23 @@ private async signInWithGoogleWeb(): Promise<User> {
     return this.authenticator.currentUser
   }
 
-  async login(email: string , senha : string ) : Promise<boolean>{
-        this.carregando = true
-
+  /** Login com e-mail e senha. Falha vira `Error` com mensagem pronta para a tela. */
+  async login(email: string, senha: string): Promise<void> {
+    this.carregando = true;
     try {
       const usuario = await signInWithEmailAndPassword(this.authenticator, email, senha);
-      console.log('Bem-vindo, ' + usuario.user.email +  '.' + ' Você é o usuário de ID : ' + usuario.user.uid);
       void this.dispatchWhatsappTriggerSafe('new_login', {
         nome: usuario.user.displayName || 'Usuário',
         email: usuario.user.email || email,
         telefone: usuario.user.phoneNumber || '',
         usuario: usuario.user.uid
       });
-      return true
-      
     } catch (error) {
-      console.log(error)
-      alert(this.isSuspendedAccount(error)
-        ? SUSPENDED_ACCOUNT_MESSAGE
-        : 'erro ao fazer login, verifique suas credenciais e tente novamente')
-      return false
-      
+      console.warn('Login falhou:', (error as { code?: string })?.code ?? error);
+      throw new Error(loginErrorMessage(error));
+    } finally {
+      this.carregando = false;
     }
-    finally{
-      this.carregando = false
-    }
-
   }
 
   private async dispatchWhatsappTriggerSafe(eventType: 'account_created' | 'new_login', data: Record<string, unknown>): Promise<void> {

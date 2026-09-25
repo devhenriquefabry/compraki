@@ -1,28 +1,40 @@
-import { NgIf } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { safeRedirectTarget } from 'src/app/core/auth-redirect';
 import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
+import { checkmark } from 'ionicons/icons';
+import { VineonLogoComponent } from 'src/app/components/vineon-logo/vineon-logo.component';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { AddressService } from 'src/app/services/address.service';
 import { AppAddress } from 'src/app/interfaces/app-user';
 
+const EMAIL_RE = /^\S+@\S+\.\S+$/;
+
+type FieldName =
+  | 'name' | 'email' | 'cpf' | 'phone' | 'password' | 'repeatPassword'
+  | 'cep' | 'street' | 'number' | 'complement' | 'neighborhood' | 'city' | 'state';
+
 @Component({
   selector: 'app-sign-in-form',
   templateUrl: './sign-in-form.component.html',
-  styleUrls: ['./sign-in-form.component.scss'],
+  styleUrls: ['../../../../theme/auth.scss', './sign-in-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, RouterLink, ReactiveFormsModule, NgIf, LoadingSpinnerOverlayComponent]
+  imports: [IonicModule, RouterLink, ReactiveFormsModule, VineonLogoComponent]
 })
-
 export class SignInFormComponent implements OnInit, OnDestroy {
   public currentStep: number = 1;
   public totalSteps: number = 3;
-  public formularioValido: boolean = false;
   public registrationSuccess: boolean = false;
+  public status: 'idle' | 'loading' = 'idle';
+  public googleLoading = false;
+  public showPassword = false;
+  /** Erro de cada campo, mostrado embaixo dele; some quando a pessoa volta a digitar. */
+  public errors: Partial<Record<FieldName, string>> = {};
+  /** Falha que não é de um campo só (e-mail já cadastrado, rede). */
+  public formError = '';
+  private redirectTimer?: ReturnType<typeof setTimeout>;
   private removeDevAutofillShortcutListener?: () => void;
 
   signInForm = new FormGroup({
@@ -43,6 +55,18 @@ export class SignInFormComponent implements OnInit, OnDestroy {
     state: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   })
 
+  readonly stepTitles = ['Crie sua conta', 'Crie uma senha', 'Onde você está?'];
+  readonly stepSubtitles = [
+    'Leva menos de um minuto. Comece pelos seus dados.',
+    'É com ela e o seu e-mail que você vai entrar.',
+    'Usamos o endereço para mostrar ofertas perto de você e calcular o frete.',
+  ];
+  readonly stepNames = ['Seus dados', 'Segurança', 'Endereço'];
+
+  get stepTitle() { return this.stepTitles[this.currentStep - 1]; }
+  get stepSubtitle() { return this.stepSubtitles[this.currentStep - 1]; }
+  get stepName() { return this.stepNames[this.currentStep - 1]; }
+
   constructor(
     public firebaseProducts: FirebaseProducts,
     private addressService: AddressService,
@@ -53,15 +77,22 @@ export class SignInFormComponent implements OnInit, OnDestroy {
 
 
   ngOnInit() {
+    addIcons({ checkmark });
+
+    for (const [name, control] of Object.entries(this.signInForm.controls)) {
+      control.valueChanges.subscribe(() => {
+        if (this.errors[name as FieldName]) {
+          this.errors = { ...this.errors, [name]: undefined };
+        }
+        this.formError = '';
+      });
+    }
+
     const devAutofillShortcutListener = (event: KeyboardEvent) => this.handleDevAutofillShortcut(event);
     document.addEventListener('keydown', devAutofillShortcutListener, true);
     this.removeDevAutofillShortcutListener = () => {
       document.removeEventListener('keydown', devAutofillShortcutListener, true);
     };
-
-    this.signInForm.valueChanges.subscribe(() => {
-      this.formularioValido = this.signInForm.valid;
-    });
 
     // Restaurando observador de CEP
     this.signInForm.get('cep')?.valueChanges.subscribe(cep => {
@@ -74,6 +105,7 @@ export class SignInFormComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.removeDevAutofillShortcutListener?.();
+    clearTimeout(this.redirectTimer);
   }
 
   handleDevAutofillShortcut(event: KeyboardEvent): void {
@@ -129,39 +161,60 @@ export class SignInFormComponent implements OnInit, OnDestroy {
     });
 
     this.signInForm.markAllAsTouched();
-    this.formularioValido = this.signInForm.valid;
+    this.errors = {};
     this.currentStep = this.totalSteps;
     this.changeDetectorRef.detectChanges();
     console.info('Cadastro preenchido automaticamente pelo atalho Ctrl + Shift + aspas.');
   }
 
-  isStepValid(step: number): boolean {
-    const f = this.signInForm;
+  /** Confere os campos de uma etapa e devolve o erro de cada um (vazio = tudo certo). */
+  private stepErrors(step: number): Partial<Record<FieldName, string>> {
+    const v = this.signInForm.getRawValue();
+    const digits = (value: string) => value.replace(/\D/g, '');
+    const e: Partial<Record<FieldName, string>> = {};
     switch (step) {
       case 1:
-        return f.get('name')!.valid && f.get('email')!.valid && 
-               f.get('cpf')!.valid && f.get('phone')!.valid;
+        if (v.name.trim().length < 3) e.name = 'Digite seu nome completo';
+        if (!EMAIL_RE.test(v.email.trim())) e.email = 'Digite um e-mail válido';
+        if (digits(v.cpf).length !== 11) e.cpf = 'O CPF precisa ter 11 números';
+        if (digits(v.phone).length < 10) e.phone = 'Digite o celular com DDD';
+        break;
       case 2:
-        return f.get('password')!.valid && f.get('repeatPassword')!.valid &&
-               f.get('password')!.value === f.get('repeatPassword')!.value;
+        if (v.password.length < 6) e.password = 'A senha precisa de pelo menos 6 caracteres';
+        if (!v.repeatPassword) e.repeatPassword = 'Repita a senha';
+        else if (v.repeatPassword !== v.password) e.repeatPassword = 'As senhas não são iguais';
+        break;
       case 3:
-        return f.get('cep')!.valid && f.get('street')!.valid && 
-               f.get('number')!.valid && f.get('neighborhood')!.valid && 
-               f.get('city')!.valid && f.get('state')!.valid;
-      default:
-        return false;
+        if (digits(v.cep).length !== 8) e.cep = 'O CEP precisa ter 8 números';
+        if (!v.street.trim()) e.street = 'Informe a rua';
+        if (!v.number.trim()) e.number = 'Informe o número';
+        if (!v.neighborhood.trim()) e.neighborhood = 'Informe o bairro';
+        if (!v.city.trim()) e.city = 'Informe a cidade';
+        if (v.state.trim().length !== 2) e.state = 'Use a sigla';
+        break;
     }
+    return e;
   }
 
-  nextStep() {
-    if (this.currentStep < this.totalSteps && this.isStepValid(this.currentStep)) {
+  /** Enter ou botão principal: avança de etapa ou, na última, cria a conta. */
+  onSubmit() {
+    if (this.status !== 'idle') return;
+    this.errors = this.stepErrors(this.currentStep);
+    this.formError = '';
+    if (Object.keys(this.errors).length) return;
+
+    if (this.currentStep < this.totalSteps) {
       this.currentStep++;
+    } else {
+      this.callSignInFunction();
     }
   }
 
   prevStep() {
     if (this.currentStep > 1) {
       this.currentStep--;
+      this.errors = {};
+      this.formError = '';
     }
   }
 
@@ -181,52 +234,66 @@ export class SignInFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  callSignInFunction() {
-    const form = this.signInForm.value;
-    if (this.signInForm.valid && this.isStepValid(3)) {
-      if (form.email && form.password && form.name) {
-        
-        const address: AppAddress = {
-          cep: form.cep!,
-          street: form.street!,
-          number: form.number!,
-          complement: form.complement,
-          neighborhood: form.neighborhood!,
-          city: form.city!,
-          state: form.state!
-        };
-
-        this.firebaseProducts.signIn(
-          form.email, 
-          form.password,
-          form.name,
-          form.cpf,
-          form.phone,
-          address
-        ).then((salvouNoFirebaseMesmo) => {
-          if (salvouNoFirebaseMesmo === true) {
-            this.registrationSuccess = true;
-            this.signInForm.reset();
-            
-            setTimeout(() => {
-              this.router.navigateByUrl(safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirectTo')));
-            }, 2000);
-          }
-        })
+  async callSignInFunction() {
+    // Revalida tudo: o atalho de dev pula direto para a última etapa.
+    for (const step of [1, 2, 3]) {
+      const errors = this.stepErrors(step);
+      if (Object.keys(errors).length) {
+        this.currentStep = step;
+        this.errors = errors;
+        return;
       }
+    }
+
+    const form = this.signInForm.getRawValue();
+    const address: AppAddress = {
+      cep: form.cep,
+      street: form.street.trim(),
+      number: form.number.trim(),
+      complement: form.complement.trim(),
+      neighborhood: form.neighborhood.trim(),
+      city: form.city.trim(),
+      state: form.state.trim().toUpperCase()
+    };
+
+    this.status = 'loading';
+    try {
+      await this.firebaseProducts.signIn(
+        form.email.trim(),
+        form.password,
+        form.name.trim(),
+        form.cpf,
+        form.phone,
+        address
+      );
+      this.succeed();
+    } catch (error) {
+      this.formError = (error as Error).message;
+    } finally {
+      this.status = 'idle';
+      this.changeDetectorRef.markForCheck();
     }
   }
 
-  public callSignInGoogleFunction () {
-    this.firebaseProducts.signInWithGoogle().then((salvouNoFirebaseMesmo)=> {
-      if (salvouNoFirebaseMesmo === true) {
-        this.registrationSuccess = true;
-        this.signInForm.reset();
-        
-        setTimeout(() => {
-          this.router.navigateByUrl(safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirectTo')));
-        }, 2000);
-      }
-    })
+  public async callSignInGoogleFunction() {
+    if (this.googleLoading) return;
+    this.formError = '';
+    this.googleLoading = true;
+    try {
+      if (await this.firebaseProducts.signInWithGoogle()) this.succeed();
+    } catch (error) {
+      this.formError = (error as Error).message;
+    } finally {
+      this.googleLoading = false;
+      this.changeDetectorRef.markForCheck();
+    }
+  }
+
+  private succeed() {
+    this.registrationSuccess = true;
+    this.signInForm.reset();
+    this.redirectTimer = setTimeout(() => {
+      this.router.navigateByUrl(safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirectTo')));
+    }, 1600);
   }
 }

@@ -9,7 +9,6 @@ import { UploadProductPageRoutingModule } from './upload-product-routing.module'
 import { UploadProductPage } from './upload-product.page';
 import { UploadProductFormComponent } from './upload-product-form/upload-product-form.component';
 import { RouterLink } from '@angular/router';
-import { LoadingComponent } from 'src/app/components/loading/loading.component';
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
 
 @NgModule({
@@ -22,7 +21,6 @@ import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.
     FormsModule,
     NgIf,
     MiniHeaderComponent,
-    LoadingComponent,
     UploadProductPageRoutingModule
   ],
   declarations: [UploadProductPage]

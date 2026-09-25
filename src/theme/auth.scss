@@ -1,0 +1,428 @@
+/*
+ * Telas de entrada (login, cadastro, recuperar senha) — direção "Noite".
+ *
+ * Fonte da verdade: handoff do Claude Design "Vineon — Splash + Login", bloco 1a.
+ * Medidas, cores e tempos vêm de lá; mexa aqui e as três telas acompanham.
+ *
+ * Entra no `styleUrls` de cada formulário (login, cadastro, recuperar senha),
+ * não no CSS global: assim só baixa quem abre essas telas e o bundle inicial
+ * fica dentro do orçamento. O fundo do <ion-content> (`.vn-auth-content`) é a
+ * única regra global, em global.scss.
+ */
+
+.vn-auth {
+  --vn-navy: #0B1623;
+  --vn-surface: #13233A;
+  --vn-lime: #D8F51F;
+  --vn-text: #FFFFFF;
+  --vn-muted: #8A9BB0;
+  --vn-label: #C5CFDA;
+  --vn-placeholder: #7C8A9C;
+  --vn-faint: #5E6F84;
+  --vn-error: #FF7A7A;
+  --vn-line: rgba(255, 255, 255, .08);
+
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 26px calc(env(safe-area-inset-bottom, 0px) + 36px);
+  background: var(--vn-navy);
+  color: var(--vn-text);
+  -webkit-font-smoothing: antialiased;
+
+  &, & * {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  // Telas largas (site no desktop): coluna de celular centralizada.
+  @media (min-width: 768px) {
+    justify-content: center;
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+}
+
+.vn-auth__inner {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.vn-auth__logo {
+  width: 132px;
+  height: 45px;
+}
+
+.vn-auth__title {
+  margin: 44px 0 8px;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--vn-text);
+}
+
+.vn-auth__subtitle {
+  margin: 0 0 32px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vn-muted);
+
+  b, strong { color: var(--vn-text); font-weight: 700; }
+}
+
+.vn-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.vn-label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vn-label);
+
+  // Todo label depois do primeiro campo ganha o respiro do "Senha" do design.
+  & ~ & { margin-top: 18px; }
+}
+
+.vn-input {
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--vn-line);
+  background: var(--vn-surface);
+  color: var(--vn-text);
+  font-size: 16px;
+  font-weight: 500;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color .2s;
+
+  &::placeholder { color: var(--vn-placeholder); opacity: 1; }
+  &:focus { border-color: var(--vn-lime); }
+  &.has-error { border-color: var(--vn-error); }
+
+  // Autopreenchimento do navegador pinta o campo de branco/amarelo.
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--vn-text);
+    -webkit-box-shadow: 0 0 0 100px var(--vn-surface) inset;
+    caret-color: var(--vn-text);
+    transition: background-color 9999s, border-color .2s;
+  }
+
+  &--code {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: .5em;
+    padding-left: calc(16px + .5em);
+  }
+}
+
+.vn-password {
+  position: relative;
+  display: flex;
+
+  .vn-input { padding-right: 84px; }
+}
+
+.vn-password__toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vn-lime);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vn-error {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--vn-error);
+}
+
+// Erro que não é de um campo só (credencial errada, falha de rede).
+.vn-alert {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 122, 122, .08);
+  border: 1px solid rgba(255, 122, 122, .25);
+  color: var(--vn-error);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.vn-row {
+  display: flex;
+  gap: 12px;
+
+  .vn-form > & { margin-top: 18px; }
+
+  > * { min-width: 0; display: flex; flex-direction: column; }
+}
+
+.vn-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--vn-lime);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &--end { align-self: flex-end; margin-top: 14px; }
+}
+
+.vn-btn {
+  height: 56px;
+  width: 100%;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform .12s ease, background-color .2s, opacity .2s;
+
+  &:active:not(:disabled) { transform: scale(.98); }
+  &:disabled { cursor: default; }
+}
+
+.vn-btn--primary {
+  margin-top: 28px;
+  border: 0;
+  background: var(--vn-lime);
+  color: var(--vn-navy);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.vn-btn--ghost {
+  border: 1.5px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .04);
+  color: var(--vn-text);
+  font-size: 15px;
+  font-weight: 600;
+  gap: 12px;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) { background: rgba(255, 255, 255, .08); }
+  }
+
+  svg, img { width: 20px; height: 20px; flex: none; }
+}
+
+.vn-btn-pair {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+
+  .vn-btn { margin-top: 0; }
+  .vn-btn--ghost { flex: 0 0 38%; }
+}
+
+.vn-spinner {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 50%;
+  border: 2.5px solid var(--vn-navy);
+  border-top-color: transparent;
+  animation: vn-spin .7s linear infinite;
+
+  &--light { border-color: var(--vn-text); border-top-color: transparent; }
+}
+
+@keyframes vn-spin { to { transform: rotate(360deg); } }
+
+.vn-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0;
+  color: var(--vn-faint);
+  font-size: 13px;
+
+  &::before, &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--vn-line);
+  }
+}
+
+.vn-foot {
+  margin: 30px 0 0;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vn-muted);
+
+  a, button {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: var(--vn-lime);
+    font-size: inherit;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+}
+
+.vn-fineprint {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--vn-faint);
+}
+
+// Progresso do cadastro: "Passo 1 de 3" + três segmentos.
+.vn-steps {
+  margin: 0 0 28px;
+
+  &__label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--vn-muted);
+
+    b { color: var(--vn-lime); font-weight: 700; }
+  }
+
+  &__bars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  &__bar {
+    height: 4px;
+    border-radius: 4px;
+    background: var(--vn-line);
+    transition: background-color .3s;
+
+    &.on { background: var(--vn-lime); }
+  }
+}
+
+// Escolha do canal na recuperação de senha.
+.vn-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1.5px solid var(--vn-line);
+  background: var(--vn-surface);
+  color: var(--vn-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .2s, transform .12s ease;
+
+  & + & { margin-top: 12px; }
+  &:active:not(:disabled) { transform: scale(.98); }
+  @media (hover: hover) {
+    &:hover:not(:disabled) { border-color: rgba(216, 245, 31, .5); }
+  }
+  &:disabled { opacity: .6; cursor: default; }
+
+  &__icon {
+    width: 42px;
+    height: 42px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(216, 245, 31, .1);
+    color: var(--vn-lime);
+    font-size: 22px;
+  }
+
+  &__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong { font-size: 15px; font-weight: 700; }
+    span { font-size: 13px; color: var(--vn-muted); }
+  }
+
+  &__chevron { color: var(--vn-faint); font-size: 18px; }
+}
+
+// Estado de sucesso (conta criada, código enviado, senha trocada).
+.vn-done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 44px;
+  animation: vn-done-in .45s cubic-bezier(.2, .8, .2, 1) both;
+
+  &__badge {
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+    background: var(--vn-lime);
+    color: var(--vn-navy);
+    font-size: 34px;
+  }
+
+  .vn-auth__title { margin-top: 28px; }
+  .vn-auth__subtitle { margin-bottom: 0; }
+  .vn-btn { margin-top: 32px; }
+}
+
+@keyframes vn-done-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+// Foco de teclado visível em tudo que é clicável.
+.vn-auth :is(button, a):focus-visible {
+  outline: 2px solid var(--vn-lime);
+  outline-offset: 3px;
+}
+
+.vn-dev {
+  margin-top: 26px;
+  align-self: center;
+  border: 1px dashed rgba(255, 255, 255, .16);
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: none;
+  color: var(--vn-faint);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vn-done { animation: none; }
+  .vn-btn, .vn-choice { transition: none; }
+}

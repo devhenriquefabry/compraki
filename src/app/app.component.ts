@@ -52,7 +52,6 @@ export class AppComponent implements OnInit, OnDestroy {
   private stopUserDocWatch?: () => void;
 
   showSplash: boolean;
-  splashAnimatingOut = false;
   /** Controla a visibilidade do menu ADMINISTRAÇÃO/AUTOMAÇÃO na sidebar. */
   isAdmin = false;
   
@@ -235,6 +234,11 @@ export class AppComponent implements OnInit, OnDestroy {
     }, 800);
   }
 
+  onSplashDone() {
+    this.showSplash = false;
+    sessionStorage.setItem('compraki_splash_done', 'true');
+  }
+
   logout() {
     this.fbProducts.signOut();
     this.router.navigate(['/login']);
@@ -252,17 +256,6 @@ export class AppComponent implements OnInit, OnDestroy {
         GoogleAuth.initialize().catch(e => {
           console.warn('Google Auth nativo não inicializado:', e);
         });
-      }
-
-      // Fake Splash Screen Logic — só roda se a splash estiver visível
-      if (this.showSplash) {
-        setTimeout(() => {
-          this.splashAnimatingOut = true;
-          setTimeout(() => {
-            this.showSplash = false;
-            sessionStorage.setItem('compraki_splash_done', 'true');
-          }, 600);
-        }, 2500);
       }
 
       this.platform.backButton.subscribeWithPriority(10, () => {

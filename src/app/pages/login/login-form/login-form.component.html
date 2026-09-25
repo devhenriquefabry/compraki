@@ -1,53 +1,60 @@
-@if (isLoading) {
-  <app-loading-spinner-overlay></app-loading-spinner-overlay>
-}
-<app-loading-spinner-overlay *ngIf="firebaseProducts.carregando"></app-loading-spinner-overlay>
+<main class="vn-auth">
+  <div class="vn-auth__inner">
+    <app-vineon-logo class="vn-auth__logo"></app-vineon-logo>
 
-<div class="containerLogin">
-  <img class="logoCompraki" src="assets/imagens/Vineon.svg" alt="Vineon">
-  
-  @if (!loginSuccess) {
-    <form class="formuLogin" [formGroup]="loginForm">
-      <h2>FAZER LOGIN</h2>
+    <h1 class="vn-auth__title">Entre na sua conta</h1>
+    <p class="vn-auth__subtitle">Compre e venda com quem está perto de você.</p>
 
-      <div class="input-container">
-        <ion-icon name="mail"></ion-icon>
-        <ion-input formControlName="email" inputmode="email" label="E-mail" label-placement="floating" mode="md" fill="outline"
-          placeholder="seu@email.com">
-        </ion-input>
+    <form class="vn-form" [formGroup]="loginForm" (ngSubmit)="login()" novalidate>
+      <label class="vn-label" for="login-email">E-mail</label>
+      <input id="login-email" class="vn-input" [class.has-error]="emailError" type="email" formControlName="email"
+        placeholder="voce@email.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false"
+        [attr.aria-invalid]="!!emailError" [attr.aria-describedby]="emailError ? 'login-email-error' : null">
+      @if (emailError) {
+        <span id="login-email-error" class="vn-error">{{ emailError }}</span>
+      }
+
+      <label class="vn-label" for="login-password">Senha</label>
+      <div class="vn-password">
+        <input id="login-password" class="vn-input" [class.has-error]="passwordError" [type]="showPassword ? 'text' : 'password'"
+          formControlName="password" placeholder="Sua senha" autocomplete="current-password"
+          [attr.aria-invalid]="!!passwordError" [attr.aria-describedby]="passwordError ? 'login-password-error' : null">
+        <button type="button" class="vn-password__toggle" (click)="showPassword = !showPassword"
+          [attr.aria-pressed]="showPassword">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button>
       </div>
+      @if (passwordError) {
+        <span id="login-password-error" class="vn-error">{{ passwordError }}</span>
+      }
 
-      <div class="input-container">
-        <ion-icon name="lock-closed"></ion-icon>
-        <ion-input formControlName="password" type="password" label="Senha" label-placement="floating" mode="md" fill="outline"
-          placeholder="Sua senha aqui">
-        </ion-input>
-      </div>
+      <a class="vn-link vn-link--end" [routerLink]="['/forgot-password']">Esqueci minha senha</a>
 
-      <ion-button class="submitButton" (click)="login()">ENTRAR</ion-button>
-      
-      <ion-button class="submitButtonGoogle" type="button" (click)="loginWithGoogle()">
-        <img class="imgGoogle" src="assets/imagens/google.png" alt=""> LOGIN COM GOOGLE
-      </ion-button>
+      @if (formError) {
+        <div class="vn-alert" role="alert">{{ formError }}</div>
+      }
 
-      <ion-label class="textos" [routerLink]="['/forgot-password']">Esqueceu sua senha?</ion-label>
-      
-      <hr>
+      <button type="submit" class="vn-btn vn-btn--primary" [disabled]="status !== 'idle' || googleLoading">
+        @switch (status) {
+          @case ('loading') { <span class="vn-spinner" aria-hidden="true"></span>Entrando… }
+          @case ('done') { Tudo certo ✓ }
+          @default { Entrar }
+        }
+      </button>
 
-      <ion-label class="textos">Ainda não tem uma conta?</ion-label>
-      <ion-button fill="outline" class="signInButton" [routerLink]="['/sign-in']" queryParamsHandling="preserve">CADASTRE-SE</ion-button>
-      
+      <div class="vn-divider">ou</div>
+
+      <button type="button" class="vn-btn vn-btn--ghost" (click)="loginWithGoogle()" [disabled]="status !== 'idle' || googleLoading">
+        @if (googleLoading) {
+          <span class="vn-spinner vn-spinner--light" aria-hidden="true"></span>
+        } @else {
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+        }
+        Continuar com Google
+      </button>
+
+      <p class="vn-foot">Não tem conta? <a [routerLink]="['/sign-in']" queryParamsHandling="preserve">Criar conta</a></p>
+
       @if (showTestAccounts) {
-        <div class="test-accounts-divider">
-          <hr>
-          <span>OU ACESSO RÁPIDO</span>
-          <hr>
-        </div>
-
-        <ion-button id="open-test-users-modal" fill="clear" class="testUsersButton">
-          <ion-icon name="flask-outline" slot="start"></ion-icon>
-          CONTAS DE TESTE (DEV)
-        </ion-button>
+        <button type="button" id="open-test-users-modal" class="vn-dev">Contas de teste (dev)</button>
 
         <!-- Modal de Usuários de Teste -->
         <ion-modal #modal trigger="open-test-users-modal" [initialBreakpoint]="1" [breakpoints]="[0, 0.4, 0.6, 1]">
@@ -63,7 +70,7 @@
             <ion-content class="ion-padding">
               <div class="modal-header-actions">
                 <p class="modal-info">Selecione um usuário real do sistema para preencher as credenciais.</p>
-              
+
                 <ion-item lines="none" class="password-override">
                   <ion-label position="stacked">Senha Padrão para Testes</ion-label>
                   <ion-input type="password" [(ngModel)]="defaultPassword" [ngModelOptions]="{standalone: true}" placeholder="Ex: password123"></ion-input>
@@ -104,14 +111,5 @@
         </ion-modal>
       }
     </form>
-  } @else {
-    <div class="success-container">
-      <div class="success-icon-box">
-        <ion-icon name="checkmark-circle-outline"></ion-icon>
-      </div>
-      <h2>Login Realizado!</h2>
-      <p>Bem-vindo de volta à Compraki.</p>
-      <div class="success-loader"></div>
-    </div>
-  }
-</div>
+  </div>
+</main>
