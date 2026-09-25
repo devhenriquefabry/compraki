@@ -12,14 +12,22 @@ loja — que a loja recebe no perfil e por e-mail.
 | Conta do mês, upload, reenvio | `src/app/services/seller-invoices.service.ts` |
 | **Notas fiscais** do vendedor (`/my-invoices`) + atalho em Minha conta | `src/app/pages/my-invoices/`, `pages/my-account/` |
 | E-mail com a nota anexada | `functions/src/seller-invoices.ts` (`onSellerInvoiceWritten`) |
-| Taxa (10%) | `src/app/core/commission.ts` e `COMMISSION_RATE` em `functions/src/metrics.ts` |
+| Taxa configurável (Ajustes) | `src/app/core/commission.ts`, `appConfig/storefront.commission` |
 
 ## Regras de negócio
 
 - **Vendido** = soma dos produtos da loja em pedidos pagos (`RECEIVED`,
   `CONFIRMED`, `DELIVERED`, `IN_ESCROW`), **sem frete**. O mês conta pela data
   do pagamento (`paymentConfirmedAt`; sem ela, a criação do pedido).
-- **Taxa Vineon** = 10% do vendido. **Repasse** = vendido − taxa.
+- **Taxa Vineon**: configurada em Ajustes (começa em 10%). Cada mudança entra
+  no histórico com a data; a venda usa a taxa em vigor **na data do
+  pagamento**. Mudar a taxa não altera meses anteriores nem notas já
+  enviadas. Se mudou no meio do mês, as telas mostram "5% e 8%".
+  **Repasse** = vendido − taxa.
+- A taxa é só de relatório e da nota: hoje não existe divisão automática do
+  pagamento (split) — o dinheiro não é separado pelo gateway.
+- `COMMISSION_RATE` (10%) em `functions/src/metrics.ts` alimenta só o resumo
+  `metrics/summary`, que nenhuma tela usa hoje.
 - "Vendedor" é quem tem anúncio ou vendeu no mês (todo usuário nasce com
   `isSeller: true`, então esse campo não serve de filtro).
 - Uma nota por loja por mês: `sellerInvoices/{sellerId}_{AAAA-MM}`; arquivo em

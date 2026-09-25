@@ -185,3 +185,144 @@
 @media (max-width: 860px) {
   .as-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ------------------------------------------------------------ taxa da Vineon */
+
+.as-icon--navy { background: #0B1623; color: #D8F51F; }
+
+.as-rate-body {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 240px;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.as-rate-now {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #0B1623;
+  color: #fff;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 18px;
+    width: 44px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: #D8F51F;
+    box-shadow: 0 0 14px rgba(216, 245, 31, 0.55);
+  }
+
+  span { color: rgba(226, 232, 240, 0.7); font-size: 0.76rem; font-weight: 600; }
+  strong { font-family: 'Sora', sans-serif; font-size: 2.6rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+  small { color: rgba(226, 232, 240, 0.65); font-size: 0.74rem; }
+}
+
+.as-rate-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.as-percent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input { flex: 0 1 140px; min-width: 0; font-size: 1.05rem; font-weight: 700; }
+  em { color: var(--adm-muted); font-style: normal; font-weight: 700; margin-right: auto; }
+  .adm-btn { flex-shrink: 0; white-space: nowrap; }
+}
+
+.as-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.as-rate-sim {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #F3F5F8;
+  color: var(--adm-ink-2);
+  font-size: 0.84rem;
+  line-height: 1.5;
+
+  b { color: var(--adm-ink); }
+}
+
+.as-rate-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.as-rate-history {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--adm-line);
+  border-radius: 14px;
+
+  > span { color: var(--adm-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  ol {
+    display: grid;
+    gap: 2px;
+    max-height: 180px;
+    margin: 8px 0 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    color: var(--adm-muted);
+    font-size: 0.8rem;
+
+    & + li { border-top: 1px solid #F1F4F8; }
+    b { min-width: 42px; color: var(--adm-ink-2); font-variant-numeric: tabular-nums; }
+
+    &.is-current b { color: var(--adm-ink); }
+    &.is-current::before {
+      content: '';
+      flex-shrink: 0;
+      width: 7px;
+      height: 7px;
+      margin-right: -2px;
+      border-radius: 50%;
+      background: #D8F51F;
+      box-shadow: 0 0 0 2px #0B1623;
+      align-self: center;
+    }
+  }
+}
+
+@media (max-width: 1000px) {
+  .as-rate-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+  .as-rate-history { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+  .as-rate-body { grid-template-columns: 1fr; }
+  .as-rate-now strong { font-size: 2.2rem; }
+  .as-percent input { flex: 1 1 auto; }
+  .as-percent em { margin-right: 0; }
+}

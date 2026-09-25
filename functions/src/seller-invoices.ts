@@ -24,7 +24,7 @@ interface InvoiceDoc {
   sellerId: string;
   period: string;
   file: { name: string; path: string; contentType: string; size: number };
-  summary: { grossRevenue: number; platformFee: number; netAmount: number; orderCount: number; commissionRate: number };
+  summary: { grossRevenue: number; platformFee: number; netAmount: number; orderCount: number; commissionRate: number; commissionLabel?: string };
   emailRequestedAt?: Timestamp;
 }
 
@@ -110,6 +110,13 @@ function periodLabel(period: string): string {
   return `${MONTHS[month - 1] ?? period} de ${year}`;
 }
 
+/** "8%", "7,5%" ou, se a taxa mudou no mês, o rótulo gravado pelo app ("5% e 8%"). */
+function rateText(summary: InvoiceDoc['summary']): string {
+  if (summary.commissionLabel) return summary.commissionLabel;
+  const pct = Math.round((summary.commissionRate || 0) * 1000) / 10;
+  return `${String(pct).replace('.', ',')}%`;
+}
+
 function brl(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
@@ -123,14 +130,14 @@ function appUrl(): string {
 }
 
 function invoiceText(name: string, period: string, invoice: InvoiceDoc): string {
-  const rate = Math.round((invoice.summary.commissionRate || 0) * 100);
+  const rate = rateText(invoice.summary);
   return [
     `Olá${name ? `, ${name}` : ''}!`,
     '',
     `A nota fiscal da Vineon referente a ${period} está anexada a este e-mail.`,
     '',
     `Vendido no mês: ${brl(invoice.summary.grossRevenue)}`,
-    `Taxa Vineon (${rate}%): ${brl(invoice.summary.platformFee)}`,
+    `Taxa Vineon (${rate}): ${brl(invoice.summary.platformFee)}`,
     `Seu repasse: ${brl(invoice.summary.netAmount)}`,
     '',
     `Ela também fica no app, em Minha conta > Notas fiscais: ${appUrl()}/my-invoices`,
@@ -138,7 +145,7 @@ function invoiceText(name: string, period: string, invoice: InvoiceDoc): string 
 }
 
 export function invoiceHtml(name: string, period: string, invoice: InvoiceDoc): string {
-  const rate = Math.round((invoice.summary.commissionRate || 0) * 100);
+  const rate = rateText(invoice.summary);
   const hello = name ? `Olá, ${escapeHtml(name)}!` : 'Olá!';
   const row = (label: string, value: string, strong = false) => `
     <tr>
@@ -167,7 +174,7 @@ export function invoiceHtml(name: string, period: string, invoice: InvoiceDoc): 
         <tr><td style="padding:14px 28px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F8FA;border-radius:12px;padding:8px 16px;">
             ${row('Vendido no mês', brl(invoice.summary.grossRevenue))}
-            ${row(`Taxa Vineon (${rate}%)`, brl(invoice.summary.platformFee))}
+            ${row(`Taxa Vineon (${escapeHtml(rate)})`, brl(invoice.summary.platformFee))}
             ${row('Seu repasse', brl(invoice.summary.netAmount), true)}
           </table>
         </td></tr>

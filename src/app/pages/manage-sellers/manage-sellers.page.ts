@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { AlertController, IonicModule, ToastController } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 
-import { PLATFORM_COMMISSION_RATE } from '../../core/commission';
 import { formatBRL, normalizeSearch, toDate } from '../../core/order-stage';
 import { INVOICE_EMAIL_LABEL, SellerInvoice } from '../../interfaces/seller-invoice';
 import {
@@ -40,7 +39,6 @@ export class ManageSellersPage {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly accept = INVOICE_ACCEPT;
-  readonly ratePercent = Math.round(PLATFORM_COMMISSION_RATE * 100);
   readonly thisMonth = currentPeriod();
   /** Últimos 24 meses, do mais recente para o mais antigo. */
   readonly monthOptions = Array.from({ length: 24 }, (_, i) => {
@@ -63,6 +61,7 @@ export class ManageSellersPage {
   readonly busy = signal<string | null>(null);
   readonly dragOver = signal<string | null>(null);
 
+  readonly rateLabel = computed(() => this.report()?.rateLabel ?? '');
   readonly withSales = computed(() => (this.report()?.rows ?? []).filter(r => r.grossRevenue > 0));
   readonly pending = computed(() => this.withSales().filter(r => !this.invoices().has(r.sellerId)));
   readonly invoicedCount = computed(() => this.withSales().length - this.pending().length);

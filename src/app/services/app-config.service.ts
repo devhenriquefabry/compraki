@@ -5,6 +5,7 @@ import { Firestore, doc, getFirestore, onSnapshot, serverTimestamp, setDoc } fro
 
 import { environment } from '../../environments/environment';
 import { DEFAULT_STOREFRONT_CONFIG, FreeShippingRule, SocialLinks, StorefrontConfig } from '../interfaces/app-config';
+import { MAX_COMMISSION_RATE, normalizeCommission } from '../core/commission';
 
 /**
  * `appConfig/storefront` em tempo real.
@@ -24,6 +25,8 @@ export class AppConfigService {
   readonly config = signal<StorefrontConfig>(DEFAULT_STOREFRONT_CONFIG);
   /** Vira `true` depois da primeira resposta do Firestore (ou do erro). */
   readonly loaded = signal(false);
+  private resolveLoaded!: () => void;
+  private readonly loadedOnce = new Promise<void>(resolve => (this.resolveLoaded = resolve));
 
   constructor() {
     const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
@@ -34,12 +37,31 @@ export class AppConfigService {
       snap => {
         this.config.set(normalizeConfig(snap.exists() ? snap.data() : null));
         this.loaded.set(true);
+        this.resolveLoaded();
       },
       err => {
         console.warn('Configuração da loja indisponível; usando o padrão.', err);
         this.loaded.set(true);
+        this.resolveLoaded();
       }
     );
+  }
+
+  /** Resolve quando a configuração chegou (conta que depende da taxa espera isto). */
+  whenLoaded(): Promise<void> {
+    return this.loadedOnce;
+  }
+
+  /**
+   * Nova taxa da Vineon, valendo a partir de agora. A anterior fica no
+   * histórico: venda paga antes continua com a taxa da época.
+   */
+  async saveCommissionRate(rate: number): Promise<void> {
+    if (!(rate >= 0 && rate <= MAX_COMMISSION_RATE)) throw new Error('Taxa fora do intervalo permitido.');
+    const clean = Math.round(rate * 10000) / 10000;
+    const current = this.config().commission;
+    const history = [...current.history, { rate: clean, since: Date.now(), by: getAuth().currentUser?.uid ?? null }];
+    await this.save({ commission: { rate: clean, history } }, ['commission']);
   }
 
   /** Regra de frete grátis em vigor, ou `null` quando está desligada. */
@@ -88,6 +110,7 @@ function normalizeConfig(data: any): StorefrontConfig {
     },
     socialLinks: data?.socialLinks && typeof data.socialLinks === 'object' ? data.socialLinks : {},
     blockedWords: Array.isArray(data?.blockedWords) ? data.blockedWords.filter((w: unknown) => typeof w === 'string') : [],
+    commission: normalizeCommission(data?.commission),
     updatedAt: data?.updatedAt,
     updatedBy: data?.updatedBy,
   };

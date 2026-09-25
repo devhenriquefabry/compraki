@@ -1,13 +1,14 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { AlertController, IonicModule, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   banOutline, closeOutline, giftOutline, logoFacebook, logoInstagram, logoTiktok, logoWhatsapp, logoX, logoYoutube,
   shareSocialOutline,
 } from 'ionicons/icons';
 
+import { DEFAULT_COMMISSION_RATE, MAX_COMMISSION_RATE, formatRate } from '../../core/commission';
 import { findBlockedWord } from '../../core/product-moderation';
 import { SOCIAL_NETWORKS, SocialLinks } from '../../interfaces/app-config';
 import { AppConfigService } from '../../services/app-config.service';
@@ -27,10 +28,28 @@ import { AppConfigService } from '../../services/app-config.service';
 export class AdminSettingsPage {
   private readonly appConfig = inject(AppConfigService);
   private readonly toastCtrl = inject(ToastController);
+  private readonly alertCtrl = inject(AlertController);
 
   readonly config = this.appConfig.config;
   readonly loaded = this.appConfig.loaded;
   readonly networks = SOCIAL_NETWORKS;
+
+  // ---- taxa da Vineon (em %, como o admin digita)
+  readonly ratePresets = [5, 8, 10, 12, 15];
+  readonly maxRatePercent = MAX_COMMISSION_RATE * 100;
+  ratePercent: number | null = null;
+  readonly savingRate = signal(false);
+  readonly commission = computed(() => this.config().commission);
+  /** Mudanças da mais nova para a mais antiga, e a taxa inicial no fim. */
+  readonly rateHistory = computed(() => {
+    const history = [...this.commission().history].reverse();
+    return history.map((change, i) => ({
+      label: formatRate(change.rate),
+      since: new Date(change.since),
+      current: i === 0,
+    }));
+  });
+  readonly initialRate = formatRate(DEFAULT_COMMISSION_RATE);
 
   // ---- frete grátis
   minValue: number | null = null;
@@ -59,9 +78,61 @@ export class AdminSettingsPage {
       if (!this.loaded()) return;
       untracked(() => {
         if (!this.savingShipping()) this.minValue = cfg.freeShipping.minValue;
+        if (!this.savingRate()) this.ratePercent = Math.round(cfg.commission.rate * 1000) / 10;
         if (!this.savingSocial()) this.social = { ...cfg.socialLinks };
       });
     });
+  }
+
+  // ------------------------------------------------------------ taxa da Vineon
+
+  formatRate = formatRate;
+
+  get rateValid(): boolean {
+    return typeof this.ratePercent === 'number' && this.ratePercent >= 0 && this.ratePercent <= this.maxRatePercent;
+  }
+
+  get rateDirty(): boolean {
+    return this.rateValid && Math.abs(this.ratePercent! / 100 - this.commission().rate) > 0.00001;
+  }
+
+  /** Simulação ao vivo: uma venda de R$ 100,00 com a taxa digitada. */
+  get ratePreview(): { fee: number; net: number } {
+    const pct = this.rateValid ? this.ratePercent! : this.commission().rate * 100;
+    const fee = Math.round(pct * 100) / 100;
+    return { fee, net: 100 - fee };
+  }
+
+  pickRate(pct: number) {
+    this.ratePercent = pct;
+  }
+
+  async saveRate() {
+    if (!this.rateDirty) return;
+    const next = this.ratePercent! / 100;
+    const alert = await this.alertCtrl.create({
+      header: `Mudar a taxa para ${formatRate(next)}?`,
+      message: `Vale para todos os produtos, nas vendas pagas a partir de agora. ` +
+        `As vendas anteriores e as notas já enviadas continuam com ${formatRate(this.commission().rate)}.`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Mudar taxa', role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    if (role !== 'confirm') return;
+
+    this.savingRate.set(true);
+    try {
+      await this.appConfig.saveCommissionRate(next);
+      this.toast(`Taxa da Vineon agora é ${formatRate(next)}.`, 'success');
+    } catch (err) {
+      console.error(err);
+      this.toast('Não foi possível salvar a taxa. Confira sua conexão e seu acesso de admin.', 'danger');
+    } finally {
+      this.savingRate.set(false);
+    }
   }
 
   // ------------------------------------------------------------ frete grátis

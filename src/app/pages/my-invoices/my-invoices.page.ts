@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule, NavController } from '@ionic/angular';
 
 import { onAuthUserChanged } from '../../core/auth-state';
+import { formatRate } from '../../core/commission';
 import { formatBRL, toDate } from '../../core/order-stage';
 import { SellerInvoice } from '../../interfaces/seller-invoice';
 import { SellerInvoicesService, periodLabel, periodTitle } from '../../services/seller-invoices.service';
@@ -78,6 +79,10 @@ export class MyInvoicesPage {
 
   monthYear(invoice: SellerInvoice): string {
     return periodTitle(invoice.period);
+  }
+
+  rateLabel(invoice: SellerInvoice): string {
+    return invoice.summary.commissionLabel || formatRate(invoice.summary.commissionRate || 0);
   }
 
   brl(value: number): string {

@@ -63,7 +63,7 @@
           </article>
 
           <article class="mx-kpi">
-            <span class="mx-kpi__label">Taxa Vineon ({{ data.headline.commissionRate * 100 | number:'1.0-1':'pt-BR' }}%)</span>
+            <span class="mx-kpi__label">Taxa Vineon ({{ data.headline.rateLabel }})</span>
             <strong class="mx-kpi__value">{{ data.headline.platformFee.value | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
             <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: delta(data.headline.platformFee, data.headline.previousLabel) }"></ng-container>
           </article>

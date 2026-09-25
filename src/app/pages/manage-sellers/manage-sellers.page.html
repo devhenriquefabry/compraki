@@ -34,7 +34,7 @@
       <small>Produtos de pedidos pagos, sem frete · {{ report()?.totals?.orderCount ?? 0 }} pedidos</small>
     </article>
     <article class="sl-kpi">
-      <span>Taxa Vineon ({{ ratePercent }}%)</span>
+      <span>Taxa Vineon ({{ rateLabel() }})</span>
       <strong>{{ brl(report()?.totals?.platformFee ?? 0) }}</strong>
       <small>Recolhida sobre o vendido</small>
     </article>
@@ -152,7 +152,7 @@
                   </ul>
                   <dl class="sl-sum">
                     <div><dt>Vendido</dt><dd>{{ brl(row.grossRevenue) }}</dd></div>
-                    <div><dt>Taxa Vineon ({{ ratePercent }}%)</dt><dd>− {{ brl(row.platformFee) }}</dd></div>
+                    <div><dt>Taxa Vineon ({{ row.rateLabel }})</dt><dd>− {{ brl(row.platformFee) }}</dd></div>
                     <div class="sl-sum__total"><dt>Repasse à loja</dt><dd>{{ brl(row.netAmount) }}</dd></div>
                   </dl>
                 } @else {

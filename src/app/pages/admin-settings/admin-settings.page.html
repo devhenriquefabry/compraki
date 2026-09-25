@@ -10,6 +10,78 @@
     <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
   } @else {
     <div class="as-grid">
+      <!-- ============================================== TAXA DA VINEON -->
+      <section class="adm-card as-card as-card--wide as-rate" aria-labelledby="as-rate">
+        <header class="as-card-head">
+          <span class="as-icon as-icon--navy"><ion-icon name="wallet-outline" aria-hidden="true"></ion-icon></span>
+          <div>
+            <h3 id="as-rate">Taxa da Vineon</h3>
+            <p>Porcentagem que a Vineon fica sobre o valor dos produtos vendidos (sem frete). Vale para todos os produtos do app.</p>
+          </div>
+        </header>
+
+        <div class="as-rate-body">
+          <div class="as-rate-now">
+            <span>Em vigor</span>
+            <strong>{{ formatRate(commission().rate) }}</strong>
+            <small>
+              @if (rateHistory().length) { desde {{ rateHistory()[0].since | date:"dd/MM/yyyy 'às' HH:mm" }} }
+              @else { taxa inicial do app }
+            </small>
+          </div>
+
+          <div class="as-rate-edit">
+            <label class="as-field">
+              <span>Nova taxa</span>
+              <div class="as-percent">
+                <input type="number" inputmode="decimal" min="0" [max]="maxRatePercent" step="0.5"
+                       [(ngModel)]="ratePercent" aria-label="Nova taxa em porcentagem" />
+                <em>%</em>
+                <button type="button" class="adm-btn adm-btn--primary" (click)="saveRate()" [disabled]="!rateDirty || savingRate()">
+                  {{ savingRate() ? 'Salvando…' : 'Salvar taxa' }}
+                </button>
+              </div>
+            </label>
+
+            <div class="as-presets" role="group" aria-label="Taxas rápidas">
+              @for (p of ratePresets; track p) {
+                <button type="button" class="adm-chip" [class.is-active]="ratePercent === p" (click)="pickRate(p)">{{ p }}%</button>
+              }
+            </div>
+
+            @if (!rateValid) {
+              <p class="as-rate-error">Use um valor entre 0% e {{ maxRatePercent }}%.</p>
+            } @else {
+              <p class="as-rate-sim">
+                Numa venda de <b>R$ 100,00</b>: a Vineon fica com <b>{{ formatBRL(ratePreview.fee) }}</b>
+                e a loja recebe <b>{{ formatBRL(ratePreview.net) }}</b>.
+              </p>
+            }
+          </div>
+
+          <div class="as-rate-history">
+            <span>Histórico</span>
+            <ol>
+              @for (h of rateHistory(); track h.since.getTime()) {
+                <li [class.is-current]="h.current">
+                  <b>{{ h.label }}</b>
+                  <small>desde {{ h.since | date:"dd/MM/yyyy 'às' HH:mm" }}</small>
+                </li>
+              }
+              <li [class.is-current]="!rateHistory().length">
+                <b>{{ initialRate }}</b>
+                <small>taxa inicial do app</small>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <p class="as-note">
+          A nova taxa vale para as vendas <b>pagas a partir do momento em que você salvar</b>. Vendas anteriores e notas fiscais já
+          enviadas continuam com a taxa da época — é isso que aparece em Métricas e na aba Vendedores.
+        </p>
+      </section>
+
       <!-- ============================================== FRETE GRÁTIS -->
       <section class="adm-card as-card" aria-labelledby="as-ship">
         <header class="as-card-head">

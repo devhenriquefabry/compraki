@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable, combineLatest, from, map, shareReplay } from 'rxjs';
 import { collection, getFirestore, onSnapshot, getDoc, getDocs, deleteDoc, writeBatch, doc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -7,7 +8,8 @@ import { environment } from 'src/environments/environment';
 import { AppUser } from '../interfaces/app-user';
 import { Order, OrderStatus } from '../interfaces/order';
 import { Product } from '../interfaces/product';
-import { PLATFORM_COMMISSION_RATE, platformFee } from '../core/commission';
+import { CommissionConfig, describeRates, feeFor, formatRate, rateAt } from '../core/commission';
+import { AppConfigService } from './app-config.service';
 import { OrderStage, isPaid, orderStage, paidUnitPrice, sellerItems } from '../core/order-stage';
 
 export type AdminMetricsPeriod = 'today' | '7d' | '30d' | 'custom';
@@ -90,7 +92,8 @@ export interface AdminHeadline {
   averageTicket: AdminKpi;
   platformFee: AdminKpi;
   newUsers: AdminKpi;
-  commissionRate: number;
+  /** Taxa(s) aplicada(s) no período: "8%" ou "5% e 8%". */
+  rateLabel: string;
   revenueSeries: AdminChartPoint[];
   ordersSeries: AdminChartPoint[];
   stages: AdminStageSlice[];
@@ -160,15 +163,22 @@ export interface AdminDashboardMetrics {
 })
 export class AdminAnalyticsService {
   private readonly db = getFirestore(getApps().length === 0 ? initializeApp(environment.firebase) : getApp());
-  private readonly commissionRate = 0.1;
+  private readonly appConfig = inject(AppConfigService);
+  /** Taxa em Ajustes; mudar lá recalcula o painel aberto. */
+  private readonly commission$ = toObservable(this.appConfig.config);
+  private commissionRate = 0.1;
 
   getDashboardMetrics(filters: AdminMetricsFilters): Observable<AdminDashboardMetrics> {
     return combineLatest([
       this.listenCollection<AppUser>('users'),
       this.listenCollection<Product>('products'),
-      this.listenCollection<Order>('orders')
+      this.listenCollection<Order>('orders'),
+      this.commission$
     ]).pipe(
-      map(([users, products, orders]) => this.buildMetrics(users, products, orders, filters))
+      map(([users, products, orders, config]) => {
+        this.commissionRate = rateAt(config.commission, new Date());
+        return this.buildMetrics(users, products, orders, filters, config.commission);
+      })
     );
   }
 
@@ -270,7 +280,8 @@ export class AdminAnalyticsService {
     users: (AppUser & { id?: string })[],
     products: (Product & { id?: string })[],
     orders: (Order & { id?: string })[],
-    filters: AdminMetricsFilters
+    filters: AdminMetricsFilters,
+    commission: CommissionConfig
   ): AdminDashboardMetrics {
     const now = new Date();
     const range = this.resolveRange(filters, now);
@@ -336,7 +347,7 @@ export class AdminAnalyticsService {
     return {
       updatedAt: now,
       rangeLabel: range.label,
-      headline: this.buildHeadline(users, orders, range),
+      headline: this.buildHeadline(users, orders, range, commission),
       overview: {
         onlineUsers,
         onlineUsersList,
@@ -407,7 +418,8 @@ export class AdminAnalyticsService {
   private buildHeadline(
     users: (AppUser & { id?: string })[],
     orders: (Order & { id?: string })[],
-    range: { start: Date; end: Date }
+    range: { start: Date; end: Date },
+    commission: CommissionConfig
   ): AdminHeadline {
     const spanMs = range.end.getTime() - range.start.getTime();
     const prevEnd = new Date(range.start.getTime() - 1);
@@ -421,6 +433,10 @@ export class AdminAnalyticsService {
 
     const revenue = this.sumItems(current);
     const revenuePrev = this.sumItems(previous);
+    // Cada venda paga a taxa em vigor no dia do pagamento.
+    const feeOf = (list: Order[]) => list.reduce((sum, order) =>
+      sum + feeFor(this.sumItems([order]), rateAt(commission, paidAt(order))), 0);
+    const ratesUsed = new Set(current.map(order => rateAt(commission, paidAt(order))));
     const ticket = current.length ? revenue / current.length : 0;
     const ticketPrev = previous.length ? revenuePrev / previous.length : 0;
 
@@ -471,12 +487,12 @@ export class AdminAnalyticsService {
       revenue: { value: revenue, previous: revenuePrev },
       orders: { value: current.length, previous: previous.length },
       averageTicket: { value: ticket, previous: ticketPrev },
-      platformFee: { value: platformFee(revenue), previous: platformFee(revenuePrev) },
+      platformFee: { value: feeOf(current), previous: feeOf(previous) },
       newUsers: {
         value: this.countUsersCreatedSince(users, range.start, range.end),
         previous: this.countUsersCreatedSince(users, prevStart, prevEnd)
       },
-      commissionRate: PLATFORM_COMMISSION_RATE,
+      rateLabel: describeRates(ratesUsed) || formatRate(rateAt(commission, range.end)),
       revenueSeries: this.buildPaidSeries(current, range.start, range.end, paidAt, 'revenue'),
       ordersSeries: this.buildPaidSeries(current, range.start, range.end, paidAt, 'count'),
       stages: stageOrder.map(stage => ({ ...stage, value: stageCount.get(stage.id) || 0 })),

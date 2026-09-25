@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
@@ -9,11 +9,12 @@ import { deleteObject, getDownloadURL, getStorage, ref, uploadBytes } from 'fire
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { PLATFORM_COMMISSION_RATE, platformFee, roundCents } from '../core/commission';
+import { describeRates, formatRate, rateAt, roundCents } from '../core/commission';
 import { isPaid, paidUnitPrice, productIdOf, sellerItems, toDate } from '../core/order-stage';
 import { AppUser } from '../interfaces/app-user';
 import { Order } from '../interfaces/order';
 import { SellerInvoice, SellerInvoiceSummary, invoiceId } from '../interfaces/seller-invoice';
+import { AppConfigService } from './app-config.service';
 
 /** Um produto vendido pela loja no mês. */
 export interface SellerProductSale {
@@ -38,11 +39,15 @@ export interface SellerMonthRow {
   grossRevenue: number;
   platformFee: number;
   netAmount: number;
+  /** Taxa(s) aplicada(s) no mês: "8%" ou "5% e 8%" se mudou no meio. */
+  rateLabel: string;
   products: SellerProductSale[];
 }
 
 export interface SellersMonthReport {
   period: string;
+  /** Taxa(s) do mês inteiro, para o título do indicador. */
+  rateLabel: string;
   rows: SellerMonthRow[];
   totals: {
     grossRevenue: number;
@@ -69,6 +74,7 @@ export const INVOICE_MAX_BYTES = 15 * 1024 * 1024;
 @Injectable({ providedIn: 'root' })
 export class SellerInvoicesService {
   private readonly db: Firestore;
+  private readonly appConfig = inject(AppConfigService);
 
   constructor() {
     const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
@@ -78,6 +84,8 @@ export class SellerInvoicesService {
   // ------------------------------------------------------------------ admin
 
   async loadMonthReport(period: string): Promise<SellersMonthReport> {
+    await this.appConfig.whenLoaded();
+    const commission = this.appConfig.config().commission;
     const { start, end } = monthRange(period);
     const createdFrom = new Date(start);
     createdFrom.setDate(createdFrom.getDate() - CREATED_LOOKBACK_DAYS);
@@ -96,6 +104,8 @@ export class SellerInvoicesService {
     const rows = new Map<string, SellerMonthRow>();
     const productMaps = new Map<string, Map<string, SellerProductSale>>();
     const orderIds = new Map<string, Set<string>>();
+    const ratesBySeller = new Map<string, Set<number>>();
+    const monthRates = new Set<number>();
 
     const ensureRow = (sellerId: string): SellerMonthRow => {
       let row = rows.get(sellerId);
@@ -108,6 +118,7 @@ export class SellerInvoicesService {
           photoURL: null,
           listings: 0,
           orderCount: 0, itemCount: 0, grossRevenue: 0, platformFee: 0, netAmount: 0,
+          rateLabel: '',
           products: [],
         };
         rows.set(sellerId, row);
@@ -125,6 +136,8 @@ export class SellerInvoicesService {
       if (!isPaid(order)) continue;
       const paidAt = toDate(order.paymentConfirmedAt) ?? toDate(order.createdAt);
       if (!paidAt || paidAt < start || paidAt >= end) continue;
+      // Taxa em vigor no dia do pagamento (Ajustes guarda o histórico).
+      const rate = rateAt(commission, paidAt);
 
       for (const sellerId of order.sellerIds || []) {
         const items = sellerItems(order, sellerId);
@@ -135,6 +148,10 @@ export class SellerInvoicesService {
         const orders = orderIds.get(sellerId) ?? new Set<string>();
         orderIds.set(sellerId, orders);
         orders.add(order.id!);
+        const sellerRates = ratesBySeller.get(sellerId) ?? new Set<number>();
+        sellerRates.add(rate);
+        ratesBySeller.set(sellerId, sellerRates);
+        monthRates.add(rate);
 
         for (const item of items) {
           const quantity = item.quantity || 0;
@@ -152,6 +169,7 @@ export class SellerInvoicesService {
           products.set(key, current);
           row.itemCount += quantity;
           row.grossRevenue += revenue;
+          row.platformFee += revenue * rate;
         }
       }
     }
@@ -171,14 +189,16 @@ export class SellerInvoicesService {
       });
     }
 
+    const currentRate = formatRate(rateAt(commission, new Date(Math.min(Date.now(), end.getTime() - 1))));
     const list = [...rows.values()].map(row => {
       const gross = roundCents(row.grossRevenue);
-      const fee = platformFee(gross);
+      const fee = roundCents(row.platformFee);
       return {
         ...row,
         grossRevenue: gross,
         platformFee: fee,
         netAmount: roundCents(gross - fee),
+        rateLabel: describeRates(ratesBySeller.get(row.sellerId) ?? []) || currentRate,
         orderCount: orderIds.get(row.sellerId)?.size ?? 0,
         products: [...(productMaps.get(row.sellerId)?.values() ?? [])]
           .map(p => ({ ...p, revenue: roundCents(p.revenue) }))
@@ -192,6 +212,7 @@ export class SellerInvoicesService {
 
     return {
       period,
+      rateLabel: describeRates(monthRates) || currentRate,
       rows: list,
       totals: {
         grossRevenue: gross,
@@ -234,7 +255,9 @@ export class SellerInvoicesService {
       netAmount: row.netAmount,
       orderCount: row.orderCount,
       itemCount: row.itemCount,
-      commissionRate: PLATFORM_COMMISSION_RATE,
+      // Taxa efetiva do mês (se mudou no meio, a média ponderada) + o rótulo.
+      commissionRate: row.grossRevenue > 0 ? Math.round((row.platformFee / row.grossRevenue) * 10000) / 10000 : 0,
+      commissionLabel: row.rateLabel,
     };
 
     const invoice: Omit<SellerInvoice, 'id'> = {

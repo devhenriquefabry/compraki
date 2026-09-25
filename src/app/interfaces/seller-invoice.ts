@@ -38,6 +38,8 @@ export interface SellerInvoiceSummary {
   orderCount: number;
   itemCount: number;
   commissionRate: number;
+  /** "8%" ou "5% e 8%" quando a taxa mudou no meio do mês. */
+  commissionLabel?: string;
 }
 
 export type SellerInvoiceEmailStatus = 'sending' | 'sent' | 'failed' | 'no_email' | 'simulated';

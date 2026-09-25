@@ -7,6 +7,8 @@
  * de integração continua em `settings/`, que o cliente não alcança.
  */
 
+import { CommissionConfig, DEFAULT_COMMISSION } from '../core/commission';
+
 export interface FreeShippingRule {
   /** Liga/desliga a regra sem perder o valor configurado. */
   enabled: boolean;
@@ -27,6 +29,8 @@ export interface StorefrontConfig {
    * ("arma*" pega "armas", "armamento"). Ver core/product-moderation.ts.
    */
   blockedWords: string[];
+  /** Taxa da Vineon sobre as vendas, com histórico (ver core/commission.ts). */
+  commission: CommissionConfig;
   updatedAt?: any;
   updatedBy?: string;
 }
@@ -35,6 +39,7 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
   freeShipping: { enabled: false, minValue: 200 },
   socialLinks: {},
   blockedWords: [],
+  commission: DEFAULT_COMMISSION,
 };
 
 export const SOCIAL_NETWORKS: { id: SocialNetwork; label: string; icon: string; placeholder: string }[] = [
