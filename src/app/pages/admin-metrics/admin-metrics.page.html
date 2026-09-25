@@ -1,375 +1,312 @@
 <ion-content class="metrics-bg" [scrollY]="true">
-  <div class="dashboard-wrapper">
+  <div class="mx">
     <app-admin-panel-hero
-      eyebrow="Dashboard Métrico do Sistema"
+      eyebrow="Visão geral"
       title="Métricas"
-      description="Relatórios em tempo real para acompanhar operação, receita, produtos, usuários e alertas críticos."
+      description="Vendas, pedidos e pessoas no período escolhido, comparados com o período anterior."
       [showSegmentedControl]="true"
       [segmentOptions]="periodOptions"
       [selectedSegment]="filters.period"
       (segmentChange)="setPeriod($event)"
       [showCustomDateRange]="filters.period === 'custom'"
       (refreshClick)="refresh()">
-      <div panelHeroCustomRange class="metrics-custom-range" *ngIf="filters.period === 'custom'">
-        <input type="date" [(ngModel)]="filters.startDate" (ngModelChange)="onCustomDateChange()" />
+      <div panelHeroCustomRange class="mx-range" *ngIf="filters.period === 'custom'">
+        <input type="date" aria-label="Início" [(ngModel)]="filters.startDate" (ngModelChange)="onCustomDateChange()" />
         <span>até</span>
-        <input type="date" [(ngModel)]="filters.endDate" (ngModelChange)="onCustomDateChange()" />
+        <input type="date" aria-label="Fim" [(ngModel)]="filters.endDate" (ngModelChange)="onCustomDateChange()" />
       </div>
     </app-admin-panel-hero>
 
-    <div class="loading-grid" *ngIf="isLoading">
-      <div class="skeleton-card" *ngFor="let item of [1,2,3,4,5,6,7,8]"></div>
+    <div class="mx-skeleton" *ngIf="isLoading" aria-hidden="true">
+      <div class="mx-sk mx-sk--hero"></div>
+      <div class="mx-sk" *ngFor="let i of [1, 2, 3, 4]"></div>
+      <div class="mx-sk mx-sk--chart"></div>
+      <div class="mx-sk mx-sk--chart"></div>
     </div>
 
-    <div class="empty-state" *ngIf="!isLoading && errorMessage">
-      <ion-icon name="warning-outline"></ion-icon>
-      <h2>Falha ao carregar métricas</h2>
-      <p>{{ errorMessage }}</p>
-      <ion-button color="success" fill="clear" (click)="refresh()">Tentar novamente</ion-button>
+    <div class="mx-error" *ngIf="!isLoading && errorMessage">
+      <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+      <div>
+        <strong>Métricas indisponíveis</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <button type="button" class="mx-btn" (click)="refresh()">Tentar de novo</button>
     </div>
 
     <ng-container *ngIf="!isLoading && !errorMessage && metrics as data">
-      <div class="live-status">
-        <div>
-          <span class="pulse"></span>
-          Dados em tempo real
-        </div>
-        <span>{{ data.rangeLabel }} · atualizado {{ data.updatedAt | date:'shortTime' }}</span>
-      </div>
+      <div class="mx-body" [class.is-stale]="isRefreshing">
+        <p class="mx-live">
+          <span class="mx-live__dot" aria-hidden="true"></span>
+          <b>Ao vivo</b>
+          <span>{{ data.rangeLabel }} · comparado com os {{ data.headline.previousLabel }} · atualizado às {{ data.updatedAt | date:'HH:mm' }}</span>
+        </p>
 
-      <section class="metrics-grid overview-grid">
-        <div
-          class="online-users-hover-wrap"
-          (mouseenter)="setOnlineUsersPanelOpen(true)"
-          (mouseleave)="setOnlineUsersPanelOpen(false)">
-          <article class="metric-card success online-users-card" tabindex="0">
-            <div class="icon-bubble"><ion-icon name="radio-outline"></ion-icon></div>
-            <span>Usuários online</span>
-            <strong>{{ data.overview.onlineUsers }}</strong>
-            <small>Presença sincronizada via Firebase</small>
+        <!-- ============================================== resumo do período -->
+        <section class="mx-kpis" aria-label="Resumo do período">
+          <article class="mx-kpi mx-kpi--hero">
+            <span class="mx-kpi__label">Vendido</span>
+            <strong class="mx-kpi__value">{{ data.headline.revenue.value | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+            <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: delta(data.headline.revenue, data.headline.previousLabel) }"></ng-container>
+            <small class="mx-kpi__hint">Produtos de pedidos pagos, sem frete</small>
           </article>
 
-          <div
-            class="online-users-dropdown"
-            *ngIf="onlineUsersPanelOpen"
-            role="region"
-            aria-label="Usuários online no momento">
-            <div class="online-dropdown-inner">
-              <div class="online-dropdown-head">
-                <span>Usuários online</span>
-                <strong>{{ data.overview.onlineUsers }}</strong>
-                <small>Presença sincronizada via Firebase</small>
-              </div>
-              <ul class="online-dropdown-list" *ngIf="data.overview.onlineUsersList.length > 0">
-                <li *ngFor="let u of data.overview.onlineUsersList; trackBy: trackByLabel">
-                  <img *ngIf="u.image" [src]="u.image" [alt]="u.name" />
-                  <ion-icon *ngIf="!u.image" name="person-circle-outline" aria-hidden="true"></ion-icon>
-                  <div class="online-user-text">
-                    <strong>{{ u.name }}</strong>
-                    <span class="online-duration">{{ formatOnlineSessionDuration(u) }}</span>
-                    <span class="online-contact">{{ u.helper }}</span>
-                  </div>
-                  <span class="online-pill">online</span>
-                </li>
-              </ul>
-              <div class="online-dropdown-empty" *ngIf="data.overview.onlineUsersList.length === 0">
-                Ninguém com presença ativa no momento.
-              </div>
-            </div>
-          </div>
-        </div>
+          <article class="mx-kpi">
+            <span class="mx-kpi__label">Pedidos pagos</span>
+            <strong class="mx-kpi__value">{{ data.headline.orders.value }}</strong>
+            <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: delta(data.headline.orders, data.headline.previousLabel) }"></ng-container>
+          </article>
 
-        <article
-          class="metric-card info metric-card--link"
-          role="link"
-          tabindex="0"
-          (click)="openUsersManagement()"
-          (keydown.enter)="openUsersManagement()"
-          (keydown.space)="openUsersManagement()">
-          <div class="icon-bubble"><ion-icon name="people-outline"></ion-icon></div>
-          <span>Total de usuários</span>
-          <strong>{{ data.overview.totalUsers }}</strong>
-          <small>Hoje {{ data.overview.newUsersToday }} · semana {{ data.overview.newUsersWeek }} · mês {{ data.overview.newUsersMonth }}</small>
-        </article>
+          <article class="mx-kpi">
+            <span class="mx-kpi__label">Ticket médio</span>
+            <strong class="mx-kpi__value">{{ data.headline.averageTicket.value | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+            <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: delta(data.headline.averageTicket, data.headline.previousLabel) }"></ng-container>
+          </article>
 
-        <article class="metric-card neutral">
-          <div class="icon-bubble"><ion-icon name="storefront-outline"></ion-icon></div>
-          <span>Vendedores ativos</span>
-          <strong>{{ data.overview.activeSellers }}</strong>
-          <small>Com produtos publicados na plataforma</small>
-        </article>
+          <article class="mx-kpi">
+            <span class="mx-kpi__label">Taxa Vineon ({{ data.headline.commissionRate * 100 | number:'1.0-1':'pt-BR' }}%)</span>
+            <strong class="mx-kpi__value">{{ data.headline.platformFee.value | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+            <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: delta(data.headline.platformFee, data.headline.previousLabel) }"></ng-container>
+          </article>
 
-        <article class="metric-card warning">
-          <div class="icon-bubble"><ion-icon name="bag-check-outline"></ion-icon></div>
-          <span>Compradores ativos</span>
-          <strong>{{ data.overview.activeBuyers }}</strong>
-          <small>Usuários com pedidos registrados</small>
-        </article>
-      </section>
+          <article class="mx-kpi mx-kpi--link" role="link" tabindex="0" (click)="openUsersManagement()" (keydown.enter)="openUsersManagement()">
+            <span class="mx-kpi__label">Novos usuários</span>
+            <strong class="mx-kpi__value">{{ data.headline.newUsers.value }}</strong>
+            <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: delta(data.headline.newUsers, data.headline.previousLabel) }"></ng-container>
+          </article>
+        </section>
 
-      <section class="section-block">
-        <div class="section-heading">
-          <div>
-            <span>Financeiro</span>
-            <h2>Receita e comissões</h2>
-          </div>
-          <strong>{{ data.finance.revenueTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
-        </div>
-
-        <div class="finance-layout">
-          <div class="metrics-grid compact-grid">
-            <article class="metric-card success">
-              <span>Faturamento do dia</span>
-              <strong>{{ data.finance.revenueToday | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
-              <small>Pedidos válidos de hoje</small>
-            </article>
-            <article class="metric-card success">
-              <span>Faturamento da semana</span>
-              <strong>{{ data.finance.revenueWeek | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
-              <small>Últimos 7 dias</small>
-            </article>
-            <article class="metric-card success">
-              <span>Faturamento do mês</span>
-              <strong>{{ data.finance.revenueMonth | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
-              <small>Últimos 30 dias</small>
-            </article>
-            <article class="metric-card info">
-              <span>Ticket médio</span>
-              <strong>{{ data.finance.averageTicket | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
-              <small>{{ data.finance.totalOrders }} pedidos realizados</small>
-            </article>
-            <article class="metric-card warning">
-              <span>Comissões da plataforma</span>
-              <strong>{{ data.finance.platformCommissions | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
-              <small>Estimativa com take rate configurado</small>
-            </article>
-          </div>
-
-          <article class="chart-card revenue-card">
-            <div class="card-title">
+        <!-- ============================================== vendas no tempo -->
+        <section class="mx-grid mx-grid--wide">
+          <article class="mx-card">
+            <header class="mx-card__head">
               <div>
-                <span>Gráfico de receita</span>
-                <h3>Linha temporal</h3>
+                <h3>Vendido por dia</h3>
+                <p>Valor dos produtos de pedidos pagos, pela data do pagamento</p>
               </div>
-              <ion-icon name="trending-up-outline"></ion-icon>
-            </div>
-            <svg viewBox="0 0 100 46" preserveAspectRatio="none" class="line-chart">
-              <path [attr.d]="getAreaPath(data.finance.revenueSeries)"></path>
-              <polyline [attr.points]="getLinePoints(data.finance.revenueSeries)"></polyline>
-            </svg>
-            <div class="chart-labels">
-              <span *ngFor="let point of data.finance.revenueSeries; trackBy: trackByLabel">{{ point.label }}</span>
-            </div>
+            </header>
+            <app-admin-chart [points]="data.headline.revenueSeries" kind="area" format="brl" seriesName="Vendido"></app-admin-chart>
           </article>
-        </div>
-      </section>
 
-      <section class="two-column-layout">
-        <article class="chart-card">
-          <div class="card-title">
-            <div>
-              <span>Vendas</span>
-              <h3>Volume por período</h3>
-            </div>
-            <strong>{{ data.sales.salesInPeriod }}</strong>
-          </div>
-          <div class="bar-chart">
-            <div class="bar-item" *ngFor="let point of data.sales.salesSeries; trackBy: trackByLabel">
-              <div class="bar-track">
-                <span [style.height.%]="getBarHeight(point.value, data.sales.salesSeries)"></span>
+          <article class="mx-card">
+            <header class="mx-card__head">
+              <div>
+                <h3>Pedidos por etapa</h3>
+                <p>{{ stageTotal(data.headline.stages) }} pedidos criados no período</p>
               </div>
-              <small>{{ point.label }}</small>
-            </div>
-          </div>
-          <div class="mini-metrics">
-            <span><b>{{ data.sales.salesToday }}</b> vendas hoje</span>
-            <span><b>{{ data.sales.conversionRate }}%</b> conversão estimada</span>
-          </div>
-        </article>
+              <button type="button" class="mx-link" (click)="openOrders()">Ver pedidos</button>
+            </header>
 
-        <article class="chart-card status-card">
-          <div class="card-title">
-            <div>
-              <span>Pedidos</span>
-              <h3>Status operacional</h3>
+            <div class="mx-stack" role="img" [attr.aria-label]="'Pedidos por etapa, total ' + stageTotal(data.headline.stages)">
+              <ng-container *ngFor="let stage of data.headline.stages; trackBy: trackById">
+                <i *ngIf="stage.value > 0"
+                   [style.flex-grow]="stage.value"
+                   [style.background]="stageColor[stage.id]"
+                   [attr.title]="stage.label + ': ' + stage.value"></i>
+              </ng-container>
+              <i class="mx-stack__empty" *ngIf="stageTotal(data.headline.stages) === 0"></i>
             </div>
-            <ion-icon name="pie-chart-outline"></ion-icon>
-          </div>
-          <div class="donut-layout">
-            <div class="donut" [style.background]="getDonutBackground(data.sales.statusDistribution)">
-              <span>{{ data.finance.totalOrders }}</span>
-            </div>
-            <div class="legend-list">
-              <div *ngFor="let point of data.sales.statusDistribution; let i = index; trackBy: trackByLabel">
-                <span class="legend-dot" [class.pending]="i === 0" [class.done]="i === 1" [class.cancelled]="i === 2"></span>
-                <p>{{ point.label }}</p>
-                <strong>{{ point.value }} · {{ getPointPercent(point, data.sales.statusDistribution) }}%</strong>
+
+            <ul class="mx-legend">
+              <li *ngFor="let stage of data.headline.stages; trackBy: trackById" [class.is-zero]="stage.value === 0">
+                <span class="mx-legend__key" [style.background]="stageColor[stage.id]" aria-hidden="true"></span>
+                <span class="mx-legend__label">{{ stage.label }}</span>
+                <span class="mx-legend__value">{{ stage.value }}</span>
+                <span class="mx-legend__pct">{{ stagePercent(stage, data.headline.stages) | number:'1.0-0' }}%</span>
+              </li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="mx-grid mx-grid--half">
+          <article class="mx-card">
+            <header class="mx-card__head">
+              <div>
+                <h3>Pedidos pagos por dia</h3>
+                <p>{{ data.headline.orders.value }} no período</p>
               </div>
-            </div>
-          </div>
-        </article>
-      </section>
+            </header>
+            <app-admin-chart [points]="data.headline.ordersSeries" kind="columns" format="int" seriesName="Pedidos pagos"></app-admin-chart>
+          </article>
 
-      <section class="three-column-layout">
-        <article class="list-card">
-          <div class="card-title">
-            <div>
-              <span>Produtos</span>
-              <h3>Mais vendidos</h3>
-            </div>
-            <strong>{{ data.products.totalProducts }}</strong>
-          </div>
-          <div class="list-row" *ngFor="let product of data.products.bestSellers; trackBy: trackByLabel">
-            <img *ngIf="product.image; else productIcon" [src]="product.image" [alt]="product.name">
-            <ng-template #productIcon><ion-icon name="cube-outline"></ion-icon></ng-template>
-            <div>
-              <strong>{{ product.name }}</strong>
-              <span>{{ product.value }} {{ product.helper }} · {{ product.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
-            </div>
-          </div>
-        </article>
+          <article class="mx-card">
+            <header class="mx-card__head">
+              <div>
+                <h3>Lojas que mais venderam</h3>
+                <p>Valor vendido no período</p>
+              </div>
+              <button type="button" class="mx-link" (click)="openSellers()">Ver vendedores</button>
+            </header>
 
-        <article class="list-card">
-          <div class="card-title">
-            <div>
-              <span>Estoque</span>
-              <h3>Atenção imediata</h3>
-            </div>
-            <ion-icon name="alert-circle-outline"></ion-icon>
-          </div>
-          <div class="list-row danger-row" *ngFor="let product of data.products.outOfStock; trackBy: trackByLabel">
-            <ion-icon name="close-circle-outline"></ion-icon>
-            <div>
-              <strong>{{ product.name }}</strong>
-              <span>{{ product.status }}</span>
-            </div>
-          </div>
-          <div class="soft-empty" *ngIf="data.products.outOfStock.length === 0">Nenhum produto sem estoque.</div>
-        </article>
+            <ol class="mx-rank" *ngIf="data.headline.topSellers.length; else noSellers">
+              <li *ngFor="let seller of data.headline.topSellers; let i = index; trackBy: trackById">
+                <span class="mx-rank__pos">{{ i + 1 }}</span>
+                <span class="mx-rank__avatar" aria-hidden="true">
+                  <img *ngIf="seller.image; else sellerInitials" [src]="seller.image" alt="" referrerpolicy="no-referrer">
+                  <ng-template #sellerInitials>{{ initials(seller.name) }}</ng-template>
+                </span>
+                <span class="mx-rank__body">
+                  <span class="mx-rank__line">
+                    <strong>{{ seller.name }}</strong>
+                    <b>{{ seller.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</b>
+                  </span>
+                  <span class="mx-meter" aria-hidden="true"><i [style.width.%]="sellerShare(seller, data.headline.topSellers)"></i></span>
+                  <small>{{ seller.helper }}</small>
+                </span>
+              </li>
+            </ol>
+            <ng-template #noSellers><p class="mx-empty">Nenhuma venda paga no período.</p></ng-template>
+          </article>
+        </section>
 
-        <article class="list-card">
-          <div class="card-title">
-            <div>
-              <span>Baixo desempenho</span>
-              <h3>Oportunidades</h3>
-            </div>
-            <ion-icon name="analytics-outline"></ion-icon>
-          </div>
-          <div class="list-row" *ngFor="let product of data.products.lowPerformers; trackBy: trackByLabel">
-            <ion-icon name="trending-down-outline"></ion-icon>
-            <div>
-              <strong>{{ product.name }}</strong>
-              <span>{{ product.value }} {{ product.helper }}</span>
-            </div>
-          </div>
-          <div class="soft-empty" *ngIf="data.products.lowPerformers.length === 0">Sem produtos críticos no período.</div>
-        </article>
-      </section>
+        <!-- ============================================== catálogo -->
+        <h2 class="mx-section">Catálogo <span>{{ data.products.totalProducts }} anúncios</span></h2>
+        <section class="mx-grid mx-grid--three">
+          <article class="mx-card">
+            <header class="mx-card__head"><div><h3>Mais vendidos</h3><p>Desde a publicação</p></div></header>
+            <ul class="mx-list" *ngIf="data.products.bestSellers.length; else emptyBest">
+              <li *ngFor="let product of data.products.bestSellers; trackBy: trackById">
+                <span class="mx-list__img">
+                  <img *ngIf="product.image; else productIcon" [src]="product.image" alt="" loading="lazy">
+                  <ng-template #productIcon><ion-icon name="cube-outline" aria-hidden="true"></ion-icon></ng-template>
+                </span>
+                <span class="mx-list__text">
+                  <strong>{{ product.name }}</strong>
+                  <small>{{ product.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</small>
+                </span>
+                <span class="mx-list__num">{{ product.value }} <small>vendidos</small></span>
+              </li>
+            </ul>
+            <ng-template #emptyBest><p class="mx-empty">Nenhum produto vendido ainda.</p></ng-template>
+          </article>
 
-      <section class="two-column-layout">
-        <article class="list-card">
-          <div class="card-title">
-            <div>
-              <span>Usuários</span>
-              <h3>Atividade e retenção</h3>
-            </div>
-            <strong>{{ data.users.retentionRate }}%</strong>
-          </div>
-          <div class="retention-grid">
-            <div>
-              <span>Ativos agora</span>
-              <strong>{{ data.users.activeNow }}</strong>
-            </div>
-            <div>
-              <span>Retenção</span>
-              <strong>{{ data.users.retentionRate }}%</strong>
-            </div>
-            <div>
-              <span>Abandono</span>
-              <strong>{{ data.users.abandonmentRate }}%</strong>
-            </div>
-          </div>
-          <div
-            class="list-row list-row--link"
-            role="link"
-            tabindex="0"
-            *ngFor="let user of data.users.latestUsers; trackBy: trackByLabel"
-            (click)="openUsersManagement(user.id)"
-            (keydown.enter)="openUsersManagement(user.id)"
-            (keydown.space)="openUsersManagement(user.id)">
-            <img *ngIf="user.image; else userIcon" [src]="user.image" [alt]="user.name">
-            <ng-template #userIcon><ion-icon name="person-circle-outline"></ion-icon></ng-template>
-            <div>
-              <strong>{{ user.name }}</strong>
-              <span>{{ user.helper }} · {{ user.status }}</span>
-            </div>
-          </div>
-        </article>
+          <article class="mx-card">
+            <header class="mx-card__head"><div><h3>Sem estoque</h3><p>Repor ou pausar o anúncio</p></div></header>
+            <ul class="mx-list" *ngIf="data.products.outOfStock.length; else emptyStock">
+              <li *ngFor="let product of data.products.outOfStock; trackBy: trackById">
+                <span class="mx-list__img">
+                  <img *ngIf="product.image; else stockIcon" [src]="product.image" alt="" loading="lazy">
+                  <ng-template #stockIcon><ion-icon name="cube-outline" aria-hidden="true"></ion-icon></ng-template>
+                </span>
+                <span class="mx-list__text">
+                  <strong>{{ product.name }}</strong>
+                  <small>{{ product.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</small>
+                </span>
+                <span class="mx-pill mx-pill--danger">Esgotado</span>
+              </li>
+            </ul>
+            <ng-template #emptyStock><p class="mx-empty mx-empty--ok"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Todos os anúncios têm estoque.</p></ng-template>
+          </article>
 
-        <article class="list-card">
-          <div class="card-title">
-            <div>
-              <span>Alertas inteligentes</span>
-              <h3>Riscos e oportunidades</h3>
-            </div>
-            <ion-icon name="sparkles-outline"></ion-icon>
-          </div>
-          <div class="alert-row" *ngFor="let alert of data.alerts; trackBy: trackByLabel" [class]="alert.severity">
-            <ion-icon [name]="alert.icon"></ion-icon>
-            <div>
-              <strong>{{ alert.title }}</strong>
-              <span>{{ alert.description }}</span>
-            </div>
-          </div>
-        </article>
-      </section>
+          <article class="mx-card">
+            <header class="mx-card__head"><div><h3>Parados</h3><p>Publicados há 14+ dias sem venda</p></div></header>
+            <ul class="mx-list" *ngIf="data.products.lowPerformers.length; else emptyLow">
+              <li *ngFor="let product of data.products.lowPerformers; trackBy: trackById">
+                <span class="mx-list__img">
+                  <img *ngIf="product.image; else lowIcon" [src]="product.image" alt="" loading="lazy">
+                  <ng-template #lowIcon><ion-icon name="cube-outline" aria-hidden="true"></ion-icon></ng-template>
+                </span>
+                <span class="mx-list__text">
+                  <strong>{{ product.name }}</strong>
+                  <small>{{ product.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</small>
+                </span>
+                <span class="mx-list__num">{{ product.value }} <small>dias</small></span>
+              </li>
+            </ul>
+            <ng-template #emptyLow><p class="mx-empty mx-empty--ok"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Nenhum anúncio parado.</p></ng-template>
+          </article>
+        </section>
 
-      <section class="metrics-grid compact-grid">
-        <article class="metric-card shipping">
-          <span>Pedidos em envio</span>
-          <strong>{{ data.logistics.shippingOrders }}</strong>
-          <small>Confirmados aguardando entrega</small>
-        </article>
-        <article class="metric-card success">
-          <span>Pedidos entregues</span>
-          <strong>{{ data.logistics.deliveredOrders }}</strong>
-          <small>Marcados como recebidos</small>
-        </article>
-        <article class="metric-card danger">
-          <span>Pedidos atrasados</span>
-          <strong>{{ data.logistics.delayedOrders }}</strong>
-          <small>Mais de 7 dias sem baixa</small>
-        </article>
-        <article class="metric-card info" *ngFor="let metric of data.smartMetrics; trackBy: trackByLabel" [ngClass]="metric.tone">
-          <div class="icon-bubble"><ion-icon [name]="metric.icon"></ion-icon></div>
-          <span>{{ metric.label }}</span>
-          <strong>{{ metric.value }}</strong>
-          <small>{{ metric.helper }}</small>
-        </article>
-      </section>
-
-      <!-- DANGER ZONE -->
-      <section class="section-block danger-zone-section mt-24">
-        <div class="section-heading">
-          <div>
-            <span>Zona de Perigo</span>
-            <h2>Gerenciamento de Dados</h2>
-          </div>
-        </div>
-        <article class="danger-card">
-          <div class="danger-info">
-            <ion-icon name="warning-outline"></ion-icon>
-            <div>
-              <strong>Resetar Base de Dados</strong>
-              <p>Esta ação apagará permanentemente todos os registros de usuários, produtos, pedidos e mensagens. Não há como desfazer.</p>
+        <!-- ============================================== pessoas e operação -->
+        <h2 class="mx-section">Pessoas e operação</h2>
+        <section class="mx-grid mx-grid--three">
+          <article class="mx-card">
+            <header class="mx-card__head">
+              <div><h3>Pessoas</h3><p>{{ data.overview.totalUsers }} contas · {{ data.users.retentionRate }}% ativas em 30 dias</p></div>
+              <button type="button" class="mx-link" (click)="openUsersManagement()">Ver usuários</button>
+            </header>
+            <div class="mx-trio">
+              <div><small>Online agora</small><strong>{{ data.overview.onlineUsers }}</strong></div>
+              <div><small>Vendedores</small><strong>{{ data.overview.activeSellers }}</strong></div>
+              <div><small>Compradores</small><strong>{{ data.overview.activeBuyers }}</strong></div>
             </div>
+            <ul class="mx-list mx-list--people" *ngIf="data.overview.onlineUsersList.length; else noOnline">
+              <li *ngFor="let user of data.overview.onlineUsersList.slice(0, 4); trackBy: trackById"
+                  class="is-link" role="link" tabindex="0" (click)="openUsersManagement(user.id)" (keydown.enter)="openUsersManagement(user.id)">
+                <span class="mx-list__img mx-list__img--round">
+                  <img *ngIf="user.image; else userInitials" [src]="user.image" alt="" referrerpolicy="no-referrer">
+                  <ng-template #userInitials>{{ initials(user.name) }}</ng-template>
+                  <i class="mx-online" aria-hidden="true"></i>
+                </span>
+                <span class="mx-list__text">
+                  <strong>{{ user.name }}</strong>
+                  <small>{{ onlineFor(user) }}</small>
+                </span>
+              </li>
+            </ul>
+            <ng-template #noOnline><p class="mx-empty">Ninguém online agora.</p></ng-template>
+          </article>
+
+          <article class="mx-card">
+            <header class="mx-card__head"><div><h3>Entregas</h3><p>Pedidos pagos em andamento</p></div></header>
+            <ul class="mx-status">
+              <li>
+                <span class="mx-status__icon"><ion-icon name="paper-plane-outline" aria-hidden="true"></ion-icon></span>
+                <span>Em envio</span>
+                <strong>{{ data.logistics.shippingOrders }}</strong>
+              </li>
+              <li>
+                <span class="mx-status__icon"><ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon></span>
+                <span>Entregues</span>
+                <strong>{{ data.logistics.deliveredOrders }}</strong>
+              </li>
+              <li [class.is-alert]="data.logistics.delayedOrders > 0">
+                <span class="mx-status__icon"><ion-icon name="time-outline" aria-hidden="true"></ion-icon></span>
+                <span>Atrasados <small>7+ dias sem entrega</small></span>
+                <strong>{{ data.logistics.delayedOrders }}</strong>
+              </li>
+            </ul>
+          </article>
+
+          <article class="mx-card">
+            <header class="mx-card__head"><div><h3>Atenção</h3><p>O que pede ação agora</p></div></header>
+            <ul class="mx-alerts">
+              <li *ngFor="let alert of data.alerts; trackBy: trackById" [class]="'is-' + alert.severity">
+                <ion-icon [name]="alert.icon" aria-hidden="true"></ion-icon>
+                <span>
+                  <strong>{{ alert.title }}</strong>
+                  <small>{{ alert.description }}</small>
+                </span>
+              </li>
+            </ul>
+          </article>
+        </section>
+
+        <!-- ============================================== zona de perigo -->
+        <details class="mx-danger">
+          <summary>
+            <ion-icon name="warning-outline" aria-hidden="true"></ion-icon>
+            Zona de perigo
+            <ion-icon class="mx-danger__caret" name="chevron-down" aria-hidden="true"></ion-icon>
+          </summary>
+          <div class="mx-danger__body">
+            <div>
+              <strong>Apagar toda a base de dados</strong>
+              <p>Exclui para sempre usuários, produtos, pedidos e mensagens. Não há como desfazer.</p>
+            </div>
+            <button type="button" class="mx-btn mx-btn--danger" (click)="confirmResetDatabase()">
+              <ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Apagar tudo
+            </button>
           </div>
-          <button class="reset-db-btn" (click)="confirmResetDatabase()">
-            <ion-icon name="trash-outline"></ion-icon>
-            Resetar Tudo
-          </button>
-        </article>
-      </section>
+        </details>
+      </div>
     </ng-container>
   </div>
 </ion-content>
+
+<ng-template #deltaTpl let-d>
+  <span class="mx-delta" [class]="'mx-delta mx-delta--' + d.tone" [attr.aria-label]="d.aria">
+    <ion-icon *ngIf="d.tone === 'up'" name="arrow-up" aria-hidden="true"></ion-icon>
+    <ion-icon *ngIf="d.tone === 'down'" name="arrow-down" aria-hidden="true"></ion-icon>
+    {{ d.text }}
+  </span>
+</ng-template>

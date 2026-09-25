@@ -24,6 +24,7 @@ import { ManageRefundsPage } from '../manage-refunds/manage-refunds.page';
 import { ManageOrdersPage } from '../manage-orders/manage-orders.page';
 import { ManageReportsPage } from '../manage-reports/manage-reports.page';
 import { AdminSettingsPage } from '../admin-settings/admin-settings.page';
+import { ManageSellersPage } from '../manage-sellers/manage-sellers.page';
 
 type AdminTab =
   | 'metrics'
@@ -37,7 +38,8 @@ type AdminTab =
   | 'refunds'
   | 'orders'
   | 'reports'
-  | 'settings';
+  | 'settings'
+  | 'sellers';
 
 interface NavItem {
   id: AdminTab;
@@ -74,6 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
     heading: 'Operação',
     items: [
       { id: 'orders', title: 'Pedidos', icon: 'receipt-outline', iconActive: 'receipt', hint: 'Do pagamento à entrega' },
+      { id: 'sellers', title: 'Vendedores', icon: 'storefront-outline', iconActive: 'storefront', hint: 'Vendas por loja, taxa da Vineon e nota fiscal do mês' },
       { id: 'products', title: 'Produtos', icon: 'cube-outline', iconActive: 'cube', hint: 'Inventário de todos os vendedores' },
       { id: 'refunds', title: 'Devoluções', icon: 'swap-horizontal-outline', iconActive: 'swap-horizontal', hint: 'Valores retidos e pedidos de devolução' },
       { id: 'reports', title: 'Denúncias', icon: 'flag-outline', iconActive: 'flag', hint: 'Anúncios e vendedores denunciados' },
@@ -134,6 +137,7 @@ const BADGE_CAP = 100;
     ManageOrdersPage,
     ManageReportsPage,
     AdminSettingsPage,
+    ManageSellersPage,
   ],
 })
 export class AdminPage implements OnInit {

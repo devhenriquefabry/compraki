@@ -1,0 +1,249 @@
+<div class="adm sl">
+  <header class="adm-head sl-head">
+    <div>
+      <h2>Vendedores</h2>
+      <p>O que cada loja vendeu no mês, a taxa da Vineon e a nota fiscal mensal de cada uma.</p>
+    </div>
+
+    <div class="sl-month" role="group" aria-label="Mês de referência">
+      <button type="button" class="sl-month__step" (click)="stepMonth(-1)" aria-label="Mês anterior">
+        <ion-icon name="chevron-back" aria-hidden="true"></ion-icon>
+      </button>
+      <label class="sl-month__pick">
+        <span class="vn-sr-only">Escolher mês</span>
+        <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+        <strong>{{ periodHeading() }}</strong>
+        <ion-icon class="sl-month__caret" name="chevron-down" aria-hidden="true"></ion-icon>
+        <select [value]="period()" (change)="pickMonth($any($event.target).value)">
+          @for (option of monthOptions; track option.value) {
+            <option [value]="option.value" [selected]="option.value === period()">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+      <button type="button" class="sl-month__step" (click)="stepMonth(1)" [disabled]="!canGoNext()" aria-label="Próximo mês">
+        <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- Resumo do mês -->
+  <section class="sl-kpis" [class.is-stale]="loading() && report()" aria-label="Resumo de {{ periodName() }}">
+    <article class="sl-kpi sl-kpi--hero">
+      <span>Vendido em {{ monthName() }}</span>
+      <strong>{{ brl(report()?.totals?.grossRevenue ?? 0) }}</strong>
+      <small>Produtos de pedidos pagos, sem frete · {{ report()?.totals?.orderCount ?? 0 }} pedidos</small>
+    </article>
+    <article class="sl-kpi">
+      <span>Taxa Vineon ({{ ratePercent }}%)</span>
+      <strong>{{ brl(report()?.totals?.platformFee ?? 0) }}</strong>
+      <small>Recolhida sobre o vendido</small>
+    </article>
+    <article class="sl-kpi">
+      <span>Repasse às lojas</span>
+      <strong>{{ brl(report()?.totals?.netAmount ?? 0) }}</strong>
+      <small>Vendido menos a taxa</small>
+    </article>
+    <article class="sl-kpi">
+      <span>Notas fiscais do mês</span>
+      <strong>{{ invoicedCount() }}<em> de {{ withSales().length }}</em></strong>
+      <div class="sl-meter" role="img" [attr.aria-label]="invoicedCount() + ' de ' + withSales().length + ' lojas com nota'">
+        <i [style.width.%]="withSales().length ? (invoicedCount() / withSales().length) * 100 : 0"></i>
+      </div>
+      <small>{{ pending().length ? pending().length + ' loja(s) aguardando nota' : 'Todas as lojas com venda têm nota' }}</small>
+    </article>
+  </section>
+
+  <!-- Filtros -->
+  <div class="adm-toolbar sl-toolbar">
+    <label class="adm-search">
+      <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      <span class="vn-sr-only">Buscar loja</span>
+      <input type="search" placeholder="Buscar loja, nome ou e-mail" [value]="search()" (input)="search.set($any($event.target).value)">
+    </label>
+    <div class="adm-chips" role="tablist" aria-label="Quais lojas mostrar">
+      <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'sales'" [attr.aria-selected]="filter() === 'sales'" (click)="filter.set('sales')">
+        Com vendas <small>{{ withSales().length }}</small>
+      </button>
+      <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'pending'" [class.is-alert]="pending().length > 0" [attr.aria-selected]="filter() === 'pending'" (click)="filter.set('pending')">
+        Nota pendente <small>{{ pending().length }}</small>
+      </button>
+      <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'all'" [attr.aria-selected]="filter() === 'all'" (click)="filter.set('all')">
+        Todas as lojas <small>{{ report()?.rows?.length ?? 0 }}</small>
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="adm-error sl-error">
+      {{ error() }}
+      <button type="button" class="adm-btn" (click)="reload()">Tentar de novo</button>
+    </div>
+  } @else if (loading() && !report()) {
+    <div class="sl-list" aria-busy="true">
+      @for (i of [1, 2, 3, 4]; track i) { <div class="sl-skeleton"></div> }
+    </div>
+  } @else {
+    <div class="sl-list" [class.is-stale]="loading()">
+      <div class="sl-cols" aria-hidden="true">
+        <span>Loja</span>
+        <span>Pedidos</span>
+        <span>Vendido</span>
+        <span>Taxa Vineon</span>
+        <span>Repasse</span>
+        <span>Nota fiscal</span>
+        <span></span>
+      </div>
+
+      @for (row of rows(); track row.sellerId) {
+        @let state = invoiceState(row);
+        @let invoice = invoiceOf(row);
+        @let open = expanded() === row.sellerId;
+        <article class="sl-row" [class.is-open]="open" [class.is-empty]="row.grossRevenue === 0">
+          <button type="button" class="sl-row__main" (click)="toggle(row)" [attr.aria-expanded]="open" [attr.aria-controls]="'sl-detail-' + row.sellerId">
+            <span class="sl-shop">
+              <span class="sl-avatar" aria-hidden="true">
+                @if (row.photoURL) { <img [src]="row.photoURL" alt="" referrerpolicy="no-referrer" loading="lazy"> }
+                @else { {{ initials(row.name) }} }
+              </span>
+              <span class="sl-shop__text">
+                <strong>{{ row.name }}</strong>
+                <small>{{ row.email || 'sem e-mail cadastrado' }}</small>
+              </span>
+            </span>
+
+            <span class="sl-num" data-label="Pedidos">{{ row.orderCount }} <small>· {{ row.itemCount }} {{ row.itemCount === 1 ? 'item' : 'itens' }}</small></span>
+            <span class="sl-num sl-num--strong" data-label="Vendido">{{ brl(row.grossRevenue) }}</span>
+            <span class="sl-num" data-label="Taxa Vineon">{{ brl(row.platformFee) }}</span>
+            <span class="sl-num" data-label="Repasse">{{ brl(row.netAmount) }}</span>
+
+            <span class="sl-state">
+              <span class="adm-tag sl-tag" [class]="'sl-tag--' + state.tone">
+                <ion-icon [name]="state.icon" aria-hidden="true"></ion-icon>{{ state.label }}
+              </span>
+            </span>
+            <ion-icon class="sl-chevron" name="chevron-down" aria-hidden="true"></ion-icon>
+          </button>
+
+          @if (open) {
+            <div class="sl-detail" [id]="'sl-detail-' + row.sellerId">
+              <!-- Produtos vendidos -->
+              <section class="sl-panel">
+                <header class="sl-panel__head">
+                  <h3>Produtos vendidos em {{ monthName() }}</h3>
+                  <span>{{ row.products.length }} {{ row.products.length === 1 ? 'produto' : 'produtos' }} · {{ row.listings }} anúncios na loja</span>
+                </header>
+
+                @if (row.products.length) {
+                  <ul class="sl-products">
+                    @for (product of row.products; track product.productId) {
+                      <li>
+                        <span class="sl-products__img">
+                          @if (product.image) { <img [src]="product.image" alt="" loading="lazy"> }
+                          @else { <ion-icon name="cube-outline" aria-hidden="true"></ion-icon> }
+                        </span>
+                        <span class="sl-products__text">
+                          <strong>{{ product.name }}</strong>
+                          <span class="sl-bar" aria-hidden="true"><i [style.width.%]="share(row, product.revenue)"></i></span>
+                        </span>
+                        <span class="sl-products__qty">{{ product.quantity }}×</span>
+                        <span class="sl-products__value">{{ brl(product.revenue) }}</span>
+                      </li>
+                    }
+                  </ul>
+                  <dl class="sl-sum">
+                    <div><dt>Vendido</dt><dd>{{ brl(row.grossRevenue) }}</dd></div>
+                    <div><dt>Taxa Vineon ({{ ratePercent }}%)</dt><dd>− {{ brl(row.platformFee) }}</dd></div>
+                    <div class="sl-sum__total"><dt>Repasse à loja</dt><dd>{{ brl(row.netAmount) }}</dd></div>
+                  </dl>
+                } @else {
+                  <p class="sl-muted">Nenhuma venda paga em {{ periodName() }}.</p>
+                }
+              </section>
+
+              <!-- Nota fiscal -->
+              <section class="sl-panel sl-panel--invoice">
+                <header class="sl-panel__head">
+                  <h3>Nota fiscal de {{ monthName() }}</h3>
+                  <span>Vai para o perfil da loja e para o e-mail dela</span>
+                </header>
+
+                @if (invoice) {
+                  <div class="sl-file">
+                    <span class="sl-file__icon"><ion-icon [name]="fileIcon(invoice)" aria-hidden="true"></ion-icon></span>
+                    <span class="sl-file__text">
+                      <strong>{{ invoice.file.name }}</strong>
+                      <small>{{ fileSize(invoice.file.size) }} · anexada {{ when(invoice.uploadedAt) }}</small>
+                    </span>
+                    <a class="adm-btn" [href]="invoice.file.url" target="_blank" rel="noopener">
+                      <ion-icon name="open-outline" aria-hidden="true"></ion-icon> Abrir
+                    </a>
+                  </div>
+
+                  <p class="sl-email" [class]="'sl-email--' + state.tone">
+                    <ion-icon [name]="state.icon" aria-hidden="true"></ion-icon>
+                    @switch (invoice.email?.status) {
+                      @case ('sent') { E-mail enviado para <b>{{ invoice.email?.to }}</b> {{ when(invoice.email?.at) }}. }
+                      @case ('failed') { O e-mail não saiu: {{ invoice.email?.error || 'erro no servidor de e-mail' }}. A nota continua no perfil da loja. }
+                      @case ('no_email') { A loja não tem e-mail cadastrado. A nota está só no perfil dela. }
+                      @case ('simulated') { Emulador: e-mail para <b>{{ invoice.email?.to }}</b> simulado, nada saiu. }
+                      @default { Enviando o e-mail… }
+                    }
+                    @if (invoice.seenAt) { <span class="sl-seen">A loja abriu a nota {{ when(invoice.seenAt) }}.</span> }
+                  </p>
+
+                  <div class="sl-actions">
+                    <label class="adm-btn" [class.is-disabled]="busy() === row.sellerId">
+                      <ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon> Trocar arquivo
+                      <input type="file" [accept]="accept" (change)="onFilePicked($event, row)" [disabled]="busy() === row.sellerId">
+                    </label>
+                    <button type="button" class="adm-btn" (click)="resend(row)" [disabled]="busy() === row.sellerId || !row.email">
+                      <ion-icon name="mail-outline" aria-hidden="true"></ion-icon> Reenviar e-mail
+                    </button>
+                    <button type="button" class="adm-btn adm-btn--ghost-danger" (click)="remove(row)" [disabled]="busy() === row.sellerId">
+                      <ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Remover
+                    </button>
+                  </div>
+                } @else {
+                  <label class="sl-drop"
+                         [class.is-over]="dragOver() === row.sellerId"
+                         [class.is-busy]="busy() === row.sellerId"
+                         (dragover)="onDrag($event, row, true)"
+                         (dragleave)="onDrag($event, row, false)"
+                         (drop)="onDrop($event, row)">
+                    <input type="file" [accept]="accept" (change)="onFilePicked($event, row)" [disabled]="busy() === row.sellerId">
+                    @if (busy() === row.sellerId) {
+                      <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+                      <strong>Enviando a nota…</strong>
+                    } @else {
+                      <span class="sl-drop__icon"><ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon></span>
+                      <strong>Anexar nota fiscal</strong>
+                      <small>Arraste o arquivo ou toque para escolher · PDF, XML ou foto, até 15 MB</small>
+                    }
+                  </label>
+                  <p class="sl-hint">
+                    <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+                    {{ row.email ? 'Ao anexar, a loja recebe no app e no e-mail ' + row.email + '.' : 'A loja não tem e-mail: ela recebe só no app.' }}
+                  </p>
+                }
+              </section>
+            </div>
+          }
+        </article>
+      } @empty {
+        <div class="adm-empty sl-empty">
+          <ion-icon [name]="filter() === 'pending' ? 'checkmark-done-outline' : 'storefront-outline'" aria-hidden="true"></ion-icon>
+          @if (search()) {
+            <p>Nenhuma loja com “{{ search() }}”.</p>
+          } @else if (filter() === 'pending') {
+            <p>Todas as lojas que venderam em {{ monthName() }} já têm nota.</p>
+          } @else if (filter() === 'sales') {
+            <p>Nenhuma loja vendeu em {{ periodName() }}.</p>
+            <button type="button" class="adm-btn" (click)="filter.set('all')">Ver todas as lojas</button>
+          } @else {
+            <p>Nenhuma loja com anúncio ainda.</p>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

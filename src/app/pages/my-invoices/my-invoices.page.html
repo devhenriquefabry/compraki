@@ -1,0 +1,84 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Notas fiscais</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (loading()) {
+      <div class="sk inv-sk-hero" aria-hidden="true"></div>
+      <div class="sk inv-sk-card" aria-hidden="true"></div>
+      <div class="sk inv-sk-card" aria-hidden="true"></div>
+    } @else if (error()) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon></span>
+        <h2>Sem conexão com as notas</h2>
+        <p>{{ error() }}</p>
+      </div>
+    } @else {
+      <!-- Topo: o que é esta tela e a nota mais recente -->
+      <section class="inv-hero">
+        <span class="inv-hero__eyebrow">Notas da Vineon</span>
+        @if (latest(); as last) {
+          <h2>Última nota: <span>{{ monthYear(last) }}</span></h2>
+          <div class="inv-hero__figures">
+            <div>
+              <small>Vendido no mês</small>
+              <strong>{{ brl(last.summary.grossRevenue) }}</strong>
+            </div>
+            <div>
+              <small>Taxa Vineon</small>
+              <strong>{{ brl(last.summary.platformFee) }}</strong>
+            </div>
+          </div>
+        } @else {
+          <h2>Sua nota do mês chega aqui</h2>
+        }
+        <p>Todo mês a Vineon emite a nota fiscal da taxa cobrada sobre as suas vendas. Ela aparece aqui e chega também no seu e-mail.</p>
+      </section>
+
+      @if (!invoices().length) {
+        <div class="pg-empty inv-empty">
+          <span class="pg-empty-mark"><ion-icon name="receipt-outline" aria-hidden="true"></ion-icon></span>
+          <h2>Nenhuma nota ainda</h2>
+          <p>Quando a Vineon emitir a nota de um mês em que você vendeu, ela aparece nesta lista.</p>
+        </div>
+      }
+
+      @for (group of groups(); track group.year) {
+        <h3 class="inv-year">{{ group.year }}</h3>
+        <ul class="inv-list">
+          @for (invoice of group.invoices; track invoice.id) {
+            <li class="inv-card" [class.is-new]="!invoice.seenAt">
+              <div class="inv-card__top">
+                <span class="inv-card__mark" aria-hidden="true"><ion-icon name="receipt-outline"></ion-icon></span>
+                <span class="inv-card__title">
+                  <strong>{{ month(invoice) }}</strong>
+                  <small>Enviada em {{ when(invoice.uploadedAt) }}</small>
+                </span>
+                @if (!invoice.seenAt) { <span class="inv-new">Nova</span> }
+              </div>
+
+              <dl class="inv-figures">
+                <div><dt>Vendido</dt><dd>{{ brl(invoice.summary.grossRevenue) }}</dd></div>
+                <div><dt>Taxa Vineon ({{ (invoice.summary.commissionRate * 100) | number:'1.0-1':'pt-BR' }}%)</dt><dd>{{ brl(invoice.summary.platformFee) }}</dd></div>
+                <div class="is-total"><dt>Seu repasse</dt><dd>{{ brl(invoice.summary.netAmount) }}</dd></div>
+              </dl>
+
+              <button type="button" class="inv-open" (click)="open(invoice)">
+                <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                <span>Abrir nota fiscal <small>{{ fileKind(invoice) }}</small></span>
+                <ion-icon class="inv-open__go" name="open-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+</ion-content>

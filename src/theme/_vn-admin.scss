@@ -206,7 +206,7 @@
     &:disabled { opacity: 0.5; cursor: default; }
 
     &--primary { border-color: var(--adm-ink); background: var(--adm-ink); color: #fff; }
-    &--accent { border-color: var(--adm-accent); background: var(--adm-accent); color: #fff; }
+    &--accent { border-color: var(--adm-accent); background: var(--adm-accent); color: var(--adm-ink); }
     &--danger { border-color: var(--adm-danger); background: var(--adm-danger); color: #fff; }
     &--ghost-danger { color: var(--adm-danger); }
   }

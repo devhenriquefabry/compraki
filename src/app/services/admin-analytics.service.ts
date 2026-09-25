@@ -7,6 +7,8 @@ import { environment } from 'src/environments/environment';
 import { AppUser } from '../interfaces/app-user';
 import { Order, OrderStatus } from '../interfaces/order';
 import { Product } from '../interfaces/product';
+import { PLATFORM_COMMISSION_RATE, platformFee } from '../core/commission';
+import { OrderStage, isPaid, orderStage, paidUnitPrice, sellerItems } from '../core/order-stage';
 
 export type AdminMetricsPeriod = 'today' | '7d' | '30d' | 'custom';
 
@@ -64,9 +66,41 @@ export interface AdminAlert {
   severity: 'success' | 'info' | 'warning' | 'danger';
 }
 
+/** Um número do topo, com o mesmo número no período anterior (mesma duração). */
+export interface AdminKpi {
+  value: number;
+  previous: number;
+}
+
+export interface AdminStageSlice {
+  id: OrderStage;
+  label: string;
+  value: number;
+}
+
+/**
+ * Leitura do painel na ordem em que ele é lido: resumo do período, evolução
+ * diária, etapas dos pedidos e quem mais vendeu. "Vendido" é sempre a soma
+ * dos produtos de pedidos pagos, sem frete — a mesma base da aba Vendedores.
+ */
+export interface AdminHeadline {
+  previousLabel: string;
+  revenue: AdminKpi;
+  orders: AdminKpi;
+  averageTicket: AdminKpi;
+  platformFee: AdminKpi;
+  newUsers: AdminKpi;
+  commissionRate: number;
+  revenueSeries: AdminChartPoint[];
+  ordersSeries: AdminChartPoint[];
+  stages: AdminStageSlice[];
+  topSellers: AdminNamedMetric[];
+}
+
 export interface AdminDashboardMetrics {
   updatedAt: Date;
   rangeLabel: string;
+  headline: AdminHeadline;
   overview: {
     onlineUsers: number;
     /** Usuários com `status === 'online'` (presença Firebase), ordenados por nome */
@@ -302,6 +336,7 @@ export class AdminAnalyticsService {
     return {
       updatedAt: now,
       rangeLabel: range.label,
+      headline: this.buildHeadline(users, orders, range),
       overview: {
         onlineUsers,
         onlineUsersList,
@@ -369,6 +404,120 @@ export class AdminAnalyticsService {
     };
   }
 
+  private buildHeadline(
+    users: (AppUser & { id?: string })[],
+    orders: (Order & { id?: string })[],
+    range: { start: Date; end: Date }
+  ): AdminHeadline {
+    const spanMs = range.end.getTime() - range.start.getTime();
+    const prevEnd = new Date(range.start.getTime() - 1);
+    const prevStart = new Date(range.start.getTime() - spanMs - 1);
+
+    const paidAt = (order: Order) => this.toDate(order.paymentConfirmedAt) || this.toDate(order.createdAt);
+    const paid = orders.filter(order => isPaid(order));
+    const inRange = (list: Order[], start: Date, end: Date) => list.filter(order => this.isWithinRange(paidAt(order), start, end));
+    const current = inRange(paid, range.start, range.end);
+    const previous = inRange(paid, prevStart, prevEnd);
+
+    const revenue = this.sumItems(current);
+    const revenuePrev = this.sumItems(previous);
+    const ticket = current.length ? revenue / current.length : 0;
+    const ticketPrev = previous.length ? revenuePrev / previous.length : 0;
+
+    // Etapas: todo pedido criado no período, pago ou não.
+    const created = orders.filter(order => this.isWithinRange(this.toDate(order.createdAt), range.start, range.end));
+    const stageOrder: { id: OrderStage; label: string }[] = [
+      { id: 'pay', label: 'Aguardando pagamento' },
+      { id: 'preparing', label: 'A enviar' },
+      { id: 'shipping', label: 'A caminho' },
+      { id: 'done', label: 'Entregues' },
+      { id: 'refund', label: 'Devolução' },
+      { id: 'cancelled', label: 'Cancelados' }
+    ];
+    const stageCount = new Map<OrderStage, number>();
+    created.forEach(order => {
+      const stage = orderStage(order);
+      stageCount.set(stage, (stageCount.get(stage) || 0) + 1);
+    });
+
+    // Quem mais vendeu no período (mesma conta da aba Vendedores).
+    const bySeller = new Map<string, { amount: number; units: number }>();
+    current.forEach(order => (order.sellerIds || []).forEach(sellerId => {
+      const entry = bySeller.get(sellerId) || { amount: 0, units: 0 };
+      sellerItems(order, sellerId).forEach(item => {
+        entry.amount += paidUnitPrice(item) * (item.quantity || 0);
+        entry.units += item.quantity || 0;
+      });
+      bySeller.set(sellerId, entry);
+    }));
+    const userById = new Map(users.map(user => [user.uid || user.id || '', user]));
+    const topSellers: AdminNamedMetric[] = [...bySeller.entries()]
+      .sort((a, b) => b[1].amount - a[1].amount)
+      .slice(0, 5)
+      .map(([id, entry]) => {
+        const user = userById.get(id);
+        return {
+          id,
+          name: user?.shopName || user?.displayName || user?.email || 'Loja sem nome',
+          helper: `${entry.units} ${entry.units === 1 ? 'item' : 'itens'}`,
+          value: entry.units,
+          amount: entry.amount,
+          image: user?.photoURL || undefined
+        };
+      });
+
+    return {
+      previousLabel: this.previousLabel(range),
+      revenue: { value: revenue, previous: revenuePrev },
+      orders: { value: current.length, previous: previous.length },
+      averageTicket: { value: ticket, previous: ticketPrev },
+      platformFee: { value: platformFee(revenue), previous: platformFee(revenuePrev) },
+      newUsers: {
+        value: this.countUsersCreatedSince(users, range.start, range.end),
+        previous: this.countUsersCreatedSince(users, prevStart, prevEnd)
+      },
+      commissionRate: PLATFORM_COMMISSION_RATE,
+      revenueSeries: this.buildPaidSeries(current, range.start, range.end, paidAt, 'revenue'),
+      ordersSeries: this.buildPaidSeries(current, range.start, range.end, paidAt, 'count'),
+      stages: stageOrder.map(stage => ({ ...stage, value: stageCount.get(stage.id) || 0 })),
+      topSellers
+    };
+  }
+
+  /** Série diária (em blocos quando passa de 31 dias) pela data do pagamento. */
+  private buildPaidSeries(
+    orders: Order[],
+    start: Date,
+    end: Date,
+    dateOf: (order: Order) => Date | null,
+    mode: 'revenue' | 'count'
+  ): AdminChartPoint[] {
+    const totalDays = Math.max(1, this.daysBetween(start, end) + 1);
+    const bucketSize = Math.ceil(totalDays / 31);
+    const buckets: AdminChartPoint[] = [];
+    for (let day = 0; day < totalDays; day += bucketSize) {
+      const bucketStart = this.startOfDay(this.addDays(start, day));
+      const bucketEnd = this.endOfDay(this.addDays(bucketStart, bucketSize - 1));
+      const inBucket = orders.filter(order => this.isWithinRange(dateOf(order), bucketStart, bucketEnd));
+      buckets.push({
+        label: this.formatShortDate(bucketStart),
+        value: mode === 'revenue' ? this.sumItems(inBucket) : inBucket.length
+      });
+    }
+    return buckets;
+  }
+
+  private previousLabel(range: { start: Date; end: Date }): string {
+    const days = Math.max(1, this.daysBetween(range.start, range.end) + 1);
+    return days === 1 ? 'ontem' : `${days} dias anteriores`;
+  }
+
+  /** Produtos de pedidos pagos, sem frete. */
+  private sumItems(orders: Order[]): number {
+    return orders.reduce((sum, order) =>
+      sum + (order.items || []).reduce((acc, item) => acc + paidUnitPrice(item) * (item.quantity || 0), 0), 0);
+  }
+
   private resolveRange(filters: AdminMetricsFilters, now: Date): { start: Date; end: Date; label: string } {
     if (filters.period === 'custom' && filters.startDate && filters.endDate) {
       const start = this.startOfDay(new Date(filters.startDate));
@@ -382,11 +531,11 @@ export class AdminAnalyticsService {
 
     if (filters.period === '30d') {
       const start = this.addDays(this.startOfDay(now), -29);
-      return { start, end: now, label: 'Ultimos 30 dias' };
+      return { start, end: now, label: 'Últimos 30 dias' };
     }
 
     const start = this.addDays(this.startOfDay(now), -6);
-    return { start, end: now, label: 'Ultimos 7 dias' };
+    return { start, end: now, label: 'Últimos 7 dias' };
   }
 
   private buildDailySeries(
@@ -504,8 +653,8 @@ export class AdminAnalyticsService {
 
     if (input.periodRevenue === 0) {
       alerts.push({
-        title: 'Receita parada no periodo',
-        description: 'Nenhum faturamento foi registrado no filtro atual. Verifique campanhas, checkout e disponibilidade de produtos.',
+        title: 'Nenhuma venda no período',
+        description: 'Nada foi vendido no período escolhido. Vale conferir o checkout, as campanhas e o estoque.',
         icon: 'trending-down-outline',
         severity: 'danger'
       });
@@ -514,7 +663,7 @@ export class AdminAnalyticsService {
     if (input.outOfStock > 0) {
       alerts.push({
         title: 'Produtos sem estoque',
-        description: `${input.outOfStock} produtos prioritarios precisam de reposicao ou pausa de anuncio.`,
+        description: `${input.outOfStock} anúncio(s) sem estoque: repor ou pausar.`,
         icon: 'cube-outline',
         severity: 'warning'
       });
@@ -522,8 +671,8 @@ export class AdminAnalyticsService {
 
     if (input.delayedOrders > 0) {
       alerts.push({
-        title: 'Pedidos possivelmente atrasados',
-        description: `${input.delayedOrders} pedidos confirmados estao ha mais de 7 dias sem baixa de entrega.`,
+        title: 'Pedidos atrasados',
+        description: `${input.delayedOrders} pedido(s) pago(s) há mais de 7 dias sem entrega.`,
         icon: 'alert-circle-outline',
         severity: 'danger'
       });
@@ -532,7 +681,7 @@ export class AdminAnalyticsService {
     if (input.cancelledOrders > input.pendingOrders && input.cancelledOrders > 0) {
       alerts.push({
         title: 'Cancelamentos acima do normal',
-        description: 'O volume de cancelamentos superou os pedidos pendentes no periodo selecionado.',
+        description: 'Houve mais cancelamentos do que pedidos aguardando pagamento no período.',
         icon: 'close-circle-outline',
         severity: 'warning'
       });
@@ -541,7 +690,7 @@ export class AdminAnalyticsService {
     if (input.onlineUsers > Math.max(10, input.usersCount * 0.35)) {
       alerts.push({
         title: 'Pico de acessos',
-        description: 'Ha um volume alto de usuarios online. Bom momento para campanhas e ofertas relampago.',
+        description: 'Muita gente online agora. Bom momento para uma oferta relâmpago.',
         icon: 'flash-outline',
         severity: 'info'
       });
@@ -549,8 +698,8 @@ export class AdminAnalyticsService {
 
     if (input.lowPerformers > 0) {
       alerts.push({
-        title: 'Produtos com baixo desempenho',
-        description: `${input.lowPerformers} produtos estao publicados ha mais de 14 dias sem venda.`,
+        title: 'Anúncios parados',
+        description: `${input.lowPerformers} anúncio(s) publicados há mais de 14 dias sem venda.`,
         icon: 'analytics-outline',
         severity: 'info'
       });
@@ -558,8 +707,8 @@ export class AdminAnalyticsService {
 
     if (alerts.length === 0) {
       alerts.push({
-        title: 'Operacao saudavel',
-        description: 'Nenhum alerta critico identificado com os dados atuais da plataforma.',
+        title: 'Tudo em ordem',
+        description: 'Nenhum ponto crítico com os dados de agora.',
         icon: 'shield-checkmark-outline',
         severity: 'success'
       });
@@ -629,7 +778,7 @@ export class AdminAnalyticsService {
   }
 
   private isPaidOrder(status: OrderStatus): boolean {
-    return status === 'RECEIVED' || status === 'CONFIRMED';
+    return isPaid({ status } as Order);
   }
 
   private isCancelledOrder(status: OrderStatus): boolean {

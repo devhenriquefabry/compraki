@@ -28,6 +28,8 @@ export { moderateProductName, onStorefrontConfigWritten, setAccountSuspension } 
 
 export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
 
+export { onSellerInvoiceWritten } from './seller-invoices';
+
 export {
   createAsaasCustomer,
   createAsaasPayment,

@@ -1,0 +1,102 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.ch {
+  position: relative;
+  width: 100%;
+}
+
+.ch__svg {
+  display: block;
+  overflow: visible;
+  outline: none;
+  touch-action: pan-y;
+  font-family: 'Plus Jakarta Sans', 'Nunito', sans-serif;
+
+  &:focus-visible { outline: 2px solid #0B1623; outline-offset: 4px; border-radius: 6px; }
+}
+
+/* Grade e eixos: fio de 1px, um tom fora da superfície, recessivos. */
+.ch__grid { stroke: #EEF2F6; stroke-width: 1; shape-rendering: crispEdges; }
+
+.ch__ytick,
+.ch__xtick {
+  fill: #7B8798;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ch__area { fill: rgba(11, 22, 35, 0.07); }
+
+.ch__line {
+  fill: none;
+  stroke: #0B1623;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.ch__end { fill: #0B1623; stroke: #fff; stroke-width: 2; }
+
+.ch__cross { stroke: #CBD5E1; stroke-width: 1; shape-rendering: crispEdges; }
+.ch__band { fill: #F1F4F8; }
+
+.ch__dot { fill: #0B1623; stroke: #fff; stroke-width: 2; }
+.ch__dot-halo { fill: rgba(216, 245, 31, 0.55); }
+
+.ch__bar {
+  fill: #0B1623;
+  transition: opacity 0.15s ease;
+
+  &.is-dim { opacity: 0.35; }
+}
+
+.ch__tip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #0B1623;
+  box-shadow: 0 8px 22px rgba(11, 22, 35, 0.22);
+  color: #fff;
+  pointer-events: none;
+  transform: translate(12px, -50%);
+  white-space: nowrap;
+
+  small { color: rgba(226, 232, 240, 0.7); font-size: 11px; }
+  strong { font-size: 13px; font-weight: 700; }
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background: #0B1623;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  &.is-flip {
+    transform: translate(calc(-100% - 12px), -50%);
+
+    &::before { left: auto; right: -3px; }
+  }
+}
+
+.ch__empty {
+  position: absolute;
+  inset: 0 0 28px 56px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #7B8798;
+  font-size: 0.82rem;
+  pointer-events: none;
+}

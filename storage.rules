@@ -120,6 +120,18 @@ service firebase.storage {
       allow delete: if isUser(sellerId) || isAdmin();
     }
 
+    // ------------------------------------ nota fiscal mensal da Vineon
+
+    // Anexada pelo admin na aba Vendedores (SellerInvoicesService). A loja
+    // dona da pasta le; so admin escreve. PDF, XML da NF-e ou foto, ate 15 MB.
+    match /sellerInvoices/{sellerId}/{period}/{fileName} {
+      allow read: if isAdmin() || isUser(sellerId);
+      allow create, update: if isAdmin()
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType.matches('application/pdf|application/xml|text/xml|image/(jpeg|png|webp)');
+      allow delete: if isAdmin();
+    }
+
     // ---------------------------------------------------------------- chat
 
     // Fotos e audios trocados numa conversa (chat-box.component.ts -> upload).

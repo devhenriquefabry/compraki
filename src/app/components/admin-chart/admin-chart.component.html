@@ -1,0 +1,72 @@
+<div class="ch" [style.height.px]="height">
+  @if (width() > 0) {
+    <svg class="ch__svg" [attr.width]="width()" [attr.height]="height"
+         role="img" [attr.aria-label]="seriesName() + ': total ' + fmt(total())"
+         tabindex="0"
+         (pointermove)="onPointer($event)"
+         (pointerdown)="onPointer($event)"
+         (pointerleave)="active.set(null)"
+         (blur)="active.set(null)"
+         (keydown)="onKey($event)">
+      <!-- grade e eixo Y -->
+      @for (tick of ticks(); track tick) {
+        <line class="ch__grid" [attr.x1]="pad.left" [attr.x2]="width() - pad.right" [attr.y1]="y(tick)" [attr.y2]="y(tick)" />
+        <text class="ch__ytick" [attr.x]="pad.left - 10" [attr.y]="y(tick) + 4" text-anchor="end">{{ fmt(tick, true) }}</text>
+      }
+
+      <!-- eixo X -->
+      @for (item of xLabels(); track item.i) {
+        <text class="ch__xtick" [attr.x]="item.x" [attr.y]="height - 8"
+              [attr.text-anchor]="kind() === 'area' && item.i === 0 ? 'start' : kind() === 'area' && item.i === points().length - 1 ? 'end' : 'middle'">{{ item.label }}</text>
+      }
+
+      <!-- marca de hover -->
+      @if (tooltip(); as t) {
+        @if (kind() === 'columns') {
+          <rect class="ch__band" [attr.x]="t.x - slot() / 2" [attr.y]="pad.top" [attr.width]="slot()" [attr.height]="plotH" rx="6" />
+        } @else {
+          <line class="ch__cross" [attr.x1]="t.x" [attr.x2]="t.x" [attr.y1]="pad.top" [attr.y2]="pad.top + plotH" />
+        }
+      }
+
+      @if (kind() === 'area') {
+        <path class="ch__area" [attr.d]="areaPath()" />
+        <path class="ch__line" [attr.d]="linePath()" />
+        @if (points().length) {
+          <circle class="ch__end" [attr.cx]="xs()[xs().length - 1]" [attr.cy]="ys()[ys().length - 1]" r="4" />
+        }
+        @if (tooltip(); as t) {
+          <circle class="ch__dot-halo" [attr.cx]="t.x" [attr.cy]="t.y" r="9" />
+          <circle class="ch__dot" [attr.cx]="t.x" [attr.cy]="t.y" r="5" />
+        }
+      } @else {
+        @for (bar of bars(); track $index) {
+          @if (bar.d) {
+            <path class="ch__bar" [class.is-active]="active() === $index" [class.is-dim]="active() !== null && active() !== $index" [attr.d]="bar.d" />
+          }
+        }
+      }
+    </svg>
+
+    @if (tooltip(); as t) {
+      <div class="ch__tip" [class.is-flip]="t.flip" [style.left.px]="t.x" [style.top.px]="t.y" role="status">
+        <small>{{ t.point.label }}</small>
+        <strong>{{ fmt(t.point.value) }}</strong>
+      </div>
+    }
+
+    @if (!hasData()) {
+      <p class="ch__empty">Sem movimento neste período</p>
+    }
+  }
+
+  <table class="vn-sr-only">
+    <caption>{{ seriesName() }}</caption>
+    <thead><tr><th scope="col">Dia</th><th scope="col">{{ seriesName() }}</th></tr></thead>
+    <tbody>
+      @for (point of points(); track $index) {
+        <tr><th scope="row">{{ point.label }}</th><td>{{ fmt(point.value) }}</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

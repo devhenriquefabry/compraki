@@ -17,7 +17,7 @@ import { environment } from 'src/environments/environment.emulator';
  *    ser antes de qualquer service chamar `getAuth()`/`getFirestore()`, por
  *    isso roda no main.ts antes do Angular subir. Os services pegam a mesma
  *    instância e herdam a conexão.
- * 2. Login de teste sem senha: `?testUser=admin|vendedor|comprador` em qualquer
+ * 2. Login de teste sem senha: `?testUser=admin|vendedor|atelie|comprador` em qualquer
  *    URL entra com a conta criada pelo seed (npm run emulators:seed). Usa um
  *    custom token sem assinatura, que só o emulador de Auth aceita — em
  *    produção o mesmo token é recusado.
@@ -28,6 +28,7 @@ import { environment } from 'src/environments/environment.emulator';
 export const TEST_USERS = {
   admin: 'test-admin',
   vendedor: 'test-vendedor',
+  atelie: 'test-atelie',
   comprador: 'test-comprador'
 } as const;
 
@@ -71,7 +72,7 @@ export async function prepareFirebase(): Promise<void> {
     } else if (isTestRole(requested)) {
       await loginAs(requested);
     } else {
-      console.warn(`[emulador] testUser desconhecido: "${requested}". Use admin, vendedor, comprador ou none.`);
+      console.warn(`[emulador] testUser desconhecido: "${requested}". Use admin, vendedor, atelie, comprador ou none.`);
     }
   }
 

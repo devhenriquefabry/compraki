@@ -337,6 +337,28 @@ service cloud.firestore {
     // Id = `{targetType}_{targetId}_{uid}`: uma por pessoa por alvo. Quem
     // denunciou le a propria (o app mostra "voce ja denunciou"); o denunciado
     // nunca sabe quem foi.
+    // Nota fiscal mensal que a Vineon emite para a loja (aba Vendedores do
+    // admin). Id = `{sellerId}_{AAAA-MM}`. Só admin cria/troca/apaga; a loja
+    // lê as dela e só pode marcar que abriu (`seenAt`). O status do e-mail é
+    // escrito pela Cloud Function `onSellerInvoiceWritten` (Admin SDK).
+    match /sellerInvoices/{invoiceId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+
+      allow create, update: if isAdmin()
+        && request.resource.data.sellerId is string
+        && request.resource.data.period is string
+        && request.resource.data.period.matches('^[0-9]{4}-[0-9]{2}$')
+        && invoiceId == request.resource.data.sellerId + '_' + request.resource.data.period;
+
+      allow update: if isSignedIn()
+        && resource.data.sellerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenAt'])
+        && request.resource.data.seenAt == request.time;
+
+      allow delete: if isAdmin();
+    }
+
     match /contentReports/{reportId} {
       allow read: if isAdmin()
         || (isSignedIn() && resource.data.reporterId == request.auth.uid);

@@ -4,6 +4,8 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { NavController, ToastController } from '@ionic/angular';
 import { AppUser } from 'src/app/interfaces/app-user';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
+import { getApp } from 'firebase/app';
+import { collection, getDocs, getFirestore, query, where } from 'firebase/firestore';
 
 @Component({
   selector: 'app-my-account',
@@ -19,6 +21,8 @@ export class MyAccountPage implements OnInit, OnDestroy {
   public isSavingProfile = false;
   public isPasswordPanelOpen = false;
   public isChangingPassword = false;
+  /** Notas fiscais da Vineon que a loja ainda não abriu (selo no atalho). */
+  public unseenInvoices = 0;
   public profileForm = {
     displayName: '',
     username: '',
@@ -45,6 +49,11 @@ export class MyAccountPage implements OnInit, OnDestroy {
     this.userPoll = setInterval(() => {
       this.syncCurrentUser();
     }, 1000);
+  }
+
+  /** Volta de "Notas fiscais": o selo reflete o que a loja já abriu. */
+  ionViewWillEnter() {
+    if (this.usuario?.uid) void this.countUnseenInvoices(this.usuario.uid);
   }
 
   ngOnDestroy() {
@@ -92,6 +101,7 @@ export class MyAccountPage implements OnInit, OnDestroy {
   }
 
   private async loadProfileData(user: User) {
+    void this.countUnseenInvoices(user.uid);
     this.appUser = await this.usersService.getUserById(user.uid);
     this.profileForm = {
       displayName: this.appUser?.displayName || user.displayName || '',
@@ -100,6 +110,15 @@ export class MyAccountPage implements OnInit, OnDestroy {
       phoneNumber: this.appUser?.phoneNumber || user.phoneNumber || '',
       cpf: this.appUser?.cpf || ''
     };
+  }
+
+  private async countUnseenInvoices(uid: string) {
+    try {
+      const snap = await getDocs(query(collection(getFirestore(getApp()), 'sellerInvoices'), where('sellerId', '==', uid)));
+      this.unseenInvoices = snap.docs.filter(d => !d.get('seenAt')).length;
+    } catch {
+      this.unseenInvoices = 0;
+    }
   }
 
   private resetProfileForm() {
@@ -301,6 +320,10 @@ export class MyAccountPage implements OnInit, OnDestroy {
 
   goToMyProducts() {
     this.navCtrl.navigateForward('/my-products');
+  }
+
+  goToInvoices() {
+    this.navCtrl.navigateForward('/my-invoices');
   }
 
   goToMySales() {

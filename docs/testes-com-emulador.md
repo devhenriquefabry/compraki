@@ -25,6 +25,7 @@ Acrescente `?testUser=` a qualquer URL do app:
 | -------------------------------------------- | --------------- | --------------------------------- |
 | `http://localhost:4210/admin?testUser=admin` | `test-admin`    | claim `admin`, painel liberado    |
 | `…?testUser=vendedor`                        | `test-vendedor` | "Loja de Teste" com 8 anúncios    |
+| `…?testUser=atelie`                          | `test-atelie`   | segunda loja (aba Vendedores)     |
 | `…?testUser=comprador`                       | `test-comprador`| endereço padrão cadastrado        |
 | `…?testUser=none`                            | —               | sai da conta                      |
 

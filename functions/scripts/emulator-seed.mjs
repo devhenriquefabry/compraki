@@ -11,6 +11,10 @@
 //   test-admin      admin@vineon.test      claim admin
 //   test-vendedor   vendedor@vineon.test   loja com anúncios
 //   test-comprador  comprador@vineon.test  endereço cadastrado
+//   test-atelie     atelie@vineon.test     segunda loja (aba Vendedores)
+//
+// Pedidos: ~30 nos últimos três meses, pagos, pendentes, cancelados e um
+// devolvido, com as duas lojas — alimentam Métricas e a aba Vendedores.
 // Senha de todas (só existe no emulador): vineon-teste
 
 import { initializeApp } from 'firebase-admin/app';
@@ -65,6 +69,18 @@ const users = {
       shopDescription: 'Loja criada pelo seed do emulador.',
       shopPrimaryColor: '#2ECC71',
       shopSecondaryColor: '#182E3C'
+    }
+  },
+  atelie: {
+    uid: 'test-atelie',
+    email: 'atelie@vineon.test',
+    displayName: 'Marina Duarte',
+    phoneNumber: '11990000004',
+    cpf: cpf('456789123'),
+    doc: {
+      username: 'atelie-mare',
+      shopName: 'Ateliê Maré',
+      shopDescription: 'Peças feitas à mão.'
     }
   },
   comprador: {
@@ -145,12 +161,17 @@ const products = [
   ['tenis', 'Tênis de corrida', 349.0, null, 'usado-como-novo', 2, 'moda', 'tenis', 'Entrega Expressa'],
   ['panela', 'Jogo de panelas antiaderente', 289.9, 259.9, 'novo', 8, 'casa', 'cozinha', 'A combinar'],
   ['luminaria', 'Luminária de mesa', 119.9, null, 'novo', 0, 'casa', 'decoracao', 'A combinar'],
-  ['bicicleta', 'Bicicleta aro 29', 1450.0, null, 'usado-bom', 1, 'esportes', 'ciclismo', 'A combinar']
+  ['bicicleta', 'Bicicleta aro 29', 1450.0, null, 'usado-bom', 1, 'esportes', 'ciclismo', 'A combinar'],
+  ['bolsa-palha', 'Bolsa de palha trançada', 189.0, 169.0, 'novo', 6, 'moda', 'camisetas', 'A combinar', 'atelie'],
+  ['vaso-ceramica', 'Vaso de cerâmica artesanal', 129.0, null, 'novo', 4, 'casa', 'decoracao', 'A combinar', 'atelie'],
+  ['colar-conchas', 'Colar de conchas', 79.9, null, 'novo', 15, 'moda', 'camisetas', 'Frete Grátis', 'atelie']
 ];
 
 // Datas espaçadas: a vitrine ordena por `createdAt`.
 const now = Date.now();
-for (const [index, [id, name, price, priceDiscounted, condition, stock, categoryId, subcategoryId, shipping]] of products.entries()) {
+const productDocs = {};
+for (const [index, [id, name, price, priceDiscounted, condition, stock, categoryId, subcategoryId, shipping, owner = 'vendedor']] of products.entries()) {
+  productDocs[id] = { id, name, price, ...(priceDiscounted ? { priceDiscounted } : {}), photoURL: [`https://picsum.photos/seed/vineon-${id}/600/600`], sellerId: users[owner].uid };
   await db.doc(`products/${id}`).set({
     name,
     price,
@@ -170,16 +191,71 @@ for (const [index, [id, name, price, priceDiscounted, condition, stock, category
     height: 10,
     length: 20,
     location: 'São Paulo - SP',
-    sellerId: users.vendedor.uid,
+    sellerId: users[owner].uid,
     createdAt: Timestamp.fromMillis(now - index * 60_000),
     updatedAt: Timestamp.fromMillis(now - index * 60_000)
   });
 }
 
+// ------------------------------------------------------------------- pedidos
+
+// Roteiro fixo (dia atrás, itens, status) para o resultado ser sempre o mesmo.
+const orderPlan = [
+  [1, [['fone', 1]], 'CONFIRMED'], [2, [['camiseta', 3], ['colar-conchas', 1]], 'RECEIVED'],
+  [3, [['bolsa-palha', 1]], 'PENDING'], [4, [['smartphone', 1]], 'IN_ESCROW'],
+  [5, [['vaso-ceramica', 2]], 'CONFIRMED'], [6, [['panela', 1]], 'DELIVERED'],
+  [8, [['tenis', 1]], 'CANCELLED'], [9, [['colar-conchas', 2]], 'RECEIVED'],
+  [11, [['fone', 2]], 'DELIVERED'], [12, [['bolsa-palha', 1], ['vaso-ceramica', 1]], 'DELIVERED'],
+  [14, [['camiseta', 2]], 'DELIVERED'], [17, [['celular-usado', 1]], 'REFUNDED'],
+  [19, [['smartphone', 1], ['fone', 1]], 'DELIVERED'], [22, [['colar-conchas', 1]], 'DELIVERED'],
+  [26, [['panela', 2]], 'DELIVERED'], [29, [['bolsa-palha', 2]], 'DELIVERED'],
+  [33, [['camiseta', 1]], 'DELIVERED'], [36, [['vaso-ceramica', 1]], 'DELIVERED'],
+  [38, [['fone', 1]], 'PENDING'], [41, [['bicicleta', 1]], 'DELIVERED'],
+  [45, [['colar-conchas', 3]], 'DELIVERED'], [48, [['smartphone', 1]], 'DELIVERED'],
+  [52, [['tenis', 1]], 'DELIVERED'], [55, [['bolsa-palha', 1]], 'DELIVERED'],
+  [58, [['camiseta', 4]], 'DELIVERED'], [61, [['panela', 1], ['colar-conchas', 1]], 'DELIVERED'],
+  [66, [['fone', 1]], 'CANCELLED'], [70, [['vaso-ceramica', 1]], 'DELIVERED'],
+  [74, [['smartphone', 1]], 'DELIVERED'], [80, [['colar-conchas', 2]], 'DELIVERED']
+];
+const PAID = ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
+const soldCount = {};
+
+for (const [index, [daysAgo, lines, status]] of orderPlan.entries()) {
+  const created = now - daysAgo * 86_400_000 - (index % 5) * 3_600_000;
+  const items = lines.map(([productId, quantity]) => ({
+    productId,
+    quantity,
+    addedAt: Timestamp.fromMillis(created),
+    productData: productDocs[productId]
+  }));
+  const subtotal = items.reduce((sum, item) => sum + (item.productData.priceDiscounted ?? item.productData.price) * item.quantity, 0);
+  const paid = PAID.includes(status) || status === 'REFUNDED';
+  if (PAID.includes(status)) lines.forEach(([productId, quantity]) => { soldCount[productId] = (soldCount[productId] || 0) + quantity; });
+
+  await db.doc(`orders/seed-${String(index + 1).padStart(2, '0')}`).set({
+    userId: users.comprador.uid,
+    items,
+    total: Math.round((subtotal + 24.9) * 100) / 100,
+    status,
+    paymentMethod: index % 3 === 0 ? 'CREDIT_CARD' : 'PIX',
+    sellerIds: [...new Set(items.map(item => item.productData.sellerId))],
+    createdAt: Timestamp.fromMillis(created),
+    ...(paid ? { paymentConfirmedAt: Timestamp.fromMillis(created + 20 * 60_000) } : {}),
+    ...(status === 'DELIVERED' ? { shipmentStatus: 'DELIVERED', deliveredAt: Timestamp.fromMillis(created + 4 * 86_400_000) } : {}),
+    customerData: { name: users.comprador.displayName, cpf: users.comprador.cpf, phone: users.comprador.phoneNumber, email: users.comprador.email },
+    addressData: { street: 'Avenida Paulista', number: '1000', city: 'São Paulo', state: 'SP', postalCode: '01310100', neighborhood: 'Bela Vista' },
+    shippingInfo: { serviceId: 1, serviceName: 'PAC', price: 24.9, deliveryTime: 6 }
+  });
+}
+
+for (const [productId, count] of Object.entries(soldCount)) {
+  await db.doc(`products/${productId}`).update({ soldCount: count });
+}
+
 console.log(`Seed concluído em ${PROJECT_ID}:`);
-console.log(`  ${Object.keys(users).length} contas (admin, vendedor, comprador), senha "${PASSWORD}"`);
-console.log(`  ${categories.length} categorias, ${products.length} produtos`);
-console.log('  Entre pelo app com ?testUser=admin | vendedor | comprador');
+console.log(`  ${Object.keys(users).length} contas (admin, vendedor, atelie, comprador), senha "${PASSWORD}"`);
+console.log(`  ${categories.length} categorias, ${products.length} produtos, ${orderPlan.length} pedidos`);
+console.log('  Entre pelo app com ?testUser=admin | vendedor | atelie | comprador');
 
 process.exit(0);
 

@@ -140,11 +140,12 @@
             <strong>Vendas</strong>
           </button>
 
-          <button type="button" class="shortcut-item" (click)="goToMySales()">
-            <span class="shortcut-icon">
-              <ion-icon name="wallet-outline"></ion-icon>
+          <button type="button" class="shortcut-item" (click)="goToInvoices()">
+            <span class="shortcut-icon" [class.with-badge]="unseenInvoices > 0">
+              <ion-icon name="receipt-outline"></ion-icon>
+              <em *ngIf="unseenInvoices > 0" [attr.aria-label]="unseenInvoices + ' notas novas'">{{ unseenInvoices }}</em>
             </span>
-            <strong>Ganhos</strong>
+            <strong>Notas fiscais</strong>
           </button>
         </div>
 

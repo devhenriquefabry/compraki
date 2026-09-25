@@ -1,0 +1,237 @@
+/*
+ * Notas fiscais do vendedor
+ * ----------------------------------------------------------------------------
+ * Topo azul-noite com a nota mais recente; embaixo, um cartão por mês com o
+ * resumo (vendido, taxa, repasse) e o botão para abrir o arquivo. "Nova" é o
+ * selo lima até a loja abrir a nota.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(720px);
+@include vc.empty;
+@include vc.skeleton;
+@include vc.desktop-header(720px);
+@include vc.reduced-motion;
+
+.inv-sk-hero { height: 190px; margin-bottom: 14px; border-radius: 18px; }
+.inv-sk-card { height: 180px; margin-bottom: 10px; border-radius: 16px; }
+
+/* ------------------------------------------------------------------ topo */
+
+.inv-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 20px 20px 18px;
+  margin-bottom: 18px;
+  border-radius: 18px;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(216, 245, 31, 0.1), transparent 60%),
+    var(--vc-navy);
+  color: #fff;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    width: 56px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--vc-neon);
+    box-shadow: 0 0 14px rgba(216, 245, 31, 0.55);
+  }
+
+  h2 {
+    margin: 6px 0 0;
+    font-family: var(--vc-display);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+
+    span { color: var(--vc-neon); }
+  }
+
+  p {
+    margin: 14px 0 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: rgba(226, 232, 240, 0.74);
+  }
+}
+
+.inv-hero__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.inv-hero__figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+
+  div {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--vc-navy-2);
+  }
+
+  small { display: block; font-size: 11.5px; color: rgba(226, 232, 240, 0.65); }
+
+  strong {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--vc-display);
+    font-size: 18px;
+    font-weight: 600;
+  }
+}
+
+/* ------------------------------------------------------------------ lista */
+
+.inv-empty { padding-top: 32px; }
+
+.inv-year {
+  margin: 4px 4px 10px;
+  font-family: var(--vc-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--vc-muted);
+}
+
+.inv-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.inv-card {
+  padding: 16px;
+  border: 1px solid var(--vc-line);
+  border-radius: 16px;
+  background: #fff;
+  font-family: var(--vc-body);
+
+  &.is-new { border-color: var(--vc-navy); box-shadow: 0 0 0 1px var(--vc-navy); }
+}
+
+.inv-card__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inv-card__mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--vc-navy);
+  color: var(--vc-neon);
+  font-size: 19px;
+}
+
+.inv-card__title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-family: var(--vc-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--vc-ink);
+    text-transform: capitalize;
+  }
+
+  small { font-size: 12.5px; color: var(--vc-muted); }
+}
+
+.inv-new {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--vc-neon);
+  color: var(--vc-navy);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.inv-figures {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--vc-ground);
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    font-size: 13.5px;
+  }
+
+  dt { color: var(--vc-ink-2); }
+  dd { margin: 0; color: var(--vc-ink); font-variant-numeric: tabular-nums; }
+
+  .is-total {
+    margin-top: 5px;
+    padding-top: 8px;
+    border-top: 1px solid var(--vc-line);
+
+    dt, dd { font-weight: 800; color: var(--vc-ink); }
+  }
+}
+
+.inv-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 12px;
+  padding: 0 16px;
+  border-radius: 12px !important;
+  background: var(--vc-neon) !important;
+  color: var(--vc-navy) !important;
+  font-size: 14.5px;
+  font-weight: 800;
+
+  > ion-icon { font-size: 19px; }
+
+  span {
+    flex: 1;
+    text-align: left;
+
+    small {
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: rgba(11, 22, 35, 0.12);
+      font-size: 11px;
+      font-weight: 800;
+    }
+  }
+
+  .inv-open__go { font-size: 16px; opacity: 0.7; }
+
+  &:active { transform: scale(0.99); }
+}
+
+:host-context(html.vn-desktop-shell) {
+  .pg-wrap { padding: 14px 0 48px; }
+  .inv-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

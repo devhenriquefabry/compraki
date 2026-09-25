@@ -126,6 +126,11 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'my-invoices',
+    loadComponent: () => import('./pages/my-invoices/my-invoices.page').then(m => m.MyInvoicesPage),
+    canActivate: [authGuard]
+  },
+  {
     path: 'sale-details/:id',
     loadChildren: () => import('./pages/sale-details/sale-details.module').then( m => m.SaleDetailsPageModule),
     canActivate: [authGuard]
