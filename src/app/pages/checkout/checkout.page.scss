@@ -53,24 +53,24 @@ ion-header {
 
     &.active {
       .step-counter {
-        background: linear-gradient(135deg, #799d50 0%, #a2c185 100%);
-        color: white;
+        background: #D8F51F;
+        color: #0B1623;
         transform: scale(1.1);
-        box-shadow: 0 4px 10px rgba(121, 157, 80, 0.3);
+        box-shadow: 0 4px 10px rgba(216, 245, 31, 0.3);
       }
       .step-name {
-        color: #799d50;
+        color: #0B1623;
         font-weight: 800;
       }
     }
 
     &.completed {
       .step-counter {
-        background: #799d50;
-        color: white;
+        background: #D8F51F;
+        color: #0B1623;
       }
       .step-name {
-        color: #799d50;
+        color: #0B1623;
       }
     }
   }
@@ -86,8 +86,9 @@ ion-header {
 
     .progress-fill {
       height: 100%;
-      background: #799d50;
+      background: #D8F51F;
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      color: #0B1623;
     }
   }
 }
@@ -121,7 +122,7 @@ ion-header {
   .review-title {
     font-size: 18px;
     font-weight: 800;
-    color: #1e2d3e;
+    color: #0B1623;
     margin: 15px 15px 5px;
   }
 
@@ -130,7 +131,7 @@ ion-header {
     &:last-child { border-bottom: none; }
     
     ::ng-deep {
-      .section-title { font-size: 14px !important; margin-top: 15px !important; color: #799d50 !important; }
+      .section-title { font-size: 14px !important; margin-top: 15px !important; color: #0B1623 !important; }
       ion-card { box-shadow: none !important; border: none !important; margin: 0 !important; --background: transparent !important; }
     }
   }
@@ -163,9 +164,10 @@ ion-header {
 
     .btn-next, .btn-finish {
       flex: 2;
-      --box-shadow: 0 8px 15px rgba(121, 157, 80, 0.2);
-      --background: #799d50;
-      --background-activated: #688644;
+      --box-shadow: 0 8px 15px rgba(216, 245, 31, 0.2);
+      --background: #D8F51F;
+      --background-activated: #D8F51F;
+      --color: #0B1623;
     }
   }
 }

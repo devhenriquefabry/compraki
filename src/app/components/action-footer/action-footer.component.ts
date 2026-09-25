@@ -27,10 +27,11 @@ import { IonicModule } from '@ionic/angular';
       margin: 0 auto;
     }
     .btn-action {
-      --background: linear-gradient(180deg, #8cb55c 0%, #68923e 100%);
-      --background-activated: #5c8236;
+      --background: #D8F51F;
+      --background-activated: #D8F51F;
+      --color: #0B1623;
       --border-radius: 14px;
-      --box-shadow: 0 8px 16px rgba(121, 157, 80, 0.25);
+      --box-shadow: 0 8px 16px rgba(216, 245, 31, 0.25);
       font-weight: 800;
       font-size: 14px;
       letter-spacing: 1px;
@@ -62,7 +63,7 @@ import { IonicModule } from '@ionic/angular';
       color: #999;
       margin-top: 10px;
       font-weight: 500;
-      ion-icon { font-size: 14px; color: #799d50; }
+      ion-icon { font-size: 14px; color: #0B1623; }
     }
   `],
   standalone: true,

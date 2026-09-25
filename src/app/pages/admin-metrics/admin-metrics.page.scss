@@ -48,7 +48,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #799d50;
+    color: #0B1623;
   }
 }
 
@@ -56,9 +56,10 @@
   width: 9px;
   height: 9px;
   border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45);
+  background: #D8F51F;
+  box-shadow: 0 0 0 0 rgba(216, 245, 31, 0.45);
   animation: pulse 1.6s infinite;
+  color: #0B1623;
 }
 
 .metrics-grid {
@@ -113,8 +114,8 @@
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   box-shadow:
-    0 14px 40px rgba(15, 23, 42, 0.12),
-    0 4px 12px rgba(15, 23, 42, 0.06);
+    0 14px 40px rgba(11, 22, 35, 0.12),
+    0 4px 12px rgba(11, 22, 35, 0.06);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -139,7 +140,7 @@
 
   strong {
     display: block;
-    color: #172033;
+    color: #0B1623;
     font-size: 1.35rem;
     font-weight: 900;
     letter-spacing: -0.5px;
@@ -191,7 +192,7 @@
     padding: 0;
     border-radius: 12px;
     background: #f1f5f9;
-    color: #799d50;
+    color: #0B1623;
   }
 }
 
@@ -202,7 +203,7 @@
     display: block;
     font-size: 0.84rem;
     font-weight: 900;
-    color: #172033;
+    color: #0B1623;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -213,7 +214,7 @@
     margin-top: 3px;
     font-size: 0.7rem;
     font-weight: 800;
-    color: #16a34a;
+    color: #0B1623;
     letter-spacing: 0.01em;
   }
 
@@ -237,8 +238,8 @@
   letter-spacing: 0.4px;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
+  background: rgba(216, 245, 31, 0.12);
+  color: #0B1623;
 }
 
 .online-dropdown-empty {
@@ -272,7 +273,7 @@
   background: #fff;
   border: 1px solid #edf2f7;
   border-radius: 18px;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.035);
+  box-shadow: 0 8px 22px rgba(11, 22, 35, 0.035);
 }
 
 .metric-card {
@@ -289,7 +290,7 @@
     width: 82px;
     height: 82px;
     border-radius: 50%;
-    background: rgba(121, 157, 80, 0.08);
+    background: rgba(216, 245, 31, 0.08);
   }
 
   span {
@@ -304,7 +305,7 @@
 
   strong {
     display: block;
-    color: #172033;
+    color: #0B1623;
     font-size: clamp(1.35rem, 2vw, 1.8rem);
     font-weight: 900;
     letter-spacing: -0.8px;
@@ -328,7 +329,7 @@
   &:hover,
   &:focus-visible {
     border-color: rgba(37, 99, 235, 0.28);
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 14px 30px rgba(11, 22, 35, 0.08);
     outline: none;
     transform: translateY(-2px);
   }
@@ -342,8 +343,8 @@
   justify-content: center;
   margin-bottom: 12px;
   border-radius: 12px;
-  color: #799d50;
-  background: rgba(121, 157, 80, 0.1);
+  color: #0B1623;
+  background: rgba(216, 245, 31, 0.1);
 
   ion-icon {
     font-size: 20px;
@@ -352,8 +353,8 @@
 
 .metric-card.success .icon-bubble,
 .metric-card.success::after {
-  color: #16a34a;
-  background: rgba(22, 163, 74, 0.1);
+  color: #0B1623;
+  background: rgba(216, 245, 31, 0.1);
 }
 
 .metric-card.info .icon-bubble,
@@ -404,7 +405,7 @@
   h2,
   h3 {
     margin: 0;
-    color: #172033;
+    color: #0B1623;
     font-weight: 900;
     letter-spacing: -0.4px;
   }
@@ -418,7 +419,7 @@
   }
 
   strong {
-    color: #799d50;
+    color: #0B1623;
     font-size: 1rem;
     font-weight: 900;
     white-space: nowrap;
@@ -426,8 +427,8 @@
 
   ion-icon {
     padding: 9px;
-    color: #799d50;
-    background: rgba(121, 157, 80, 0.1);
+    color: #0B1623;
+    background: rgba(216, 245, 31, 0.1);
     border-radius: 12px;
     font-size: 19px;
   }
@@ -459,16 +460,16 @@
   overflow: visible;
 
   path {
-    fill: rgba(121, 157, 80, 0.14);
+    fill: rgba(11, 22, 35, 0.14);
   }
 
   polyline {
     fill: none;
-    stroke: #799d50;
+    stroke: #0B1623;
     stroke-width: 2.5;
     stroke-linecap: round;
     stroke-linejoin: round;
-    filter: drop-shadow(0 6px 8px rgba(121, 157, 80, 0.25));
+    filter: drop-shadow(0 6px 8px rgba(216, 245, 31, 0.25));
   }
 }
 
@@ -531,7 +532,8 @@
     width: 100%;
     display: block;
     border-radius: 999px 999px 0 0;
-    background: linear-gradient(180deg, #9bbb73, #799d50);
+    background: #D8F51F;
+    color: #0B1623;
   }
 }
 
@@ -551,7 +553,7 @@
   }
 
   b {
-    color: #172033;
+    color: #0B1623;
   }
 }
 
@@ -583,7 +585,7 @@
   span {
     position: relative;
     z-index: 1;
-    color: #172033;
+    color: #0B1623;
     font-size: 1.4rem;
     font-weight: 900;
   }
@@ -610,7 +612,7 @@
   }
 
   strong {
-    color: #172033;
+    color: #0B1623;
     font-size: 0.76rem;
     font-weight: 900;
   }
@@ -627,7 +629,8 @@
   }
 
   &.done {
-    background: #799d50;
+    background: #D8F51F;
+    color: #0B1623;
   }
 
   &.cancelled {
@@ -667,7 +670,7 @@
 
   > ion-icon {
     padding: 10px;
-    color: #799d50;
+    color: #0B1623;
   }
 
   div {
@@ -676,7 +679,7 @@
 
   strong {
     display: block;
-    color: #172033;
+    color: #0B1623;
     font-size: 0.82rem;
     font-weight: 900;
     white-space: nowrap;
@@ -745,7 +748,7 @@
   strong {
     display: block;
     margin-top: 6px;
-    color: #172033;
+    color: #0B1623;
     font-size: 1.15rem;
     font-weight: 900;
   }
@@ -766,8 +769,8 @@
   }
 
   &.success > ion-icon {
-    color: #16a34a;
-    background: rgba(22, 163, 74, 0.1);
+    color: #0B1623;
+    background: rgba(216, 245, 31, 0.1);
   }
 
   &.info > ion-icon {
@@ -818,7 +821,7 @@
 
   h2 {
     margin: 0;
-    color: #172033;
+    color: #0B1623;
     font-size: 1rem;
     font-weight: 900;
   }
@@ -831,11 +834,11 @@
 
 @keyframes pulse {
   70% {
-    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 10px rgba(216, 245, 31, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 0 rgba(216, 245, 31, 0);
   }
 }
 
@@ -1107,7 +1110,7 @@
       display: block;
       font-size: 1rem;
       font-weight: 900;
-      color: #1e293b;
+      color: #0B1623;
       margin-bottom: 4px;
     }
 

@@ -70,13 +70,13 @@ ion-toolbar{
 /* FORÇAR MODO CLARO EM MODAIS */
 ion-modal {
   --ion-background-color: #ffffff !important;
-  --ion-text-color: #1e2d3e !important;
+  --ion-text-color: #0B1623 !important;
   --background: #ffffff !important;
-  --color: #1e2d3e !important;
+  --color: #0B1623 !important;
 
   ion-header ion-toolbar {
     --background: #ffffff !important;
-    --color: #1e2d3e !important;
+    --color: #0B1623 !important;
     --padding-start: 24px !important;
     --padding-end: 24px !important;
     --padding-top: 15px !important;
@@ -89,8 +89,8 @@ ion-modal {
     }
     
     ion-button {
-      --color: #1e2d3e !important;
-      color: #1e2d3e !important;
+      --color: #0B1623 !important;
+      color: #0B1623 !important;
       font-weight: 700;
       margin: 0;
     }
@@ -98,28 +98,28 @@ ion-modal {
 
   ion-content {
     --background: #ffffff !important;
-    --color: #1e2d3e !important;
+    --color: #0B1623 !important;
   }
 
   ion-item {
     --background: #ffffff !important;
-    --color: #1e2d3e !important;
+    --color: #0B1623 !important;
     --inner-border-color: #f0f0f0 !important;
   }
 
   ion-input, ion-textarea {
     --placeholder-color: #999999 !important;
     --placeholder-opacity: 1 !important;
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
   }
 
   ion-label {
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
   }
   
   ion-searchbar {
     --background: #f0f2f5 !important;
-    --color: #1e2d3e !important;
+    --color: #0B1623 !important;
     --icon-color: #999999 !important;
     --placeholder-color: #999999 !important;
   }
@@ -147,7 +147,7 @@ ion-alert {
   }
 
   .alert-title {
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
     font-weight: 800 !important;
     font-size: 18px !important;
   }
@@ -161,7 +161,7 @@ ion-alert {
     background: #fdfdfd !important;
     border: 1px solid #eee !important;
     border-radius: 8px !important;
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
     margin: 10px 0 !important;
     --placeholder-color: #999 !important;
     
@@ -173,7 +173,7 @@ ion-alert {
   }
 
   .alert-button {
-    color: #799d50 !important;
+    color: #0B1623 !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     font-size: 13px !important;
@@ -187,9 +187,9 @@ ion-alert {
 /* OUTROS OVERLAYS — MODO CLARO */
 ion-action-sheet {
   --background: #ffffff !important;
-  --color: #1e2d3e !important;
-  --button-color: #1e2d3e !important;
-  --button-color-selected: #799d50 !important;
+  --color: #0B1623 !important;
+  --button-color: #0B1623 !important;
+  --button-color-selected: #0B1623 !important;
 
   .action-sheet-wrapper {
     background: #ffffff !important;
@@ -198,37 +198,37 @@ ion-action-sheet {
     background: #ffffff !important;
   }
   .action-sheet-title {
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
     font-weight: 800 !important;
   }
   .action-sheet-button {
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
     font-weight: 600 !important;
     &.action-sheet-cancel { color: #888 !important; }
-    &.action-sheet-selected { color: #799d50 !important; font-weight: 800 !important; }
+    &.action-sheet-selected { color: #0B1623 !important; font-weight: 800 !important; }
   }
 }
 
 ion-popover {
   --background: #ffffff !important;
-  --color: #1e2d3e !important;
+  --color: #0B1623 !important;
 
   ion-content { --background: #ffffff !important; }
-  ion-item { --background: #ffffff !important; --color: #1e2d3e !important; }
-  ion-label { color: #1e2d3e !important; }
-  ion-radio { --color-checked: #799d50 !important; }
-  ion-checkbox { --checkbox-background-checked: #799d50 !important; --border-color-checked: #799d50 !important; }
+  ion-item { --background: #ffffff !important; --color: #0B1623 !important; }
+  ion-label { color: #0B1623 !important; }
+  ion-radio { --color-checked: #0B1623 !important; }
+  ion-checkbox { --checkbox-background-checked: #D8F51F !important; --border-color-checked: #D8F51F !important; --checkmark-color: #0B1623 !important; }
 }
 
 ion-select-popover {
-  ion-item { --background: #ffffff !important; --color: #1e2d3e !important; }
-  ion-label { color: #1e2d3e !important; }
-  ion-radio { --color-checked: #799d50 !important; }
+  ion-item { --background: #ffffff !important; --color: #0B1623 !important; }
+  ion-label { color: #0B1623 !important; }
+  ion-radio { --color-checked: #0B1623 !important; }
 }
 
 ion-loading, ion-toast {
   --background: #ffffff !important;
-  --color: #1e2d3e !important;
+  --color: #0B1623 !important;
 }
 
 /* MODAL PREMIUM (ESTILO POPUP) */
@@ -248,11 +248,11 @@ ion-loading, ion-toast {
 
 /* ALERTA PREMIUM (ESTILO LOGIN SUCESSO) */
 .premium-confirm-alert {
-  --background: #182E3C !important;
+  --background: #0B1623 !important;
   --backdrop-opacity: 0.7 !important;
 
   .alert-wrapper {
-    background: #182E3C !important;
+    background: #0B1623 !important;
     border-radius: 20px !important;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
     padding: 10px !important;
@@ -265,7 +265,7 @@ ion-loading, ion-toast {
   }
 
   .alert-title {
-    color: #8DBB23 !important; /* Cor principal oficial */
+    color: #D8F51F !important; /* Cor principal oficial */
     font-size: 1.5rem !important;
     font-weight: 800 !important;
     letter-spacing: 0.5px !important;
@@ -318,7 +318,7 @@ ion-loading, ion-toast {
     }
 
     .banner-preview-arrow {
-      color: #8DBB23;
+      color: #D8F51F;
       font-size: 20px;
       opacity: 0.8;
     }
@@ -364,9 +364,9 @@ ion-loading, ion-toast {
 
     /* Botão Confirmar */
     &.alert-button-role-confirm {
-      background: #8DBB23 !important;
-      color: #ffffff !important;
-      box-shadow: 0 4px 12px rgba(141, 187, 35, 0.3) !important;
+      background: #D8F51F !important;
+      color: #0B1623 !important;
+      box-shadow: 0 4px 12px rgba(216, 245, 31, 0.3) !important;
     }
   }
 }
@@ -423,14 +423,17 @@ ion-loading, ion-toast {
     }
 
     &:hover {
-      color: #1e293b;
+      color: #0B1623;
       ion-icon { transform: translateY(-1px); }
     }
 
     &.active {
-      color: #799d50;
-      &::after { background: #799d50; }
-      ion-icon { color: #799d50; }
+      color: #0B1623;
+      &::after { background: #D8F51F; }
+      ion-icon { color: #0B1623; }
     }
   }
 }
+
+/* Checkbox marcado é lima (paleta Noite): o visto vai em azul-noite, não branco. */
+ion-checkbox { --checkmark-color: #0B1623; }

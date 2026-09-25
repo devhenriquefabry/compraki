@@ -51,7 +51,7 @@
           }
         }
         h3 { 
-          margin: 0; font-size: 0.85rem; font-weight: 800; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1;
+          margin: 0; font-size: 0.85rem; font-weight: 800; color: #0B1623; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1;
           display: flex; align-items: center; gap: 6px;
           
           .header-icon { 
@@ -74,7 +74,7 @@
         .seller-name-label { 
           margin: 2px 0 0 0; 
           font-size: 0.65rem; 
-          color: #799d50; 
+          color: #0B1623; 
           font-weight: 800; 
           text-transform: uppercase; 
           letter-spacing: 0.5px;
@@ -111,7 +111,7 @@
         transition: color 0.2s;
 
         &.active {
-          color: #1e293b;
+          color: #0B1623;
           &::after {
             content: '';
             position: absolute;
@@ -119,7 +119,7 @@
             left: 20%;
             right: 20%;
             height: 2px;
-            background: #799d50;
+            background: #D8F51F;
             border-radius: 2px;
           }
         }
@@ -128,8 +128,8 @@
 
         .tab-count {
           font-size: 0.55rem;
-          background: #799d50;
-          color: #fff;
+          background: #D8F51F;
+          color: #0B1623;
           min-width: 18px;
           height: 18px;
           border-radius: 9px;
@@ -251,7 +251,7 @@
 
           .item-header {
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
-            h2 { font-size: 0.85rem; font-weight: 800; color: #1e293b; margin: 0; }
+            h2 { font-size: 0.85rem; font-weight: 800; color: #0B1623; margin: 0; }
             .time-stamp { font-size: 0.65rem; color: #94a3b8; font-weight: 600; }
           }
 
@@ -281,7 +281,7 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: #1e293b;
+      background: #0B1623;
       padding: 16px 20px;
       display: flex;
       justify-content: space-between;
@@ -351,8 +351,8 @@
   &::-webkit-scrollbar { width: 6px; height: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-  &:hover::-webkit-scrollbar-thumb { background: #799d50; }
-  &::-webkit-scrollbar-thumb:hover { background: #62823d; }
+  &:hover::-webkit-scrollbar-thumb { background: #D8F51F; }
+  &::-webkit-scrollbar-thumb:hover { background: #D8F51F; }
 }
 
 /* INBOX MODAL (MOBILE) */
@@ -365,9 +365,9 @@
     }
     .inbox-item {
         --padding-start: 0; --inner-padding-end: 0;
-        h2 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+        h2 { font-size: 1rem; font-weight: 700; color: #0B1623; margin-bottom: 4px; }
         p { font-size: 0.85rem; color: #64748b; margin-bottom: 4px; }
-        .product-context { display: block; font-size: 0.7rem; font-weight: 700; color: #799d50; text-transform: uppercase; }
+        .product-context { display: block; font-size: 0.7rem; font-weight: 700; color: #0B1623; text-transform: uppercase; }
         ion-avatar { width: 48px; height: 48px; }
     }
 }

@@ -7,15 +7,15 @@
  */
 
 :host {
-  --pd-ink: var(--vn-ink, #0D1420);
+  --pd-ink: var(--vn-ink, #0B1623);
   --pd-ink-2: var(--vn-ink-2, #3A4452);
   --pd-muted: var(--vn-ink-muted, #5B6573);
   --pd-line: var(--vn-line, #DDE2E8);
   --pd-ground: var(--vn-ground, #EDF0F3);
-  --pd-navy: var(--vn-navy-900, #0D1420);
-  --pd-navy-2: var(--vn-navy-700, #1F2E40);
-  --pd-neon: var(--vn-neon, #DEFF1A);
-  --pd-neon-ink: var(--vn-neon-ink, #4D7C0F);
+  --pd-navy: var(--vn-navy-900, #0B1623);
+  --pd-navy-2: var(--vn-navy-700, #13233A);
+  --pd-neon: var(--vn-neon, #D8F51F);
+  --pd-neon-ink: var(--vn-neon-ink, #0B1623);
   --pd-soft: #E6EAF0;
   --pd-radius: 10px;
   --pd-display: var(--vn-font-display, 'Sora', system-ui, sans-serif);
@@ -779,7 +779,7 @@ a {
     width: 140px;
     height: 140px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(222, 255, 26, 0.22), transparent 70%);
+    background: radial-gradient(circle, rgba(216, 245, 31, 0.22), transparent 70%);
     pointer-events: none;
   }
 }
@@ -896,7 +896,7 @@ a {
 
   dt {
     font-weight: 800;
-    background: rgba(13, 20, 32, 0.035);
+    background: rgba(11, 22, 35, 0.035);
   }
 }
 
@@ -1145,7 +1145,7 @@ a {
   flex-direction: column;
   background: #fff;
   border-left: 1px solid var(--pd-line);
-  box-shadow: -12px 0 32px rgba(13, 20, 32, 0.08);
+  box-shadow: -12px 0 32px rgba(11, 22, 35, 0.08);
   animation: pd-slide 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   app-chat-box {
@@ -1192,7 +1192,7 @@ a {
   right: 0;
   bottom: 0;
   background: #fff;
-  box-shadow: 0 -6px 20px rgba(13, 20, 32, 0.1);
+  box-shadow: 0 -6px 20px rgba(11, 22, 35, 0.1);
   transform: translateY(110%);
   transition: transform 0.22s ease;
 
@@ -1249,7 +1249,7 @@ a {
 
   .pd-sheet {
     border-radius: var(--pd-radius);
-    box-shadow: var(--vn-shadow-1, 0 1px 2px rgba(13, 20, 32, 0.08));
+    box-shadow: var(--vn-shadow-1, 0 1px 2px rgba(11, 22, 35, 0.08));
   }
 
   .pd-sheet--pad {

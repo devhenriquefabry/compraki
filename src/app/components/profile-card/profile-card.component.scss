@@ -1,7 +1,7 @@
 .profile-card {
   background: #ffffff;
   /* Simulação simples da curvinha superior do mockup: */
-  background-image: radial-gradient(circle at 50% -20%, #eaf4f0 0%, #ffffff 60%);
+  background-image: radial-gradient(circle at 50% -20%, rgba(216, 245, 31, 0.22) 0%, #ffffff 60%);
   border-radius: 16px;
   padding: 0 20px 20px 20px;
   text-align: center;
@@ -55,8 +55,8 @@
   /* Botão arredondado "Ver perfil público" */
   .btn-perfil {
     --border-width: 1px;
-    --color: #1aa08c;
-    --border-color: #1aa08c;
+    --color: #0B1623;
+    --border-color: #D8F51F;
     --border-radius: 20px;
     text-transform: none;
     font-weight: 500;

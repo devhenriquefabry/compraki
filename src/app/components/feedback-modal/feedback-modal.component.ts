@@ -65,7 +65,7 @@ import { IonicModule } from '@ionic/angular';
       h2 {
         font-size: 20px;
         font-weight: 800;
-        color: #1e2d3e;
+        color: #0B1623;
         margin: 0 0 10px;
       }
 
@@ -92,8 +92,8 @@ import { IonicModule } from '@ionic/angular';
       }
 
       &.success {
-        .icon-circle { background: linear-gradient(135deg, #799d50, #96c93d); }
-        .btn-ok { background: linear-gradient(135deg, #799d50, #96c93d); box-shadow: 0 6px 20px rgba(121, 157, 80, 0.3); }
+        .icon-circle { background: #D8F51F; ion-icon { color: #0B1623; } }
+        .btn-ok { background: #D8F51F; color: #0B1623; box-shadow: 0 6px 20px rgba(216, 245, 31, 0.3); }
       }
 
       &.error {

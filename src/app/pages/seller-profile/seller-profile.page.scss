@@ -1,5 +1,5 @@
 :host {
-  --seller-primary-default: #799d50;
+  --seller-primary-default: #D8F51F;
 }
 
 .seller-profile-content {
@@ -22,13 +22,13 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(12, 18, 31, 0.08), rgba(12, 18, 31, 0.52));
+    background: linear-gradient(180deg, rgba(11, 22, 35, 0.08), rgba(11, 22, 35, 0.52));
   }
 
   &.empty-cover {
     background:
-      radial-gradient(circle at 18% 20%, rgba(121, 157, 80, 0.28), transparent 30%),
-      linear-gradient(135deg, #121827 0%, #223047 100%);
+      radial-gradient(circle at 18% 20%, rgba(216, 245, 31, 0.28), transparent 30%),
+      linear-gradient(135deg, #0B1623 0%, #13233A 100%);
   }
 }
 
@@ -43,7 +43,7 @@
   height: 88px;
   border-radius: 50%;
   border: 5px solid #fff;
-  background: #edf5e9;
+  background: rgba(216, 245, 31, 0.22);
   color: var(--seller-primary);
   display: flex;
   align-items: center;
@@ -52,7 +52,7 @@
   margin-top: -44px;
   position: relative;
   z-index: 2;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 10px 28px rgba(11, 22, 35, 0.12);
 
   img {
     width: 100%;
@@ -77,7 +77,7 @@
     margin: 0;
     font-size: 1.6rem;
     line-height: 1.1;
-    color: #1f2937;
+    color: #0B1623;
     font-weight: 900;
   }
 }
@@ -109,7 +109,7 @@
   border-radius: 10px;
   border: 1px solid #dbe3ee;
   background: #fff;
-  color: #172033;
+  color: #0B1623;
   font-weight: 900;
   display: inline-flex;
   align-items: center;
@@ -159,8 +159,8 @@
     min-height: 42px;
     padding: 0 16px;
     border-radius: 12px;
-    background: rgba(121, 157, 80, 0.11);
-    color: #263449;
+    background: rgba(216, 245, 31, 0.11);
+    color: #0B1623;
     font-size: 0.82rem;
     font-weight: 900;
     display: inline-flex;
@@ -181,7 +181,7 @@
       opacity: 1;
       background: #f8fafc;
       border: 1px solid #e7edf5;
-      color: #172033;
+      color: #0B1623;
     }
   }
 }
@@ -201,7 +201,7 @@
   background: #fff;
   border: 1px solid #edf1f6;
   border-radius: 18px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 10px 28px rgba(11, 22, 35, 0.04);
 }
 
 .stats-card {
@@ -221,13 +221,13 @@
 
   strong {
     display: block;
-    color: #172033;
+    color: #0B1623;
     font-size: 1.18rem;
     font-weight: 950;
   }
 
   &.follower-stat strong {
-    color: var(--seller-primary-default);
+    color: #0B1623;
   }
 
   span {
@@ -257,8 +257,8 @@
     width: 42px;
     height: 42px;
     border-radius: 14px;
-    background: #eef6e9;
-    color: var(--seller-primary-default);
+    background: rgba(216, 245, 31, 0.22);
+    color: #0B1623;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -275,7 +275,7 @@
   }
 
   strong {
-    color: #263449;
+    color: #0B1623;
     font-size: 0.9rem;
     font-weight: 900;
   }
@@ -293,8 +293,8 @@
 }
 
 .featured-products {
-  border-color: rgba(121, 157, 80, 0.18);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+  border-color: rgba(216, 245, 31, 0.18);
+  box-shadow: 0 14px 34px rgba(11, 22, 35, 0.07);
 }
 
 .section-title {
@@ -306,7 +306,7 @@
 
   h2 {
     margin: 0;
-    color: #172033;
+    color: #0B1623;
     font-size: 1.08rem;
     font-weight: 950;
   }
@@ -334,7 +334,7 @@
   gap: 7px;
 
   ion-icon {
-    color: var(--seller-primary-default);
+    color: #0B1623;
     font-size: 24px;
   }
 
@@ -346,7 +346,7 @@
   }
 
   strong {
-    color: #263449;
+    color: #0B1623;
     font-size: 0.86rem;
     line-height: 1.25;
   }
@@ -365,7 +365,7 @@
   overflow: hidden;
   text-align: left;
   padding: 0;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 6px 18px rgba(11, 22, 35, 0.04);
 }
 
 .product-image {
@@ -384,7 +384,7 @@
   position: absolute;
   left: 8px;
   top: 8px;
-  background: rgba(15, 23, 42, 0.82);
+  background: rgba(11, 22, 35, 0.82);
   color: #fff;
   border-radius: 8px;
   padding: 4px 7px;
@@ -398,7 +398,7 @@
   gap: 5px;
 
   strong {
-    color: #263449;
+    color: #0B1623;
     font-size: 0.84rem;
     line-height: 1.25;
     min-height: 2.1em;
@@ -410,7 +410,7 @@
   }
 
   span {
-    color: #172033;
+    color: #0B1623;
     font-size: 0.98rem;
     font-weight: 950;
   }
@@ -446,7 +446,7 @@
   }
 
   strong {
-    color: #263449;
+    color: #0B1623;
     font-size: 1rem;
   }
 

@@ -63,10 +63,10 @@ import { AppConfigService } from '../../services/app-config.service';
       transition: background-color 0.15s ease, color 0.15s ease;
     }
     [data-tone='dark'] .sl-link { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.85); }
-    [data-tone='dark'] .sl-link:hover { background: var(--vn-neon, #DEFF1A); color: var(--vn-navy-900, #0B141F); }
-    [data-tone='light'] .sl-link { background: #eef1f5; color: var(--vn-navy-800, #14202E); }
-    [data-tone='light'] .sl-link:hover { background: var(--vn-navy-800, #14202E); color: #fff; }
-    .sl-link:focus-visible { outline: 2px solid var(--vn-neon-ink, #4D7C0F); outline-offset: 2px; }
+    [data-tone='dark'] .sl-link:hover { background: var(--vn-neon, #D8F51F); color: var(--vn-navy-900, #0B1623); }
+    [data-tone='light'] .sl-link { background: #eef1f5; color: var(--vn-navy-800, #0B1623); }
+    [data-tone='light'] .sl-link:hover { background: var(--vn-navy-800, #0B1623); color: #fff; }
+    .sl-link:focus-visible { outline: 2px solid var(--vn-neon-ink, #0B1623); outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) { .sl-link { transition: none; } }
   `],
 })

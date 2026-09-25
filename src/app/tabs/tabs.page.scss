@@ -8,7 +8,7 @@ ion-tab-bar.custom-tab-bar {
   position: relative;
   contain: none;
   --color: #a0a0a0;
-  --color-selected: #799d50;
+  --color-selected: #0B1623;
 }
 
 ion-tab-button {
@@ -33,7 +33,7 @@ ion-tab-button {
 
   &[aria-selected="true"] {
     ion-icon {
-        color: #1e2d3e;
+        color: #0B1623;
         transform: scale(1.1);
     }
   }
@@ -46,25 +46,26 @@ ion-tab-button {
     .center-icon-wrapper {
       width: 54px;
       height: 54px;
-      background: #799d50;
+      background: #D8F51F;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 20px rgba(121, 157, 80, 0.4);
+      box-shadow: 0 8px 20px rgba(216, 245, 31, 0.4);
       transform: translateY(-5px);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       border: 4px solid #ffffff;
+      color: #0B1623;
 
       ion-icon {
-        color: #ffffff;
+        color: #0B1623;
         font-size: 30px;
       }
     }
 
     &:active .center-icon-wrapper {
       transform: translateY(-8px) scale(0.95);
-      box-shadow: 0 4px 10px rgba(121, 157, 80, 0.3);
+      box-shadow: 0 4px 10px rgba(216, 245, 31, 0.3);
     }
   }
 }

@@ -8,7 +8,7 @@
 }
 
 .sidebar-header {
-  --background: #1e2d3e;
+  --background: #0B1623;
   --padding-top: 40px;
   --padding-bottom: 25px;
   
@@ -29,7 +29,7 @@
       color: white;
       letter-spacing: -0.5px;
 
-      span { color: #DEFF1A; }
+      span { color: #D8F51F; }
     }
   }
 }
@@ -64,11 +64,11 @@
     font-weight: 600;
 
     &.active-item {
-      --background: rgba(121, 157, 80, 0.08);
-      --color: #799d50;
+      --background: rgba(216, 245, 31, 0.08);
+      --color: #0B1623;
       font-weight: 700;
       
-      ion-icon { color: #799d50; }
+      ion-icon { color: #0B1623; }
     }
 
     ion-icon {
@@ -108,13 +108,13 @@
       width: 40px;
       height: 40px;
       margin-right: 12px;
-      border: 2px solid #799d50;
+      border: 2px solid #D8F51F;
     }
 
     h3 {
       font-size: 14px;
       font-weight: 700;
-      color: #1e2d3e;
+      color: #0B1623;
       margin: 0;
     }
 

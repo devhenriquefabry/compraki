@@ -3,7 +3,7 @@
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   background: white !important;
-  color: #1e2d3e !important;
+  color: #0B1623 !important;
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -39,8 +39,8 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(135deg, #6cb33e 0%, #4a9d2d 100%);
-      color: white;
+      background: #D8F51F;
+      color: #0B1623;
       font-size: 9px;
       font-weight: 700;
       text-align: center;
@@ -66,7 +66,7 @@
         margin: 0;
         font-size: 14px;
         font-weight: 600;
-        color: #1e2d3e;
+        color: #0B1623;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         line-clamp: 2;
@@ -118,7 +118,7 @@
       .price-current {
         font-size: 16px;
         font-weight: 700;
-        color: #5d8c3f;
+        color: #0B1623;
       }
     }
 
@@ -154,7 +154,7 @@
           }
 
           &.plus ion-icon {
-            color: #5d8c3f;
+            color: #0B1623;
           }
 
           &.disabled {
@@ -172,14 +172,14 @@
           text-align: center;
           font-weight: 700;
           font-size: 15px;
-          color: #1e2d3e;
+          color: #0B1623;
         }
       }
 
       .subtotal {
         font-size: 15px;
         font-weight: 800;
-        color: #1e2d3e;
+        color: #0B1623;
         letter-spacing: -0.3px;
       }
     }

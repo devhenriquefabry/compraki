@@ -1,8 +1,8 @@
 /*
  * Base das abas novas do painel admin (Pedidos, Denúncias, Ajustes).
  * ----------------------------------------------------------------------------
- * Mesma paleta das abas existentes (fundo #f8fafc, linhas #e2e8f0, verde
- * #799d50 da marca no painel). Cada página chama `@include adm.base;` e
+ * Mesma paleta das abas existentes (fundo #f8fafc, linhas #e2e8f0) com a
+ * paleta "Noite": lima #D8F51F como preenchimento e azul-noite #0B1623 no texto. Cada página chama `@include adm.base;` e
  * acrescenta só o que é dela.
  */
 
@@ -12,11 +12,11 @@
     --adm-bg: #f8fafc;
     --adm-card: #ffffff;
     --adm-line: #e2e8f0;
-    --adm-ink: #0f172a;
+    --adm-ink: #0B1623;
     --adm-ink-2: #334155;
     --adm-muted: #64748b;
-    --adm-accent: #799d50;
-    --adm-accent-soft: #eef5e6;
+    --adm-accent: #D8F51F;
+    --adm-accent-soft: rgba(216, 245, 31, 0.22);
     --adm-warn: #b45309;
     --adm-warn-soft: #fef3c7;
     --adm-danger: #b91c1c;
@@ -50,7 +50,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--adm-accent);
+    color: #0B1623;
     font-size: 0.8rem;
     font-weight: 700;
 
@@ -179,7 +179,7 @@
     font-weight: 700;
     white-space: nowrap;
 
-    &.is-ok { background: var(--adm-accent-soft); color: #4d7c0f; }
+    &.is-ok { background: var(--adm-accent-soft); color: #0B1623; }
     &.is-warn { background: var(--adm-warn-soft); color: var(--adm-warn); }
     &.is-danger { background: var(--adm-danger-soft); color: var(--adm-danger); }
     &.is-info { background: var(--adm-info-soft); color: var(--adm-info); }

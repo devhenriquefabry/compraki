@@ -2,7 +2,7 @@
   background: #fdfdfd;
   padding: 15px;
   border: 1px solid #e0e0e0;
-  border-left: 4px solid #799d50;
+  border-left: 4px solid #D8F51F;
   border-radius: 12px;
   position: relative;
   z-index: 10;
@@ -75,10 +75,10 @@
 
       a {
         text-decoration: none;
-        color: #1e2d3e;
+        color: #0B1623;
         font-weight: 700;
         font-size: 12px;
-        border-bottom: 1px solid #799d50;
+        border-bottom: 1px solid #D8F51F;
         display: flex;
         align-items: center;
         gap: 4px;
@@ -110,8 +110,8 @@
     .time {
       font-size: 12px;
       font-weight: 700;
-      color: #1e2d3e;
-      border-bottom: 1px solid #799d50;
+      color: #0B1623;
+      border-bottom: 1px solid #D8F51F;
       padding-bottom: 1px;
     }
   }

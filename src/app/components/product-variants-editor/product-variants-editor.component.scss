@@ -1,10 +1,10 @@
 :host {
   display: block;
-  --pve-ink: #0D1420;
+  --pve-ink: #0B1623;
   --pve-ink-muted: #5B6573;
   --pve-border: #DDE2E8;
   --pve-hover: #EDF0F3;
-  --pve-accent: var(--cor-principal, #8DBB23);
+  --pve-accent: var(--cor-principal, #D8F51F);
 }
 
 .pve {
@@ -303,7 +303,7 @@
 .pve-matrix-total {
   font-size: 12px;
   font-weight: 700;
-  color: var(--pve-accent);
+  color: #0B1623;
 }
 
 .pve-matrix-table {

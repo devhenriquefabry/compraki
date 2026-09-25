@@ -90,7 +90,7 @@ export class PaymentsPage implements OnInit, OnDestroy {
     const firstDigit = this.newCardData.number.charAt(0);
     const brand = firstDigit === '4' ? 'visa' : (firstDigit === '5' ? 'mastercard' : 'elo');
     const color = brand === 'visa' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' :
-                  (brand === 'mastercard' ? 'linear-gradient(135deg, #232526 0%, #414345 100%)' : 'linear-gradient(135deg, #799d50 0%, #a2c182 100%)');
+                  (brand === 'mastercard' ? 'linear-gradient(135deg, #232526 0%, #414345 100%)' : 'linear-gradient(135deg, #0B1623 0%, #13233A 100%)');
 
     const newCard: PaymentCard = {
       id: Math.random().toString(36).substr(2, 9),

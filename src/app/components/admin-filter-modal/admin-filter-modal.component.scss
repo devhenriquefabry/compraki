@@ -16,7 +16,7 @@
         font-family: 'Poppins', sans-serif;
         font-weight: 800;
         font-size: 1.1rem;
-        color: #1e293b;
+        color: #0B1623;
     }
 
     .btn-clear {
@@ -47,7 +47,7 @@
             
             ion-icon {
                 font-size: 1.2rem;
-                color: #799d50;
+                color: #0B1623;
             }
             
             .filter-label {
@@ -68,7 +68,7 @@
             --min-height: 48px;
             font-size: 0.9rem;
             font-weight: 600;
-            color: #1e293b;
+            color: #0B1623;
 
             ion-select {
                 width: 100%;
@@ -104,12 +104,12 @@
                 transition: border-color 0.2s;
 
                 &:focus-within {
-                    border-color: #799d50;
+                    border-color: #D8F51F;
                 }
 
                 ion-input {
                     font-weight: 700;
-                    color: #1e293b;
+                    color: #0B1623;
                     --placeholder-color: #cbd5e1;
                 }
             }
@@ -118,8 +118,8 @@
 
     .btn-apply-filters {
         margin: 20px 16px 40px;
-        --background: #799d50;
-        --background-activated: #62823f;
+        --background: #D8F51F;
+        --background-activated: #D8F51F;
         --border-radius: 14px;
         --padding-top: 18px;
         --padding-bottom: 18px;
@@ -127,6 +127,7 @@
         font-weight: 800;
         font-size: 0.9rem;
         letter-spacing: 1px;
-        box-shadow: 0 10px 20px rgba(121, 157, 80, 0.2);
+        box-shadow: 0 10px 20px rgba(216, 245, 31, 0.2);
+        --color: #0B1623;
     }
 }

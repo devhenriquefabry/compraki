@@ -20,8 +20,8 @@ export class MyShowcasePage implements OnInit {
     shopName: '',
     shopDescription: '',
     shopBanner: '',
-    shopPrimaryColor: '#7c4dff',
-    shopSecondaryColor: '#00e676',
+    shopPrimaryColor: '#D8F51F',
+    shopSecondaryColor: '#0B1623',
     shopInstagram: '',
     shopWhatsApp: '',
     shopFeaturedTitle: 'Meus Destaques'
@@ -47,8 +47,8 @@ export class MyShowcasePage implements OnInit {
           shopName: this.usuario.shopName || this.usuario.displayName || '',
           shopDescription: this.usuario.shopDescription || '',
           shopBanner: this.usuario.shopBanner || '',
-          shopPrimaryColor: this.usuario.shopPrimaryColor || '#7c4dff',
-          shopSecondaryColor: this.usuario.shopSecondaryColor || '#00e676',
+          shopPrimaryColor: this.usuario.shopPrimaryColor || '#D8F51F',
+          shopSecondaryColor: this.usuario.shopSecondaryColor || '#0B1623',
           shopInstagram: this.usuario.shopInstagram || '',
           shopWhatsApp: this.usuario.shopWhatsApp || this.usuario.phoneNumber || '',
           shopFeaturedTitle: this.usuario.shopFeaturedTitle || 'Meus Destaques'

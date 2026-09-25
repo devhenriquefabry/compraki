@@ -6,7 +6,7 @@
   <ng-container *ngIf="seller$ | async as seller; else loadingState">
     <ng-container *ngIf="products$ | async as products">
       <ng-container *ngIf="stats$ | async as stats">
-        <section class="profile-hero" [style.--seller-primary]="seller.shopPrimaryColor || '#799d50'">
+        <section class="profile-hero" [style.--seller-primary]="seller.shopPrimaryColor || '#D8F51F'">
           <div
             class="seller-cover"
             [class.empty-cover]="!seller.shopBanner"

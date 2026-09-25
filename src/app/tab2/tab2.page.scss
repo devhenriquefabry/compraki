@@ -7,7 +7,7 @@ ion-toolbar {
   --color: white;
   --border-width: 0;
 
-  /* Header nativo (app-mini-header) tem fundo próprio (#1e2d3e); aqui usamos
+  /* Header nativo (app-mini-header) tem fundo próprio (#0B1623); aqui usamos
      a mesma cor da marca (--vn-navy-900) para casar com a faixa do banner. */
   ::ng-deep .container {
     background-color: var(--vn-navy-900);
@@ -25,7 +25,7 @@ ion-toolbar {
       font-size: 24px;
       font-weight: 800;
       color: white;
-      span { color: #799d50; }
+      span { color: #D8F51F; }
     }
   }
 
@@ -98,7 +98,7 @@ ion-toolbar {
 
     ion-icon { 
         font-size: 20px; 
-        color: #799d50; 
+        color: #0B1623; 
     }
 
     input {
@@ -190,7 +190,7 @@ ion-toolbar {
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(30, 45, 62, 0.2);
+    background: rgba(11, 22, 35, 0.2);
     border-radius: 4px;
   }
 
@@ -209,7 +209,7 @@ ion-toolbar {
   .promo-banner {
     width: 100%;
     aspect-ratio: 2.7 / 1;
-    background: linear-gradient(135deg, #799d50 0%, #8DBB23 100%);
+    background: #D8F51F;
     border-radius: 20px;
     padding: 20px;
     display: flex;
@@ -217,14 +217,15 @@ ion-toolbar {
     align-items: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 25px rgba(121, 157, 80, 0.2);
+    box-shadow: 0 10px 25px rgba(216, 245, 31, 0.2);
+    color: #0B1623;
 
     .promo-text {
       z-index: 2;
-      h3 { color: white; margin: 0; font-size: 20px; font-weight: 800; }
-      p { color: rgba(255,255,255,0.8); margin: 5px 0 15px; font-size: 14px; span { color: #ffffff; font-weight: 800; text-decoration: underline; } }
+      h3 { color: #0B1623; margin: 0; font-size: 20px; font-weight: 800; }
+      p { color: rgba(11, 22, 35,0.8); margin: 5px 0 15px; font-size: 14px; span { color: #0B1623; font-weight: 800; text-decoration: underline; } }
       .btn-aproveite {
-        background: #ffffff; color: #799d50; border: none; padding: 10px 25px;
+        background: #ffffff; color: #0B1623; border: none; padding: 10px 25px;
         border-radius: 20px; font-weight: 800; font-size: 12px; cursor: pointer;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
       }
@@ -272,7 +273,7 @@ ion-toolbar {
   @media (min-width: 1024px) {
     .promo-banner {
       height: auto;
-      box-shadow: 0 14px 36px rgba(121, 157, 80, 0.18);
+      box-shadow: 0 14px 36px rgba(216, 245, 31, 0.18);
 
       .promo-text h3 {
         font-size: 26px;
@@ -314,18 +315,18 @@ ion-toolbar {
       justify-content: center;
       border: 1px solid #eee;
       transition: all 0.2s ease;
-      ion-icon { font-size: 28px; color: #799d50; }
+      ion-icon { font-size: 28px; color: #0B1623; }
 
       &.active {
-        background: rgba(121, 157, 80, 0.1);
-        border-color: #799d50;
-        box-shadow: 0 4px 10px rgba(121, 157, 80, 0.15);
+        background: rgba(216, 245, 31, 0.1);
+        border-color: #D8F51F;
+        box-shadow: 0 4px 10px rgba(216, 245, 31, 0.15);
       }
     }
     span {
       font-size: 11px;
       font-weight: 700;
-      color: #1e2d3e;
+      color: #0B1623;
       text-align: center;
       white-space: normal;
       line-height: 1.25;
@@ -341,7 +342,7 @@ ion-toolbar {
     gap: 18px 20px;
     padding: 20px 16px 22px;
     border-radius: 0 0 18px 18px;
-    box-shadow: 0 6px 24px rgba(30, 45, 62, 0.06);
+    box-shadow: 0 6px 24px rgba(11, 22, 35, 0.06);
 
     .cat-item {
       min-width: 72px;
@@ -373,8 +374,8 @@ ion-toolbar {
 
   @media (hover: hover) and (pointer: fine) {
     .cat-item .cat-circle:hover {
-      border-color: #799d50;
-      background: rgba(121, 157, 80, 0.08);
+      border-color: #D8F51F;
+      background: rgba(216, 245, 31, 0.08);
       transform: translateY(-2px);
     }
   }
@@ -402,7 +403,7 @@ ion-toolbar {
   margin: 0 0 4px;
   font-size: 1.15rem;
   font-weight: 900;
-  color: #1e2d3e;
+  color: #0B1623;
   letter-spacing: -0.02em;
 }
 
@@ -419,7 +420,7 @@ ion-toolbar {
   flex-shrink: 0;
   font-size: 0.8rem;
   font-weight: 800;
-  color: #00a650;
+  color: #0B1623;
   white-space: nowrap;
 }
 
@@ -530,8 +531,8 @@ ion-toolbar {
     &--full {
       top: 8px;
       right: 8px;
-      background: #00a650;
-      color: #fff;
+      background: #D8F51F;
+      color: #0B1623;
     }
   }
 
@@ -569,7 +570,7 @@ ion-toolbar {
     display: inline-flex;
     align-items: baseline;
     gap: 2px;
-    color: #00a650;
+    color: #0B1623;
     font-weight: 600;
     line-height: 1;
   }
@@ -621,8 +622,8 @@ ion-toolbar {
     white-space: nowrap;
 
     &--highlight {
-      color: #00a650;
-      background: #e6f7ed;
+      color: #0B1623;
+      background: rgba(216, 245, 31, 0.22);
     }
   }
 
@@ -705,7 +706,7 @@ ion-toolbar {
       font-size: 13px;
       text-transform: none;
       font-weight: 700;
-      color: #799d50;
+      color: #0B1623;
     }
   }
 
@@ -723,7 +724,7 @@ ion-toolbar {
     h3 {
       font-size: 18px;
       font-weight: bold;
-      color: #1e2d3e;
+      color: #0B1623;
       margin-bottom: 8px;
     }
 
@@ -761,7 +762,7 @@ ion-toolbar {
 /* ===== FILTRO MODAL ===== */
 .modal-toolbar {
   --background: #ffffff;
-  --color: #1e2d3e;
+  --color: #0B1623;
   --padding-top: 20px;
   --padding-bottom: 5px;
 
@@ -773,7 +774,7 @@ ion-toolbar {
   }
 
   .btn-clear {
-    --color: #799d50;
+    --color: #0B1623;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -805,13 +806,13 @@ ion-toolbar {
 
     ion-icon {
       font-size: 18px;
-      color: #799d50;
+      color: #0B1623;
     }
 
     .filter-label {
       font-size: 13px;
       font-weight: 800;
-      color: #1e2d3e;
+      color: #0B1623;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -831,7 +832,7 @@ ion-toolbar {
 
       ion-input {
         font-weight: 700;
-        --color: #1e2d3e;
+        --color: #0B1623;
       }
     }
 
@@ -868,14 +869,15 @@ ion-toolbar {
 }
 
 .btn-apply-filters {
-  --background: linear-gradient(135deg, #799d50 0%, #8DBB23 100%);
+  --background: #D8F51F;
   --border-radius: 16px;
-  --box-shadow: 0 10px 20px rgba(121, 157, 80, 0.3);
+  --box-shadow: 0 10px 20px rgba(216, 245, 31, 0.3);
   height: 56px;
   font-weight: 800;
   font-size: 14px;
   letter-spacing: 1px;
   margin-top: 10px;
+  --color: #0B1623;
 }
 
 /* Modal de filtros mais confortável em telas grandes */
@@ -917,7 +919,7 @@ ion-toolbar {
     margin: 0;
     font-size: 20px;
     font-weight: 800;
-    color: #1e2d3e;
+    color: #0B1623;
     letter-spacing: -0.02em;
   }
 
@@ -931,7 +933,7 @@ ion-toolbar {
   }
 
   ion-button {
-    --color: #799d50;
+    --color: #0B1623;
     font-weight: 800;
     font-size: 14px;
     text-transform: uppercase;

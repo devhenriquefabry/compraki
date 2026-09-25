@@ -120,7 +120,7 @@ a.hero-frame:focus-visible {
   padding: 0 88px;
   overflow: hidden;
   background:
-    radial-gradient(55% 95% at 80% 50%, rgba(222, 255, 26, 0.14), transparent 70%),
+    radial-gradient(55% 95% at 80% 50%, rgba(216, 245, 31, 0.14), transparent 70%),
     linear-gradient(120deg, var(--vn-navy-900) 0%, var(--vn-navy-800) 100%);
 }
 
@@ -156,7 +156,7 @@ a.hero-frame:focus-visible {
   flex-shrink: 0;
   height: 70%;
   width: auto;
-  filter: drop-shadow(0 0 26px rgba(222, 255, 26, 0.45));
+  filter: drop-shadow(0 0 26px rgba(216, 245, 31, 0.45));
 }
 
 .hero-arrow {

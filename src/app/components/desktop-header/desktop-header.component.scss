@@ -118,7 +118,7 @@ button {
   align-items: center;
   gap: 10px;
   padding: 5px 16px 5px 5px;
-  border: 1px solid rgba(222, 255, 26, 0.35);
+  border: 1px solid rgba(216, 245, 31, 0.35);
   border-radius: 999px;
   color: #fff;
   text-decoration: none;
@@ -126,8 +126,8 @@ button {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
-    background: rgba(222, 255, 26, 0.08);
-    border-color: rgba(222, 255, 26, 0.6);
+    background: rgba(216, 245, 31, 0.08);
+    border-color: rgba(216, 245, 31, 0.6);
   }
 }
 
@@ -137,7 +137,7 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(222, 255, 26, 0.12);
+  background: rgba(216, 245, 31, 0.12);
   color: var(--vn-neon);
   font-size: 17px;
 }

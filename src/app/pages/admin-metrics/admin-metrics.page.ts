@@ -161,7 +161,7 @@ export class AdminMetricsPage implements OnInit, OnDestroy {
   }
 
   public getDonutBackground(points: AdminChartPoint[]): string {
-    const colors = ['#799d50', '#3b82f6', '#ef4444'];
+    const colors = ['#D8F51F', '#3b82f6', '#ef4444'];
     const total = points.reduce((sum, point) => sum + point.value, 0);
     if (total === 0) return '#f1f5f9';
 

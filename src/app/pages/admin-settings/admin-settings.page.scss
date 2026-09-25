@@ -31,7 +31,7 @@
   height: 40px;
   border-radius: 12px;
   background: var(--adm-accent-soft);
-  color: #4d7c0f;
+  color: #0B1623;
   font-size: 20px;
   flex-shrink: 0;
 
@@ -87,7 +87,7 @@
   background: var(--adm-bg);
   font-size: 0.86rem;
 
-  &.is-on { background: var(--adm-accent-soft); color: #3f6212; }
+  &.is-on { background: var(--adm-accent-soft); color: #0B1623; }
 }
 
 .as-note {
@@ -163,7 +163,7 @@
 
 .as-test-result {
   margin: 8px 0 0;
-  color: #3f6212;
+  color: #0B1623;
   font-size: 0.86rem;
   font-weight: 700;
 

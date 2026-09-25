@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1200;
-  background: rgba(2, 6, 23, 0.72);
+  background: rgba(11, 22, 35, 0.72);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -16,15 +16,15 @@
   max-height: 92vh;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 20px 54px rgba(2, 6, 23, 0.42);
-  background: #0f172a;
+  box-shadow: 0 20px 54px rgba(11, 22, 35, 0.42);
+  background: #0B1623;
 
   img {
     width: 100%;
     max-height: 92vh;
     object-fit: contain;
     display: block;
-    background: #0b1222;
+    background: #0B1623;
   }
 }
 
@@ -36,7 +36,7 @@
   height: 32px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(11, 22, 35, 0.45);
   color: #e2e8f0;
   display: inline-flex;
   align-items: center;
@@ -61,5 +61,5 @@
 
 .wm-image-viewer-download:hover,
 .wm-image-viewer-close:hover {
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(11, 22, 35, 0.75);
 }

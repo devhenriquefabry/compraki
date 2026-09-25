@@ -31,7 +31,7 @@
     background: var(--vc-line);
   }
 
-  &[data-state='done']:not(:last-child)::before { background: var(--vc-green); }
+  &[data-state='done']:not(:last-child)::before { background: #D8F51F; }
   &:last-child { padding-bottom: 0; }
 }
 
@@ -45,11 +45,12 @@
   border-radius: 50%;
   background: #fff;
 
-  [data-state='done'] > & { border-color: var(--vc-green); background: var(--vc-green); }
+  [data-state='done'] > & { border-color: #D8F51F; background: #D8F51F;
+  color: #0B1623; }
   [data-state='current'] > & {
     border-color: var(--vc-navy);
     background: var(--vc-neon);
-    box-shadow: 0 0 0 4px rgba(20, 32, 46, 0.12);
+    box-shadow: 0 0 0 4px rgba(11, 22, 35, 0.12);
   }
   [data-state='alert'] > & { border-color: var(--vc-rust); background: var(--vc-rust); }
 }

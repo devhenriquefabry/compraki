@@ -54,17 +54,17 @@ ion-content {
         .product-meta {
             flex-grow: 1;
             .context-label { font-size: 0.55rem; color: #94a3b8; font-weight: 800; letter-spacing: 0.5px; }
-            .product-name { margin: 0; font-size: 0.8rem; font-weight: 700; color: #1e293b; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 150px; }
+            .product-name { margin: 0; font-size: 0.8rem; font-weight: 700; color: #0B1623; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 150px; }
         }
 
         .platform-badge {
             font-size: 0.6rem;
             font-weight: 800;
-            color: #799d50;
+            color: #0B1623;
             display: flex;
             align-items: center;
             gap: 4px;
-            background: rgba(121, 157, 80, 0.08);
+            background: rgba(216, 245, 31, 0.08);
             padding: 4px 8px;
             border-radius: 6px;
             ion-icon { font-size: 14px; }
@@ -115,8 +115,8 @@ ion-content {
     display: flex;
     max-width: 85%;
     
-    &.msg-me { align-self: flex-end; .msg-bubble { background: #799d50; color: #fff; border-radius: 18px 18px 2px 18px; } }
-    &.msg-other { align-self: flex-start; .msg-bubble { background: #fff; color: #1e293b; border: 1px solid #f1f5f9; border-radius: 18px 18px 18px 2px; } }
+    &.msg-me { align-self: flex-end; .msg-bubble { background: #D8F51F; color: #0B1623; border-radius: 18px 18px 2px 18px; } }
+    &.msg-other { align-self: flex-start; .msg-bubble { background: #fff; color: #0B1623; border: 1px solid #f1f5f9; border-radius: 18px 18px 18px 2px; } }
 
     &.animate-pop { 
         animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
@@ -160,7 +160,7 @@ ion-content {
             gap: 2px;
             height: 20px;
             .bar { width: 3px; height: 10px; background: rgba(255,255,255,0.3); border-radius: 2px; }
-            .msg-other & .bar { background: rgba(121, 157, 80, 0.2); }
+            .msg-other & .bar { background: rgba(216, 245, 31, 0.2); }
         }
         .audio-label { font-size: 0.75rem; font-weight: 700; }
     }
@@ -172,7 +172,7 @@ ion-content {
         gap: 6px;
         margin-top: 4px;
         .msg-time { font-size: 0.65rem; opacity: 0.6; }
-        .status-icon { font-size: 12px; color: #799d50; }
+        .status-icon { font-size: 12px; color: #0B1623; }
 
         .sending-spinner {
             width: 14px;
@@ -204,7 +204,7 @@ ion-content {
         .message-input { 
             --padding-start: 0; 
             --placeholder-color: #94a3b8; 
-            --color: #1e293b;
+            --color: #0B1623;
             font-size: 0.9rem; 
             font-weight: 500; 
         }
@@ -215,8 +215,8 @@ ion-content {
       --padding-end: 0;
       margin: 0;
       &.btn-media { --color: #94a3b8; font-size: 1.4rem; }
-      &.btn-mic { --color: #1e293b; font-size: 1.4rem; }
-      &.btn-send-text { --color: #799d50; font-size: 1.4rem; }
+      &.btn-mic { --color: #0B1623; font-size: 1.4rem; }
+      &.btn-send-text { --color: #0B1623; font-size: 1.4rem; }
     }
 }
 
@@ -237,7 +237,7 @@ ion-content {
         align-items: center;
         gap: 10px;
         .rec-dot { width: 10px; height: 10px; background: #ef4444; border-radius: 50%; animation: pulse 1s infinite; }
-        .timer { font-weight: 800; color: #1e293b; font-size: 0.9rem; }
+        .timer { font-weight: 800; color: #0B1623; font-size: 0.9rem; }
     }
 
     .cancel-instruction {
@@ -344,13 +344,13 @@ ion-content {
             font-size: 56px;
             margin-bottom: 16px;
             &.warn { color: #f59e0b; }
-            &.success { color: #799d50; }
+            &.success { color: #0B1623; }
         }
 
         h3 {
             font-size: 1.1rem;
             font-weight: 800;
-            color: #1e293b;
+            color: #0B1623;
             margin: 0 0 8px;
         }
 
@@ -403,7 +403,7 @@ ion-content {
 
         ion-icon {
             font-size: 18px;
-            color: #799d50;
+            color: #0B1623;
         }
     }
 }
@@ -432,7 +432,7 @@ ion-content {
 }
 
 @keyframes highlightPulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); border-color: #22c55e; }
-    30% { transform: scale(1.02); box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); border-color: #22c55e; }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(216, 245, 31, 0.7); border-color: #D8F51F; }
+    30% { transform: scale(1.02); box-shadow: 0 0 0 15px rgba(216, 245, 31, 0); border-color: #D8F51F; }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(216, 245, 31, 0); }
 }

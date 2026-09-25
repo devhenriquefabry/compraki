@@ -23,7 +23,7 @@
     display: flex;
     flex-direction: column;
     flex-grow: 1; // Ocupa o espaço disponível
-    color: var(--cor-principal) !important;
+    color: #0B1623 !important;
     width: 100%;
 }
 
@@ -53,7 +53,7 @@
 .priceProduct {
     font-size: 18px;
     font-weight: 800;
-    color: var(--cor-principal);
+    color: #0B1623;
 }
 
 .priceDiscounted {
@@ -76,10 +76,10 @@
 
 
     .shipping{
-        color: var(--cor-principal);
+        color: #0B1623;
         font-size: 13px;
         ion-icon{
-            color: var(--cor-principal);
+            color: #0B1623;
         }
     }
 

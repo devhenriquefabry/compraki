@@ -1,10 +1,10 @@
 /* ============ DESIGN SYSTEM TOKENS ============ */
 :host {
-  --primary: #799d50;
-  --primary-light: rgba(121, 157, 80, 0.08);
-  --primary-dark: #62823f;
+  --primary: #D8F51F;
+  --primary-light: rgba(216, 245, 31, 0.08);
+  --primary-dark: #D8F51F;
   
-  --text-main: #1e293b;
+  --text-main: #0B1623;
   --text-muted: #64748b;
   --text-label: #94a3b8;
   
@@ -17,7 +17,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(11, 22, 35, 0.6);
   backdrop-filter: blur(8px);
   z-index: 9999;
   display: flex;
@@ -177,7 +177,7 @@
       border-radius: 10px;
     }
     &:hover::-webkit-scrollbar-thumb {
-      background: #799d50;
+      background: #D8F51F;
     }
   }
 
@@ -220,7 +220,7 @@
       }
 
       &.active {
-        color: var(--primary);
+        color: #0B1623;
         border-bottom-color: var(--primary);
       }
     }
@@ -288,7 +288,7 @@
         &.condition-new {
           background: var(--primary-light);
           color: var(--primary-dark);
-          border: 1px solid rgba(121, 157, 80, 0.2);
+          border: 1px solid rgba(216, 245, 31, 0.2);
         }
         &.condition-used {
           background: rgba(255, 194, 51, 0.1);
@@ -327,7 +327,7 @@
 
       &:hover {
         background: #fff;
-        color: var(--primary);
+        color: #0B1623;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
       }
     }
@@ -336,7 +336,7 @@
       position: absolute;
       bottom: 16px;
       right: 16px;
-      background: rgba(15, 23, 42, 0.7);
+      background: rgba(11, 22, 35, 0.7);
       backdrop-filter: blur(4px);
       color: #fff;
       font-size: 0.65rem;
@@ -432,7 +432,7 @@
       align-items: center;
       gap: 6px;
       font-size: 0.8rem;
-      color: var(--primary);
+      color: #0B1623;
       font-weight: 700;
       margin-top: 10px;
 
@@ -461,7 +461,7 @@
     margin: 0 0 10px;
     font-size: 1.15rem;
     font-weight: 800;
-    color: #1e293b;
+    color: #0B1623;
     line-height: 1.25;
   }
 
@@ -488,7 +488,7 @@
 
   ion-icon {
     font-size: 18px;
-    color: var(--primary);
+    color: #0B1623;
   }
 
   span {
@@ -560,7 +560,7 @@
 
         .verified-icon {
           font-size: 14px;
-          color: var(--primary);
+          color: #0B1623;
         }
         .verified-label {
           font-size: 0.7rem;
@@ -584,12 +584,12 @@
       font-size: 20px;
       cursor: pointer;
       transition: all 0.25s;
-      box-shadow: 0 4px 12px rgba(121, 157, 80, 0.2);
+      box-shadow: 0 4px 12px rgba(216, 245, 31, 0.2);
 
       &:hover {
         background: var(--primary-dark);
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(121, 157, 80, 0.3);
+        box-shadow: 0 6px 16px rgba(216, 245, 31, 0.3);
       }
     }
   }
@@ -640,12 +640,12 @@
           &.condition-used { background: #ffc233; }
         }
 
-        &.stock-ok { color: var(--primary); }
+        &.stock-ok { color: #0B1623; }
         &.stock-low { color: #b38600; }
         &.stock-out { color: #ef4444; }
 
         &.highlight-sales {
-          color: var(--primary);
+          color: #0B1623;
         }
 
         &.rating-value {
@@ -687,7 +687,7 @@
         flex-shrink: 0;
         font-size: 20px;
         background: #ffffff;
-        color: var(--primary);
+        color: #0B1623;
         border: 1px solid var(--border-light);
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       }
@@ -712,7 +712,7 @@
           color: var(--text-main);
 
           &.free-shipping {
-            color: var(--primary);
+            color: #0B1623;
           }
         }
 
@@ -772,7 +772,7 @@
 
       > ion-icon {
         font-size: 20px;
-        color: var(--primary);
+        color: #0B1623;
         padding: 10px;
         background: #ffffff;
         border-radius: 12px;
@@ -846,8 +846,8 @@
             gap: 6px;
 
             &:hover {
-              color: var(--primary);
-              .copy-icon { color: var(--primary); }
+              color: #0B1623;
+              .copy-icon { color: #0B1623; }
             }
           }
         }
@@ -881,14 +881,14 @@
     gap: 10px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(121, 157, 80, 0.25);
+    box-shadow: 0 4px 15px rgba(216, 245, 31, 0.25);
 
     ion-icon { font-size: 20px; }
 
     &:hover {
       background: var(--primary-dark);
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(121, 157, 80, 0.35);
+      box-shadow: 0 8px 20px rgba(216, 245, 31, 0.35);
     }
 
     &:active {

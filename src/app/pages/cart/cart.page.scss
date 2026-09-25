@@ -3,10 +3,10 @@
 /* ============================================ */
 
 :host {
-  --green-main: #799d50;
-  --green-bright: #8DBB23;
-  --green-gradient: linear-gradient(135deg, #8cb55c 0%, #68923e 100%);
-  --dark-text: #1e2d3e;
+  --green-main: #D8F51F;
+  --green-bright: #D8F51F;
+  --green-gradient: linear-gradient(135deg, #D8F51F 0%, #D8F51F 100%);
+  --dark-text: #0B1623;
   --gray-bg: #f4f6f8;
   
   /* Forçar cores claras no componente */
@@ -19,7 +19,7 @@ ion-content.cart-content {
   --background: #f4f6f8 !important;
   --ion-background-color: #f4f6f8 !important;
   background-color: #f4f6f8 !important;
-  --color: #1e2d3e !important;
+  --color: #0B1623 !important;
 }
 
 /* Forçar fundo claro mesmo no Shadow DOM do Ionic */
@@ -29,7 +29,7 @@ ion-content.cart-content {
 
 /* HEADER */
 ion-toolbar {
-  --background: #1e2d3e;
+  --background: #0B1623;
   --border-width: 0;
 
   ion-title {
@@ -68,7 +68,7 @@ ion-toolbar {
     ion-spinner {
       margin-bottom: 16px;
       transform: scale(1.5);
-      color: var(--green-main);
+      color: #0B1623;
     }
 
     p {
@@ -101,7 +101,7 @@ ion-toolbar {
       width: 100px;
       height: 100px;
       border-radius: 50%;
-      background: linear-gradient(145deg, #f0f4e8 0%, #e8f0dc 100%);
+      background: linear-gradient(145deg, rgba(216, 245, 31, 0.22) 0%, rgba(216, 245, 31, 0.22) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -109,7 +109,7 @@ ion-toolbar {
 
       ion-icon {
         font-size: 48px;
-        color: var(--green-main);
+        color: #0B1623;
       }
     }
 
@@ -161,7 +161,7 @@ ion-toolbar {
   .explore-btn {
     --background: var(--green-gradient);
     --border-radius: 14px;
-    --box-shadow: 0 6px 20px rgba(121, 157, 80, 0.35);
+    --box-shadow: 0 6px 20px rgba(216, 245, 31, 0.35);
     font-weight: 700;
     font-size: 15px;
     height: 52px;
@@ -213,8 +213,8 @@ ion-toolbar {
     gap: 5px;
     font-size: 12px;
     font-weight: 700;
-    color: var(--green-main);
-    background: rgba(121, 157, 80, 0.1);
+    color: #0B1623;
+    background: rgba(216, 245, 31, 0.1);
     padding: 4px 10px;
     border-radius: 20px;
 
@@ -232,7 +232,7 @@ ion-toolbar {
   padding: 16px;
   margin: 4px 16px 0;
   cursor: pointer;
-  color: var(--green-main);
+  color: #0B1623;
   font-weight: 700;
   font-size: 14px;
   transition: opacity 0.2s ease;
@@ -301,7 +301,7 @@ ion-toolbar {
         .total-price {
           font-size: 22px;
           font-weight: 800;
-          color: var(--green-main);
+          color: #0B1623;
           letter-spacing: -0.3px;
         }
       }
@@ -319,7 +319,7 @@ ion-toolbar {
   .checkout-btn {
     --background: var(--green-gradient);
     --border-radius: 14px;
-    --box-shadow: 0 6px 20px rgba(121, 157, 80, 0.35);
+    --box-shadow: 0 6px 20px rgba(216, 245, 31, 0.35);
     font-weight: 800;
     font-size: 16px;
     height: 54px;

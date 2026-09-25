@@ -8,12 +8,12 @@
  */
 
 @mixin tokens {
-  --vc-navy: var(--vn-navy-800, #14202E);
-  --vc-navy-2: var(--vn-navy-700, #1F2E40);
-  --vc-neon: var(--vn-neon, #DEFF1A);
-  --vc-green: var(--vn-neon-ink, #4D7C0F);
+  --vc-navy: var(--vn-navy-800, #0B1623);
+  --vc-navy-2: var(--vn-navy-700, #13233A);
+  --vc-neon: var(--vn-neon, #D8F51F);
+  --vc-green: var(--vn-neon-ink, #0B1623);
   --vc-ground: var(--vn-ground, #EDF0F3);
-  --vc-ink: var(--vn-ink, #0D1420);
+  --vc-ink: var(--vn-ink, #0B1623);
   --vc-ink-2: var(--vn-ink-2, #3A4452);
   --vc-muted: var(--vn-ink-muted, #5B6573);
   --vc-line: var(--vn-line, #DDE2E8);
@@ -227,11 +227,11 @@
       left: -50%;
       height: 2px;
       border-radius: 2px;
-      background: #D3DCC2;
+      background: rgba(216, 245, 31, 0.22);
     }
 
     &.is-done::before,
-    &.is-current::before { background: var(--vc-green); }
+    &.is-current::before { background: #D8F51F; }
   }
 
   .trail-node {
@@ -253,7 +253,7 @@
   }
 
   .trail-step.is-done .trail-node::before {
-    background: var(--vc-green);
+    background: #D8F51F;
     box-shadow: none;
   }
 
@@ -341,7 +341,7 @@
     background: #fff;
     color: var(--vc-green);
     box-shadow: inset 0 0 0 1.5px var(--vc-green);
-    &:hover { background: #F2F7E6; }
+    &:hover { background: rgba(216, 245, 31, 0.22); }
   }
 
   .btn--ghost {
@@ -456,7 +456,7 @@
 
     .pg-icon-btn {
       color: var(--vc-ink);
-      &:hover { background: rgba(13, 20, 32, 0.06); }
+      &:hover { background: rgba(11, 22, 35, 0.06); }
       &:focus-visible { outline-color: var(--vc-green); }
     }
 
@@ -474,7 +474,7 @@
       padding: 0 6px;
       border-radius: 12px;
       background: #fff;
-      box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+      box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
     }
 
     .pg-tab {
@@ -526,7 +526,7 @@
   }
 
   .panel--route {
-    background: #F2F7E6;
+    background: rgba(216, 245, 31, 0.22);
     .panel-title { color: var(--vc-green); }
     .panel-title.is-late { color: var(--vc-rust); }
   }
@@ -567,7 +567,7 @@
     padding: 14px 14px 0;
     border-radius: 14px;
     background: #fff;
-    box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+    box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
     animation: vc-card-in 0.32s ease both;
 
     @for $i from 1 through 6 {
@@ -732,7 +732,7 @@
       width: 132px;
       height: 132px;
       border-radius: 50%;
-      border: 2px solid rgba(222, 255, 26, 0.35);
+      border: 2px solid rgba(216, 245, 31, 0.35);
       pointer-events: none;
     }
   }
@@ -805,7 +805,7 @@
     padding: 16px;
     border-radius: 14px;
     background: #fff;
-    box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+    box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
   }
 
   .sheet-title {

@@ -13,27 +13,29 @@
  *
  * Paleta tirada da apresentação da marca. Regra de uso do neon: no conteúdo
  * claro ele só aparece onde há economia (selo de desconto) e no botão de busca
- * — neon é "oferta", não enfeite. Texto verde sobre branco usa `--vn-neon-ink`,
- * porque o neon puro não tem contraste legível em fundo claro.
+ * — neon é "oferta", não enfeite. Desde a unificação na paleta "Noite" (lima
+ * #D8F51F + azul-noite #0B1623), o que era texto verde sobre branco usa
+ * `--vn-neon-ink`, que agora é o próprio azul-noite: lima sobre branco não tem
+ * contraste legível.
  */
 
 :root {
-  --vn-navy-900: #0D1420;   /* Azul profundo */
-  --vn-navy-800: #14202E;   /* Azul escuro */
-  --vn-navy-700: #1F2E40;
-  --vn-neon: #DEFF1A;       /* Verde neon do logotipo */
-  --vn-neon-ink: #4D7C0F;   /* Verde legível em fundo branco (5:1) */
+  --vn-navy-900: #0B1623;   /* Azul profundo */
+  --vn-navy-800: #0B1623;   /* Azul escuro */
+  --vn-navy-700: #13233A;
+  --vn-neon: #D8F51F;       /* Lima do logotipo */
+  --vn-neon-ink: #0B1623;   /* Texto de destaque em fundo claro */
   --vn-ground: #EDF0F3;
   --vn-surface: #FFFFFF;
-  --vn-ink: #0D1420;
+  --vn-ink: #0B1623;
   --vn-ink-2: #3A4452;
   --vn-ink-muted: #5B6573;
   --vn-line: #DDE2E8;
   --vn-alert: #D12F3A;      /* Branco em cima dele passa de 4.5:1 */
 
   --vn-radius: 8px;
-  --vn-shadow-1: 0 1px 2px rgba(13, 20, 32, 0.08);
-  --vn-shadow-2: 0 10px 28px rgba(13, 20, 32, 0.14);
+  --vn-shadow-1: 0 1px 2px rgba(11, 22, 35, 0.08);
+  --vn-shadow-2: 0 10px 28px rgba(11, 22, 35, 0.14);
 
   --vn-font-display: 'Sora', 'Nunito', system-ui, sans-serif;
   --vn-font-body: 'Nunito', system-ui, sans-serif;

@@ -35,7 +35,7 @@
   padding: 14px 14px 0;
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(13, 20, 32, 0.07);
+  box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
   animation: oc-in 0.32s ease both;
 
   @for $i from 1 through 6 {
@@ -239,7 +239,7 @@
 }
 
 .oc-panel--route {
-  background: #F2F7E6;
+  background: rgba(216, 245, 31, 0.22);
   .oc-panel-title { color: var(--vc-green); }
 }
 
@@ -342,7 +342,7 @@
   gap: 12px;
   padding: 14px;
   border-radius: 12px;
-  background: #F2F7E6;
+  background: rgba(216, 245, 31, 0.22);
   color: var(--vc-ink-2);
 
   ion-icon { font-size: 22px; flex-shrink: 0; color: var(--vc-green); }
@@ -375,7 +375,7 @@
   color: var(--vc-ink);
   background: #fff;
 
-  &:focus { outline: 0; border-color: var(--vc-green); box-shadow: 0 0 0 3px rgba(77, 124, 15, 0.15); }
+  &:focus { outline: 0; border-color: #D8F51F; box-shadow: 0 0 0 3px rgba(216, 245, 31, 0.15); }
   &::placeholder { color: #8A93A0; }
 }
 

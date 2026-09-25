@@ -1,15 +1,15 @@
 :host {
   --ion-background-color: #fdfdfd !important;
-  --ion-text-color: #1e2d3e !important;
+  --ion-text-color: #0B1623 !important;
 }
 
 ion-content {
   --background: #fdfdfd !important;
-  --color: #1e2d3e !important;
+  --color: #0B1623 !important;
 }
 
 .favorites-header-toolbar {
-  --background: #1e2d3e;
+  --background: #0B1623;
   --padding-bottom: 15px;
 
   .header-section {
@@ -35,7 +35,7 @@ ion-content {
 
         ion-icon {
           font-size: 20px;
-          color: #799d50 !important;
+          color: #0B1623 !important;
         }
 
         input {
@@ -59,7 +59,7 @@ ion-content {
 .favorites-content {
   --background: #f8f9fa !important;
   background: #f8f9fa !important;
-  color: #1e2d3e !important;
+  color: #0B1623 !important;
 }
 
 .loading-container {
@@ -105,7 +105,7 @@ ion-content {
   h2 {
     font-size: 20px;
     font-weight: 700;
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
     margin: 0 0 12px;
   }
 
@@ -115,4 +115,4 @@ ion-content {
     color: #666 !important;
     margin: 0;
   }
-}
+}

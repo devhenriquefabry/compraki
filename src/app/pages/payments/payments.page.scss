@@ -36,7 +36,7 @@
     }
 
     .btn-add {
-      --color: #799d50;
+      --color: #0B1623;
       font-weight: 700;
       font-size: 14px;
       margin: 0;
@@ -149,8 +149,8 @@
       position: absolute;
       bottom: -12px;
       left: 24px;
-      background: #799d50;
-      color: white;
+      background: #D8F51F;
+      color: #0B1623;
       padding: 6px 12px;
       border-radius: 12px;
       font-size: 11px;
@@ -158,7 +158,7 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      box-shadow: 0 4px 10px rgba(121, 157, 80, 0.4);
+      box-shadow: 0 4px 10px rgba(216, 245, 31, 0.4);
 
       ion-icon {
         font-size: 14px;
@@ -254,7 +254,7 @@
 
     ion-icon {
       font-size: 24px;
-      color: #799d50;
+      color: #0B1623;
       margin-bottom: 8px;
     }
 
@@ -277,7 +277,7 @@
     outline: none;
 
     &:focus {
-      border-color: #799d50;
+      border-color: #D8F51F;
     }
   }
 }

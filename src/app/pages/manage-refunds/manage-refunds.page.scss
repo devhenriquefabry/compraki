@@ -31,8 +31,8 @@
         }
 
         &.active {
-            color: #799d50;
-            border-bottom-color: #799d50;
+            color: #0B1623;
+            border-bottom-color: #D8F51F;
         }
 
         .badge {
@@ -60,7 +60,7 @@
         h3 {
             margin: 0;
             font-size: 1.1rem;
-            color: #1e293b;
+            color: #0B1623;
             font-weight: 700;
         }
     }
@@ -91,7 +91,7 @@
             justify-content: center;
             font-size: 24px;
 
-            &.holding { background: #f0fdf4; color: #16a34a; }
+            &.holding { background: rgba(216, 245, 31, 0.22); color: #0B1623; }
             &.release { background: #eff6ff; color: #2563eb; }
         }
 
@@ -100,7 +100,7 @@
             flex-direction: column;
 
             .label { font-size: 0.85rem; color: #64748b; font-weight: 500; }
-            .value { font-size: 1.4rem; color: #0f172a; font-weight: 700; }
+            .value { font-size: 1.4rem; color: #0B1623; font-weight: 700; }
         }
     }
 }
@@ -167,7 +167,7 @@
             align-items: center;
 
             .label { color: #64748b; font-size: 0.9rem; }
-            .text { color: #1e293b; font-weight: 500; font-size: 0.95rem; }
+            .text { color: #0B1623; font-weight: 500; font-size: 0.95rem; }
         }
 
         .dispute-reason {
@@ -214,7 +214,7 @@
 }
 
 .fw-bold { font-weight: 700 !important; }
-.success { color: #16a34a !important; }
+.success { color: #0B1623 !important; }
 .danger { color: #dc2626 !important; }
 
 .status-badge {
@@ -225,12 +225,12 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 
-    &.holding { background: #f0fdf4; color: #16a34a; }
+    &.holding { background: rgba(216, 245, 31, 0.22); color: #0B1623; }
     &.requested { background: #fef3c7; color: #d97706; }
-    &.approved { background: #dcfce7; color: #15803d; }
+    &.approved { background: rgba(216, 245, 31, 0.22); color: #0B1623; }
     &.rejected { background: #fee2e2; color: #b91c1c; }
     &.completed { background: #f1f5f9; color: #475569; }
-    &.success { background: #dcfce7; color: #15803d; }
+    &.success { background: rgba(216, 245, 31, 0.22); color: #0B1623; }
 }
 
 /* Modal */
@@ -242,7 +242,7 @@
     border: 1px solid #e2e8f0;
     margin-bottom: 24px;
 
-    h4 { margin-top: 0; color: #0f172a; margin-bottom: 12px; }
+    h4 { margin-top: 0; color: #0B1623; margin-bottom: 12px; }
     p { margin: 6px 0; color: #475569; font-size: 0.9rem; }
 }
 

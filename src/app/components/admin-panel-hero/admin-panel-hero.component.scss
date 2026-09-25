@@ -6,9 +6,9 @@
   padding: 22px;
   margin-bottom: 16px;
   background: linear-gradient(135deg, #ffffff 0%, #f7fbf3 100%);
-  border: 1px solid #edf3e7;
+  border: 1px solid rgba(216, 245, 31, 0.22);
   border-radius: 22px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 12px 30px rgba(11, 22, 35, 0.04);
 }
 
 .admin-panel-hero__text {
@@ -18,7 +18,7 @@
 
 .admin-panel-hero__eyebrow {
   display: inline-flex;
-  color: #799d50;
+  color: #0B1623;
   font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -29,7 +29,7 @@
 .admin-panel-hero__title {
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  color: #172033;
+  color: #0B1623;
   font-size: clamp(1.6rem, 3vw, 2.4rem);
   font-weight: 900;
   letter-spacing: -1px;
@@ -65,7 +65,7 @@
   display: flex;
   gap: 6px;
   padding: 5px;
-  background: #eef4e8;
+  background: rgba(216, 245, 31, 0.22);
   border-radius: 14px;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -84,8 +84,8 @@
 
     &.active {
       background: #fff;
-      color: #799d50;
-      box-shadow: 0 6px 16px rgba(121, 157, 80, 0.12);
+      color: #0B1623;
+      box-shadow: 0 6px 16px rgba(216, 245, 31, 0.12);
     }
 
     &:hover:not(.active) {
@@ -138,12 +138,12 @@
   padding: 0 16px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #799d50 0%, #6b8f45 100%);
-  color: #fff;
+  background: #D8F51F;
+  color: #0B1623;
   font-size: 0.76rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(121, 157, 80, 0.25);
+  box-shadow: 0 6px 16px rgba(216, 245, 31, 0.25);
   font-family: inherit;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 
@@ -153,7 +153,7 @@
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(121, 157, 80, 0.32);
+    box-shadow: 0 8px 20px rgba(216, 245, 31, 0.32);
   }
 }
 
@@ -170,18 +170,18 @@
   font-size: 0.76rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  box-shadow: 0 4px 12px rgba(11, 22, 35, 0.03);
   font-family: inherit;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   ion-icon {
-    color: #799d50;
+    color: #0B1623;
     font-size: 17px;
   }
 
   &:hover {
     border-color: #cbd5e1;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 6px 16px rgba(11, 22, 35, 0.06);
   }
 }
 

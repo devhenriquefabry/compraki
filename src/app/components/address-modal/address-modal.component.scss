@@ -156,7 +156,7 @@
   color: var(--vc-ink-2);
   cursor: pointer;
 
-  input { width: 16px; height: 16px; margin: 0; accent-color: var(--vc-green); }
+  input { width: 16px; height: 16px; margin: 0; accent-color: #D8F51F; }
 }
 
 /* --------------------------------------------------------- tipo (chips) */
@@ -237,12 +237,13 @@
       height: 20px;
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 1px 3px rgba(13, 20, 32, 0.25);
+      box-shadow: 0 1px 3px rgba(11, 22, 35, 0.25);
       transition: transform 0.2s;
     }
   }
 
-  input:checked + i { background: var(--vc-green); }
+  input:checked + i { background: #D8F51F;
+  color: #0B1623; }
   input:checked + i::after { transform: translateX(18px); }
   input:focus-visible + i { outline: 2px solid var(--vc-green); outline-offset: 2px; }
 }

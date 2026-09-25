@@ -51,13 +51,13 @@
       span {
         font-size: 16px;
         font-weight: 800;
-        color: #1e2d3e;
+        color: #0B1623;
         flex: 1;
       }
 
       .btn-reorder-trigger {
-        background: rgba(121, 157, 80, 0.1);
-        color: var(--cor-principal);
+        background: rgba(216, 245, 31, 0.1);
+        color: #0B1623;
         border: 1px dashed var(--cor-principal);
         padding: 6px 12px;
         border-radius: 20px;
@@ -93,8 +93,8 @@
         background: #fcfcfc;
         cursor: pointer;
 
-        ion-icon { font-size: 24px; color: var(--cor-principal); }
-        span { font-size: 10px; font-weight: 700; color: var(--cor-principal); margin-top: 5px; }
+        ion-icon { font-size: 24px; color: #0B1623; }
+        span { font-size: 10px; font-weight: 700; color: #0B1623; margin-top: 5px; }
         small { font-size: 9px; color: #999; }
       }
 
@@ -171,8 +171,8 @@
         }
         
         &.price-input {
-            .prefix { font-weight: 800; color: var(--cor-principal); margin-right: 5px; font-size: 14px; }
-            input { color: var(--cor-principal); font-size: 16px; font-weight: 900; }
+            .prefix { font-weight: 800; color: #0B1623; margin-right: 5px; font-size: 14px; }
+            input { color: #0B1623; font-size: 16px; font-weight: 900; }
         }
 
         &.stock-input {
@@ -230,8 +230,8 @@
           &.active {
             border-color: var(--cor-principal);
             background: #f7faf5;
-            color: var(--cor-principal);
-            box-shadow: 0 4px 10px rgba(121, 157, 80, 0.1);
+            color: #0B1623;
+            box-shadow: 0 4px 10px rgba(216, 245, 31, 0.1);
           }
         }
       }
@@ -274,9 +274,9 @@
         &.active {
           border-color: var(--cor-principal);
           background: #f7faf5;
-          color: var(--cor-principal);
-          box-shadow: 0 4px 12px rgba(121, 157, 80, 0.15);
-          ion-icon { color: var(--cor-principal); }
+          color: #0B1623;
+          box-shadow: 0 4px 12px rgba(216, 245, 31, 0.15);
+          ion-icon { color: #0B1623; }
         }
       }
 
@@ -300,7 +300,7 @@
           border-color: var(--cor-principal);
           background: var(--cor-principal);
           color: #fff;
-          box-shadow: 0 4px 10px rgba(121, 157, 80, 0.2);
+          box-shadow: 0 4px 10px rgba(216, 245, 31, 0.2);
         }
       }
     }
@@ -326,7 +326,7 @@
 
     .btn-publish {
       width: 100%;
-      background: linear-gradient(to right, #182E3C, #324a5e);
+      background: linear-gradient(to right, #0B1623, #324a5e);
       color: white;
       border: none;
       padding: 18px;
@@ -338,7 +338,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      box-shadow: 0 10px 25px rgba(24, 46, 60, 0.2);
+      box-shadow: 0 10px 25px rgba(11, 22, 35, 0.2);
       
       &:disabled { opacity: 0.6; }
     }
@@ -371,8 +371,8 @@
 
     .btn-publish {
       width: 100%;
-      background: linear-gradient(to right, #799d50, #96c93d);
-      color: white;
+      background: #D8F51F;
+      color: #0B1623;
       border: none;
       padding: 16px;
       border-radius: 14px;
@@ -382,7 +382,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      box-shadow: 0 8px 20px rgba(121, 157, 80, 0.3);
+      box-shadow: 0 8px 20px rgba(216, 245, 31, 0.3);
       &:disabled { opacity: 0.5; }
       &:active { transform: scale(0.98); }
     }

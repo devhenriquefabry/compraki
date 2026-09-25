@@ -21,7 +21,7 @@
     align-items: center;
     gap: 5px;
     margin-top: 15px;
-    color: var(--cor-principal, #799d50);
+    color: #0B1623;
     font-size: 12px;
     font-weight: 700;
     opacity: 0.8;
@@ -56,7 +56,7 @@
   --padding-bottom: 15px;
   
   .category-icon {
-    color: var(--cor-principal, #799d50);
+    color: #0B1623;
     font-size: 28px;
     margin-right: 15px;
   }
@@ -65,7 +65,7 @@
     font-weight: 800;
     font-size: 18px;
     margin: 0 0 6px 0 !important;
-    color: #1e2d3e !important;
+    color: #0B1623 !important;
     display: block !important;
     min-height: 20px;
   }
@@ -92,8 +92,9 @@
     margin-bottom: 4px;
   }
 
-  &[color="success"] { --background: #799d50; }
-  &[color="primary"] { --background: #1e2d3e; }
+  &[color="success"] { --background: #D8F51F;
+  --color: #0B1623; }
+  &[color="primary"] { --background: #0B1623; }
   &[color="danger"] { --background: #ff4961; }
 }
 
@@ -130,19 +131,20 @@
   .add-sub-chip {
     display: flex;
     align-items: center;
-    background: #799d50;
-    color: #fff;
+    background: #D8F51F;
+    color: #0B1623;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 13px;
     cursor: pointer;
     font-weight: 800;
     transition: all 0.2s;
-    box-shadow: 0 4px 10px rgba(121, 157, 80, 0.2);
+    box-shadow: 0 4px 10px rgba(216, 245, 31, 0.2);
     border: none;
     margin-left: auto;
     
-    &:active { transform: scale(0.94); background: #5c8236; }
+    &:active { transform: scale(0.94); background: #D8F51F;
+    color: #0B1623; }
     ion-icon { font-size: 18px; margin-right: 6px; }
   }
 }
@@ -153,10 +155,11 @@
 }
 
 .main-button {
-  --background: var(--cor-principal, #799d50);
+  --background: var(--cor-principal, #D8F51F);
   --border-radius: 8px;
   margin-top: 20px;
   font-weight: 600;
+  --color: #0B1623;
 }
 
 .icon-label-group {
@@ -201,8 +204,8 @@
 
     &.active {
       background: #f7faf5;
-      border-color: var(--cor-principal, #799d50);
-      ion-icon { color: var(--cor-principal, #799d50); }
+      border-color: var(--cor-principal, #D8F51F);
+      ion-icon { color: #0B1623; }
     }
   }
 }
@@ -236,7 +239,7 @@
     margin: 0;
     font-size: 1.2rem;
     font-weight: 800;
-    color: #1e2d3e;
+    color: #0B1623;
   }
 
   p {

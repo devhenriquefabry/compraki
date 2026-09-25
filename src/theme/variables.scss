@@ -1,8 +1,29 @@
 // For information on how to create your own theme, please refer to:
 // https://ionicframework.com/docs/theming/
+//
+// Paleta única do app e do site: direção "Noite" (handoff do Claude Design).
+// Lima só como fundo/preenchimento (botão, selo, borda); texto em cima dele e
+// texto que era verde em fundo claro vão em azul-noite, porque lima sobre
+// branco não tem contraste legível.
 :root {
-  /* ... other variables ... */
-    --cor-principal : #8DBB23;
-    --cor-secundaria : #182E3C;
-  
+  --vn-lime: #D8F51F;
+  --vn-navy: #0B1623;
+  --vn-navy-2: #13233A;
+
+  --cor-principal: #D8F51F;
+  --cor-secundaria: #0B1623;
+
+  --ion-color-primary: #D8F51F;
+  --ion-color-primary-rgb: 216, 245, 31;
+  --ion-color-primary-contrast: #0B1623;
+  --ion-color-primary-contrast-rgb: 11, 22, 35;
+  --ion-color-primary-shade: #BED81B;
+  --ion-color-primary-tint: #DCF635;
+
+  --ion-color-success: #D8F51F;
+  --ion-color-success-rgb: 216, 245, 31;
+  --ion-color-success-contrast: #0B1623;
+  --ion-color-success-contrast-rgb: 11, 22, 35;
+  --ion-color-success-shade: #BED81B;
+  --ion-color-success-tint: #DCF635;
 }

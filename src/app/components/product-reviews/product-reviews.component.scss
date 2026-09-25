@@ -1,6 +1,6 @@
 :host {
   display: block;
-  color: var(--vn-ink, #0D1420);
+  color: var(--vn-ink, #0B1623);
   font-family: var(--vn-font-body, 'Nunito', system-ui, sans-serif);
 }
 
@@ -19,7 +19,7 @@ textarea {
   height: var(--size);
   clip-path: polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.8% 57.1%, 79.4% 91.2%, 50% 70.6%, 20.6% 91.2%, 31.2% 57.1%, 1.9% 35.3%, 38.2% 35.3%);
   background: linear-gradient(90deg,
-    var(--vn-navy-900, #0D1420) calc(var(--fill, 0) * 100%),
+    var(--vn-navy-900, #0B1623) calc(var(--fill, 0) * 100%),
     var(--vn-line, #DDE2E8) calc(var(--fill, 0) * 100%));
 
   &--mini {
@@ -109,7 +109,7 @@ textarea {
   }
 
   &:focus-visible {
-    outline: 2px solid var(--vn-navy-900, #0D1420);
+    outline: 2px solid var(--vn-navy-900, #0B1623);
     outline-offset: 1px;
   }
 }
@@ -133,7 +133,7 @@ textarea {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--vn-navy-900, #0D1420);
+  background: var(--vn-navy-900, #0B1623);
 }
 
 .pr-bar-count {
@@ -193,7 +193,7 @@ textarea {
 
   ion-icon {
     font-size: 17px;
-    color: var(--vn-neon-ink, #4D7C0F);
+    color: var(--vn-neon-ink, #0B1623);
   }
 }
 
@@ -234,17 +234,17 @@ textarea {
   }
 
   &:focus-visible {
-    outline: 2px solid var(--vn-navy-900, #0D1420);
+    outline: 2px solid var(--vn-navy-900, #0B1623);
     outline-offset: 2px;
   }
 
   &--primary {
-    background: var(--vn-navy-900, #0D1420);
-    border-color: var(--vn-navy-900, #0D1420);
+    background: var(--vn-navy-900, #0B1623);
+    border-color: var(--vn-navy-900, #0B1623);
     color: #fff;
 
     &:hover:not(:disabled) {
-      background: var(--vn-navy-700, #1F2E40);
+      background: var(--vn-navy-700, #13233A);
     }
   }
 
@@ -307,7 +307,7 @@ textarea {
   }
 
   &.is-on {
-    color: var(--vn-navy-900, #0D1420);
+    color: var(--vn-navy-900, #0B1623);
   }
 
   &:hover {
@@ -315,7 +315,7 @@ textarea {
   }
 
   &:has(input:focus-visible) {
-    outline: 2px solid var(--vn-navy-900, #0D1420);
+    outline: 2px solid var(--vn-navy-900, #0B1623);
     outline-offset: 1px;
     border-radius: 6px;
   }
@@ -351,7 +351,7 @@ textarea {
     line-height: 1.5;
 
     &:focus {
-      outline: 2px solid var(--vn-navy-900, #0D1420);
+      outline: 2px solid var(--vn-navy-900, #0B1623);
       outline-offset: -1px;
     }
   }
@@ -470,7 +470,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--vn-neon-ink, #4D7C0F);
+  color: var(--vn-neon-ink, #0B1623);
   font-weight: 700;
 
   ion-icon {
@@ -485,7 +485,7 @@ textarea {
   padding: 8px 0;
   font-size: 14px;
   font-weight: 800;
-  color: var(--vn-ink, #0D1420);
+  color: var(--vn-ink, #0B1623);
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;

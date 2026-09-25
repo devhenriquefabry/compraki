@@ -42,7 +42,7 @@
   cursor: pointer;
 
   &.selected {
-    background: #f0fff4;
+    background: rgba(216, 245, 31, 0.22);
     border-color: var(--ion-color-success);
     
     .radio-indicator {
@@ -92,7 +92,7 @@
 
     .delivery-time {
       font-size: 0.75rem;
-      color: #22c55e;
+      color: #0B1623;
       display: flex;
       align-items: center;
       gap: 4px;
@@ -181,7 +181,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   background: #ecfdf3;
-  color: #166534;
+  color: #0B1623;
   font-size: 13px;
 
   ion-icon { font-size: 18px; flex-shrink: 0; }
@@ -194,5 +194,5 @@
 }
 
 .price-val--free {
-  color: #15803d !important;
+  color: #0B1623 !important;
 }
