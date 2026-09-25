@@ -4,6 +4,8 @@ const config: CapacitorConfig = {
   appId: 'io.ionic.starter',
   appName: 'Vineon',
   webDir: 'www/browser',
+  // Fundo do WebView antes da página pintar: o mesmo azul-noite da splash.
+  backgroundColor: '#0B1623',
   plugins: {
     GoogleAuth: {
       scopes: ["profile", "email"],

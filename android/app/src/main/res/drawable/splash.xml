@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash nativa (Android < 12, e fundo da janela até o WebView desenhar):
+  fundo azul-noite com a logo horizontal centralizada, sem esticar.
+  A logo tem 250dp de largura, igual à splash web (app-vineon-splash), para a
+  troca nativa -> WebView acontecer no mesmo lugar.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/vn_splash_background" />
+    <item>
+        <bitmap android:gravity="center" android:src="@drawable/splash_logo" />
+    </item>
+</layer-list>

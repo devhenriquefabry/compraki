@@ -237,6 +237,8 @@ export class AppComponent implements OnInit, OnDestroy {
   onSplashDone() {
     this.showSplash = false;
     sessionStorage.setItem('compraki_splash_done', 'true');
+    // Fundo azul-noite da abertura (ver <script> no index.html).
+    document.documentElement.classList.remove('vn-booting');
   }
 
   logout() {

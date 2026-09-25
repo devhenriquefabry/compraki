@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Azul-noite da marca (#0B1623), o mesmo das telas de entrada. -->
+    <color name="vn_splash_background">#0B1623</color>
+</resources>
