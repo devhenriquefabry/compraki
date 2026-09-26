@@ -9,6 +9,7 @@ import { BannerService } from '../services/banner.service';
 import { Banner } from '../interfaces/banner';
 import { Category } from '../interfaces/category';
 import { Subscription, Observable } from 'rxjs';
+import { shareReplay } from 'rxjs/operators';
 import { trackById } from 'src/app/core/track-by';
 import { LayoutService } from '../core/layout.service';
 import { discountPercent, hasDiscount, hasFreeShipping, installmentHint, priceMain } from '../core/product-pricing';
@@ -29,6 +30,15 @@ export class Tab2Page implements OnInit, OnDestroy {
   @ViewChild(IonModal) modal!: IonModal;
 
   public categories$!: Observable<Category[]>;
+  /** Primeiro retorno de cada fonte: até lá a home de celular mostra esqueleto, não estado vazio. */
+  public categoriesLoaded = false;
+  /** Lista da grade de categorias do celular (assinada aqui: o esqueleto esconde a grade até ela chegar). */
+  public categories: Category[] = [];
+  private categoriesSub?: Subscription;
+  public bannersLoaded = false;
+  /** Quantos cards/itens o esqueleto desenha. */
+  public readonly skeletonCards = [0, 1, 2, 3, 4, 5];
+  public readonly skeletonCategories = [0, 1, 2, 3, 4];
 
   public currentBannerIndex = 0;
   public allProducts: Product[] = [];
@@ -66,11 +76,19 @@ export class Tab2Page implements OnInit, OnDestroy {
       this.applyFilters();
     });
 
-    this.categories$ = this.fbCategories.getAll();
+    // Um listener só para os três lugares que usam a lista (grade, filtro e desktop).
+    this.categories$ = this.fbCategories.getAll().pipe(
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
+    this.categoriesSub = this.categories$.subscribe(categories => {
+      this.categories = categories;
+      this.categoriesLoaded = true;
+    });
 
     // Carrega banners ativos do Firestore
     this.bannerSub = this.bannerService.getActiveBanners().subscribe(banners => {
       this.activeBanners = banners;
+      this.bannersLoaded = true;
       this.currentBannerIndex = 0;
     });
 
@@ -93,6 +111,7 @@ export class Tab2Page implements OnInit, OnDestroy {
       this.productSub.unsubscribe();
     }
     this.bannerSub?.unsubscribe();
+    this.categoriesSub?.unsubscribe();
     if (this.bannerInterval) {
       clearInterval(this.bannerInterval);
     }

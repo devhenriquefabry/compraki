@@ -40,13 +40,19 @@
       <!-- BANNER TOPO (Snap Nativo + Drag) -->
       <div class="banner-scroll-container" #bannerContainer>
         <div class="scroll-track">
-          <!-- Banners dinâmicos do Firestore -->
-          @if (activeBanners.length > 0) {
+          <!-- Banners dinâmicos do Firestore (esqueleto até o primeiro retorno) -->
+          @if (!bannersLoaded) {
+            <div class="banner-slide" aria-hidden="true">
+              <div class="promo-banner promo-banner--skeleton vn-skel"></div>
+            </div>
+          } @else if (activeBanners.length > 0) {
             @for (banner of activeBanners; track banner.id) {
               <div class="banner-slide">
-                <div class="promo-banner" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
+                <div class="promo-banner" [class.promo-banner--image]="!!banner.imageURL" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
                   @if (banner.imageURL) {
-                    <img class="banner-bg-img" [src]="banner.imageURL" [alt]="banner.title">
+                    <!-- Some com opacidade 0 até carregar: nada de caixa lima vazia nem imagem pintando aos pedaços -->
+                    <img class="banner-bg-img" [src]="banner.imageURL" [alt]="banner.title"
+                         (load)="$any($event.target).classList.add('is-loaded')">
                   } @else {
                     <div class="promo-text" [style.color]="banner.textColor">
                       <h3>{{ banner.title }}</h3>
@@ -62,7 +68,7 @@
           } @else {
             <!-- Fallback: banner padrão enquanto não há banners cadastrados -->
             <div class="banner-slide">
-              <div class="promo-banner">
+              <div class="promo-banner promo-banner--fallback">
                 <div class="promo-text">
                   <h3>Mega Promoção!</h3>
                   <p>Descontos de até <span>60% OFF</span></p>
@@ -77,6 +83,16 @@
     </div>
 
     <!-- CATEGORIAS -->
+    @if (!categoriesLoaded) {
+    <div class="category-grid" aria-busy="true" aria-label="Carregando categorias">
+      @for (i of skeletonCategories; track i) {
+        <div class="cat-item" aria-hidden="true">
+          <div class="cat-circle vn-skel"></div>
+          <span class="vn-skel vn-skel--text"></span>
+        </div>
+      }
+    </div>
+    } @else {
     <div class="category-grid">
       <div class="cat-item" (click)="clearFilters()">
         <div class="cat-circle" [class.active]="selectedCategory === 'Todas'">
@@ -84,13 +100,37 @@
         </div>
         <span>Todas</span>
       </div>
-      <div class="cat-item" *ngFor="let cat of (categories$ | async); trackBy: trackById" (click)="filterByCategory(cat.id)">
+      <div class="cat-item" *ngFor="let cat of categories; trackBy: trackById" (click)="filterByCategory(cat.id)">
         <div class="cat-circle" [class.active]="selectedCategory === cat.id">
           <ion-icon [name]="getIcon(cat.icon)"></ion-icon>
         </div>
         <span>{{ cat.name }}</span>
       </div>
     </div>
+    }
+
+    <!-- ESQUELETO: mesmo tamanho da grade real, para nada pular quando os produtos chegarem -->
+    @if (!productsLoaded) {
+      <div class="products-section-head market-head" aria-hidden="true">
+        <div class="market-head-text">
+          <span class="vn-skel vn-skel--title"></span>
+          <span class="vn-skel vn-skel--sub"></span>
+        </div>
+      </div>
+      <div class="products-marketplace-grid" aria-busy="true" aria-label="Carregando produtos">
+        @for (i of skeletonCards; track i) {
+          <div class="marketplace-card marketplace-card--skeleton" aria-hidden="true">
+            <div class="card-img vn-skel"></div>
+            <div class="card-info">
+              <span class="vn-skel vn-skel--line"></span>
+              <span class="vn-skel vn-skel--line vn-skel--short"></span>
+              <span class="vn-skel vn-skel--price"></span>
+              <span class="vn-skel vn-skel--line vn-skel--tiny"></span>
+            </div>
+          </div>
+        }
+      </div>
+    }
 
     <div class="products-section-head market-head" *ngIf="filteredProducts.length > 0">
       <div class="market-head-text">
@@ -108,7 +148,7 @@
     </div>
 
     <!-- EMPTY STATE (Quando não há produtos) -->
-    <div class="empty-marketplace animate-fade" *ngIf="filteredProducts.length === 0">
+    <div class="empty-marketplace animate-fade" *ngIf="productsLoaded && filteredProducts.length === 0">
       <div class="empty-icon-wrap">
         <ion-icon name="cube-outline"></ion-icon>
       </div>
@@ -127,7 +167,7 @@
       <ion-button fill="clear" color="light" (click)="clearFilters()">Limpar busca</ion-button>
     </div>
 
-    <div class="no-results" *ngIf="filteredProducts.length === 0">
+    <div class="no-results" *ngIf="productsLoaded && filteredProducts.length === 0">
       <ion-icon name="search-outline"></ion-icon>
       <h3>Nenhum produto encontrado</h3>
       <p>Tente termos mais genéricos ou verifique a ortografia.</p>
@@ -158,7 +198,9 @@
       <img
         [src]="(product.photoURL && product.photoURL.length > 0) ? product.photoURL[0] : 'assets/imagens/imagem-placeholder.png'"
         [alt]="product.name"
-        loading="lazy" />
+        loading="lazy"
+        (load)="$any($event.target).classList.add('is-loaded')"
+        (error)="$any($event.target).classList.add('is-loaded')" />
     </div>
     <div class="card-info">
       <h3 class="card-name">{{ product.name }}</h3>

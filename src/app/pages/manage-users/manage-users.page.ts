@@ -16,6 +16,7 @@ import { Order } from '../../interfaces/order';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 import { FirebaseUsersService } from '../../services/firebase-users.service';
 import { ModerationService } from '../../services/moderation.service';
+import { loadLeaflet } from '../../core/load-leaflet';
 
 type UserStatusFilter = 'all' | 'online' | 'offline' | 'unknown';
 type UserRoleFilter = 'all' | 'seller' | 'buyer';
@@ -210,9 +211,14 @@ export class ManageUsersPage implements OnInit, OnDestroy {
     });
   }
 
-  private initMap(): void {
-    const L = (window as any).L;
-    if (!L) return;
+  private async initMap(): Promise<void> {
+    let L: any;
+    try {
+      L = await loadLeaflet();
+    } catch {
+      return;
+    }
+    if (!document.getElementById('users-map')) return;
 
     if (this.map) {
       this.map.remove();

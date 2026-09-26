@@ -951,3 +951,120 @@ ion-toolbar {
     p { font-size: 16px; }
   }
 }
+/* ===== ESQUELETO DE CARREGAMENTO (home de celular) =====
+   Até o primeiro retorno de banners, categorias e produtos a tela mostra blocos
+   com o formato final, em vez de banner provisório e estado "sem produtos". */
+.vn-skel {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #E9EDF1 0%, #F4F6F8 50%, #E9EDF1 100%);
+  background-size: 200% 100%;
+  animation: vn-skel-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes vn-skel-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* Na faixa azul o bloco do banner é azul mais claro, não cinza — e opaco: a
+   faixa atrás dele clareia até o branco, e um bloco translúcido "desbotava". */
+.banner-scroll-container .promo-banner--skeleton {
+  padding: 0;
+  box-shadow: none;
+  background: linear-gradient(90deg, #16263B 0%, #1F3149 50%, #16263B 100%);
+  background-size: 200% 100%;
+}
+
+/* Foto do produto: fundo claro enquanto carrega e entrada suave. */
+.marketplace-card .card-img:has(img:not(.is-loaded)) {
+  background: #F1F3F6;
+}
+
+.marketplace-card .card-img img {
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.35s ease;
+
+  &.is-loaded { opacity: 1; }
+}
+
+.category-grid .cat-item .cat-circle.vn-skel {
+  border-color: transparent;
+}
+
+.category-grid .cat-item .vn-skel--text {
+  width: 48px;
+  height: 10px;
+  margin-top: 2px;
+}
+
+.vn-skel--title {
+  width: 170px;
+  height: 20px;
+  margin-bottom: 8px;
+}
+
+.vn-skel--sub {
+  width: 230px;
+  max-width: 100%;
+  height: 12px;
+}
+
+.marketplace-card--skeleton {
+  cursor: default;
+
+  &:active { transform: none; }
+
+  .card-img.vn-skel {
+    border-radius: 0;
+    border-bottom: 0;
+    background: linear-gradient(90deg, #E9EDF1 0%, #F4F6F8 50%, #E9EDF1 100%);
+    background-size: 200% 100%;
+  }
+
+  .card-info { gap: 8px; }
+
+  .vn-skel--line { height: 12px; width: 100%; }
+  .vn-skel--short { width: 70%; }
+  .vn-skel--tiny { width: 45%; height: 10px; }
+  .vn-skel--price { width: 55%; height: 20px; margin-top: 4px; }
+}
+
+/* Banner com imagem: fundo azul até a imagem chegar, e ela entra suave. */
+.banner-scroll-container .promo-banner--image {
+  background: #13233A;
+  box-shadow: none;
+
+  .banner-bg-img {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+
+    &.is-loaded { opacity: 1; }
+  }
+}
+
+/* Banner provisório (sem banner cadastrado): a proporção fixa 2,7:1 cortava o
+   título e o botão em telas de 375 px; aqui a altura acompanha o conteúdo. */
+.banner-scroll-container .promo-banner--fallback {
+  aspect-ratio: auto;
+  min-height: 140px;
+  gap: 12px;
+  padding: 18px 16px 18px 20px;
+
+  .promo-text { flex: 1 1 auto; min-width: 0; }
+
+  img {
+    flex: 0 1 44%;
+    min-width: 0;
+    max-width: 44%;
+    height: auto;
+    max-height: 120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vn-skel,
+  .banner-scroll-container .promo-banner--skeleton {
+    animation: none;
+  }
+}

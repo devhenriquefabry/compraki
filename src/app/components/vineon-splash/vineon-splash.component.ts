@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, output } from '@angular/core';
 
-/** A logo termina de se desenhar em ~2,0 s (com movimento reduzido, ~0,2 s). */
+/**
+ * A logo termina de se desenhar em ~2,0 s. Toca igual com "Reduzir movimento":
+ * é só traço aparecendo, sem deslocamento — encurtar deixava a logo com cara de
+ * estática no iPhone.
+ */
 const ANIM_MS = 2000;
-const ANIM_REDUCED_MS = 200;
 /** Pausa com a logo completa antes de entrar no app. */
 const PAUSE_MS = 750;
 /** Igual ao transition do .vn-boot no index.html. */
@@ -44,8 +47,7 @@ export class VineonSplashComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const total = (reduced ? ANIM_REDUCED_MS : ANIM_MS) + PAUSE_MS;
+    const total = ANIM_MS + PAUSE_MS;
     const elapsed = window.__vnBootT != null ? performance.now() - window.__vnBootT : 0;
 
     this.timers.push(setTimeout(() => {
