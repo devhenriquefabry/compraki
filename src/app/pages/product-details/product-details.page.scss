@@ -1472,3 +1472,23 @@ a {
   ion-icon { font-size: 13px; }
   &:hover { color: #9a3412; }
 }
+
+/* Anúncio feito pelo catálogo Vineon: ficha técnica padronizada. */
+.pd-catalog-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 12px;
+  color: #5B6573;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  ion-icon {
+    flex-shrink: 0;
+    padding: 3px;
+    border-radius: 6px;
+    background: #0B1623;
+    color: #D8F51F;
+    font-size: 13px;
+  }
+}

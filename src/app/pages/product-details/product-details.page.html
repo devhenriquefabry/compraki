@@ -63,7 +63,7 @@
                 <button type="button" class="pd-link" (click)="share(p)">
                   <ion-icon name="share-social-outline" aria-hidden="true"></ion-icon> Compartilhar
                 </button>
-                <a class="pd-link" routerLink="/tabs/upload-product">Vender um igual</a>
+                <a class="pd-link" routerLink="/tabs/upload-product" [queryParams]="p.catalogId ? { catalog: p.catalogId } : null">Vender um igual</a>
               </div>
             </div>
           }
@@ -212,6 +212,12 @@
               <!-- Características -->
               <section class="pd-sheet pd-sheet--pad" aria-labelledby="pd-specs-title">
                 <h2 class="pd-h2" id="pd-specs-title">Características do produto</h2>
+                @if (p.catalogId) {
+                  <p class="pd-catalog-note">
+                    <ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon>
+                    Ficha técnica do catálogo Vineon, com as especificações do fabricante.
+                  </p>
+                }
                 @let visibleSpecs = (specsExpanded || specs.length <= 8) ? specs : specs.slice(0, 6);
                 <dl class="pd-specs">
                   @for (row of visibleSpecs; track row.label + $index) {

@@ -1,4 +1,35 @@
 <div class="pve">
+  @if (locked()) {
+    <div class="pve-catalog">
+      <p class="pve-catalog-intro">
+        <ion-icon name="checkbox-outline" aria-hidden="true"></ion-icon>
+        Marque as opções que você tem. Cada combinação ganha estoque próprio logo abaixo.
+      </p>
+      @for (group of catalogGroups(); track group.name; let i = $index) {
+        <div class="pve-catalog-group" role="group" [attr.aria-label]="group.name">
+          <div class="pve-catalog-head">
+            <strong>{{ group.name }}</strong>
+            <span>{{ group.count }} de {{ group.options.length }}</span>
+            <button type="button" class="pve-catalog-all" (click)="toggleAllCatalogValues(i)">
+              {{ group.count === group.options.length ? 'Desmarcar todas' : 'Marcar todas' }}
+            </button>
+          </div>
+          <div class="pve-catalog-options">
+            @for (opt of group.options; track opt.value) {
+              <button type="button" class="pve-option" [class.is-on]="opt.on" [attr.aria-pressed]="opt.on"
+                      (click)="toggleCatalogValue(i, opt.value)">
+                @if (i === 0 && imageFor(opt.value)) {
+                  <img [src]="imageFor(opt.value)" alt="" loading="lazy">
+                }
+                <span>{{ opt.value }}</span>
+                <ion-icon class="pve-option-check" [name]="opt.on ? 'checkmark-circle' : 'ellipse-outline'" aria-hidden="true"></ion-icon>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
   <div class="pve-toggle">
     <div class="pve-toggle-text">
       <label>Este produto tem variações?</label>
@@ -92,8 +123,11 @@
         </div>
       }
     </div>
+  }
+  }
 
-    @if (rows().length > 0) {
+  @if (hasVariants()) {
+    @if (rows().length > 0 && (!locked() || catalogReady())) {
       <div class="pve-matrix">
         <div class="pve-matrix-head">
           <span>Combinações</span>
@@ -118,7 +152,7 @@
                   <input
                     type="number" min="0" step="0.01"
                     [value]="row.price ?? ''"
-                    [placeholder]="basePrice() ? ('Padrão: ' + basePrice()) : '0,00'"
+                    [placeholder]="basePriceLabel()"
                     [attr.aria-label]="'Preço para ' + rowLabel(row)"
                     (input)="updateSkuPrice(row, $event)">
                 </div>
@@ -136,6 +170,8 @@
           }
         </div>
       </div>
+    } @else if (locked()) {
+      <p class="pve-hint">Escolha ao menos uma opção de cada item acima para informar o estoque.</p>
     } @else if (attributes().length > 0) {
       <p class="pve-hint">Adicione ao menos um valor em cada atributo para gerar as combinações.</p>
     }

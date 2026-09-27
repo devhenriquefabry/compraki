@@ -3,5 +3,36 @@
 </ion-header>
 
 <ion-content>
- <app-upload-product-form></app-upload-product-form>
+  <nav class="up-steps" [class.is-dark]="step() === 'find'" aria-label="Etapas do anúncio">
+    <ol>
+      @for (s of steps(); track s.key; let i = $index) {
+        <li [class.is-done]="i < stepIndex()" [class.is-current]="i === stepIndex()">
+          <button type="button" (click)="goToStep(s.key, i)" [disabled]="i >= stepIndex()"
+                  [attr.aria-current]="i === stepIndex() ? 'step' : null">
+            <span class="up-steps__n" aria-hidden="true">
+              @if (i < stepIndex()) { <ion-icon name="checkmark"></ion-icon> } @else { {{ i + 1 }} }
+            </span>
+            <span class="up-steps__label">{{ s.label }}</span>
+          </button>
+        </li>
+      }
+    </ol>
+  </nav>
+
+  <!-- A busca continua viva por trás dos outros passos: voltar mantém o que foi digitado. -->
+  <div [hidden]="step() !== 'find'">
+    <app-catalog-finder (picked)="onPicked($event)" (manual)="startManual()"></app-catalog-finder>
+  </div>
+
+  @if (step() === 'confirm' && catalogProduct(); as product) {
+    <app-catalog-confirm [product]="product" [categoryLabel]="categoryLabel()"
+                         (back)="backToFind()" (accept)="startWithCatalog($event)"></app-catalog-confirm>
+  }
+
+  @if (step() === 'form') {
+    @for (key of [formKey()]; track key) {
+      <app-upload-product-form [catalogProduct]="catalogProduct()" [competition]="competition()"
+                               (changeProduct)="changeProduct()" (published)="onPublished()"></app-upload-product-form>
+    }
+  }
 </ion-content>

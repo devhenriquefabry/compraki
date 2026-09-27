@@ -76,9 +76,9 @@
     &.is-complete {
       background: var(--cor-principal);
       border-color: var(--cor-principal);
-      .progress-ring-fill { stroke: #fff; }
-      .progress-ring-bg { stroke: rgba(255,255,255,0.3); }
-      span { color: #fff; }
+      .progress-ring-fill { stroke: #0B1623; }
+      .progress-ring-bg { stroke: rgba(11, 22, 35, 0.2); }
+      span { color: #0B1623; }
     }
   }
 
@@ -216,6 +216,7 @@
 
         &.is-cover {
           background: var(--cor-principal);
+          color: #0B1623;
         }
       }
 
@@ -831,4 +832,206 @@
   font-weight: 700;
 
   ion-icon { font-size: 16px; }
+}
+
+/* ===================== CATÁLOGO VINEON ===================== */
+.upload-container {
+  .catalog-strip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 18px;
+    background: #0B1623;
+    color: #fff;
+    box-shadow: 0 12px 28px -18px rgba(11, 22, 35, 0.8);
+
+    .cs-img {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      width: 58px;
+      height: 58px;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #fff;
+
+      img { width: 100%; height: 100%; object-fit: contain; }
+      ion-icon { font-size: 24px; color: #A3ACB8; }
+    }
+
+    .cs-text {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+
+      strong {
+        overflow: hidden;
+        font-size: 0.98rem;
+        font-weight: 800;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      small { color: rgba(226, 232, 240, 0.72); font-size: 0.76rem; }
+    }
+
+    .cs-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #D8F51F;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .cs-change {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+
+      &:hover { background: rgba(255, 255, 255, 0.14); }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .catalog-strip .cs-code { display: none; }
+    .catalog-strip .cs-change span { display: none; }
+    .catalog-strip .cs-change { padding: 0 11px; }
+  }
+
+  .photo-catalog-badge {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #0B1623;
+    color: #D8F51F;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  .locked-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 1px dashed #C8D0DA;
+    border-radius: 12px;
+    background: #F7F9FB;
+    color: var(--uc-ink);
+    font-size: 0.95rem;
+    font-weight: 800;
+
+    ion-icon { flex-shrink: 0; font-size: 17px; color: var(--uc-ink-muted); }
+  }
+
+  .form-group .locked-field + .field-hint { color: var(--uc-ink-muted); font-weight: 600; line-height: 1.4; }
+
+  .condition-note, .market-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+
+    ion-icon { flex-shrink: 0; margin-top: 1px; font-size: 17px; }
+  }
+
+  .condition-note { background: #FEF3C7; color: #92400E; font-weight: 600; }
+
+  .market-hint {
+    margin: 0 0 14px;
+    border: 1px solid rgba(190, 216, 27, 0.6);
+    background: rgba(216, 245, 31, 0.18);
+    color: #3A4452;
+
+    b { color: #0B1623; }
+    ion-icon { color: #0B1623; }
+  }
+
+  .catalog-specs {
+    margin-bottom: 14px;
+
+    dl {
+      margin: 8px 0 0;
+      overflow: hidden;
+      border: 1px solid var(--uc-border);
+      border-radius: 14px;
+
+      div {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+        padding: 9px 12px;
+        font-size: 0.84rem;
+
+        &:nth-child(odd) { background: #F7F9FB; }
+      }
+
+      dt { color: var(--uc-ink-muted); font-weight: 600; }
+      dd { margin: 0; color: var(--uc-ink); font-weight: 800; }
+    }
+  }
+
+  .catalog-specs-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #0B1623;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+
+    ion-icon { color: #D8F51F; }
+  }
+
+  .catalog-specs-extra {
+    margin: 16px 0 0;
+    color: var(--uc-ink);
+    font-size: 0.86rem;
+    font-weight: 800;
+    small { color: var(--uc-ink-muted); font-weight: 600; }
+  }
+
+  .preview-card-photo .preview-catalog {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: #D8F51F;
+    color: #0B1623;
+    font-size: 10px;
+    font-weight: 800;
+
+    ion-icon { font-size: 12px; color: #0B1623; }
+  }
+
+  .publish-hint--bar { margin: 0 0 8px; color: #92400E; font-weight: 700; }
 }

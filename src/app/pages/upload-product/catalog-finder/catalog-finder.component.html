@@ -1,0 +1,180 @@
+<section class="cf">
+  <!-- Busca -->
+  <div class="cf-hero">
+    <div class="cf-hero__in">
+      <h1>O que você vai vender?</h1>
+      <p class="cf-lead">Procure no <b>catálogo Vineon</b>: fotos, ficha técnica e medidas já vêm prontas. Você só informa preço, estoque e entrega.</p>
+
+      <div class="cf-modes" role="tablist" aria-label="Como procurar">
+        <button type="button" role="tab" [attr.aria-selected]="mode() === 'name'" [class.is-on]="mode() === 'name'" (click)="setMode('name')">
+          <ion-icon name="search-outline" aria-hidden="true"></ion-icon> Nome ou modelo
+        </button>
+        <button type="button" role="tab" [attr.aria-selected]="mode() === 'code'" [class.is-on]="mode() === 'code'" (click)="setMode('code')">
+          <ion-icon name="barcode-outline" aria-hidden="true"></ion-icon> Código de barras
+        </button>
+      </div>
+
+      <form class="cf-search" role="search" (submit)="submit($event)">
+        <ion-icon class="cf-search__icon" [name]="mode() === 'code' ? 'barcode-outline' : 'search-outline'" aria-hidden="true"></ion-icon>
+        <label class="vn-sr-only" for="cf-q">{{ mode() === 'code' ? 'Código de barras' : 'Nome, marca ou modelo' }}</label>
+        <input #searchInput id="cf-q" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search"
+               [attr.inputmode]="mode() === 'code' ? 'numeric' : 'search'"
+               [placeholder]="mode() === 'code' ? 'Números embaixo das barras, na caixa' : 'Ex.: iPhone 15, Air Fryer Mondial, JBL Tune'"
+               [value]="term()" (input)="onInput($any($event.target).value)">
+        @if (searching()) {
+          <ion-spinner class="cf-search__spin" name="crescent" aria-label="Buscando"></ion-spinner>
+        } @else if (term()) {
+          <button type="button" class="cf-search__clear" (click)="clear(); focusSearch()" aria-label="Limpar busca">
+            <ion-icon name="close-circle" aria-hidden="true"></ion-icon>
+          </button>
+        }
+        @if (mode() === 'code' && canScan) {
+          <label class="cf-search__scan" [class.is-busy]="scanning()">
+            <input type="file" accept="image/*" capture="environment" (change)="onScanPicked($event)" [disabled]="scanning()">
+            @if (scanning()) { <ion-spinner name="crescent" aria-hidden="true"></ion-spinner> } @else { <ion-icon name="camera-outline" aria-hidden="true"></ion-icon> }
+            <span>Foto do código</span>
+          </label>
+        } @else {
+          <button type="submit" class="cf-search__go" aria-label="Buscar">
+            <ion-icon name="arrow-forward" aria-hidden="true"></ion-icon>
+          </button>
+        }
+      </form>
+
+      <p class="cf-tip">
+        @if (mode() === 'code') {
+          O código de barras (EAN) tem 8 a 14 números e fica na embalagem. {{ canScan ? 'Pode tirar uma foto dele.' : '' }}
+        } @else {
+          Dica: quanto mais detalhe, melhor — marca, modelo e versão.
+        }
+      </p>
+    </div>
+  </div>
+
+  <div class="cf-body">
+    @if (showResults()) {
+      <!-- Resultados -->
+      <div class="cf-results-head">
+        @if (browseCategory(); as cat) {
+          <button type="button" class="cf-back" (click)="closeCategory()">
+            <ion-icon name="arrow-back" aria-hidden="true"></ion-icon> Categorias
+          </button>
+          <h2>{{ cat.name }}</h2>
+        } @else {
+          <h2 aria-live="polite">
+            @if (searching() && !results().length) {
+              Buscando no catálogo…
+            } @else if (results().length) {
+              {{ results().length }} {{ results().length === 1 ? 'produto' : 'produtos' }} no catálogo
+            } @else if (nothingFound()) {
+              Nada no catálogo com “{{ term().trim() }}”
+            }
+          </h2>
+        }
+      </div>
+
+      @if (brands().length > 1) {
+        <div class="cf-filters" role="group" aria-label="Filtrar por marca">
+          <span>Marca</span>
+          @for (brand of brands(); track brand.name) {
+            <button type="button" class="cf-filter" [class.is-on]="brandFilter() === brand.name" [attr.aria-pressed]="brandFilter() === brand.name" (click)="toggleBrand(brand.name)">
+              {{ brand.name }} <small>{{ brand.count }}</small>
+              @if (brandFilter() === brand.name) { <ion-icon name="close" aria-hidden="true"></ion-icon> }
+            </button>
+          }
+        </div>
+      }
+
+      @if ((searching() || browsing()) && !visible().length) {
+        <div class="cf-list" aria-busy="true">
+          @for (i of [1, 2, 3]; track i) { <div class="cf-skeleton"></div> }
+        </div>
+      } @else if (visible().length) {
+        <ul class="cf-list" [class.is-stale]="searching()">
+          @for (row of visible(); track row.item.id) {
+            <li>
+              <button type="button" class="cf-item" (click)="picked.emit(row.item)">
+                <span class="cf-item__img">
+                  @if (row.item.photos[0]) { <img [src]="row.item.photos[0]" alt="" loading="lazy"> }
+                  @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+                </span>
+                <span class="cf-item__body">
+                  <strong class="cf-item__title">@for (part of row.title; track $index) {<span [class.cf-hit]="part.hit">{{ part.text }}</span>}</strong>
+                  <small class="cf-item__sub">{{ row.item.brand }}@if (row.category) { · {{ row.category }}}</small>
+                  <span class="cf-item__meta">
+                    @if (row.variants) { <span class="cf-pill"><ion-icon name="layers-outline" aria-hidden="true"></ion-icon>{{ row.variants }}</span> }
+                    @if (isCodeTerm()) { <span class="cf-pill cf-pill--ok"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>Código confere</span> }
+                  </span>
+                </span>
+                <span class="cf-item__go" aria-hidden="true"><ion-icon name="chevron-forward"></ion-icon></span>
+              </button>
+            </li>
+          }
+        </ul>
+      } @else if (nothingFound() || (browseCategory() && !browsing())) {
+        <div class="cf-none">
+          <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+          @if (browseCategory()) {
+            <p>Ainda não há produtos do catálogo nesta categoria.</p>
+          } @else if (mode() === 'code' || isCodeTerm()) {
+            <p>Esse código ainda não está no catálogo. Tente pelo nome do produto ou crie o anúncio do zero.</p>
+            <button type="button" class="cf-link" (click)="setMode('name')">Buscar pelo nome</button>
+          } @else {
+            <p>Confira a escrita ou tente só a marca e o modelo (ex.: “galaxy a56”).</p>
+          }
+        </div>
+      }
+    } @else {
+      <!-- Sem busca: categorias e destaques -->
+      @if (categories().length) {
+        <section class="cf-sec" aria-labelledby="cf-cats">
+          <h2 id="cf-cats">Navegue por categoria</h2>
+          <div class="cf-cats">
+            @for (cat of categories(); track cat.id) {
+              <button type="button" class="cf-cat" (click)="openCategory(cat)">
+                <span class="cf-cat__icon"><ion-icon [name]="cat.icon || 'pricetags-outline'" aria-hidden="true"></ion-icon></span>
+                <span>{{ cat.name }}</span>
+              </button>
+            }
+          </div>
+        </section>
+      }
+
+      @if (featured().length) {
+        <section class="cf-sec" aria-labelledby="cf-feat">
+          <h2 id="cf-feat">Em destaque no catálogo</h2>
+          <div class="cf-grid">
+            @for (item of featured(); track item.id) {
+              <button type="button" class="cf-card" (click)="picked.emit(item)">
+                <span class="cf-card__img">
+                  @if (item.photos[0]) { <img [src]="item.photos[0]" alt="" loading="lazy"> }
+                  @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+                </span>
+                <span class="cf-card__body">
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ item.brand }}</small>
+                </span>
+              </button>
+            }
+          </div>
+        </section>
+      } @else if (!featuredLoaded()) {
+        <div class="cf-grid" aria-busy="true">
+          @for (i of [1, 2, 3, 4]; track i) { <div class="cf-skeleton cf-skeleton--card"></div> }
+        </div>
+      }
+    }
+
+    <!-- Saída para o anúncio livre -->
+    <aside class="cf-manual" [class.is-strong]="nothingFound()">
+      <span class="cf-manual__icon" aria-hidden="true"><ion-icon name="create-outline"></ion-icon></span>
+      <div class="cf-manual__text">
+        <strong>{{ nothingFound() ? 'Não achou o seu produto?' : 'Usado, artesanal ou fora do catálogo?' }}</strong>
+        <small>Crie o anúncio do zero, com suas fotos e sua descrição.</small>
+      </div>
+      <button type="button" class="cf-manual__btn" (click)="manual.emit()">
+        Criar do zero <ion-icon name="arrow-forward" aria-hidden="true"></ion-icon>
+      </button>
+    </aside>
+  </div>
+</section>

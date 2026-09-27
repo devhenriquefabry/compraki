@@ -1,0 +1,121 @@
+@let p = product();
+<section class="cc">
+  <div class="cc-in">
+    <button type="button" class="cc-back" (click)="back.emit()">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon> Voltar para a busca
+    </button>
+
+    <header class="cc-head">
+      <h1>É este o produto que você vende?</h1>
+      <p>Confira as características: elas vão para o seu anúncio do jeito que estão aqui.</p>
+    </header>
+
+    <article class="cc-card">
+      <!-- Galeria -->
+      <div class="cc-gallery">
+        <div class="cc-gallery__main">
+          @if (currentPhoto(); as photo) {
+            <img [src]="photo" [alt]="p.title">
+          } @else {
+            <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+          }
+        </div>
+        @if (photos().length > 1) {
+          <div class="cc-gallery__thumbs" role="group" aria-label="Fotos do produto">
+            @for (url of photos(); track url; let i = $index) {
+              <button type="button" [class.is-on]="i === photoIndex()" [attr.aria-pressed]="i === photoIndex()"
+                      [attr.aria-label]="'Ver foto ' + (i + 1)" (click)="showPhoto(i)">
+                <img [src]="url" alt="" loading="lazy">
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Ficha -->
+      <div class="cc-info">
+        <span class="cc-badge">
+          <ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon>
+          Catálogo Vineon <i>·</i> <span class="cc-code">{{ code() }}</span>
+        </span>
+        <h2>{{ p.title }}</h2>
+        <p class="cc-sub">{{ p.brand }} · {{ p.model }}@if (categoryLabel()) { · {{ categoryLabel() }}}</p>
+
+        @for (attr of p.variantAttributes; track attr.name; let i = $index) {
+          <div class="cc-attr">
+            <span class="cc-attr__name">{{ attr.name }} <small>· {{ attr.values.length }} {{ attr.values.length === 1 ? 'opção' : 'opções' }}</small></span>
+            <div class="cc-attr__opts">
+              @for (value of attr.values; track value) {
+                @if (i === 0 && imageFor(value)) {
+                  <button type="button" class="cc-swatch" [class.is-on]="currentPhoto() === imageFor(value)" (click)="previewValue(value)" [attr.aria-label]="attr.name + ' ' + value">
+                    <img [src]="imageFor(value)" alt="" loading="lazy">
+                    <span>{{ value }}</span>
+                  </button>
+                } @else {
+                  <span class="cc-opt">{{ value }}</span>
+                }
+              }
+            </div>
+          </div>
+        }
+
+        @if (p.specs.length) {
+          <dl class="cc-specs">
+            @for (spec of specs(); track $index) {
+              <div><dt>{{ spec.label }}</dt><dd>{{ spec.value }}</dd></div>
+            }
+          </dl>
+          @if (hiddenSpecs()) {
+            <button type="button" class="cc-more" (click)="allSpecs.set(!allSpecs())" [attr.aria-expanded]="allSpecs()">
+              {{ allSpecs() ? 'Mostrar menos' : 'Ver todas as ' + p.specs.length + ' características' }}
+              <ion-icon [name]="allSpecs() ? 'chevron-up' : 'chevron-down'" aria-hidden="true"></ion-icon>
+            </button>
+          }
+        }
+
+        <ul class="cc-facts">
+          @if (packageText()) {
+            <li><ion-icon name="cube-outline" aria-hidden="true"></ion-icon> Embalagem: {{ packageText() }}</li>
+          }
+          @if (p.gtins.length) {
+            <li><ion-icon name="barcode-outline" aria-hidden="true"></ion-icon> EAN {{ p.gtins[0] }}</li>
+          }
+        </ul>
+
+        <!-- Mercado -->
+        <div class="cc-market" aria-live="polite">
+          <span class="cc-market__icon" aria-hidden="true"><ion-icon name="storefront-outline"></ion-icon></span>
+          <div>
+            @if (competition(); as c) {
+              @if (c.sellers > 0) {
+                <strong>{{ c.sellers }} {{ c.sellers === 1 ? 'loja já vende' : 'lojas já vendem' }} este produto</strong>
+                @if (c.lowestPrice) { <small>A partir de {{ c.lowestPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}. Um bom preço e frete grátis te destacam.</small> }
+              } @else {
+                <strong>Seja a primeira loja a vender este produto</strong>
+                <small>Ainda não há anúncio dele na Vineon.</small>
+              }
+            } @else {
+              <strong>Consultando o mercado…</strong>
+            }
+            @if (p.referencePrice) {
+              <small class="cc-market__ref">Preço de referência: <b>{{ p.referencePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</b></small>
+            }
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <p class="cc-note">
+      <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+      Não tem todas as opções? Tudo bem: no próximo passo você marca só as cores e versões que tem.
+    </p>
+
+    <div class="cc-actions">
+      <button type="button" class="cc-btn cc-btn--ghost" (click)="back.emit()">Não é o que eu vendo</button>
+      <button type="button" class="cc-btn cc-btn--primary" (click)="confirm()">
+        <span class="cc-long">Sim, anunciar este</span><span class="cc-short">Sim, é este</span>
+        <ion-icon name="arrow-forward" aria-hidden="true"></ion-icon>
+      </button>
+    </div>
+  </div>
+</section>

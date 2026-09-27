@@ -22,13 +22,15 @@ const MAX_SPECS = 20;
 })
 export class ProductSpecsEditorComponent {
   readonly specs = input<ProductSpec[] | null | undefined>([]);
+  /** Atalhos de um clique; sem valor, usa os campos mais comuns. */
+  readonly suggestedLabels = input<string[] | null>(null);
   readonly specsChange = output<ProductSpec[]>();
 
   readonly maxSpecs = MAX_SPECS;
   readonly rows = computed(() => this.specs() || []);
   readonly suggestions = computed(() => {
     const used = new Set(this.rows().map(r => (r.label || '').trim().toLowerCase()));
-    return SUGGESTED_LABELS.filter(label => !used.has(label.toLowerCase()));
+    return (this.suggestedLabels() ?? SUGGESTED_LABELS).filter(label => !used.has(label.toLowerCase()));
   });
 
   add(label = '') {

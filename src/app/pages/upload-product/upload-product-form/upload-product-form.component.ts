@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -15,6 +15,8 @@ import { ProductNameGuardService } from 'src/app/services/product-name-guard.ser
 import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedback-modal.component';
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.service';
+import { CatalogCompetition, CatalogProduct } from 'src/app/interfaces/catalog';
+import { catalogCode, cleanCatalogSpecs, normalizeText, packageSummary } from 'src/app/core/catalog';
 
 @Component({
   selector: 'app-upload-product-form',
@@ -28,9 +30,24 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   private nameGuardSub?: Subscription;
 
 
+  /**
+   * Produto do catálogo Vineon escolhido no passo anterior. Com ele o anúncio
+   * nasce com título, categoria, fotos, ficha técnica, opções e medidas; o
+   * vendedor informa condição, preço, estoque e entrega.
+   */
+  @Input() catalogProduct: CatalogProduct | null = null;
+  /** Lojas que já vendem o produto do catálogo (vem do passo de conferência). */
+  @Input() competition: CatalogCompetition | null = null;
+  @Output() changeProduct = new EventEmitter<void>();
+  @Output() published = new EventEmitter<string>();
+
   public isFormValid : boolean = false;
   public selectedPhotos: string[] = [];
-  private filesToUpload: File[] = [];
+  /** Arquivo de cada foto, na mesma ordem; `null` = foto do catálogo (já é URL). */
+  private filesToUpload: (File | null)[] = [];
+  /** Ficha técnica do catálogo: fixa, entra antes das informações extras. */
+  public catalogSpecs: ProductSpec[] = [];
+  private catalogPhotoSet = new Set<string>();
 
   // ===== VARIAÇÕES (cor, tamanho...) =====
   public hasVariants = false;
@@ -103,7 +120,10 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     this.nameGuardSub = this.nameGuard.watch(nameControl);
 
     this.categories$ = this.servicoCategorias.getAll();
-    this.categories$.subscribe(cats => this.allCategories = cats);
+    this.categories$.subscribe(cats => {
+      this.allCategories = cats;
+      this.refreshCatalogCategory();
+    });
 
     this.submitProductForm.statusChanges.subscribe(status => {
       this.isFormValid = status === 'VALID';
@@ -119,11 +139,86 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
       }
       this.submitProductForm.patchValue({ subcategoryIds: [] });
     });
+
+    if (this.catalogProduct) this.applyCatalog(this.catalogProduct);
+  }
+
+  // ===== CATÁLOGO =====
+  public catalogCategoryLabel = '';
+
+  /** Preenche o formulário com a ficha do catálogo. */
+  private applyCatalog(c: CatalogProduct) {
+    // Categoria antes: a troca de categoria zera a subcategoria.
+    this.submitProductForm.patchValue({ categoryIds: [c.categoryId] });
+    this.submitProductForm.patchValue({
+      name: c.title,
+      subcategoryIds: c.subcategoryId ? [c.subcategoryId] : [],
+      description: c.description || '',
+      condition: 'novo',
+      weight: c.weight,
+      width: c.width,
+      height: c.height,
+      length: c.length,
+      specs: [],
+    });
+
+    this.catalogSpecs = cleanCatalogSpecs(c.specs);
+    this.selectedPhotos = [...c.photos];
+    this.filesToUpload = c.photos.map(() => null);
+    this.catalogPhotoSet = new Set(c.photos);
+
+    // Opções vêm do catálogo; o vendedor marca as que tem.
+    this.hasVariants = c.variantAttributes.length > 0;
+    this.variantAttributes = c.variantAttributes.map(a => ({ name: a.name, values: [] }));
+    this.variantSkus = {};
+    this.variantImages = { ...c.variantImages };
+    this.refreshCatalogCategory();
+  }
+
+  private refreshCatalogCategory() {
+    const c = this.catalogProduct;
+    if (!c) return;
+    const cat = this.allCategories.find(x => x.id === c.categoryId);
+    const sub = cat?.subcategories?.find(x => x.id === c.subcategoryId);
+    this.catalogCategoryLabel = cat ? (sub ? `${cat.name} › ${sub.name}` : cat.name) : '';
+  }
+
+  get catalogCodeLabel(): string {
+    return catalogCode(this.catalogProduct?.id);
+  }
+
+  get catalogPackage(): string {
+    return this.catalogProduct ? packageSummary(this.catalogProduct) : '';
+  }
+
+  /** Extras que fazem sentido num anúncio do catálogo (o resto já está na ficha). */
+  get catalogExtraLabels(): string[] {
+    const taken = new Set(this.catalogSpecs.map(spec => normalizeText(spec.label)));
+    return ['Garantia', 'Itens inclusos', 'Nota fiscal', 'Brinde'].filter(label => !taken.has(normalizeText(label)));
+  }
+
+  isCatalogPhoto(photo: string): boolean {
+    return this.catalogPhotoSet.has(photo);
+  }
+
+  /** Nome da 1ª opção do catálogo sem nenhuma marcada (ex.: "Cor"), ou null. */
+  get missingCatalogOption(): string | null {
+    const attrs = this.catalogProduct?.variantAttributes ?? [];
+    const empty = attrs.find((_, i) => !this.variantAttributes[i]?.values.length);
+    return empty?.name ?? null;
+  }
+
+  get canPublish(): boolean {
+    return this.submitProductForm.valid && !this.missingCatalogOption;
   }
 
   get completionPercent(): number {
     const done = this.requiredFields.filter(name => this.submitProductForm.get(name)?.valid).length;
-    return Math.round((done / this.requiredFields.length) * 100);
+    // Com catálogo, escolher as opções (cor, armazenamento...) também conta.
+    const needsOptions = !!this.catalogProduct?.variantAttributes.length;
+    const total = this.requiredFields.length + (needsOptions ? 1 : 0);
+    const extra = needsOptions && !this.missingCatalogOption ? 1 : 0;
+    return Math.round(((done + extra) / total) * 100);
   }
 
   get conditionLabel(): string {
@@ -167,19 +262,17 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   }
 
   onFileSelected(event: any) {
-    const files = event.target.files;
-    if (files) {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        this.filesToUpload.push(file);
-
-        const reader = new FileReader();
-        reader.onload = (e: any) => {
-          this.selectedPhotos.push(e.target.result);
-        };
-        reader.readAsDataURL(file);
-      }
-    }
+    const files: File[] = Array.from(event.target.files || []);
+    event.target.value = '';
+    // Lê todas antes de acrescentar: prévia e arquivo ficam sempre na mesma ordem.
+    Promise.all(files.map(file => new Promise<string>(resolve => {
+      const reader = new FileReader();
+      reader.onload = (e: any) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    }))).then(previews => {
+      this.selectedPhotos.push(...previews);
+      this.filesToUpload.push(...files);
+    });
   }
 
   removePhoto(index: number) {
@@ -267,7 +360,13 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
           throw new Error('Adicione ao menos um atributo com um valor em "Variações", ou desative a opção.');
         }
 
-        const uploadPromises = this.filesToUpload.map(file => this.servicoFirebase.uploadImage(file));
+        if (this.missingCatalogOption) {
+          throw new Error(`Variações: escolha ao menos uma opção de ${this.missingCatalogOption}.`);
+        }
+
+        // Foto do catálogo já é URL pública; só sobem as fotos novas.
+        const uploadPromises = this.filesToUpload.map((file, i) =>
+          file ? this.servicoFirebase.uploadImage(file) : Promise.resolve(this.selectedPhotos[i]));
         const uploadedUrls = await Promise.all(uploadPromises);
         // Fotos escolhidas para as variações ainda apontam para a prévia local
         // (base64); troca pela URL definitiva no Storage, na mesma ordem de upload.
@@ -299,17 +398,20 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
           width: data.width!,
           height: data.height!,
           length: data.length!,
-          specs: cleanSpecs(data.specs),
+          specs: this.mergedSpecs(data.specs),
           hasVariants: variantsEnabled,
           variantAttributes: variantsEnabled ? variantAttributes : [],
           variantImages,
           skus: variantsEnabled ? skus : {},
           sellerId: currentUser.uid,
+          catalogId: this.catalogProduct?.id ?? null,
+          gtin: this.catalogProduct?.gtins?.[0] ?? null,
           createdAt: new Date(),
           updatedAt: new Date()
         } as Product;
 
         const productRef = await this.servicoFirebase.add(novoProduto);
+        this.publishedId = productRef.id;
         void this.dispatchProductUploadTrigger(novoProduto, productRef.id, currentUser.displayName || currentUser.email || 'Vendedor');
         await new Promise(r => setTimeout(r, 2000));
         
@@ -326,7 +428,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
         this.isLoading = false;
         this.feedbackType = 'error';
         this.feedbackTitle = 'Erro ao Publicar';
-        this.feedbackMessage = err instanceof Error && err.message.includes('Variações')
+        this.feedbackMessage = err instanceof Error && err.message.startsWith('Variações')
           ? err.message
           : 'Verifique sua conexão e tente novamente.';
         this.showFeedback = true;
@@ -334,9 +436,12 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     }
   }
 
+  private publishedId: string | null = null;
+
   onFeedbackClosed() {
     this.showFeedback = false;
     if (this.feedbackType === 'success') {
+      const id = this.publishedId;
       this.submitProductForm.reset();
       this.selectedPhotos = [];
       this.filesToUpload = [];
@@ -344,8 +449,18 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
       this.variantAttributes = [];
       this.variantSkus = {};
       this.variantImages = {};
-      this.router.navigate(['/home']);
+      this.published.emit(id ?? '');
+      // Mostra o anúncio recém-publicado, do jeito que o comprador vê.
+      this.router.navigate(id ? ['/product-details', id] : ['/home']);
     }
+  }
+
+  /** Ficha do catálogo + extras do vendedor (sem repetir característica). */
+  private mergedSpecs(extras: ProductSpec[] | null | undefined): ProductSpec[] {
+    const own = cleanSpecs(extras);
+    if (!this.catalogProduct) return own;
+    const taken = new Set(this.catalogSpecs.map(spec => normalizeText(spec.label)));
+    return [...this.catalogSpecs, ...own.filter(spec => !taken.has(normalizeText(spec.label)))];
   }
 
   private async dispatchProductUploadTrigger(product: Product, productId: string, sellerName: string): Promise<void> {

@@ -5,8 +5,13 @@
   <!-- CABEÇALHO -->
   <div class="page-head">
     <div class="page-head-text">
-      <h1>Anunciar produto</h1>
-      <p>Preencha os dados abaixo. Anúncios completos vendem mais rápido.</p>
+      @if (catalogProduct) {
+        <h1>Preço, estoque e entrega</h1>
+        <p>A ficha veio pronta do catálogo. Confira e informe o que é só seu.</p>
+      } @else {
+        <h1>Anunciar produto</h1>
+        <p>Preencha os dados abaixo. Anúncios completos vendem mais rápido.</p>
+      }
     </div>
     <div class="progress-pill" [class.is-complete]="completionPercent === 100">
       <svg viewBox="0 0 36 36" class="progress-ring">
@@ -20,13 +25,36 @@
   <div class="page-body">
     <form [formGroup]="submitProductForm" class="form-column">
 
+      @if (catalogProduct) {
+        <!-- PRODUTO DO CATÁLOGO -->
+        <section class="catalog-strip">
+          <span class="cs-img">
+            @if (catalogProduct.photos[0]) { <img [src]="catalogProduct.photos[0]" alt=""> }
+            @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+          </span>
+          <div class="cs-text">
+            <span class="cs-badge"><ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon> Catálogo Vineon<span class="cs-code"> · {{ catalogCodeLabel }}</span></span>
+            <strong>{{ catalogProduct.title }}</strong>
+            <small>Fotos, ficha técnica e medidas já preenchidas.</small>
+          </div>
+          <button type="button" class="cs-change" (click)="changeProduct.emit()">
+            <ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon>
+            <span>Trocar</span>
+          </button>
+        </section>
+      }
+
       <!-- FOTOS -->
       <section class="form-card">
         <header class="form-card-head">
           <div class="fch-icon"><ion-icon name="images-outline"></ion-icon></div>
           <div class="fch-text">
             <h2>Fotos do produto</h2>
-            <p>A primeira foto é a capa do anúncio. Até 6 fotos.</p>
+            @if (catalogProduct) {
+              <p>As fotos do catálogo já estão aqui. Vendendo usado ou com brinde? Adicione fotos suas.</p>
+            } @else {
+              <p>A primeira foto é a capa do anúncio. Até 6 fotos.</p>
+            }
           </div>
           <button type="button" class="btn-reorder-trigger" *ngIf="selectedPhotos.length > 1" (click)="openReorderModal()">
             <ion-icon name="swap-horizontal-outline"></ion-icon>
@@ -44,6 +72,7 @@
           <div class="photo-item" *ngFor="let photo of selectedPhotos; let i = index">
             <img [src]="photo" alt="Foto do produto" draggable="false" (click)="openPreview(photo)">
             <div class="photo-order-badge" [class.is-cover]="i === 0">{{ i === 0 ? 'Capa' : i + 1 }}</div>
+            <span class="photo-catalog-badge" *ngIf="isCatalogPhoto(photo)">Catálogo</span>
             <div class="remove-photo" (click)="removePhoto(i)">
               <ion-icon name="close"></ion-icon>
             </div>
@@ -65,7 +94,16 @@
           </div>
         </header>
 
-        <div class="form-group">
+        <div class="form-group" *ngIf="catalogProduct">
+          <label>Título do anúncio</label>
+          <div class="locked-field">
+            <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+            <span>{{ catalogProduct.title }}</span>
+          </div>
+          <span class="field-hint">Vem do catálogo, igual para todas as lojas. A cor e a versão o comprador escolhe nas opções.</span>
+        </div>
+
+        <div class="form-group" *ngIf="!catalogProduct">
           <label>Título do produto</label>
           <div class="input-wrapper">
             <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM" [attr.aria-invalid]="!!blockedTerm" [attr.aria-describedby]="blockedTerm ? 'name-blocked' : null">
@@ -77,7 +115,15 @@
           </p>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" *ngIf="catalogProduct">
+          <label>Categoria</label>
+          <div class="locked-field">
+            <ion-icon name="pricetags-outline" aria-hidden="true"></ion-icon>
+            <span>{{ catalogCategoryLabel || 'Definida pelo catálogo' }}</span>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="!catalogProduct">
           <label>Categoria principal</label>
           <div class="category-chips">
             <button type="button"
@@ -91,7 +137,7 @@
           </div>
         </div>
 
-        <div class="form-group" *ngIf="availableSubcategories.length > 0">
+        <div class="form-group" *ngIf="!catalogProduct && availableSubcategories.length > 0">
           <label>Subcategoria</label>
           <div class="subcategory-chips">
             <button type="button"
@@ -116,6 +162,10 @@
               <span class="cc-hint">{{ c.hint }}</span>
             </button>
           </div>
+          <p class="condition-note" *ngIf="catalogProduct && submitProductForm.get('condition')?.value !== 'novo'">
+            <ion-icon name="camera-outline" aria-hidden="true"></ion-icon>
+            Para item usado, mostre o estado real: adicione fotos suas e conte na descrição o que ele tem de marcas de uso.
+          </p>
         </div>
       </section>
 
@@ -153,6 +203,19 @@
           </div>
         </div>
 
+        <div class="market-hint" *ngIf="catalogProduct && (competition?.sellers || catalogProduct.referencePrice)">
+          <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
+          <span>
+            <ng-container *ngIf="competition?.sellers">
+              <b>{{ competition!.sellers }} {{ competition!.sellers === 1 ? 'loja vende' : 'lojas vendem' }}</b>
+              <ng-container *ngIf="competition!.lowestPrice"> a partir de <b>{{ competition!.lowestPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</b></ng-container>.
+            </ng-container>
+            <ng-container *ngIf="catalogProduct.referencePrice">
+              Preço de referência: <b>{{ catalogProduct.referencePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</b>.
+            </ng-container>
+          </span>
+        </div>
+
         <div class="toggle-group">
           <div class="toggle-text">
             <label>Aceitar ofertas?</label>
@@ -167,8 +230,8 @@
         <header class="form-card-head">
           <div class="fch-icon"><ion-icon name="color-palette-outline"></ion-icon></div>
           <div class="fch-text">
-            <h2>Variações</h2>
-            <p>Cor, tamanho... cada combinação com seu próprio estoque (opcional)</p>
+            <h2>{{ catalogProduct?.variantAttributes?.length ? 'Opções que você tem' : 'Variações' }}</h2>
+            <p>{{ catalogProduct?.variantAttributes?.length ? 'Marque as opções do catálogo que você vende e o estoque de cada uma' : 'Cor, tamanho... cada combinação com seu próprio estoque (opcional)' }}</p>
           </div>
         </header>
 
@@ -179,6 +242,7 @@
           [variantImages]="variantImages"
           [availablePhotos]="selectedPhotos"
           [basePrice]="submitProductForm.controls.price.value"
+          [catalogOptions]="catalogProduct?.variantAttributes?.length ? catalogProduct!.variantAttributes : null"
           (hasVariantsChange)="hasVariants = $event"
           (attributesChange)="variantAttributes = $event"
           (skusChange)="variantSkus = $event"
@@ -234,7 +298,7 @@
           <div class="fch-icon"><ion-icon name="cube-outline"></ion-icon></div>
           <div class="fch-text">
             <h2>Dimensões e peso</h2>
-            <p>Usados para calcular o frete pelo Melhor Envio</p>
+            <p>{{ catalogProduct ? 'Medidas da embalagem do catálogo. Ajuste se a sua for diferente.' : 'Usados para calcular o frete pelo Melhor Envio' }}</p>
           </div>
         </header>
 
@@ -274,12 +338,24 @@
           <div class="fch-icon"><ion-icon name="list-outline"></ion-icon></div>
           <div class="fch-text">
             <h2>Características</h2>
-            <p>Marca, modelo, cor... Aparecem na ficha técnica do anúncio (opcional)</p>
+            <p>{{ catalogProduct ? 'Ficha técnica do catálogo. Acrescente o que é só seu, como garantia ou brindes.' : 'Marca, modelo, cor... Aparecem na ficha técnica do anúncio (opcional)' }}</p>
           </div>
         </header>
 
+        <div class="catalog-specs" *ngIf="catalogProduct && catalogSpecs.length">
+          <span class="catalog-specs-tag"><ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon> Do catálogo · não editável</span>
+          <dl>
+            <div *ngFor="let spec of catalogSpecs">
+              <dt>{{ spec.label }}</dt>
+              <dd>{{ spec.value }}</dd>
+            </div>
+          </dl>
+          <p class="catalog-specs-extra">Informações extras <small>(opcional)</small></p>
+        </div>
+
         <app-product-specs-editor
           [specs]="submitProductForm.controls.specs.value"
+          [suggestedLabels]="catalogProduct ? catalogExtraLabels : null"
           (specsChange)="submitProductForm.controls.specs.setValue($event)">
         </app-product-specs-editor>
       </section>
@@ -309,6 +385,7 @@
           <img *ngIf="selectedPhotos[0]" [src]="selectedPhotos[0]" alt="Prévia do produto">
           <ion-icon *ngIf="!selectedPhotos[0]" name="image-outline"></ion-icon>
           <span class="preview-condition">{{ conditionLabel }}</span>
+          <span class="preview-catalog" *ngIf="catalogProduct"><ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon> Catálogo</span>
         </div>
         <div class="preview-card-body">
           <h3>{{ submitProductForm.value.name || 'Nome do produto' }}</h3>
@@ -324,17 +401,19 @@
         </div>
       </div>
 
-      <button type="button" class="btn-publish" (click)="submit()" [disabled]="!submitProductForm.valid">
+      <button type="button" class="btn-publish" (click)="submit()" [disabled]="!canPublish">
         <ion-icon name="checkmark-circle-outline"></ion-icon>
         Publicar produto
       </button>
-      <p class="publish-hint" *ngIf="!submitProductForm.valid">Complete os campos obrigatórios para publicar</p>
+      <p class="publish-hint" *ngIf="missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }} em "Opções que você tem"</p>
+      <p class="publish-hint" *ngIf="!missingCatalogOption && !submitProductForm.valid">Complete os campos obrigatórios para publicar</p>
     </aside>
   </div>
 
   <!-- BARRA FIXA (MOBILE) -->
   <div class="fixed-bottom-actions">
-    <button type="button" class="btn-publish" (click)="submit()" [disabled]="!submitProductForm.valid">
+    <p class="publish-hint publish-hint--bar" *ngIf="missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }}</p>
+    <button type="button" class="btn-publish" (click)="submit()" [disabled]="!canPublish">
       <ion-icon name="pricetag-outline"></ion-icon>
       Publicar produto
     </button>

@@ -197,6 +197,157 @@ for (const [index, [id, name, price, priceDiscounted, condition, stock, category
   });
 }
 
+// ------------------------------------------------------------------ catálogo
+
+// Fichas prontas da aba Catálogo. Um rascunho (fica fora da busca do vendedor)
+// e um anúncio do Ateliê ligado ao iPhone 15, para a "concorrência" aparecer
+// quando a Loja de Teste anuncia o mesmo produto.
+const catalog = [
+  {
+    id: 'cat-iphone-15', title: 'Apple iPhone 15', brand: 'Apple', model: 'iPhone 15', line: 'iPhone',
+    categoryId: 'eletronicos', subcategoryId: 'celulares', aliases: ['iphone15'], referencePrice: 4299,
+    gtins: [gtin('019425389001')],
+    variantAttributes: [
+      { name: 'Cor', values: ['Preto', 'Azul', 'Verde', 'Amarelo', 'Rosa'] },
+      { name: 'Armazenamento', values: ['128 GB', '256 GB', '512 GB'] }
+    ],
+    specs: [
+      ['Memória RAM', '6 GB'], ['Tamanho da tela', '6,1"'], ['Câmera principal', '48 MP'], ['Câmera frontal', '12 MP'],
+      ['Processador', 'A16 Bionic'], ['Sistema operacional', 'iOS 17'], ['Dual SIM', 'Sim (chip + eSIM)'],
+      ['Rede 5G', 'Sim'], ['Homologação Anatel', '127572301993']
+    ],
+    pkg: [0.35, 10, 6, 18],
+    description: 'iPhone 15 com Dynamic Island, câmera principal de 48 MP e conector USB-C. Tela Super Retina XDR de 6,1 polegadas, chip A16 Bionic e bateria para o dia todo. Acompanha cabo USB-C.'
+  },
+  {
+    id: 'cat-iphone-15-pro', title: 'Apple iPhone 15 Pro', brand: 'Apple', model: 'iPhone 15 Pro', line: 'iPhone',
+    categoryId: 'eletronicos', subcategoryId: 'celulares', aliases: [], referencePrice: 6999,
+    gtins: [gtin('019425389101')],
+    variantAttributes: [
+      { name: 'Cor', values: ['Titânio preto', 'Titânio natural', 'Titânio azul', 'Titânio branco'] },
+      { name: 'Armazenamento', values: ['128 GB', '256 GB', '512 GB', '1 TB'] }
+    ],
+    specs: [
+      ['Memória RAM', '8 GB'], ['Tamanho da tela', '6,1"'], ['Câmera principal', '48 MP'], ['Processador', 'A17 Pro'],
+      ['Sistema operacional', 'iOS 17'], ['Rede 5G', 'Sim']
+    ],
+    pkg: [0.4, 10, 6, 18],
+    description: 'iPhone 15 Pro com estrutura de titânio, chip A17 Pro, botão de Ação e sistema de câmeras Pro.'
+  },
+  {
+    id: 'cat-galaxy-a56', title: 'Samsung Galaxy A56 5G', brand: 'Samsung', model: 'Galaxy A56', line: 'Galaxy A',
+    categoryId: 'eletronicos', subcategoryId: 'celulares', aliases: ['a56'], referencePrice: 2199,
+    gtins: [gtin('789637170001')],
+    variantAttributes: [
+      { name: 'Cor', values: ['Grafite', 'Rosa', 'Verde-oliva'] },
+      { name: 'Armazenamento', values: ['128 GB', '256 GB'] }
+    ],
+    specs: [
+      ['Memória RAM', '8 GB'], ['Tamanho da tela', '6,7"'], ['Câmera principal', '50 MP'], ['Bateria', '5000 mAh'],
+      ['Sistema operacional', 'Android 15'], ['Dual SIM', 'Sim'], ['Rede 5G', 'Sim']
+    ],
+    pkg: [0.42, 9, 6, 17],
+    description: 'Galaxy A56 5G com tela Super AMOLED de 6,7", câmera tripla de 50 MP, bateria de 5000 mAh e seis anos de atualizações de sistema.'
+  },
+  {
+    id: 'cat-jbl-tune-520', title: 'Fone de Ouvido JBL Tune 520BT', brand: 'JBL', model: 'Tune 520BT', line: 'Tune',
+    categoryId: 'eletronicos', subcategoryId: 'fones', aliases: ['fone jbl'], referencePrice: 279.9,
+    gtins: [gtin('619659196001')],
+    variantAttributes: [{ name: 'Cor', values: ['Preto', 'Azul', 'Branco', 'Roxo'] }],
+    specs: [
+      ['Tipo', 'Headphone on-ear'], ['Conexão', 'Bluetooth 5.3'], ['Autonomia da bateria', 'Até 57 h'],
+      ['Microfone', 'Sim'], ['Cancelamento de ruído', 'Não']
+    ],
+    pkg: [0.25, 8, 18, 20],
+    description: 'Headphone sem fio JBL Pure Bass, até 57 horas de bateria, recarga rápida e conexão com dois aparelhos ao mesmo tempo.'
+  },
+  {
+    id: 'cat-airpods-pro-2', title: 'Apple AirPods Pro (2ª geração) com estojo USB-C', brand: 'Apple', model: 'AirPods Pro 2', line: 'AirPods',
+    categoryId: 'eletronicos', subcategoryId: 'fones', aliases: ['airpods'], referencePrice: 1899,
+    gtins: [gtin('019425387001')],
+    variantAttributes: [],
+    specs: [
+      ['Tipo', 'In-ear sem fio'], ['Cancelamento de ruído', 'Ativo'], ['Autonomia da bateria', 'Até 6 h (30 h com estojo)'],
+      ['Resistência à água', 'IP54'], ['Conexão', 'Bluetooth 5.3']
+    ],
+    pkg: [0.2, 10, 5, 10],
+    description: 'AirPods Pro com cancelamento ativo de ruído até 2x mais eficaz, modo ambiente adaptativo e estojo de recarga USB-C.'
+  },
+  {
+    id: 'cat-nike-revolution-7', title: 'Tênis Nike Revolution 7 Masculino', brand: 'Nike', model: 'Revolution 7', line: 'Revolution',
+    categoryId: 'moda', subcategoryId: 'tenis', aliases: [], referencePrice: 349.9,
+    gtins: [],
+    variantAttributes: [
+      { name: 'Cor', values: ['Preto', 'Branco'] },
+      { name: 'Tamanho', values: ['38', '39', '40', '41', '42', '43'] }
+    ],
+    specs: [['Gênero', 'Masculino'], ['Material', 'Tecido e sintético'], ['Estilo', 'Corrida']],
+    pkg: [0.9, 20, 12, 32],
+    description: 'Tênis de corrida com amortecimento macio e cabedal respirável.'
+  },
+  {
+    id: 'cat-air-fryer-mondial', title: 'Fritadeira Air Fryer Mondial 4 L', brand: 'Mondial', model: 'AFN-40', line: 'Family',
+    categoryId: 'casa', subcategoryId: 'cozinha', aliases: ['airfryer', 'fritadeira sem oleo'], referencePrice: 329,
+    gtins: [gtin('789988203001')],
+    variantAttributes: [{ name: 'Voltagem', values: ['110V', '220V'] }],
+    specs: [['Potência', '1500 W'], ['Capacidade', '4 L'], ['Cor', 'Preto'], ['Timer', '60 min']],
+    pkg: [4.2, 30, 32, 34],
+    description: 'Air fryer de 4 litros com timer de 60 minutos e controle de temperatura até 200 °C.'
+  },
+  {
+    id: 'cat-ps5-slim', title: 'Console PlayStation 5 Slim', brand: 'Sony', model: 'PS5 Slim', line: 'PlayStation',
+    categoryId: 'eletronicos', subcategoryId: null, aliases: ['ps5'], referencePrice: null,
+    gtins: [], variantAttributes: [], specs: [], pkg: [null, null, null, null], description: '', status: 'draft', photos: 0
+  }
+];
+
+for (const [index, item] of catalog.entries()) {
+  const { id, pkg, specs, status = 'active', photos = 4, ...rest } = item;
+  const [weight, width, height, length] = pkg;
+  const photoList = Array.from({ length: photos }, (_, i) => `https://picsum.photos/seed/vineon-${id}-${i}/800/800`);
+  const variantImages = {};
+  for (const [i, value] of (rest.variantAttributes[0]?.values || []).entries()) {
+    variantImages[value] = photoList[i % Math.max(1, photoList.length)];
+  }
+  const data = {
+    ...rest,
+    photos: photoList,
+    specs: specs.map(([label, value]) => ({ label, value })),
+    variantImages: photoList.length ? variantImages : {},
+    weight, width, height, length,
+    status,
+    createdBy: users.admin.uid,
+    updatedBy: users.admin.uid,
+    createdAt: Timestamp.fromMillis(now - index * 3_600_000),
+    updatedAt: Timestamp.fromMillis(now - index * 3_600_000)
+  };
+  await db.doc(`catalogProducts/${id}`).set({ ...data, keywords: catalogKeywords(data) });
+}
+
+// Anúncio do Ateliê feito a partir do catálogo (concorrência do iPhone 15).
+await db.doc('products/iphone-15-atelie').set({
+  name: 'Apple iPhone 15',
+  price: 4399,
+  priceDiscounted: 4199,
+  description: 'iPhone 15 lacrado, nota fiscal e garantia Apple de 1 ano.',
+  photoURL: ['https://picsum.photos/seed/vineon-cat-iphone-15-0/800/800'],
+  condition: 'novo',
+  stock: 3,
+  soldCount: 0,
+  categoryIds: ['eletronicos'],
+  subcategoryIds: ['celulares'],
+  acceptOffers: false,
+  paymentMethods: ['PIX', 'CARTÃO'],
+  shipping: 'Frete Grátis',
+  weight: 0.35, width: 10, height: 6, length: 18,
+  specs: catalog[0].specs.map(([label, value]) => ({ label, value })),
+  catalogId: 'cat-iphone-15',
+  location: 'Florianópolis - SC',
+  sellerId: users.atelie.uid,
+  createdAt: Timestamp.fromMillis(now - 86_400_000),
+  updatedAt: Timestamp.fromMillis(now - 86_400_000)
+});
+
 // ------------------------------------------------------------------- pedidos
 
 // Roteiro fixo (dia atrás, itens, status) para o resultado ser sempre o mesmo.
@@ -254,7 +405,8 @@ for (const [productId, count] of Object.entries(soldCount)) {
 
 console.log(`Seed concluído em ${PROJECT_ID}:`);
 console.log(`  ${Object.keys(users).length} contas (admin, vendedor, atelie, comprador), senha "${PASSWORD}"`);
-console.log(`  ${categories.length} categorias, ${products.length} produtos, ${orderPlan.length} pedidos`);
+console.log(`  ${categories.length} categorias, ${products.length + 1} produtos, ${orderPlan.length} pedidos`);
+console.log(`  ${catalog.length} produtos no catálogo (1 rascunho)`);
 console.log('  Entre pelo app com ?testUser=admin | vendedor | atelie | comprador');
 
 process.exit(0);
@@ -288,6 +440,31 @@ async function resetEmulators() {
     const response = await fetch(url, { method: 'DELETE' });
     if (!response.ok) throw new Error(`Falha ao zerar ${url}: ${response.status}`);
   }
+}
+
+/** EAN-13 com dígito verificador válido a partir de 12 dígitos (fictício). */
+function gtin(base) {
+  const sum = base.split('').map(Number).reverse().reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 3 : 1), 0);
+  return base + ((10 - (sum % 10)) % 10);
+}
+
+/**
+ * Mesma regra de `catalogKeywords()` em src/app/core/catalog.ts: palavras e
+ * prefixos (2 a 20 letras) de título, marca, modelo, linha, sinônimos, códigos
+ * e opções das variações. Mudou lá, mude aqui.
+ */
+function catalogKeywords(p) {
+  const words = new Set(
+    [p.title, p.brand, p.model, p.line, ...(p.aliases || []), ...(p.gtins || []), ...(p.variantAttributes || []).flatMap(a => a.values)]
+      .flatMap(text => (text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean))
+  );
+  const keys = new Set();
+  for (const word of words) {
+    if (word.length === 1) keys.add(word);
+    for (let size = 2; size <= Math.min(word.length, 20); size++) keys.add(word.slice(0, size));
+    keys.add(word);
+  }
+  return [...keys].slice(0, 400);
 }
 
 /** CPF com dígitos verificadores válidos a partir de 9 dígitos (fictício). */

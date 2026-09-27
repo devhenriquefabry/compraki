@@ -55,6 +55,15 @@ export interface Product {
     ratingBreakdown?: Record<string, number>;
     location?: string;
     sellerId?: string;
+
+    /**
+     * Produto do catálogo Vineon usado como base (`catalogProducts/{id}`).
+     * O anúncio guarda uma cópia de título, fotos e ficha técnica; o catálogo
+     * mudar depois não altera o anúncio.
+     */
+    catalogId?: string | null;
+    /** Código de barras herdado do catálogo, quando houver. */
+    gtin?: string | null;
     createdAt?: any;
     updatedAt?: any;
 

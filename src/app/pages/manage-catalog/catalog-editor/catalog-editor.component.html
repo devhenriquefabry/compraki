@@ -1,0 +1,453 @@
+@let d = draft();
+<div class="ce">
+  <!-- Barra do editor (gruda no topo) -->
+  <header class="ce-bar">
+    <button type="button" class="ce-back" (click)="back()" aria-label="Voltar para o catálogo">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+      <span>Catálogo</span>
+    </button>
+    <div class="ce-bar__title">
+      <span class="ce-bar__code">{{ code() }}</span>
+      <strong>{{ d.title || (isNew() ? 'Novo produto' : 'Sem nome') }}</strong>
+    </div>
+    @if (dirty()) {
+      <span class="ce-dirty"><i aria-hidden="true"></i>Não salvo</span>
+    }
+    <div class="ce-bar__actions">
+      @if (!isNew()) {
+        <button type="button" class="adm-btn ce-hide-sm" (click)="duplicate()">
+          <ion-icon name="copy-outline" aria-hidden="true"></ion-icon> Duplicar
+        </button>
+        <button type="button" class="adm-btn adm-btn--ghost-danger ce-hide-sm" (click)="remove()">
+          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Excluir
+        </button>
+      }
+      <button type="button" class="adm-btn adm-btn--primary ce-save ce-hide-sm" (click)="save()" [disabled]="saving() || uploads() > 0">
+        @if (saving()) { <ion-spinner name="crescent" aria-hidden="true"></ion-spinner> } @else { <ion-icon name="checkmark" aria-hidden="true"></ion-icon> }
+        Salvar
+      </button>
+    </div>
+  </header>
+
+  <div class="ce-layout">
+    <div class="ce-main">
+
+      <!-- 1. Identificação -->
+      <section class="ce-sec" aria-labelledby="ce-s1">
+        <header class="ce-sec__head">
+          <span class="ce-sec__n" aria-hidden="true">1</span>
+          <div>
+            <h3 id="ce-s1">Identificação</h3>
+            <p>Como o produto aparece na busca do vendedor e no anúncio.</p>
+          </div>
+        </header>
+
+        <div class="ce-field" [class.is-invalid]="invalid('title')">
+          <label for="ce-title">Nome do produto <b aria-hidden="true">*</b></label>
+          <input id="ce-title" type="text" maxlength="120" placeholder="Ex.: Apple iPhone 15" [value]="d.title" (input)="text('title', $event)">
+          <div class="ce-field__foot">
+            <small>Vira o título do anúncio. Cor e tamanho vão em “Opções”, não no nome.</small>
+            <small class="ce-count">{{ d.title.length }}/120</small>
+          </div>
+          @if (!d.title.trim() && d.brand.trim() && d.model.trim()) {
+            <button type="button" class="ce-link" (click)="suggestTitle()">
+              <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon> Usar “{{ d.brand.trim() }} {{ d.model.trim() }}”
+            </button>
+          }
+        </div>
+
+        <div class="ce-row ce-row--3">
+          <div class="ce-field" [class.is-invalid]="invalid('brand') && !d.brand.trim()">
+            <label for="ce-brand">Marca <b aria-hidden="true">*</b></label>
+            <input id="ce-brand" type="text" maxlength="60" placeholder="Ex.: Apple" [value]="d.brand" (input)="text('brand', $event)">
+          </div>
+          <div class="ce-field" [class.is-invalid]="invalid('brand') && !d.model.trim()">
+            <label for="ce-model">Modelo <b aria-hidden="true">*</b></label>
+            <input id="ce-model" type="text" maxlength="60" placeholder="Ex.: iPhone 15" [value]="d.model" (input)="text('model', $event)">
+          </div>
+          <div class="ce-field">
+            <label for="ce-line">Linha <small>(opcional)</small></label>
+            <input id="ce-line" type="text" maxlength="60" placeholder="Ex.: iPhone" [value]="d.line" (input)="text('line', $event)">
+          </div>
+        </div>
+
+        <div class="ce-row ce-row--2">
+          <div class="ce-field" [class.is-invalid]="invalid('category')">
+            <label for="ce-cat">Categoria <b aria-hidden="true">*</b></label>
+            <div class="ce-select">
+              <select id="ce-cat" (change)="pickCategory($any($event.target).value)">
+                <option value="" [selected]="!d.categoryId" disabled>Escolha a categoria</option>
+                @for (cat of categories(); track cat.id) {
+                  <option [value]="cat.id" [selected]="cat.id === d.categoryId">{{ cat.name }}</option>
+                }
+              </select>
+              <ion-icon name="chevron-down" aria-hidden="true"></ion-icon>
+            </div>
+          </div>
+          <div class="ce-field">
+            <label for="ce-sub">Subcategoria</label>
+            <div class="ce-select" [class.is-disabled]="!subcategories().length">
+              <select id="ce-sub" [disabled]="!subcategories().length" (change)="pickSubcategory($any($event.target).value)">
+                <option value="" [selected]="!d.subcategoryId">{{ subcategories().length ? 'Nenhuma' : 'Escolha a categoria antes' }}</option>
+                @for (sub of subcategories(); track sub.id) {
+                  <option [value]="sub.id" [selected]="sub.id === d.subcategoryId">{{ sub.name }}</option>
+                }
+              </select>
+              <ion-icon name="chevron-down" aria-hidden="true"></ion-icon>
+            </div>
+          </div>
+        </div>
+
+        <div class="ce-field">
+          <label for="ce-gtin">Código de barras (EAN) <small>(recomendado)</small></label>
+          <div class="ce-tags" [class.is-invalid]="!!gtinError()">
+            @for (code of d.gtins; track code) {
+              <span class="ce-tag ce-tag--mono">
+                <ion-icon name="barcode-outline" aria-hidden="true"></ion-icon>{{ code }}
+                <button type="button" (click)="removeGtin(code)" [attr.aria-label]="'Remover código ' + code"><ion-icon name="close" aria-hidden="true"></ion-icon></button>
+              </span>
+            }
+            <input #gtinInput id="ce-gtin" type="text" inputmode="numeric" placeholder="Digite os números e tecle Enter"
+                   (keydown.enter)="$event.preventDefault(); addGtin(gtinInput)" (input)="gtinError.set('')">
+            <button type="button" class="ce-tags__add" (click)="addGtin(gtinInput)" aria-label="Adicionar código"><ion-icon name="add" aria-hidden="true"></ion-icon></button>
+          </div>
+          @if (gtinError()) {
+            <small class="ce-error" role="alert">{{ gtinError() }}</small>
+          } @else if (gtinWarning()) {
+            <small class="ce-warning" role="status"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>{{ gtinWarning() }}</small>
+          } @else {
+            <small class="ce-help">O número embaixo das barras, na caixa. Com ele o vendedor acha o produto sem digitar o nome. Pode ter mais de um (uma por cor, por exemplo).</small>
+          }
+        </div>
+
+        <div class="ce-field">
+          <label for="ce-alias">Outros nomes na busca <small>(opcional)</small></label>
+          <div class="ce-tags">
+            @for (alias of d.aliases; track alias) {
+              <span class="ce-tag">
+                {{ alias }}
+                <button type="button" (click)="removeAlias(alias)" [attr.aria-label]="'Remover ' + alias"><ion-icon name="close" aria-hidden="true"></ion-icon></button>
+              </span>
+            }
+            <input #aliasInput id="ce-alias" type="text" maxlength="40" placeholder="Ex.: ps5, play 5"
+                   (keydown.enter)="$event.preventDefault(); addAlias(aliasInput)">
+            <button type="button" class="ce-tags__add" (click)="addAlias(aliasInput)" aria-label="Adicionar nome"><ion-icon name="add" aria-hidden="true"></ion-icon></button>
+          </div>
+          <small class="ce-help">Apelidos e jeitos comuns de escrever. Ajuda quem procura “airfryer” achar “Fritadeira Air Fryer”.</small>
+        </div>
+      </section>
+
+      <!-- 2. Fotos -->
+      <section class="ce-sec" aria-labelledby="ce-s2">
+        <header class="ce-sec__head">
+          <span class="ce-sec__n" aria-hidden="true">2</span>
+          <div>
+            <h3 id="ce-s2">Fotos</h3>
+            <p>A primeira é a capa. Fundo claro, produto inteiro, sem marca d'água nem texto.</p>
+          </div>
+          <span class="ce-sec__meta">{{ d.photos.length }}/{{ maxPhotos }}</span>
+        </header>
+
+        <div class="ce-photos" [class.is-invalid]="invalid('photo')">
+          @for (url of d.photos; track url; let i = $index, last = $last) {
+            <figure class="ce-photo" [class.is-cover]="i === 0">
+              <img [src]="url" [alt]="'Foto ' + (i + 1)" loading="lazy">
+              @if (i === 0) { <span class="ce-photo__cover">Capa</span> }
+              <div class="ce-photo__tools">
+                <button type="button" (click)="movePhoto(i, -1)" [disabled]="i === 0" aria-label="Mover para a esquerda"><ion-icon name="chevron-back" aria-hidden="true"></ion-icon></button>
+                @if (i > 0) {
+                  <button type="button" (click)="makeCover(i)" aria-label="Usar como capa" title="Usar como capa"><ion-icon name="star-outline" aria-hidden="true"></ion-icon></button>
+                }
+                <button type="button" (click)="movePhoto(i, 1)" [disabled]="last" aria-label="Mover para a direita"><ion-icon name="chevron-forward" aria-hidden="true"></ion-icon></button>
+                <button type="button" class="is-danger" (click)="removePhoto(i)" aria-label="Remover foto"><ion-icon name="trash-outline" aria-hidden="true"></ion-icon></button>
+              </div>
+            </figure>
+          }
+          @for (slot of uploadSlots(); track $index) {
+            <div class="ce-photo ce-photo--loading" aria-label="Enviando foto"><ion-spinner name="crescent"></ion-spinner></div>
+          }
+          @if (d.photos.length + uploads() < maxPhotos) {
+            <label class="ce-drop" [class.is-over]="dragOver()" [class.is-first]="!d.photos.length && !uploads()"
+                   (dragover)="onDrag($event, true)" (dragleave)="onDrag($event, false)" (drop)="onDrop($event)">
+              <input type="file" accept="image/*" multiple (change)="onPick($event)">
+              <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
+              <strong>{{ d.photos.length ? 'Mais fotos' : 'Arraste as fotos aqui' }}</strong>
+              <small>ou toque para escolher · JPG, PNG, WEBP até 10 MB</small>
+            </label>
+          }
+        </div>
+      </section>
+
+      <!-- 3. Opções -->
+      <section class="ce-sec" aria-labelledby="ce-s3">
+        <header class="ce-sec__head">
+          <span class="ce-sec__n" aria-hidden="true">3</span>
+          <div>
+            <h3 id="ce-s3">Opções do produto <small>(opcional)</small></h3>
+            <p>Cor, armazenamento, tamanho… O vendedor marca as que tem e informa o estoque de cada combinação.</p>
+          </div>
+        </header>
+
+        @for (attr of d.variantAttributes; track $index; let i = $index) {
+          <div class="ce-attr">
+            <div class="ce-attr__head">
+              <input class="ce-attr__name" type="text" maxlength="30" placeholder="Nome, ex.: Cor" [value]="attr.name"
+                     [attr.aria-label]="'Nome da opção ' + (i + 1)" (input)="renameAttribute(i, $event)">
+              <span class="ce-attr__count">{{ attr.values.length }} {{ attr.values.length === 1 ? 'opção' : 'opções' }}</span>
+              <button type="button" class="ce-icon-btn is-danger" (click)="removeAttribute(i)" [attr.aria-label]="'Remover ' + (attr.name || 'opção')">
+                <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </div>
+
+            <div class="ce-tags ce-tags--values">
+              @for (value of attr.values; track value; let first = $first, last = $last) {
+                <span class="ce-tag ce-tag--value">
+                  @if (i === 0 && variantImage(value)) { <img [src]="variantImage(value)" alt=""> }
+                  {{ value }}
+                  <span class="ce-tag__move">
+                    <button type="button" (click)="moveValue(i, value, -1)" [disabled]="first" [attr.aria-label]="'Mover ' + value + ' para trás'"><ion-icon name="chevron-back" aria-hidden="true"></ion-icon></button>
+                    <button type="button" (click)="moveValue(i, value, 1)" [disabled]="last" [attr.aria-label]="'Mover ' + value + ' para frente'"><ion-icon name="chevron-forward" aria-hidden="true"></ion-icon></button>
+                  </span>
+                  <button type="button" (click)="removeValue(i, value)" [attr.aria-label]="'Remover ' + value"><ion-icon name="close" aria-hidden="true"></ion-icon></button>
+                </span>
+              }
+              <input #valueInput type="text" [placeholder]="attrPlaceholder(attr)" [attr.aria-label]="'Nova opção de ' + (attr.name || 'atributo')"
+                     (keydown.enter)="$event.preventDefault(); addValues(i, valueInput)">
+              <button type="button" class="ce-tags__add" (click)="addValues(i, valueInput)" aria-label="Adicionar opção"><ion-icon name="add" aria-hidden="true"></ion-icon></button>
+            </div>
+
+            @if (i === 0 && attr.values.length && d.photos.length) {
+              <div class="ce-varimg">
+                <p class="ce-varimg__title">Foto de cada {{ (attr.name || 'opção') | lowercase }} <small>— aparece para o vendedor e troca a foto do anúncio quando o comprador escolhe</small></p>
+                @for (value of attr.values; track value) {
+                  <div class="ce-varimg__row">
+                    <span class="ce-varimg__value">{{ value }}</span>
+                    <div class="ce-varimg__opts" role="group" [attr.aria-label]="'Foto para ' + value">
+                      @for (url of d.photos; track url) {
+                        <button type="button" [class.is-on]="variantImage(value) === url" [attr.aria-pressed]="variantImage(value) === url"
+                                [attr.aria-label]="'Usar esta foto para ' + value" (click)="pickVariantImage(value, url)">
+                          <img [src]="url" alt="" loading="lazy">
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (d.variantAttributes.length < maxAttributes) {
+          <div class="ce-add-row">
+            @for (name of attributeHints(); track name) {
+              <button type="button" class="ce-chip-btn" (click)="addAttribute(name)">+ {{ name }}</button>
+            }
+            <button type="button" class="ce-chip-btn ce-chip-btn--ghost" (click)="addAttribute()">
+              <ion-icon name="add" aria-hidden="true"></ion-icon> Outra opção
+            </button>
+          </div>
+        }
+      </section>
+
+      <!-- 4. Ficha técnica -->
+      <section class="ce-sec" aria-labelledby="ce-s4">
+        <header class="ce-sec__head">
+          <span class="ce-sec__n" aria-hidden="true">4</span>
+          <div>
+            <h3 id="ce-s4">Ficha técnica</h3>
+            <p>Vai pronta para o anúncio e o vendedor não altera. Use as especificações do fabricante.</p>
+          </div>
+          <span class="ce-sec__meta">{{ d.specs.length }}/{{ maxSpecs }}</span>
+        </header>
+
+        @if (specHints().fields.length && d.specs.length < maxSpecs) {
+          <div class="ce-suggest">
+            <span><ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon> Comuns em {{ specHints().label }}:</span>
+            @for (field of specHints().fields; track field) {
+              <button type="button" class="ce-chip-btn" (click)="addSpec(field)">+ {{ field }}</button>
+            }
+          </div>
+        }
+
+        @if (d.specs.length) {
+          <div class="ce-specs">
+            @for (spec of d.specs; track $index; let i = $index, first = $first, last = $last) {
+              <div class="ce-spec">
+                <input class="ce-spec__label" type="text" maxlength="80" placeholder="Característica" [value]="spec.label"
+                       [attr.aria-label]="'Nome da característica ' + (i + 1)" (input)="updateSpec(i, 'label', $event)">
+                <input class="ce-spec__value" type="text" maxlength="80" placeholder="Valor" [value]="spec.value"
+                       [attr.aria-label]="'Valor de ' + (spec.label || 'característica ' + (i + 1))" (input)="updateSpec(i, 'value', $event)">
+                <div class="ce-spec__tools">
+                  <button type="button" class="ce-icon-btn" (click)="moveSpec(i, -1)" [disabled]="first" aria-label="Subir"><ion-icon name="chevron-up" aria-hidden="true"></ion-icon></button>
+                  <button type="button" class="ce-icon-btn" (click)="moveSpec(i, 1)" [disabled]="last" aria-label="Descer"><ion-icon name="chevron-down" aria-hidden="true"></ion-icon></button>
+                  <button type="button" class="ce-icon-btn is-danger" (click)="removeSpec(i)" aria-label="Remover"><ion-icon name="close" aria-hidden="true"></ion-icon></button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+        @if (d.specs.length < maxSpecs) {
+          <button type="button" class="ce-add" (click)="addSpec()">
+            <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon> Adicionar característica
+          </button>
+        }
+      </section>
+
+      <!-- 5. Embalagem -->
+      <section class="ce-sec" aria-labelledby="ce-s5">
+        <header class="ce-sec__head">
+          <span class="ce-sec__n" aria-hidden="true">5</span>
+          <div>
+            <h3 id="ce-s5">Embalagem</h3>
+            <p>Produto já embalado. Usado no cálculo do frete; o vendedor pode ajustar.</p>
+          </div>
+        </header>
+        <div class="ce-row ce-row--4" [class.is-invalid]="invalid('package')">
+          <div class="ce-field">
+            <label for="ce-w">Peso</label>
+            <div class="ce-unit"><input id="ce-w" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,35" [value]="d.weight ?? ''" (input)="num('weight', $event)"><span>kg</span></div>
+          </div>
+          <div class="ce-field">
+            <label for="ce-l">Comprimento</label>
+            <div class="ce-unit"><input id="ce-l" type="number" inputmode="decimal" min="0" placeholder="18" [value]="d.length ?? ''" (input)="num('length', $event)"><span>cm</span></div>
+          </div>
+          <div class="ce-field">
+            <label for="ce-wd">Largura</label>
+            <div class="ce-unit"><input id="ce-wd" type="number" inputmode="decimal" min="0" placeholder="10" [value]="d.width ?? ''" (input)="num('width', $event)"><span>cm</span></div>
+          </div>
+          <div class="ce-field">
+            <label for="ce-h">Altura</label>
+            <div class="ce-unit"><input id="ce-h" type="number" inputmode="decimal" min="0" placeholder="6" [value]="d.height ?? ''" (input)="num('height', $event)"><span>cm</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Descrição e preço -->
+      <section class="ce-sec" aria-labelledby="ce-s6">
+        <header class="ce-sec__head">
+          <span class="ce-sec__n" aria-hidden="true">6</span>
+          <div>
+            <h3 id="ce-s6">Descrição e preço de referência</h3>
+            <p>A descrição entra no anúncio e o vendedor pode completar (garantia, nota fiscal, brindes).</p>
+          </div>
+        </header>
+        <div class="ce-field">
+          <label for="ce-desc">Descrição sugerida</label>
+          <textarea id="ce-desc" rows="6" maxlength="5000" placeholder="Principais recursos, o que vem na caixa, diferenciais…" [value]="d.description" (input)="text('description', $event)"></textarea>
+          <div class="ce-field__foot">
+            <small>{{ d.description.trim().length < minDescription ? 'Com ' + minDescription + ' caracteres ou mais a ficha ganha nota cheia.' : 'Boa descrição.' }}</small>
+            <small class="ce-count">{{ d.description.length }}/5000</small>
+          </div>
+        </div>
+        <div class="ce-field ce-field--price">
+          <label for="ce-price">Preço de referência <small>(opcional)</small></label>
+          <div class="ce-unit ce-unit--pre"><span>R$</span><input id="ce-price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00" [value]="d.referencePrice ?? ''" (input)="num('referencePrice', $event)"></div>
+          <small class="ce-help">Mostrado ao vendedor como referência de mercado. Não define o preço do anúncio.</small>
+        </div>
+      </section>
+    </div>
+
+    <!-- Lateral: publicação, qualidade e prévia -->
+    <aside class="ce-side">
+      <section class="ce-card">
+        <h4>Publicação</h4>
+        <div class="ce-seg" role="radiogroup" aria-label="Situação no catálogo">
+          <button type="button" role="radio" [attr.aria-checked]="d.status === 'active'" [class.is-on]="d.status === 'active'" (click)="setStatus('active')">
+            <ion-icon name="eye-outline" aria-hidden="true"></ion-icon>
+            <span><strong>Ativo</strong><small>Vendedores encontram</small></span>
+          </button>
+          <button type="button" role="radio" [attr.aria-checked]="d.status === 'draft'" [class.is-on]="d.status === 'draft'" (click)="setStatus('draft')">
+            <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+            <span><strong>Rascunho</strong><small>Só aqui no painel</small></span>
+          </button>
+        </div>
+        @if (d.status === 'active' && !ready()) {
+          <p class="ce-note ce-note--warn">
+            <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+            Para ficar ativo, complete os itens obrigatórios abaixo.
+          </p>
+        }
+        @if (!isNew()) {
+          <p class="ce-note">
+            <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
+            @if (listings()) {
+              {{ listings() }} {{ listings() === 1 ? 'anúncio usa' : 'anúncios usam' }} esta ficha. Mudanças valem para os próximos anúncios; os publicados ficam como estão.
+            } @else {
+              Nenhum anúncio usa esta ficha ainda.
+            }
+          </p>
+        }
+      </section>
+
+      <section class="ce-card">
+        <div class="ce-score">
+          <svg viewBox="0 0 36 36" class="ce-score__ring" aria-hidden="true">
+            <path class="ce-score__bg" d="M18 2 a16 16 0 0 1 0 32 a16 16 0 0 1 0 -32" />
+            <path class="ce-score__fill" [attr.stroke-dasharray]="quality() + ', 100'" d="M18 2 a16 16 0 0 1 0 32 a16 16 0 0 1 0 -32" />
+          </svg>
+          <strong>{{ quality() }}<small>%</small></strong>
+          <div>
+            <h4>Qualidade da ficha</h4>
+            <small>Ficha completa = anúncio que vende mais.</small>
+          </div>
+        </div>
+        <ul class="ce-checks">
+          @for (check of checks(); track check.key) {
+            <li [class.is-ok]="check.ok">
+              <ion-icon [name]="check.ok ? 'checkmark-circle' : 'ellipse-outline'" aria-hidden="true"></ion-icon>
+              <span>{{ check.label }}</span>
+              @if (check.required && !check.ok) { <em>obrigatório</em> }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="ce-card ce-preview" aria-label="Prévia para o vendedor">
+        <h4>Como o vendedor vê</h4>
+        <div class="ce-pv">
+          <div class="ce-pv__img">
+            @if (d.photos[0]) { <img [src]="d.photos[0]" alt=""> } @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+          </div>
+          <div class="ce-pv__body">
+            <span class="ce-pv__badge"><ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon> Catálogo Vineon</span>
+            <strong>{{ d.title || 'Nome do produto' }}</strong>
+            <small>{{ previewSub() }}</small>
+            @for (attr of d.variantAttributes; track $index) {
+              @if (attr.name && attr.values.length) {
+                <div class="ce-pv__attr">
+                  <span>{{ attr.name }}</span>
+                  <div>
+                    @for (value of attr.values.slice(0, 6); track value) { <i>{{ value }}</i> }
+                    @if (attr.values.length > 6) { <i class="is-more">+{{ attr.values.length - 6 }}</i> }
+                  </div>
+                </div>
+              }
+            }
+            @if (d.specs.length) {
+              <dl>
+                @for (spec of d.specs.slice(0, 4); track $index) {
+                  @if (spec.label && spec.value) { <div><dt>{{ spec.label }}</dt><dd>{{ spec.value }}</dd></div> }
+                }
+              </dl>
+            }
+            @if (packageText()) {
+              <small class="ce-pv__pkg"><ion-icon name="cube-outline" aria-hidden="true"></ion-icon> {{ packageText() }}</small>
+            }
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Barra fixa no celular -->
+  <div class="ce-mobilebar">
+    @if (!isNew()) {
+      <button type="button" class="ce-icon-btn" (click)="duplicate()" aria-label="Duplicar"><ion-icon name="copy-outline" aria-hidden="true"></ion-icon></button>
+      <button type="button" class="ce-icon-btn is-danger" (click)="remove()" aria-label="Excluir"><ion-icon name="trash-outline" aria-hidden="true"></ion-icon></button>
+    }
+    <button type="button" class="adm-btn adm-btn--primary ce-mobilebar__save" (click)="save()" [disabled]="saving() || uploads() > 0">
+      @if (saving()) { <ion-spinner name="crescent" aria-hidden="true"></ion-spinner> } @else { <ion-icon name="checkmark" aria-hidden="true"></ion-icon> }
+      {{ d.status === 'active' ? 'Salvar e manter ativo' : 'Salvar rascunho' }}
+    </button>
+  </div>
+</div>

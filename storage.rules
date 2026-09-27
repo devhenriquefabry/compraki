@@ -73,6 +73,18 @@ service firebase.storage {
         && isImage();
     }
 
+    // ------------------------------------------------------------- catalogo
+
+    // Fotos dos produtos do catalogo (aba Catalogo -> CatalogService.uploadPhoto).
+    // Leitura publica: os anuncios feitos a partir do catalogo usam as mesmas
+    // URLs. Escrita so por admin. Nunca apagar: anuncio publicado depende delas.
+    match /catalog/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.size < 10 * 1024 * 1024
+        && isImage();
+    }
+
     // -------------------------------------------------- perfil e vitrine
 
     // Foto de perfil (firebase-users.service.ts -> uploadProfilePhoto).

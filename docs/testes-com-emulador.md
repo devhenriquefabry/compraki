@@ -29,6 +29,8 @@ Acrescente `?testUser=` a qualquer URL do app:
 | `…?testUser=comprador`                       | `test-comprador`| endereço padrão cadastrado        |
 | `…?testUser=none`                            | —               | sai da conta                      |
 
+O seed também cria o **catálogo** (8 fichas, 1 rascunho) — ver `docs/catalogo.md`.
+
 No console do navegador também dá: `vineonTest.loginAs('vendedor')`,
 `vineonTest.logout()`.
 

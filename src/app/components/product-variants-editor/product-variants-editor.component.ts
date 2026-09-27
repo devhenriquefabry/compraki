@@ -40,6 +40,11 @@ export class ProductVariantsEditorComponent {
   readonly variantImages = input<Record<string, string>>({});
   readonly availablePhotos = input<string[]>([]);
   readonly basePrice = input<number | null>(null);
+  /**
+   * Opções fixas vindas do catálogo Vineon. Quando informado, o vendedor não
+   * cria nem renomeia atributos: só marca quais opções do catálogo ele tem.
+   */
+  readonly catalogOptions = input<ProductVariantAttribute[] | null>(null);
 
   readonly hasVariantsChange = output<boolean>();
   readonly attributesChange = output<ProductVariantAttribute[]>();
@@ -55,6 +60,17 @@ export class ProductVariantsEditorComponent {
 
   readonly attributeNames = computed(() => this.attributes().map(a => a.name));
 
+  readonly locked = computed(() => (this.catalogOptions()?.length ?? 0) > 0);
+
+  /** Atributos do catálogo com o que o vendedor já marcou. */
+  readonly catalogGroups = computed(() => {
+    const current = this.attributes();
+    return (this.catalogOptions() || []).map((option, i) => {
+      const chosen = new Set(current[i]?.values ?? []);
+      return { name: option.name, options: option.values.map(value => ({ value, on: chosen.has(value) })), count: chosen.size };
+    });
+  });
+
   readonly rows = computed<SkuRow[]>(() => {
     const names = this.attributeNames();
     const skuMap = this.skus();
@@ -63,6 +79,12 @@ export class ProductVariantsEditorComponent {
       const sku = skuMap[id];
       return { id, attributes: combo, price: sku?.price ?? null, stock: sku?.stock ?? 0 };
     });
+  });
+
+  /** Preço do anúncio como dica no campo de cada combinação (vazio = usa ele). */
+  readonly basePriceLabel = computed(() => {
+    const price = this.basePrice();
+    return price ? price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00';
   });
 
   readonly totalStock = computed(() => this.rows().reduce((sum, row) => sum + (row.stock || 0), 0));
@@ -78,6 +100,37 @@ export class ProductVariantsEditorComponent {
     if (on && this.attributes().length === 0) {
       this.attributesChange.emit([{ name: '', values: [] }]);
     }
+  }
+
+  /** Todo atributo do catálogo tem ao menos uma opção marcada. */
+  readonly catalogReady = computed(() => this.catalogGroups().every(group => group.count > 0));
+
+  // ------------------------------------------------------ opções do catálogo
+
+  /** Liga/desliga uma opção mantendo a ordem do catálogo. */
+  toggleCatalogValue(index: number, value: string) {
+    const options = this.catalogOptions() || [];
+    const current = this.attributes();
+    const next = options.map((option, i) => {
+      const chosen = new Set(current[i]?.values ?? []);
+      if (i === index) {
+        if (chosen.has(value)) chosen.delete(value);
+        else chosen.add(value);
+      }
+      return { name: option.name, values: option.values.filter(v => chosen.has(v)) };
+    });
+    this.attributesChange.emit(next);
+  }
+
+  /** Marca (ou desmarca) todas as opções de um atributo. */
+  toggleAllCatalogValues(index: number) {
+    const options = this.catalogOptions() || [];
+    const current = this.attributes();
+    const all = (current[index]?.values.length ?? 0) === options[index]?.values.length;
+    this.attributesChange.emit(options.map((option, i) => ({
+      name: option.name,
+      values: i === index ? (all ? [] : [...option.values]) : option.values.filter(v => current[i]?.values.includes(v)),
+    })));
   }
 
   // ------------------------------------------------------------------ atributos

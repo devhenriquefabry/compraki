@@ -1,0 +1,162 @@
+@if (editing(); as current) {
+  <app-catalog-editor
+    [product]="current"
+    [categories]="categories()"
+    [listings]="listingsOf(current)"
+    (closed)="onEditorClosed($event)"
+    (duplicated)="onDuplicate($event)">
+  </app-catalog-editor>
+} @else {
+  <div class="adm ct">
+    <header class="adm-head ct-head">
+      <div>
+        <h2>Catálogo</h2>
+        <p>Fichas prontas de produtos novos. O vendedor encontra, confirma e só informa preço, estoque e entrega.</p>
+      </div>
+      <button type="button" class="adm-btn adm-btn--accent ct-new" (click)="create()">
+        <ion-icon name="add" aria-hidden="true"></ion-icon>
+        Novo produto
+      </button>
+    </header>
+
+    <!-- Resumo -->
+    <section class="ct-kpis" aria-label="Resumo do catálogo">
+      <article class="ct-kpi ct-kpi--hero">
+        <span>No catálogo</span>
+        <strong>{{ activeCount() }}</strong>
+        <small>{{ activeCount() === 1 ? 'produto ativo' : 'produtos ativos' }} · {{ draftCount() }} {{ draftCount() === 1 ? 'rascunho' : 'rascunhos' }}</small>
+      </article>
+      <article class="ct-kpi">
+        <span>Anúncios feitos pelo catálogo</span>
+        <strong>{{ listingTotal() }}</strong>
+        <small>Vendedores que usaram uma ficha pronta</small>
+      </article>
+      <article class="ct-kpi">
+        <span>Qualidade média das fichas</span>
+        <strong>{{ avgQuality() }}<em>%</em></strong>
+        <div class="ct-meter" role="img" [attr.aria-label]="'Qualidade média ' + avgQuality() + '%'"><i [style.width.%]="avgQuality()"></i></div>
+        <small>{{ incompleteCount() ? incompleteCount() + ' ficha(s) para completar' : 'Todas as fichas completas' }}</small>
+      </article>
+      <article class="ct-kpi">
+        <span>Com código de barras</span>
+        <strong>{{ withGtin() }}<em> de {{ items().length }}</em></strong>
+        <small>Permite achar o produto pelo EAN da caixa</small>
+      </article>
+    </section>
+
+    <!-- Filtros -->
+    <div class="adm-toolbar ct-toolbar">
+      <label class="adm-search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <span class="vn-sr-only">Buscar no catálogo</span>
+        <input type="search" placeholder="Buscar por nome, marca, modelo, código VN ou EAN" [value]="search()" (input)="search.set($any($event.target).value)">
+      </label>
+
+      @if (usedCategories().length > 1) {
+        <label class="ct-select">
+          <span class="vn-sr-only">Categoria</span>
+          <ion-icon name="pricetags-outline" aria-hidden="true"></ion-icon>
+          <select [value]="categoryFilter()" (change)="categoryFilter.set($any($event.target).value)">
+            <option value="">Todas as categorias</option>
+            @for (cat of usedCategories(); track cat.id) {
+              <option [value]="cat.id" [selected]="cat.id === categoryFilter()">{{ cat.name }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <div class="adm-chips" role="tablist" aria-label="Situação das fichas">
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'all'" [attr.aria-selected]="filter() === 'all'" (click)="filter.set('all')">
+          Todos <small>{{ items().length }}</small>
+        </button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'active'" [attr.aria-selected]="filter() === 'active'" (click)="filter.set('active')">
+          Ativos <small>{{ activeCount() }}</small>
+        </button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'draft'" [attr.aria-selected]="filter() === 'draft'" (click)="filter.set('draft')">
+          Rascunhos <small>{{ draftCount() }}</small>
+        </button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'incomplete'" [class.is-alert]="incompleteCount() > 0" [attr.aria-selected]="filter() === 'incomplete'" (click)="filter.set('incomplete')">
+          Para completar <small>{{ incompleteCount() }}</small>
+        </button>
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="adm-error">{{ error() }}</div>
+    } @else if (loading()) {
+      <div class="ct-grid" aria-busy="true">
+        @for (i of [1, 2, 3, 4, 5, 6]; track i) { <div class="ct-skeleton"></div> }
+      </div>
+    } @else if (!items().length) {
+      <!-- Primeira vez: explica o que é e como começar -->
+      <section class="ct-onboard">
+        <div class="ct-onboard__art" aria-hidden="true">
+          <span class="ct-onboard__card ct-onboard__card--back"></span>
+          <span class="ct-onboard__card">
+            <ion-icon name="library-outline"></ion-icon>
+          </span>
+        </div>
+        <div class="ct-onboard__text">
+          <h3>Monte o catálogo da Vineon</h3>
+          <p>Cadastre uma vez os produtos novos mais vendidos, com fotos, ficha técnica e medidas. Na hora de anunciar, o vendedor busca pelo nome ou pelo código de barras e o anúncio já nasce completo.</p>
+          <ol>
+            <li><b>1</b> Crie a ficha: nome, marca, modelo e categoria.</li>
+            <li><b>2</b> Adicione fotos, características e as opções (cor, armazenamento…).</li>
+            <li><b>3</b> Deixe como <em>Ativo</em>: os vendedores já encontram.</li>
+          </ol>
+          <button type="button" class="adm-btn adm-btn--accent" (click)="create()">
+            <ion-icon name="add" aria-hidden="true"></ion-icon> Criar o primeiro produto
+          </button>
+        </div>
+      </section>
+    } @else {
+      <div class="ct-grid">
+        @for (row of visible(); track row.item.id) {
+          <article class="ct-card" [class.is-draft]="row.item.status === 'draft'" [class.is-fresh]="lastSavedId() === row.item.id">
+            <button type="button" class="ct-card__hit" (click)="open(row)" [attr.aria-label]="'Editar ' + row.item.title">
+              <span class="ct-card__img">
+                @if (row.item.photos[0]) {
+                  <img [src]="row.item.photos[0]" alt="" loading="lazy">
+                } @else {
+                  <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+                }
+                <span class="ct-card__status" [class.is-active]="row.item.status === 'active'">
+                  {{ row.item.status === 'active' ? 'Ativo' : 'Rascunho' }}
+                </span>
+                @if (row.item.photos.length > 1) {
+                  <span class="ct-card__count"><ion-icon name="images-outline" aria-hidden="true"></ion-icon>{{ row.item.photos.length }}</span>
+                }
+              </span>
+
+              <span class="ct-card__body">
+                <span class="ct-card__code">{{ row.code }}</span>
+                <strong class="ct-card__title">{{ row.item.title || 'Sem nome' }}</strong>
+                <span class="ct-card__sub">{{ row.item.brand || 'Sem marca' }} · {{ row.category }}</span>
+                @if (row.variants) {
+                  <span class="ct-card__variants"><ion-icon name="layers-outline" aria-hidden="true"></ion-icon>{{ row.variants }}</span>
+                }
+
+                <span class="ct-card__foot">
+                  <span class="ct-quality" [class]="'ct-quality--' + qualityTone(row.quality)">
+                    <span class="ct-quality__bar" aria-hidden="true"><i [style.width.%]="row.quality"></i></span>
+                    <span>Ficha {{ row.quality }}%</span>
+                  </span>
+                  <span class="ct-card__listings" [class.is-zero]="!row.listings">
+                    <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
+                    {{ row.listings }} {{ row.listings === 1 ? 'anúncio' : 'anúncios' }}
+                  </span>
+                </span>
+              </span>
+            </button>
+          </article>
+        } @empty {
+          <div class="adm-empty ct-empty">
+            <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+            <p>Nenhum produto do catálogo com esses filtros.</p>
+            <button type="button" class="adm-btn" (click)="clearFilters()">Limpar filtros</button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

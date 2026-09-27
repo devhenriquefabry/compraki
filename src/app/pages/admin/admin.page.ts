@@ -25,6 +25,7 @@ import { ManageOrdersPage } from '../manage-orders/manage-orders.page';
 import { ManageReportsPage } from '../manage-reports/manage-reports.page';
 import { AdminSettingsPage } from '../admin-settings/admin-settings.page';
 import { ManageSellersPage } from '../manage-sellers/manage-sellers.page';
+import { ManageCatalogPage } from '../manage-catalog/manage-catalog.page';
 
 type AdminTab =
   | 'metrics'
@@ -39,7 +40,8 @@ type AdminTab =
   | 'orders'
   | 'reports'
   | 'settings'
-  | 'sellers';
+  | 'sellers'
+  | 'catalog';
 
 interface NavItem {
   id: AdminTab;
@@ -93,6 +95,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Loja e integrações',
     items: [
+      { id: 'catalog', title: 'Catálogo', icon: 'library-outline', iconActive: 'library', hint: 'Fichas prontas para o vendedor anunciar produto novo' },
       { id: 'banners', title: 'Banners', icon: 'images-outline', iconActive: 'images', hint: 'Destaques da home e da exploração' },
       { id: 'melhor-envio', title: 'Melhor Envio', icon: 'paper-plane-outline', iconActive: 'paper-plane', hint: 'Fretes, etiquetas e simulador' },
       { id: 'bots', title: 'Bots', icon: 'hardware-chip-outline', iconActive: 'hardware-chip', hint: 'Automações e fila de execução' },
@@ -138,6 +141,7 @@ const BADGE_CAP = 100;
     ManageReportsPage,
     AdminSettingsPage,
     ManageSellersPage,
+    ManageCatalogPage,
   ],
 })
 export class AdminPage implements OnInit {

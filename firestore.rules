@@ -154,6 +154,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Catalogo Vineon: fichas prontas (fotos, ficha tecnica, variacoes) que o
+    // admin monta na aba Catalogo e o vendedor usa para anunciar. Leitura
+    // publica — o vendedor busca e a ficha do anuncio mostra o selo. Rascunho
+    // nao tem nada sensivel; o app so esconde do vendedor.
+    match /catalogProducts/{catalogId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Ajustes que o admin muda pelo painel (aba Ajustes): frete gratis por
     // valor, termos proibidos em anuncio, redes sociais. Leitura publica — a
     // vitrine de visitante precisa. NUNCA guardar segredo aqui (isso e `settings/`).
