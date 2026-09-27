@@ -17,6 +17,7 @@ import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinn
 import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.service';
 import { CatalogCompetition, CatalogProduct } from 'src/app/interfaces/catalog';
 import { catalogCode, cleanCatalogSpecs, normalizeText, packageSummary } from 'src/app/core/catalog';
+import { illustrationUrl, isIllustration } from 'src/app/core/catalog-illustrations';
 
 @Component({
   selector: 'app-upload-product-form',
@@ -163,8 +164,11 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     });
 
     this.catalogSpecs = cleanCatalogSpecs(c.specs);
-    this.selectedPhotos = [...c.photos];
-    this.filesToUpload = c.photos.map(() => null);
+    // Sem foto oficial, a capa começa com a imagem ilustrativa; o vendedor é
+    // convidado a trocar pela foto real (e ela sai sozinha quando ele envia).
+    const photos = c.photos.length ? c.photos : [illustrationUrl(c)];
+    this.selectedPhotos = [...photos];
+    this.filesToUpload = photos.map(() => null);
     this.catalogPhotoSet = new Set(c.photos);
 
     // Opções vêm do catálogo; o vendedor marca as que tem.
@@ -200,6 +204,22 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   isCatalogPhoto(photo: string): boolean {
     return this.catalogPhotoSet.has(photo);
   }
+
+  get catalogCoverUrl(): string {
+    return this.catalogProduct ? (this.catalogProduct.photos[0] || illustrationUrl(this.catalogProduct)) : '';
+  }
+
+  isIllustrativePhoto(photo: string): boolean {
+    return isIllustration(photo);
+  }
+
+  /** O anúncio ainda está só com a imagem ilustrativa (nenhuma foto real). */
+  get onlyIllustration(): boolean {
+    return this.selectedPhotos.length > 0 && this.selectedPhotos.every(photo => isIllustration(photo));
+  }
+
+  /** Aviso rápido depois que a foto real substituiu a ilustrativa. */
+  public illustrationReplaced = false;
 
   /** Nome da 1ª opção do catálogo sem nenhuma marcada (ex.: "Cor"), ou null. */
   get missingCatalogOption(): string | null {
@@ -275,8 +295,13 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
       reader.onload = (e: any) => resolve(e.target.result);
       reader.readAsDataURL(file);
     }))).then(previews => {
-      this.selectedPhotos.push(...previews);
-      this.filesToUpload.push(...files);
+      if (!previews.length) return;
+      // Foto real chegou: a imagem ilustrativa sai do anúncio.
+      const kept = this.selectedPhotos.map((photo, i) => ({ photo, file: this.filesToUpload[i] }))
+        .filter(item => !isIllustration(item.photo));
+      this.illustrationReplaced = kept.length < this.selectedPhotos.length;
+      this.selectedPhotos = [...kept.map(item => item.photo), ...previews];
+      this.filesToUpload = [...kept.map(item => item.file), ...files];
     });
   }
 

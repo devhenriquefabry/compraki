@@ -1037,3 +1037,75 @@
 }
 
 .upload-container .photos-required { color: #92400E !important; font-weight: 700; }
+
+.upload-container {
+  .photo-illus-badge { background: #FEF3C7; color: #92400E; }
+
+  .illus-nudge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #F59E0B;
+    border-radius: 14px;
+    background: #FFFBEB;
+
+    .in-icon {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      background: #0B1623;
+      color: #D8F51F;
+      font-size: 20px;
+    }
+
+    .in-text {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+      strong { color: #0B1623; font-size: 0.9rem; font-weight: 800; }
+      small { color: #92400E; font-size: 0.78rem; line-height: 1.4; }
+    }
+
+    .in-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      height: 40px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 11px;
+      background: #D8F51F;
+      color: #0B1623;
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+  }
+
+  .illus-done {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 0 0;
+    color: #0B1623;
+    font-size: 0.82rem;
+    font-weight: 700;
+    ion-icon { font-size: 17px; }
+  }
+
+  .publish-hint--illus { color: #92400E; font-weight: 700; }
+
+  @media (max-width: 480px) {
+    .illus-nudge { flex-wrap: wrap; }
+    .illus-nudge .in-btn { width: 100%; justify-content: center; }
+  }
+}

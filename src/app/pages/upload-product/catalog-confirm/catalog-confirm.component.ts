@@ -4,6 +4,7 @@ import { IonicModule } from '@ionic/angular';
 
 import { getCurrentUser } from '../../../core/auth-state';
 import { catalogCode, packageSummary } from '../../../core/catalog';
+import { illustrationUrl } from '../../../core/catalog-illustrations';
 import { CatalogCompetition, CatalogProduct } from '../../../interfaces/catalog';
 import { CatalogService } from '../../../services/catalog.service';
 
@@ -36,7 +37,9 @@ export class CatalogConfirmComponent implements OnInit {
 
   readonly code = computed(() => catalogCode(this.product().id));
   readonly packageText = computed(() => packageSummary(this.product()));
-  readonly photos = computed(() => this.product().photos);
+  /** Sem foto oficial, a galeria mostra a imagem ilustrativa do tipo de produto. */
+  readonly illustrative = computed(() => !this.product().photos.length);
+  readonly photos = computed(() => (this.illustrative() ? [illustrationUrl(this.product())] : this.product().photos));
   readonly currentPhoto = computed(() => this.photos()[this.photoIndex()] ?? this.photos()[0] ?? null);
   readonly specs = computed(() => {
     const specs = this.product().specs;

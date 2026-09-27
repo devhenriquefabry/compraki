@@ -950,3 +950,18 @@
 @media (prefers-reduced-motion: reduce) {
   .ce-photo__tools, .ce-score__fill { transition: none; }
 }
+
+.ce-illus {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px dashed var(--adm-line);
+  border-radius: 14px;
+  background: #F8FAFC;
+
+  img { flex-shrink: 0; width: 84px; height: 84px; border-radius: 10px; background: #fff; object-fit: contain; }
+  p { margin: 0; color: var(--adm-muted); font-size: 0.8rem; line-height: 1.45; }
+  strong { color: var(--adm-ink); }
+}

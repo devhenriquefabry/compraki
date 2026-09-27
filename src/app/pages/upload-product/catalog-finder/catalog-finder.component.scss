@@ -289,6 +289,7 @@ button { font: inherit; }
 }
 
 .cf-item__img {
+  position: relative;
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -571,4 +572,19 @@ button { font: inherit; }
   .cf-item, .cf-card { transition: none; }
   .cf-card:hover { transform: none; }
   .cf-skeleton { animation: none; }
+}
+
+.cf-illus-tag {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 0;
+  border-radius: 5px;
+  background: rgba(11, 22, 35, 0.78);
+  color: #fff;
+  font-size: 0.56rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.02em;
 }

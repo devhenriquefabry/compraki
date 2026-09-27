@@ -82,3 +82,13 @@ node functions/scripts/catalog-import.mjs --prod
 ```
 
 Só cria o que não existe (mesmo id), então rodar de novo não apaga edição do admin.
+
+## Imagens ilustrativas
+
+Ficha sem foto oficial mostra uma **imagem ilustrativa** própria da Vineon
+(28 desenhos por tipo de produto, fundo branco, com a legenda "Imagem
+ilustrativa") em `src/assets/catalogo/ilustracoes/`. O desenho vem do nome e
+da subcategoria (`core/catalog-illustrations.ts`). No anúncio ela entra como
+capa com o selo "Ilustrativa" e um aviso para trocar pela foto real; quando o
+vendedor envia fotos, a ilustrativa sai sozinha. Publicar só com ela é
+permitido. Para mudar ou criar desenhos: `functions/scripts/catalog-illustrations.mjs`.

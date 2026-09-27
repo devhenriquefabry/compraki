@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule } from '@ionic/angular';
 
 import { catalogCode, emptyCatalogProduct, normalizeText, qualityScore, variantSummary } from '../../core/catalog';
+import { catalogCover } from '../../core/catalog-illustrations';
 import { CatalogProduct } from '../../interfaces/catalog';
 import { Category } from '../../interfaces/category';
 import { CatalogService } from '../../services/catalog.service';
@@ -162,6 +163,10 @@ export class ManageCatalogPage {
     this.filter.set('all');
     this.search.set('');
     this.categoryFilter.set('');
+  }
+
+  cover(item: CatalogProduct): string {
+    return catalogCover(item);
   }
 
   qualityTone(quality: number): 'ok' | 'warn' | 'danger' {

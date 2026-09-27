@@ -29,8 +29,7 @@
         <!-- PRODUTO DO CATÁLOGO -->
         <section class="catalog-strip">
           <span class="cs-img">
-            @if (catalogProduct.photos[0]) { <img [src]="catalogProduct.photos[0]" alt=""> }
-            @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+            <img [src]="catalogCoverUrl" alt="">
           </span>
           <div class="cs-text">
             <span class="cs-badge"><ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon> Catálogo Vineon<span class="cs-code"> · {{ catalogCodeLabel }}</span></span>
@@ -52,7 +51,7 @@
             <h2>Fotos do produto</h2>
             @if (catalogProduct) {
               <p *ngIf="catalogProduct.photos.length">As fotos do catálogo já estão aqui. Vendendo usado ou com brinde? Adicione fotos suas.</p>
-              <p *ngIf="!catalogProduct.photos.length" class="photos-required">Esta ficha ainda não tem fotos oficiais. Envie ao menos uma foto do seu produto.</p>
+              <p *ngIf="!catalogProduct.photos.length">Troque a imagem ilustrativa pelas fotos reais do seu produto.</p>
             } @else {
               <p>A primeira foto é a capa do anúncio. Até 6 fotos.</p>
             }
@@ -74,6 +73,7 @@
             <img [src]="photo" alt="Foto do produto" draggable="false" (click)="openPreview(photo)">
             <div class="photo-order-badge" [class.is-cover]="i === 0">{{ i === 0 ? 'Capa' : i + 1 }}</div>
             <span class="photo-catalog-badge" *ngIf="isCatalogPhoto(photo)">Catálogo</span>
+            <span class="photo-catalog-badge photo-illus-badge" *ngIf="isIllustrativePhoto(photo)">Ilustrativa</span>
             <div class="remove-photo" (click)="removePhoto(i)">
               <ion-icon name="close"></ion-icon>
             </div>
@@ -83,6 +83,20 @@
             <ion-icon name="add"></ion-icon>
           </div>
         </div>
+      
+        <div class="illus-nudge" *ngIf="onlyIllustration">
+          <span class="in-icon" aria-hidden="true"><ion-icon name="camera-outline"></ion-icon></span>
+          <div class="in-text">
+            <strong>Troque pela foto real do seu produto</strong>
+            <small>A capa está com uma imagem ilustrativa. Fotos reais passam mais confiança e vendem mais. Ao enviar, a ilustrativa sai sozinha.</small>
+          </div>
+          <button type="button" class="in-btn" (click)="fileInput.click()">
+            <ion-icon name="camera-outline" aria-hidden="true"></ion-icon> Enviar fotos
+          </button>
+        </div>
+        <p class="illus-done" *ngIf="illustrationReplaced && !onlyIllustration">
+          <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Imagem ilustrativa trocada pelas suas fotos.
+        </p>
       </section>
 
       <!-- INFORMAÇÕES BÁSICAS -->
@@ -407,6 +421,7 @@
         Publicar produto
       </button>
       <p class="publish-hint" *ngIf="missingCatalogPhoto">Adicione ao menos uma foto do produto</p>
+      <p class="publish-hint publish-hint--illus" *ngIf="onlyIllustration">Você vai publicar com imagem ilustrativa. Se puder, envie fotos reais.</p>
       <p class="publish-hint" *ngIf="missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }} em "Opções que você tem"</p>
       <p class="publish-hint" *ngIf="!missingCatalogOption && !missingCatalogPhoto && !submitProductForm.valid">Complete os campos obrigatórios para publicar</p>
     </aside>

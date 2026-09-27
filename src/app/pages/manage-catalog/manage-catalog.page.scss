@@ -426,3 +426,15 @@
   .ct-card:hover { transform: none; }
   .ct-skeleton { animation: none; }
 }
+
+.ct-card__illus {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(11, 22, 35, 0.78);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+}

@@ -95,8 +95,8 @@
             <li>
               <button type="button" class="cf-item" (click)="picked.emit(row.item)">
                 <span class="cf-item__img">
-                  @if (row.item.photos[0]) { <img [src]="row.item.photos[0]" alt="" loading="lazy"> }
-                  @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+                  <img [src]="cover(row.item)" alt="" loading="lazy">
+                  @if (!row.item.photos.length) { <span class="cf-illus-tag">Ilustrativa</span> }
                 </span>
                 <span class="cf-item__body">
                   <strong class="cf-item__title">@for (part of row.title; track $index) {<span [class.cf-hit]="part.hit">{{ part.text }}</span>}</strong>
@@ -147,8 +147,7 @@
             @for (item of featured(); track item.id) {
               <button type="button" class="cf-card" (click)="picked.emit(item)">
                 <span class="cf-card__img">
-                  @if (item.photos[0]) { <img [src]="item.photos[0]" alt="" loading="lazy"> }
-                  @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+                  <img [src]="cover(item)" alt="" loading="lazy">
                 </span>
                 <span class="cf-card__body">
                   <strong>{{ item.title }}</strong>

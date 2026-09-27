@@ -6,6 +6,7 @@ import {
   CATALOG_ATTRIBUTE_SUGGESTIONS, MAX_CATALOG_PHOTOS, MAX_CATALOG_SPECS, MIN_GOOD_DESCRIPTION,
   canActivate, catalogChecks, catalogCode, isValidGtin, onlyDigits, packageSummary, qualityScore, specSuggestions, variantSummary,
 } from '../../../core/catalog';
+import { catalogCover } from '../../../core/catalog-illustrations';
 import { CatalogProduct, CatalogStatus } from '../../../interfaces/catalog';
 import { Category } from '../../../interfaces/category';
 import { ProductVariantAttribute } from '../../../interfaces/product';
@@ -91,6 +92,8 @@ export class CatalogEditorComponent implements OnInit {
 
   readonly previewSub = computed(() =>
     [this.draft().brand.trim(), this.categoryLabel()].filter(Boolean).join(' · ') || 'Marca · Categoria');
+
+  readonly cover = computed(() => catalogCover(this.draft()));
 
   readonly variantText = computed(() => variantSummary(this.draft().variantAttributes));
   readonly packageText = computed(() => packageSummary(this.draft()));

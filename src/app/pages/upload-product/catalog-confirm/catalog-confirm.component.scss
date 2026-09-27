@@ -109,20 +109,27 @@ button { font: inherit; }
   }
 }
 
-.cc-gallery.is-empty .cc-gallery__main {
+.cc-gallery__main { position: relative; }
+
+.cc-gallery__illus {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  aspect-ratio: auto;
-  min-height: 150px;
-  padding: 16px;
-  border: 1.5px dashed #C8D0DA;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(11, 22, 35, 0.86);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
   text-align: center;
-}
 
-.cc-gallery__empty { max-width: 240px; color: var(--cc-muted); font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
+  ion-icon { flex-shrink: 0; font-size: 15px; color: #D8F51F; }
+}
 
 /* ------------------------------------------------------------ ficha */
 

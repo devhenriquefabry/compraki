@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, ToastController } from '@ionic/angular';
 
 import { normalizeText, onlyDigits, queryTokens, variantSummary } from '../../../core/catalog';
+import { catalogCover } from '../../../core/catalog-illustrations';
 import { CatalogProduct } from '../../../interfaces/catalog';
 import { Category } from '../../../interfaces/category';
 import { CatalogService } from '../../../services/catalog.service';
@@ -241,6 +242,11 @@ export class CatalogFinderComponent implements OnInit {
     if (!cat) return '';
     const sub = cat.subcategories?.find(s => s.id === item.subcategoryId);
     return sub?.name ?? cat.name;
+  }
+
+  /** Foto oficial ou, sem ela, a imagem ilustrativa do tipo de produto. */
+  cover(item: CatalogProduct): string {
+    return catalogCover(item);
   }
 
   toggleBrand(name: string) {

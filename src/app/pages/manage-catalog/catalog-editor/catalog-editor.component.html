@@ -148,6 +148,12 @@
           <span class="ce-sec__meta">{{ d.photos.length }}/{{ maxPhotos }}</span>
         </header>
 
+        @if (!d.photos.length) {
+          <div class="ce-illus">
+            <img [src]="cover()" alt="Imagem ilustrativa usada nesta ficha">
+            <p><strong>Sem foto oficial, a ficha usa esta imagem ilustrativa.</strong> Na hora de anunciar, o vendedor é orientado a trocar pela foto real do produto. O desenho é escolhido pelo nome e pela subcategoria.</p>
+          </div>
+        }
         <div class="ce-photos" [class.is-invalid]="invalid('photo')">
           @for (url of d.photos; track url; let i = $index, last = $last) {
             <figure class="ce-photo" [class.is-cover]="i === 0">
@@ -406,7 +412,7 @@
         <h4>Como o vendedor vê</h4>
         <div class="ce-pv">
           <div class="ce-pv__img">
-            @if (d.photos[0]) { <img [src]="d.photos[0]" alt=""> } @else { <ion-icon name="image-outline" aria-hidden="true"></ion-icon> }
+            <img [src]="cover()" alt="">
           </div>
           <div class="ce-pv__body">
             <span class="ce-pv__badge"><ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon> Catálogo Vineon</span>
