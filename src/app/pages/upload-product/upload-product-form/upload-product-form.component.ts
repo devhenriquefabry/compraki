@@ -428,7 +428,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
         this.isLoading = false;
         this.feedbackType = 'error';
         this.feedbackTitle = 'Erro ao Publicar';
-        this.feedbackMessage = err instanceof Error && err.message.startsWith('Variações')
+        this.feedbackMessage = err instanceof Error && err.message.includes('Variações')
           ? err.message
           : 'Verifique sua conexão e tente novamente.';
         this.showFeedback = true;
