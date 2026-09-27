@@ -208,8 +208,13 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     return empty?.name ?? null;
   }
 
+  /** Ficha do catálogo sem fotos: o vendedor precisa enviar ao menos uma. */
+  get missingCatalogPhoto(): boolean {
+    return !!this.catalogProduct && this.selectedPhotos.length === 0;
+  }
+
   get canPublish(): boolean {
-    return this.submitProductForm.valid && !this.missingCatalogOption;
+    return this.submitProductForm.valid && !this.missingCatalogOption && !this.missingCatalogPhoto;
   }
 
   get completionPercent(): number {
@@ -360,6 +365,9 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
           throw new Error('Adicione ao menos um atributo com um valor em "Variações", ou desative a opção.');
         }
 
+        if (this.missingCatalogPhoto) {
+          throw new Error('Fotos: adicione ao menos uma foto do produto.');
+        }
         if (this.missingCatalogOption) {
           throw new Error(`Variações: escolha ao menos uma opção de ${this.missingCatalogOption}.`);
         }
@@ -428,7 +436,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
         this.isLoading = false;
         this.feedbackType = 'error';
         this.feedbackTitle = 'Erro ao Publicar';
-        this.feedbackMessage = err instanceof Error && err.message.includes('Variações')
+        this.feedbackMessage = err instanceof Error && (err.message.includes('Variações') || err.message.startsWith('Fotos:'))
           ? err.message
           : 'Verifique sua conexão e tente novamente.';
         this.showFeedback = true;

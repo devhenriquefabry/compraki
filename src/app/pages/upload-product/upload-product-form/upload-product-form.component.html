@@ -51,7 +51,8 @@
           <div class="fch-text">
             <h2>Fotos do produto</h2>
             @if (catalogProduct) {
-              <p>As fotos do catálogo já estão aqui. Vendendo usado ou com brinde? Adicione fotos suas.</p>
+              <p *ngIf="catalogProduct.photos.length">As fotos do catálogo já estão aqui. Vendendo usado ou com brinde? Adicione fotos suas.</p>
+              <p *ngIf="!catalogProduct.photos.length" class="photos-required">Esta ficha ainda não tem fotos oficiais. Envie ao menos uma foto do seu produto.</p>
             } @else {
               <p>A primeira foto é a capa do anúncio. Até 6 fotos.</p>
             }
@@ -405,14 +406,16 @@
         <ion-icon name="checkmark-circle-outline"></ion-icon>
         Publicar produto
       </button>
+      <p class="publish-hint" *ngIf="missingCatalogPhoto">Adicione ao menos uma foto do produto</p>
       <p class="publish-hint" *ngIf="missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }} em "Opções que você tem"</p>
-      <p class="publish-hint" *ngIf="!missingCatalogOption && !submitProductForm.valid">Complete os campos obrigatórios para publicar</p>
+      <p class="publish-hint" *ngIf="!missingCatalogOption && !missingCatalogPhoto && !submitProductForm.valid">Complete os campos obrigatórios para publicar</p>
     </aside>
   </div>
 
   <!-- BARRA FIXA (MOBILE) -->
   <div class="fixed-bottom-actions">
-    <p class="publish-hint publish-hint--bar" *ngIf="missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }}</p>
+    <p class="publish-hint publish-hint--bar" *ngIf="missingCatalogPhoto">Adicione ao menos uma foto do produto</p>
+    <p class="publish-hint publish-hint--bar" *ngIf="!missingCatalogPhoto && missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }}</p>
     <button type="button" class="btn-publish" (click)="submit()" [disabled]="!canPublish">
       <ion-icon name="pricetag-outline"></ion-icon>
       Publicar produto

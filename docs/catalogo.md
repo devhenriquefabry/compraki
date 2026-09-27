@@ -53,8 +53,9 @@ um igual" faz na ficha de um anúncio feito pelo catálogo.
 
 Editor com seis blocos (identificação, fotos, opções, ficha técnica,
 embalagem, descrição/preço de referência), nota de qualidade e prévia de como o
-vendedor vê. Para ficar **Ativo** precisa de nome, marca + modelo, categoria,
-foto de capa e medidas. O EAN tem o dígito verificador conferido e avisa se já
+vendedor vê. Para ficar **Ativo** precisa de nome, marca + modelo, categoria
+e medidas. Foto não é obrigatória: ficha sem foto exige que o vendedor envie
+ao menos uma foto dele ao anunciar. O EAN tem o dígito verificador conferido e avisa se já
 está em outra ficha. Duplicar cria rascunho sem EAN.
 
 ## Testar no emulador
@@ -65,3 +66,19 @@ ligado ao iPhone 15, para a "concorrência" aparecer:
 - admin: `http://localhost:4210/admin/catalog?testUser=admin`
 - vendedor: `http://localhost:4210/tabs/upload-product?testUser=vendedor`
   (tente "iphone 15", "airfryer", "galax 256" ou o EAN `0194253890010`)
+
+## Catálogo inicial
+
+`functions/scripts/catalogo-inicial.mjs` tem 66 fichas dos produtos novos mais
+vendidos (lista "Mais vendidos" do Mercado Livre em 27/09/2026 + campeões de
+cada categoria), com ficha técnica conferida em fontes do fabricante. Vão
+**sem fotos** (imagem de anúncio tem dono) e com medidas de embalagem
+**estimadas**. Importar:
+
+```bash
+node functions/scripts/catalog-import.mjs --emulator
+node functions/scripts/catalog-import.mjs --prod --dry-run
+node functions/scripts/catalog-import.mjs --prod
+```
+
+Só cria o que não existe (mesmo id), então rodar de novo não apaga edição do admin.

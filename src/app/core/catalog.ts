@@ -197,7 +197,8 @@ export function catalogChecks(product: Partial<CatalogProduct>): CatalogCheck[] 
     { key: 'title', label: 'Nome do produto', ok: filled(product.title) && product.title!.trim().length >= 4, required: true },
     { key: 'brand', label: 'Marca e modelo', ok: filled(product.brand) && filled(product.model), required: true },
     { key: 'category', label: 'Categoria', ok: filled(product.categoryId), required: true },
-    { key: 'photo', label: 'Foto de capa', ok: photos.length >= 1, required: true },
+    // Sem foto a ficha pode ficar ativa: o vendedor envia as fotos dele.
+    { key: 'photo', label: 'Foto de capa', ok: photos.length >= 1, required: false },
     { key: 'package', label: 'Medidas e peso da embalagem', ok: hasPackage(product), required: true },
     { key: 'photos', label: `${MIN_GOOD_PHOTOS} fotos ou mais`, ok: photos.length >= MIN_GOOD_PHOTOS, required: false },
     { key: 'specs', label: `${MIN_GOOD_SPECS} características ou mais`, ok: specs.length >= MIN_GOOD_SPECS, required: false },

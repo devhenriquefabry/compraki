@@ -12,12 +12,13 @@
 
     <article class="cc-card">
       <!-- Galeria -->
-      <div class="cc-gallery">
+      <div class="cc-gallery" [class.is-empty]="!photos().length">
         <div class="cc-gallery__main">
           @if (currentPhoto(); as photo) {
             <img [src]="photo" [alt]="p.title">
           } @else {
-            <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+            <ion-icon name="camera-outline" aria-hidden="true"></ion-icon>
+            <span class="cc-gallery__empty">Sem foto oficial: você envia as fotos do seu produto</span>
           }
         </div>
         @if (photos().length > 1) {
