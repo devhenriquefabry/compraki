@@ -14,7 +14,15 @@ const FOLDER = '/assets/catalogo/ilustracoes/';
 /** Primeira regra que casa com nome/modelo/linha decide o desenho. A ordem importa. */
 const BY_NAME: [RegExp, string][] = [
   [/\b(controle|dualsense|dualshock|joystick|gamepad)\b/, 'controle'],
-  [/\b(iphone|galaxy [asmz]\d|moto g|smartphone|celular|redmi note|xiaomi \d)/, 'celular'],
+  [/(smartwatch|apple watch|galaxy watch|smart band|mi band|relogio inteligente)/, 'smartwatch'],
+  [/\b(ipad|tablet|galaxy tab|kindle)\b/, 'tablet'],
+  [/\b(drone|dji)\b/, 'drone'],
+  [/\bprojetor\b/, 'projetor'],
+  [/\bmicro ?ondas\b/, 'micro-ondas'],
+  [/\b(panelas?|frigideira|cacarola)\b/, 'panela'],
+  [/(copo termico|garrafa termica|stanley|quencher|squeeze)/, 'copo-termico'],
+  [/\b(racao|sache|petisco|areia para gatos)\b/, 'racao'],
+  [/\b(iphone|galaxy [asmz]\d|moto g|smartphone|celular|redmi (note )?\d|poco [a-z]\d|xiaomi \d)/, 'celular'],
   [/\b(airpods|buds|soundcore|earbuds?|tws)\b/, 'earbuds'],
   [/\b(echo|alexa|smart speaker)\b/, 'smart-speaker'],
   [/\b(headset|headphone|fone)\b/, 'headphone'],
@@ -59,6 +67,11 @@ const BY_SUBCATEGORY: Record<string, string> = {
   'cat_beleza-perfumaria': 'perfume',
   'cat_saude-suplementos': 'suplemento',
   'cat_moda-calcados': 'chinelo',
+  'cat_eletronicos-cameras': 'drone',
+  'cat_eletrodomesticos-cozinha': 'micro-ondas',
+  'cat_casa-cozinha': 'panela',
+  'cat_petshop-racao': 'racao',
+  'cat_moda-relogios-joias': 'smartwatch',
 };
 
 export function illustrationKey(product: Pick<CatalogProduct, 'title' | 'model' | 'line' | 'subcategoryId'>): string {

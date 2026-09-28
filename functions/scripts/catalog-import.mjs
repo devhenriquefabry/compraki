@@ -12,7 +12,10 @@
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
-import { CATALOGO_INICIAL } from './catalogo-inicial.mjs';
+import { CATALOGO_INICIAL as LOTE_1 } from './catalogo-inicial.mjs';
+import { CATALOGO_LOTE_2 } from './catalogo-lote-2.mjs';
+
+const CATALOGO_INICIAL = [...LOTE_1, ...CATALOGO_LOTE_2];
 
 const args = new Set(process.argv.slice(2));
 const PROD = args.has('--prod');

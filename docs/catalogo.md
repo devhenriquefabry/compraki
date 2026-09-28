@@ -83,10 +83,16 @@ node functions/scripts/catalog-import.mjs --prod
 
 Só cria o que não existe (mesmo id), então rodar de novo não apaga edição do admin.
 
+`catalogo-lote-2.mjs` (28/09/2026) soma 25 fichas a partir dos tipos em alta na
+Shopee (Mapa Shopee 2026 e balanço de 2025): celulares Xiaomi/Poco, Galaxy S25 FE,
+smartwatches, iPad, Kindle, drones DJI, projetor, TV 4K, micro-ondas, Stanley,
+panelas, parafusadeira e pet. Itens genéricos do topo da Shopee (lençol, tapete,
+cortina) não viram ficha: não têm modelo padrão. O importador lê os dois lotes.
+
 ## Imagens ilustrativas
 
 Ficha sem foto oficial mostra uma **imagem ilustrativa** própria da Vineon
-(28 desenhos por tipo de produto, fundo branco, com a legenda "Imagem
+(36 desenhos por tipo de produto, fundo branco, com a legenda "Imagem
 ilustrativa") em `src/assets/catalogo/ilustracoes/`. O desenho vem do nome e
 da subcategoria (`core/catalog-illustrations.ts`). No anúncio ela entra como
 capa com o selo "Ilustrativa" e um aviso para trocar pela foto real; quando o

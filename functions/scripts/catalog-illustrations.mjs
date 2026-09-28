@@ -255,6 +255,73 @@ export const DRAWINGS = {
     <path d="M220 320 L500 450 V790 L220 660 Z" fill="${N}"/>
     <path d="M780 320 L500 450 V790 L780 660 Z" fill="${N2}"/>
     <path d="M360 255 L640 385 V470 L600 450 V400 L320 270 Z" fill="${L}"/>`,
+
+  smartwatch: `${shadow(500, 840, 170)}
+    <rect x="420" y="110" width="160" height="200" rx="40" fill="${N3}"/>
+    <rect x="420" y="650" width="160" height="200" rx="40" fill="${N3}"/>
+    <rect x="330" y="270" width="340" height="420" rx="90" fill="${N}"/>
+    <rect x="360" y="300" width="280" height="360" rx="66" fill="${N2}"/>
+    <circle cx="500" cy="480" r="110" fill="none" stroke="${L}" stroke-width="22" stroke-dasharray="520 700" stroke-linecap="round" transform="rotate(-90 500 480)"/>
+    <rect x="455" y="460" width="90" height="40" rx="12" fill="${N3}"/>
+    <rect x="668" y="400" width="24" height="80" rx="10" fill="${N3}"/>`,
+
+  drone: `${shadow(500, 760, 330)}
+    <path d="M300 330 L700 630 M700 330 L300 630" stroke="${N}" stroke-width="40" stroke-linecap="round"/>
+    <g fill="${G}" stroke="${G2}" stroke-width="8">
+      <ellipse cx="270" cy="310" rx="120" ry="26"/><ellipse cx="730" cy="310" rx="120" ry="26"/>
+      <ellipse cx="270" cy="650" rx="120" ry="26"/><ellipse cx="730" cy="650" rx="120" ry="26"/>
+    </g>
+    <g fill="${N}"><circle cx="300" cy="330" r="34"/><circle cx="700" cy="330" r="34"/><circle cx="300" cy="630" r="34"/><circle cx="700" cy="630" r="34"/></g>
+    <rect x="390" y="400" width="220" height="160" rx="50" fill="${N}"/>
+    <circle cx="500" cy="590" r="46" fill="${N3}"/><circle cx="500" cy="590" r="20" fill="${L}"/>`,
+
+  projetor: `${shadow(500, 800, 250)}
+    <path d="M430 560 L380 780 M570 560 L620 780" stroke="${N}" stroke-width="30" stroke-linecap="round"/>
+    <rect x="360" y="660" width="280" height="130" rx="30" fill="${N}"/>
+    <rect x="330" y="220" width="340" height="360" rx="60" fill="${W}" stroke="${G2}" stroke-width="10"/>
+    <circle cx="500" cy="380" r="110" fill="${N}"/>
+    <circle cx="500" cy="380" r="70" fill="${N3}"/>
+    <circle cx="470" cy="350" r="22" fill="${L}"/>
+    <rect x="440" y="520" width="120" height="16" rx="8" fill="${G2}"/>`,
+
+  tablet: `${shadow(500, 840, 260)}
+    <rect x="240" y="140" width="520" height="680" rx="46" fill="${N}"/>
+    <rect x="264" y="164" width="472" height="632" rx="26" fill="${N2}"/>
+    <clipPath id="tab"><rect x="264" y="164" width="472" height="632" rx="26"/></clipPath>
+    <g clip-path="url(#tab)"><circle cx="640" cy="300" r="200" fill="${N3}"/><circle cx="330" cy="700" r="150" fill="${L}" opacity=".9"/></g>
+    <circle cx="500" cy="152" r="6" fill="${N3}"/>`,
+
+  panela: `${shadow(480, 800, 300)}
+    <path d="M230 470 H730 V690 C730 750 690 790 630 790 H330 C270 790 230 750 230 690 Z" fill="${N}"/>
+    <rect x="215" y="455" width="530" height="40" rx="14" fill="${N3}"/>
+    <path d="M230 520 H150 C120 520 120 570 150 570 H230" fill="${N}"/>
+    <path d="M730 520 H810 C840 520 840 570 810 570 H730" fill="${N}"/>
+    <path d="M250 455 C 280 330 680 330 710 455 Z" fill="${G}" stroke="${G2}" stroke-width="8"/>
+    <rect x="445" y="320" width="70" height="40" rx="14" fill="${N}"/>
+    <rect x="270" y="610" width="180" height="22" rx="11" fill="${L}"/>`,
+
+  'copo-termico': `${shadow(470, 830, 190)}
+    <path d="M330 300 H610 L580 800 C578 815 565 825 550 825 H390 C375 825 362 815 360 800 Z" fill="${N}"/>
+    <rect x="315" y="250" width="310" height="70" rx="18" fill="${N3}"/>
+    <rect x="470" y="110" width="26" height="170" rx="10" fill="${G2}" transform="rotate(8 483 195)"/>
+    <path d="M600 360 H660 C700 360 710 400 710 460 V560 C710 610 690 630 660 630 H590" fill="none" stroke="${N}" stroke-width="34"/>
+    <rect x="345" y="460" width="250" height="26" rx="13" fill="${L}"/>`,
+
+  racao: `${shadow(500, 820, 250)}
+    <path d="M320 200 H680 L700 800 H300 Z" fill="${N}"/>
+    <path d="M320 200 L340 160 H660 L680 200 Z" fill="${N3}"/>
+    <rect x="350" y="360" width="300" height="220" rx="24" fill="${L}"/>
+    <g fill="${N}"><ellipse cx="500" cy="490" rx="48" ry="40"/><circle cx="445" cy="430" r="20"/><circle cx="480" cy="412" r="20"/><circle cx="520" cy="412" r="20"/><circle cx="555" cy="430" r="20"/></g>
+    <rect x="360" y="640" width="200" height="24" rx="12" fill="${N3}"/>`,
+
+  'micro-ondas': `${shadow(500, 790, 330)}
+    <rect x="170" y="260" width="660" height="500" rx="36" fill="${N}"/>
+    <rect x="210" y="300" width="440" height="420" rx="20" fill="${N2}"/>
+    <rect x="240" y="330" width="380" height="360" rx="12" fill="${N3}"/>
+    <rect x="600" y="360" width="16" height="240" rx="8" fill="${G2}"/>
+    <rect x="680" y="310" width="120" height="60" rx="10" fill="${L}"/>
+    <g fill="${N3}">${Array.from({ length: 4 }, (_, r) => [0, 1, 2].map(c => `<rect x="${685 + c * 40}" y="${400 + r * 50}" width="30" height="30" rx="8"/>`).join('')).join('')}</g>
+    <circle cx="740" cy="660" r="34" fill="${N3}"/>`,
 };
 
 function svg(key) {
