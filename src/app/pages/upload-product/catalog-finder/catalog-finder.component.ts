@@ -2,7 +2,7 @@ import { Component, DestroyRef, ElementRef, OnInit, computed, inject, output, si
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, ToastController } from '@ionic/angular';
 
-import { normalizeText, onlyDigits, queryTokens, variantSummary } from '../../../core/catalog';
+import { catalogPhotos, normalizeText, onlyDigits, queryTokens, variantSummary } from '../../../core/catalog';
 import { catalogCover } from '../../../core/catalog-illustrations';
 import { CatalogProduct } from '../../../interfaces/catalog';
 import { Category } from '../../../interfaces/category';
@@ -247,6 +247,10 @@ export class CatalogFinderComponent implements OnInit {
   /** Foto oficial ou, sem ela, a imagem ilustrativa do tipo de produto. */
   cover(item: CatalogProduct): string {
     return catalogCover(item);
+  }
+
+  hasPhotos(item: CatalogProduct): boolean {
+    return catalogPhotos(item).length > 0;
   }
 
   toggleBrand(name: string) {

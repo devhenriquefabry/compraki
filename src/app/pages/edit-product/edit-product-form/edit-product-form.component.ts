@@ -5,7 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
-import { cleanVariantImages, cleanVariants, totalVariantStock } from 'src/app/core/product-variants';
+import { cleanVariantImages, cleanVariantPhotos, cleanVariants, totalVariantStock } from 'src/app/core/product-variants';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
@@ -44,6 +44,8 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
   public variantAttributes: ProductVariantAttribute[] = [];
   public variantSkus: Record<string, ProductSku> = {};
   public variantImages: Record<string, string> = {};
+  /** Galeria de cada cor (veio do catálogo); some a foto que o vendedor tirar do anúncio. */
+  private variantPhotos: Record<string, string[]> = {};
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
@@ -119,6 +121,7 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
       this.variantAttributes = product.variantAttributes ? [...product.variantAttributes] : [];
       this.variantSkus = product.skus ? { ...product.skus } : {};
       this.variantImages = product.variantImages ? { ...product.variantImages } : {};
+      this.variantPhotos = product.variantPhotos ? { ...product.variantPhotos } : {};
     }
   }
 
@@ -316,6 +319,12 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
           variantImages[value] = photoUrlByPreview.get(preview) || preview;
         }
 
+        const kept = new Set(finalPhotoURL);
+        const variantPhotos = variantsEnabled
+          ? cleanVariantPhotos(variantAttributes, Object.fromEntries(
+              Object.entries(this.variantPhotos).map(([value, list]) => [value, list.filter(url => kept.has(url))])))
+          : {};
+
         const updatedProduct = {
           ...this.editProductForm.value,
           specs: cleanSpecs(this.editProductForm.value.specs),
@@ -324,6 +333,7 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
           hasVariants: variantsEnabled,
           variantAttributes: variantsEnabled ? variantAttributes : [],
           variantImages,
+          variantPhotos,
           skus: variantsEnabled ? skus : {}
         } as Product;
 

@@ -96,7 +96,7 @@
               <button type="button" class="cf-item" (click)="picked.emit(row.item)">
                 <span class="cf-item__img">
                   <img [src]="cover(row.item)" alt="" loading="lazy">
-                  @if (!row.item.photos.length) { <span class="cf-illus-tag">Ilustrativa</span> }
+                  @if (!hasPhotos(row.item)) { <span class="cf-illus-tag">Ilustrativa</span> }
                 </span>
                 <span class="cf-item__body">
                   <strong class="cf-item__title">@for (part of row.title; track $index) {<span [class.cf-hit]="part.hit">{{ part.text }}</span>}</strong>

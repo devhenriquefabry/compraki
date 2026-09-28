@@ -42,6 +42,12 @@ export interface Product {
     variantAttributes?: ProductVariantAttribute[];
     /** Foto associada a cada valor do 1º atributo (ex: "Preto" -> URL da foto preta). */
     variantImages?: Record<string, string>;
+    /**
+     * Galeria de cada valor do 1º atributo (ex: "Preto" -> 5 fotos do preto).
+     * Quando existe, a página do produto mostra essas fotos ao escolher a opção.
+     * As fotos também estão em `photoURL`, para capa e vitrines.
+     */
+    variantPhotos?: Record<string, string[]>;
     /** Uma combinação por chave (ver `skuKey` em `core/product-variants.ts`). */
     skus?: Record<string, ProductSku>;
 

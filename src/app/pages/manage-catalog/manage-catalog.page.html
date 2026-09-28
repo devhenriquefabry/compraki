@@ -116,14 +116,14 @@
             <button type="button" class="ct-card__hit" (click)="open(row)" [attr.aria-label]="'Editar ' + row.item.title">
               <span class="ct-card__img">
                 <img [src]="cover(row.item)" alt="" loading="lazy">
-                @if (!row.item.photos.length) {
+                @if (!photoCount(row.item)) {
                   <span class="ct-card__illus">Ilustrativa</span>
                 }
                 <span class="ct-card__status" [class.is-active]="row.item.status === 'active'">
                   {{ row.item.status === 'active' ? 'Ativo' : 'Rascunho' }}
                 </span>
-                @if (row.item.photos.length > 1) {
-                  <span class="ct-card__count"><ion-icon name="images-outline" aria-hidden="true"></ion-icon>{{ row.item.photos.length }}</span>
+                @if (photoCount(row.item) > 1) {
+                  <span class="ct-card__count"><ion-icon name="images-outline" aria-hidden="true"></ion-icon>{{ photoCount(row.item) }}</span>
                 }
               </span>
 

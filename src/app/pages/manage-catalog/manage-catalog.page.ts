@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule } from '@ionic/angular';
 
-import { catalogCode, emptyCatalogProduct, normalizeText, qualityScore, variantSummary } from '../../core/catalog';
+import { catalogCode, catalogPhotos, emptyCatalogProduct, normalizeText, qualityScore, variantSummary } from '../../core/catalog';
 import { catalogCover } from '../../core/catalog-illustrations';
 import { CatalogProduct } from '../../interfaces/catalog';
 import { Category } from '../../interfaces/category';
@@ -167,6 +167,11 @@ export class ManageCatalogPage {
 
   cover(item: CatalogProduct): string {
     return catalogCover(item);
+  }
+
+  /** Fotos gerais + as de cada opção (cor…). */
+  photoCount(item: CatalogProduct): number {
+    return catalogPhotos(item).length;
   }
 
   qualityTone(quality: number): 'ok' | 'warn' | 'danger' {

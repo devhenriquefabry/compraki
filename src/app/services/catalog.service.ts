@@ -12,7 +12,7 @@ import { getCurrentUser } from '../core/auth-state';
 import {
   catalogKeywords, cleanCatalogSpecs, isValidGtin, matchScore, matchesTokens, onlyDigits, pivotToken, queryTokens,
 } from '../core/catalog';
-import { cleanVariantImages } from '../core/product-variants';
+import { cleanVariantPhotos, mainOptionImages } from '../core/product-variants';
 import { isProductHidden } from '../core/product-moderation';
 import { CatalogCompetition, CatalogProduct } from '../interfaces/catalog';
 import { Product } from '../interfaces/product';
@@ -233,6 +233,7 @@ function fromDoc(id: string, data: DocumentData): CatalogProduct {
     aliases: Array.isArray(data['aliases']) ? data['aliases'] : [],
     variantAttributes: Array.isArray(data['variantAttributes']) ? data['variantAttributes'] : [],
     variantImages: data['variantImages'] || {},
+    variantPhotos: data['variantPhotos'] || {},
     weight: numberOrNull(data['weight']),
     width: numberOrNull(data['width']),
     height: numberOrNull(data['height']),
@@ -269,7 +270,8 @@ function toDoc(product: CatalogProduct): Omit<CatalogProduct, 'id' | 'createdAt'
     gtins: Array.from(new Set(product.gtins.map(onlyDigits).filter(isValidGtin))),
     aliases: Array.from(new Set(product.aliases.map(a => a.trim()).filter(Boolean))).slice(0, 12),
     variantAttributes,
-    variantImages: cleanVariantImages(variantAttributes, product.variantImages),
+    variantImages: mainOptionImages(variantAttributes, product.variantImages, product.variantPhotos),
+    variantPhotos: cleanVariantPhotos(variantAttributes, product.variantPhotos),
     weight: numberOrNull(product.weight),
     width: numberOrNull(product.width),
     height: numberOrNull(product.height),

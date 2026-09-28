@@ -4,9 +4,10 @@ import { AlertController, IonicModule, ToastController } from '@ionic/angular';
 
 import {
   CATALOG_ATTRIBUTE_SUGGESTIONS, MAX_CATALOG_PHOTOS, MAX_CATALOG_SPECS, MIN_GOOD_DESCRIPTION,
-  canActivate, catalogChecks, catalogCode, isValidGtin, onlyDigits, packageSummary, qualityScore, specSuggestions, variantSummary,
+  canActivate, catalogChecks, catalogCode, catalogPhotos, isValidGtin, onlyDigits, packageSummary, qualityScore, specSuggestions, variantSummary,
 } from '../../../core/catalog';
 import { catalogCover } from '../../../core/catalog-illustrations';
+import { MAX_OPTION_PHOTOS } from '../../../core/product-variants';
 import { CatalogProduct, CatalogStatus } from '../../../interfaces/catalog';
 import { Category } from '../../../interfaces/category';
 import { ProductVariantAttribute } from '../../../interfaces/product';
@@ -51,6 +52,8 @@ export class CatalogEditorComponent implements OnInit {
 
   readonly saving = signal(false);
   readonly uploads = signal(0);
+  /** Fotos subindo em cada galeria de opção (ex.: { Preto: 2 }). */
+  readonly optionUploads = signal<Record<string, number>>({});
   readonly dragOver = signal(false);
   readonly gtinError = signal('');
   readonly gtinWarning = signal('');
@@ -58,6 +61,7 @@ export class CatalogEditorComponent implements OnInit {
   readonly showErrors = signal(false);
 
   readonly maxPhotos = MAX_CATALOG_PHOTOS;
+  readonly maxOptionPhotos = MAX_OPTION_PHOTOS;
   readonly maxSpecs = MAX_CATALOG_SPECS;
   readonly maxAttributes = MAX_ATTRIBUTES;
   readonly minDescription = MIN_GOOD_DESCRIPTION;
@@ -98,6 +102,8 @@ export class CatalogEditorComponent implements OnInit {
   readonly variantText = computed(() => variantSummary(this.draft().variantAttributes));
   readonly packageText = computed(() => packageSummary(this.draft()));
   readonly uploadSlots = computed(() => Array.from({ length: this.uploads() }));
+  /** A ficha tem alguma foto (geral ou de opção)? Sem nenhuma, usa a ilustração. */
+  readonly hasAnyPhoto = computed(() => catalogPhotos(this.draft()).length > 0);
 
   ngOnInit() {
     const copy = clone(this.product());
@@ -261,6 +267,79 @@ export class CatalogEditorComponent implements OnInit {
     this.patch({ photos: d.photos.filter((_, i) => i !== index), variantImages });
   }
 
+  // ------------------------------------------------ fotos de cada opção
+
+  /** Galeria da opção (ex.: as fotos do iPhone preto). */
+  optionPhotos(value: string): string[] {
+    return this.draft().variantPhotos?.[value] ?? [];
+  }
+
+  optionUploading(value: string): unknown[] {
+    return Array.from({ length: this.optionUploads()[value] ?? 0 });
+  }
+
+  optionRoom(value: string): number {
+    return this.maxOptionPhotos - this.optionPhotos(value).length - (this.optionUploads()[value] ?? 0);
+  }
+
+  private setOptionPhotos(value: string, photos: string[]) {
+    const variantPhotos = { ...(this.draft().variantPhotos || {}) };
+    if (photos.length) variantPhotos[value] = photos;
+    else delete variantPhotos[value];
+    this.patch({ variantPhotos });
+  }
+
+  onPickOption(value: string, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    void this.uploadOption(value, files);
+  }
+
+  private async uploadOption(value: string, files: File[]) {
+    const images = files.filter(f => f.type.startsWith('image/'));
+    if (!images.length) return;
+    const room = this.optionRoom(value);
+    if (room <= 0) {
+      await this.toast(`Cada opção guarda até ${this.maxOptionPhotos} fotos.`, 'danger');
+      return;
+    }
+    const fitting = images.filter(f => f.size <= MAX_PHOTO_BYTES);
+    if (fitting.length < images.length) await this.toast('Foto acima de 10 MB foi ignorada. Envie uma versão menor.', 'danger');
+    else if (fitting.length > room) await this.toast(`Só couberam ${room}: cada opção guarda até ${this.maxOptionPhotos} fotos.`, 'danger');
+    const batch = fitting.slice(0, room);
+
+    const bump = (delta: number) => this.optionUploads.update(m => ({ ...m, [value]: Math.max(0, (m[value] ?? 0) + delta) }));
+    // Sobem juntas, mas entram na galeria na ordem em que foram escolhidas.
+    bump(batch.length);
+    const urls = await Promise.all(batch.map(async file => {
+      try {
+        return await this.catalog.uploadPhoto(file);
+      } catch (err) {
+        console.error('[catálogo] foto da opção', err);
+        await this.toast(`Não deu para enviar “${file.name}”. Tente de novo.`, 'danger');
+        return null;
+      } finally {
+        bump(-1);
+      }
+    }));
+    // A opção pode ter sido apagada enquanto as fotos subiam.
+    if (!this.draft().variantAttributes[0]?.values.includes(value)) return;
+    this.setOptionPhotos(value, [...this.optionPhotos(value), ...urls.filter((url): url is string => !!url)]);
+  }
+
+  moveOptionPhoto(value: string, index: number, delta: number) {
+    const photos = [...this.optionPhotos(value)];
+    const target = index + delta;
+    if (target < 0 || target >= photos.length) return;
+    [photos[index], photos[target]] = [photos[target], photos[index]];
+    this.setOptionPhotos(value, photos);
+  }
+
+  removeOptionPhoto(value: string, index: number) {
+    this.setOptionPhotos(value, this.optionPhotos(value).filter((_, i) => i !== index));
+  }
+
   // ------------------------------------------------------------ opções
 
   addAttribute(name = '') {
@@ -280,6 +359,7 @@ export class CatalogEditorComponent implements OnInit {
       variantAttributes: d.variantAttributes.filter((_, i) => i !== index),
       // Fotos por opção são sempre do 1º atributo.
       variantImages: index === 0 ? {} : d.variantImages,
+      variantPhotos: index === 0 ? {} : d.variantPhotos,
     });
   }
 
@@ -306,10 +386,15 @@ export class CatalogEditorComponent implements OnInit {
   removeValue(index: number, value: string) {
     const d = this.draft();
     const variantImages = { ...d.variantImages };
-    if (index === 0) delete variantImages[value];
+    const variantPhotos = { ...(d.variantPhotos || {}) };
+    if (index === 0) {
+      delete variantImages[value];
+      delete variantPhotos[value];
+    }
     this.patch({
       variantAttributes: d.variantAttributes.map((a, i) => (i === index ? { ...a, values: a.values.filter(v => v !== value) } : a)),
       variantImages,
+      variantPhotos,
     });
   }
 
@@ -327,15 +412,9 @@ export class CatalogEditorComponent implements OnInit {
     });
   }
 
+  /** Miniatura da opção na lista: a 1ª foto da galeria dela. */
   variantImage(value: string): string | null {
-    return this.draft().variantImages[value] || null;
-  }
-
-  pickVariantImage(value: string, url: string) {
-    const current = { ...this.draft().variantImages };
-    if (current[value] === url) delete current[value];
-    else current[value] = url;
-    this.patch({ variantImages: current });
+    return this.optionPhotos(value)[0] || null;
   }
 
   attrPlaceholder(attr: ProductVariantAttribute): string {
@@ -385,7 +464,7 @@ export class CatalogEditorComponent implements OnInit {
     this.showErrors.set(true);
     const d = this.draft();
 
-    if (this.uploads() > 0) {
+    if (this.uploads() > 0 || Object.values(this.optionUploads()).some(n => n > 0)) {
       await this.toast('Espere as fotos terminarem de subir.', 'danger');
       return;
     }
@@ -462,7 +541,7 @@ export class CatalogEditorComponent implements OnInit {
   private blank(): CatalogProduct {
     return {
       title: '', brand: '', model: '', line: '', categoryId: '', subcategoryId: null, photos: [], specs: [], gtins: [],
-      aliases: [], variantAttributes: [], variantImages: {}, weight: null, width: null, height: null, length: null,
+      aliases: [], variantAttributes: [], variantImages: {}, variantPhotos: {}, weight: null, width: null, height: null, length: null,
       description: '', referencePrice: null, status: 'draft',
     };
   }
@@ -495,14 +574,32 @@ function clone(product: CatalogProduct): CatalogProduct {
     gtins: [...(product.gtins || [])],
     aliases: [...(product.aliases || [])],
     variantAttributes: (product.variantAttributes || []).map(a => ({ name: a.name, values: [...a.values] })),
-    variantImages: { ...(product.variantImages || {}) },
+    // A foto única de antes vira galeria (abaixo); ao salvar, a principal de
+    // cada opção sai da galeria, então não sobra foto velha para trás.
+    variantImages: {},
+    variantPhotos: optionGalleries(product),
   };
+}
+
+/**
+ * Galerias por opção. Ficha de antes da galeria tinha só uma foto por opção
+ * (escolhida entre as gerais): ela vira a 1ª foto da galeria daquela opção.
+ */
+function optionGalleries(product: CatalogProduct): Record<string, string[]> {
+  const galleries: Record<string, string[]> = {};
+  for (const value of product.variantAttributes?.[0]?.values ?? []) {
+    const own = product.variantPhotos?.[value] ?? [];
+    const legacy = product.variantImages?.[value];
+    const list = own.length ? own : legacy ? [legacy] : [];
+    if (list.length) galleries[value] = [...list];
+  }
+  return galleries;
 }
 
 /** Só o que o admin edita, para saber se há mudança não salva. */
 function snapshot(p: CatalogProduct): string {
   return JSON.stringify([
     p.title, p.brand, p.model, p.line, p.categoryId, p.subcategoryId, p.photos, p.specs, p.gtins, p.aliases,
-    p.variantAttributes, p.variantImages, p.weight, p.width, p.height, p.length, p.description, p.referencePrice, p.status,
+    p.variantAttributes, p.variantPhotos, p.weight, p.width, p.height, p.length, p.description, p.referencePrice, p.status,
   ]);
 }

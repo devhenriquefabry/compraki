@@ -107,6 +107,47 @@ export function cleanVariants(
 }
 
 /** Mantém só as imagens de valores que ainda existem no 1º atributo. */
+/** Quantas fotos cada opção (cor, por exemplo) pode ter na sua galeria. */
+export const MAX_OPTION_PHOTOS = 10;
+
+/** Galerias por opção: só opções que existem no 1º atributo, sem galeria vazia. */
+export function cleanVariantPhotos(
+  attributes: ProductVariantAttribute[],
+  photos: Record<string, string[]> | null | undefined
+): Record<string, string[]> {
+  const values = new Set(attributes[0]?.values || []);
+  const clean: Record<string, string[]> = {};
+  for (const [value, list] of Object.entries(photos || {})) {
+    const urls = Array.from(new Set((list || []).filter(Boolean))).slice(0, MAX_OPTION_PHOTOS);
+    if (values.has(value) && urls.length) clean[value] = urls;
+  }
+  return clean;
+}
+
+/**
+ * Foto principal de cada opção: a 1ª da galeria; sem galeria, a foto única
+ * escolhida antes de existir galeria por opção.
+ */
+export function mainOptionImages(
+  attributes: ProductVariantAttribute[],
+  images: Record<string, string> | null | undefined,
+  photos: Record<string, string[]> | null | undefined
+): Record<string, string> {
+  const result = cleanVariantImages(attributes, images);
+  for (const [value, list] of Object.entries(cleanVariantPhotos(attributes, photos))) result[value] = list[0];
+  return result;
+}
+
+/** Todas as fotos das galerias por opção, na ordem das opções (ou só das `values` dadas). */
+export function optionGalleryPhotos(
+  attributes: ProductVariantAttribute[] | null | undefined,
+  photos: Record<string, string[]> | null | undefined,
+  values?: string[]
+): string[] {
+  const order = values ?? attributes?.[0]?.values ?? [];
+  return Array.from(new Set(order.flatMap(value => photos?.[value] || [])));
+}
+
 export function cleanVariantImages(
   attributes: ProductVariantAttribute[],
   images: Record<string, string> | null | undefined

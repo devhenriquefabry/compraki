@@ -5,7 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
-import { cleanVariantImages, cleanVariants, totalVariantStock } from 'src/app/core/product-variants';
+import { cleanVariantImages, cleanVariantPhotos, cleanVariants, mainOptionImages, optionGalleryPhotos, totalVariantStock } from 'src/app/core/product-variants';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
@@ -16,8 +16,8 @@ import { FeedbackModalComponent } from 'src/app/components/feedback-modal/feedba
 import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinner-overlay/loading-spinner-overlay.component';
 import { WhatsappInstancesService } from 'src/app/services/whatsapp-instances.service';
 import { CatalogCompetition, CatalogProduct } from 'src/app/interfaces/catalog';
-import { catalogCode, cleanCatalogSpecs, normalizeText, packageSummary } from 'src/app/core/catalog';
-import { illustrationUrl, isIllustration } from 'src/app/core/catalog-illustrations';
+import { catalogCode, catalogPhotos, cleanCatalogSpecs, normalizeText, packageSummary } from 'src/app/core/catalog';
+import { catalogCover, illustrationUrl, isIllustration } from 'src/app/core/catalog-illustrations';
 
 @Component({
   selector: 'app-upload-product-form',
@@ -49,6 +49,8 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   /** Ficha técnica do catálogo: fixa, entra antes das informações extras. */
   public catalogSpecs: ProductSpec[] = [];
   private catalogPhotoSet = new Set<string>();
+  /** Fotos de cada opção do catálogo (ex.: as do iPhone preto); entram as das opções marcadas. */
+  public catalogOptionPhotos: Record<string, string[]> = {};
 
   // ===== VARIAÇÕES (cor, tamanho...) =====
   public hasVariants = false;
@@ -166,10 +168,13 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     this.catalogSpecs = cleanCatalogSpecs(c.specs);
     // Sem foto oficial, a capa começa com a imagem ilustrativa; o vendedor é
     // convidado a trocar pela foto real (e ela sai sozinha quando ele envia).
-    const photos = c.photos.length ? c.photos : [illustrationUrl(c)];
+    // As fotos de cada cor não entram aqui: vão junto com as cores marcadas.
+    this.catalogOptionPhotos = cleanVariantPhotos(c.variantAttributes, c.variantPhotos);
+    const hasOfficial = catalogPhotos(c).length > 0;
+    const photos = hasOfficial ? c.photos : [illustrationUrl(c)];
     this.selectedPhotos = [...photos];
     this.filesToUpload = photos.map(() => null);
-    this.catalogPhotoSet = new Set(c.photos);
+    this.catalogPhotoSet = new Set(catalogPhotos(c));
 
     // Opções vêm do catálogo; o vendedor marca as que tem.
     this.hasVariants = c.variantAttributes.length > 0;
@@ -206,7 +211,29 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   }
 
   get catalogCoverUrl(): string {
-    return this.catalogProduct ? (this.catalogProduct.photos[0] || illustrationUrl(this.catalogProduct)) : '';
+    return this.catalogProduct ? catalogCover(this.catalogProduct) : '';
+  }
+
+  /** A ficha do catálogo tem fotos (gerais ou por opção)? */
+  get catalogHasPhotos(): boolean {
+    return !!this.catalogProduct && catalogPhotos(this.catalogProduct).length > 0;
+  }
+
+  get hasCatalogOptionPhotos(): boolean {
+    return Object.keys(this.catalogOptionPhotos).length > 0;
+  }
+
+  /** Nome do 1º atributo do catálogo, ex.: "Cor". */
+  get optionPhotoAttribute(): string {
+    return this.catalogProduct?.variantAttributes[0]?.name || 'opção';
+  }
+
+  /** Opções marcadas pelo vendedor que têm fotos no catálogo, na ordem do catálogo. */
+  get chosenOptionGalleries(): { value: string; photos: string[] }[] {
+    const chosen = new Set(this.hasVariants ? this.variantAttributes[0]?.values ?? [] : []);
+    const order = this.catalogProduct?.variantAttributes[0]?.values ?? [];
+    return order.filter(value => chosen.has(value) && this.catalogOptionPhotos[value]?.length)
+      .map(value => ({ value, photos: this.catalogOptionPhotos[value] }));
   }
 
   isIllustrativePhoto(photo: string): boolean {
@@ -230,7 +257,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
 
   /** Ficha do catálogo sem fotos: o vendedor precisa enviar ao menos uma. */
   get missingCatalogPhoto(): boolean {
-    return !!this.catalogProduct && this.selectedPhotos.length === 0;
+    return !!this.catalogProduct && this.selectedPhotos.length === 0 && this.chosenOptionGalleries.length === 0;
   }
 
   get canPublish(): boolean {
@@ -405,16 +432,21 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
         // (base64); troca pela URL definitiva no Storage, na mesma ordem de upload.
         const photoUrlByPreview = new Map(this.selectedPhotos.map((preview, i) => [preview, uploadedUrls[i]]));
 
-        this.submitProductForm.patchValue({ photoURL: uploadedUrls });
+        // Fotos de cada cor marcada (do catálogo) vão para a galeria do anúncio,
+        // depois das gerais: a capa e as vitrines continuam lendo `photoURL`.
+        const variantPhotos = variantsEnabled ? cleanVariantPhotos(variantAttributes, this.catalogOptionPhotos) : {};
+        const optionPhotos = optionGalleryPhotos(variantAttributes, variantPhotos);
+        this.submitProductForm.patchValue({ photoURL: Array.from(new Set([...uploadedUrls, ...optionPhotos])) });
 
         const currentUser = this.servicoFirebase.getUser();
         if (!currentUser) throw new Error("Usuário não autenticado");
 
         const rawVariantImages = variantsEnabled ? cleanVariantImages(variantAttributes, this.variantImages) : {};
-        const variantImages: Record<string, string> = {};
+        const pickedImages: Record<string, string> = {};
         for (const [value, preview] of Object.entries(rawVariantImages)) {
-          variantImages[value] = photoUrlByPreview.get(preview) || preview;
+          pickedImages[value] = photoUrlByPreview.get(preview) || preview;
         }
+        const variantImages = mainOptionImages(variantAttributes, pickedImages, variantPhotos);
 
         const data = this.submitProductForm.value;
         const novoProduto: Product = {
@@ -435,6 +467,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
           hasVariants: variantsEnabled,
           variantAttributes: variantsEnabled ? variantAttributes : [],
           variantImages,
+          variantPhotos,
           skus: variantsEnabled ? skus : {},
           sellerId: currentUser.uid,
           catalogId: this.catalogProduct?.id ?? null,
@@ -482,6 +515,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
       this.variantAttributes = [];
       this.variantSkus = {};
       this.variantImages = {};
+      this.catalogOptionPhotos = {};
       this.published.emit(id ?? '');
       // Mostra o anúncio recém-publicado, do jeito que o comprador vê.
       this.router.navigate(id ? ['/product-details', id] : ['/home']);

@@ -1104,6 +1104,58 @@
 
   .publish-hint--illus { color: #92400E; font-weight: 700; }
 
+  /* Fotos de cada cor vindas do catálogo (só leitura) */
+  .option-photos {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(11, 22, 35, 0.14);
+
+    .op-title {
+      margin: 0 0 6px;
+      color: #0B1623;
+      font-size: 0.86rem;
+      font-weight: 800;
+    }
+
+    .op-row {
+      padding: 8px 0;
+      & + .op-row { border-top: 1px solid rgba(11, 22, 35, 0.06); }
+    }
+
+    .op-value {
+      display: block;
+      margin-bottom: 6px;
+      color: #0B1623;
+      font-size: 0.82rem;
+      font-weight: 800;
+      small { color: #5E6878; font-weight: 600; }
+    }
+
+    .op-strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+
+      img {
+        flex: none;
+        width: 56px;
+        height: 56px;
+        border-radius: 10px;
+        border: 1px solid rgba(11, 22, 35, 0.1);
+        object-fit: cover;
+        cursor: zoom-in;
+      }
+    }
+
+    .op-hint {
+      margin: 0;
+      color: #5E6878;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+  }
+
   @media (max-width: 480px) {
     .illus-nudge { flex-wrap: wrap; }
     .illus-nudge .in-btn { width: 100%; justify-content: center; }

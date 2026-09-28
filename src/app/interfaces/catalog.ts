@@ -33,8 +33,14 @@ export interface CatalogProduct {
 
   /** Até 2 atributos (ex.: Cor, Armazenamento) com as opções que existem. */
   variantAttributes: ProductVariantAttribute[];
-  /** Foto de cada opção do 1º atributo (ex.: "Preto" -> URL). */
+  /**
+   * Foto principal de cada opção do 1º atributo (ex.: "Preto" -> URL). Desde
+   * que há galeria por opção, é sempre a 1ª foto de `variantPhotos[opção]`;
+   * fica gravada porque as telas antigas leem só ela.
+   */
   variantImages: Record<string, string>;
+  /** Fotos de cada opção do 1º atributo (ex.: "Preto" -> 5 fotos do preto). */
+  variantPhotos?: Record<string, string[]>;
 
   /** Embalagem, usada no cálculo do frete (kg / cm). */
   weight: number | null;

@@ -58,6 +58,20 @@ e medidas. Foto não é obrigatória: ficha sem foto exige que o vendedor envie
 ao menos uma foto dele ao anunciar. O EAN tem o dígito verificador conferido e avisa se já
 está em outra ficha. Duplicar cria rascunho sem EAN.
 
+### Fotos de cada opção (cor…)
+
+Cada opção do **1º atributo** tem galeria própria (até 10 fotos), em
+`variantPhotos` (`{ "Preto": [urls…] }`). As fotos do bloco "Fotos" são as
+gerais, que valem para todas as opções. `variantImages` continua gravado, mas
+é derivado: a 1ª foto da galeria de cada opção (telas antigas leem só ele).
+Ficha de antes da galeria (só `variantImages`) abre no editor com aquela foto
+como 1ª da galeria da opção.
+
+No anúncio, entram as galerias das opções que o vendedor marcou:
+`variantPhotos` só com elas, e as fotos também vão para o fim de `photoURL`
+(capa e vitrines leem `photoURL`). Na página do produto, escolher a cor mostra
+as fotos dela e depois as gerais; as das outras cores saem da galeria.
+
 ## Testar no emulador
 
 `npm run emulators:seed` cria 8 fichas (1 rascunho) e um anúncio do Ateliê

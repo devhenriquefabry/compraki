@@ -143,12 +143,12 @@
           <span class="ce-sec__n" aria-hidden="true">2</span>
           <div>
             <h3 id="ce-s2">Fotos</h3>
-            <p>A primeira é a capa. Fundo claro, produto inteiro, sem marca d'água nem texto. Sem fotos, o vendedor envia as dele ao anunciar.</p>
+            <p>Fotos que valem para todas as opções. A primeira é a capa. Fundo claro, produto inteiro, sem marca d'água nem texto. As fotos de cada cor ficam em “Opções do produto”.</p>
           </div>
           <span class="ce-sec__meta">{{ d.photos.length }}/{{ maxPhotos }}</span>
         </header>
 
-        @if (!d.photos.length) {
+        @if (!hasAnyPhoto()) {
           <div class="ce-illus">
             <img [src]="cover()" alt="Imagem ilustrativa usada nesta ficha">
             <p><strong>Sem foto oficial, a ficha usa esta imagem ilustrativa.</strong> Na hora de anunciar, o vendedor é orientado a trocar pela foto real do produto. O desenho é escolhido pelo nome e pela subcategoria.</p>
@@ -222,18 +222,37 @@
               <button type="button" class="ce-tags__add" (click)="addValues(i, valueInput)" aria-label="Adicionar opção"><ion-icon name="add" aria-hidden="true"></ion-icon></button>
             </div>
 
-            @if (i === 0 && attr.values.length && d.photos.length) {
+            @if (i === 0 && attr.values.length) {
               <div class="ce-varimg">
-                <p class="ce-varimg__title">Foto de cada {{ (attr.name || 'opção') | lowercase }} <small>— aparece para o vendedor e troca a foto do anúncio quando o comprador escolhe</small></p>
+                <p class="ce-varimg__title">Fotos de cada {{ (attr.name || 'opção') | lowercase }}
+                  <small>— até {{ maxOptionPhotos }} por opção. Quando o comprador escolhe uma, a página do produto mostra as fotos dela.</small></p>
                 @for (value of attr.values; track value) {
                   <div class="ce-varimg__row">
-                    <span class="ce-varimg__value">{{ value }}</span>
-                    <div class="ce-varimg__opts" role="group" [attr.aria-label]="'Foto para ' + value">
-                      @for (url of d.photos; track url) {
-                        <button type="button" [class.is-on]="variantImage(value) === url" [attr.aria-pressed]="variantImage(value) === url"
-                                [attr.aria-label]="'Usar esta foto para ' + value" (click)="pickVariantImage(value, url)">
-                          <img [src]="url" alt="" loading="lazy">
-                        </button>
+                    <div class="ce-varimg__head">
+                      <span class="ce-varimg__value">{{ value }}</span>
+                      <span class="ce-varimg__count">{{ optionPhotos(value).length }}/{{ maxOptionPhotos }}</span>
+                    </div>
+                    <div class="ce-ogrid" role="group" [attr.aria-label]="'Fotos de ' + value">
+                      @for (url of optionPhotos(value); track url; let j = $index, lastPhoto = $last) {
+                        <figure class="ce-photo" [class.is-cover]="j === 0">
+                          <img [src]="url" [alt]="value + ', foto ' + (j + 1)" loading="lazy">
+                          @if (j === 0) { <span class="ce-photo__cover">Principal</span> }
+                          <div class="ce-photo__tools">
+                            <button type="button" (click)="moveOptionPhoto(value, j, -1)" [disabled]="j === 0" aria-label="Mover para a esquerda"><ion-icon name="chevron-back" aria-hidden="true"></ion-icon></button>
+                            <button type="button" (click)="moveOptionPhoto(value, j, 1)" [disabled]="lastPhoto" aria-label="Mover para a direita"><ion-icon name="chevron-forward" aria-hidden="true"></ion-icon></button>
+                            <button type="button" class="is-danger" (click)="removeOptionPhoto(value, j)" aria-label="Remover foto"><ion-icon name="trash-outline" aria-hidden="true"></ion-icon></button>
+                          </div>
+                        </figure>
+                      }
+                      @for (slot of optionUploading(value); track $index) {
+                        <div class="ce-photo ce-photo--loading" aria-label="Enviando foto"><ion-spinner name="crescent"></ion-spinner></div>
+                      }
+                      @if (optionRoom(value) > 0) {
+                        <label class="ce-drop ce-drop--sm">
+                          <input type="file" accept="image/*" multiple (change)="onPickOption(value, $event)" [attr.aria-label]="'Enviar fotos de ' + value">
+                          <ion-icon name="add" aria-hidden="true"></ion-icon>
+                          <strong>{{ optionPhotos(value).length ? 'Mais' : 'Fotos' }}</strong>
+                        </label>
                       }
                     </div>
                   </div>

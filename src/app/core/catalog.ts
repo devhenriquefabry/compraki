@@ -1,5 +1,6 @@
 import { CatalogCheck, CatalogProduct } from '../interfaces/catalog';
 import { ProductSpec, ProductVariantAttribute } from '../interfaces/product';
+import { optionGalleryPhotos } from './product-variants';
 
 /**
  * Regras do catálogo Vineon que não dependem do Firestore: busca por
@@ -190,9 +191,17 @@ function hasPackage(product: Partial<CatalogProduct>): boolean {
  * O que falta para a ficha ficar boa. `required` bloqueia a publicação no
  * catálogo; o resto só baixa a nota de qualidade.
  */
+/**
+ * Todas as fotos da ficha: as gerais primeiro, depois as galerias de cada
+ * opção (na ordem das opções). A 1ª é a capa.
+ */
+export function catalogPhotos(product: Pick<Partial<CatalogProduct>, 'photos' | 'variantAttributes' | 'variantPhotos'>): string[] {
+  return Array.from(new Set([...(product.photos || []), ...optionGalleryPhotos(product.variantAttributes, product.variantPhotos)]));
+}
+
 export function catalogChecks(product: Partial<CatalogProduct>): CatalogCheck[] {
   const specs = cleanCatalogSpecs(product.specs);
-  const photos = product.photos || [];
+  const photos = catalogPhotos(product);
   return [
     { key: 'title', label: 'Nome do produto', ok: filled(product.title) && product.title!.trim().length >= 4, required: true },
     { key: 'brand', label: 'Marca e modelo', ok: filled(product.brand) && filled(product.model), required: true },
@@ -240,6 +249,7 @@ export function emptyCatalogProduct(): CatalogProduct {
     aliases: [],
     variantAttributes: [],
     variantImages: {},
+    variantPhotos: {},
     weight: null,
     width: null,
     height: null,

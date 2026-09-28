@@ -1,6 +1,6 @@
 import { environment } from '../../environments/environment';
 import { CatalogProduct } from '../interfaces/catalog';
-import { normalizeText } from './catalog';
+import { catalogPhotos, normalizeText } from './catalog';
 
 /**
  * Imagens ilustrativas do catálogo (src/assets/catalogo/ilustracoes, geradas
@@ -98,5 +98,5 @@ export function isIllustration(url: string | null | undefined): boolean {
 
 /** Capa para mostrar: a primeira foto oficial ou, sem ela, a ilustração. */
 export function catalogCover(product: CatalogProduct): string {
-  return product.photos[0] || illustrationUrl(product);
+  return catalogPhotos(product)[0] || illustrationUrl(product);
 }

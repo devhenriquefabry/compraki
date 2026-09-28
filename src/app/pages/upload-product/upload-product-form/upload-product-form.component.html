@@ -50,8 +50,8 @@
           <div class="fch-text">
             <h2>Fotos do produto</h2>
             @if (catalogProduct) {
-              <p *ngIf="catalogProduct.photos.length">As fotos do catálogo já estão aqui. Vendendo usado ou com brinde? Adicione fotos suas.</p>
-              <p *ngIf="!catalogProduct.photos.length">Troque a imagem ilustrativa pelas fotos reais do seu produto.</p>
+              <p *ngIf="catalogHasPhotos">As fotos do catálogo já estão aqui. Vendendo usado ou com brinde? Adicione fotos suas.</p>
+              <p *ngIf="!catalogHasPhotos">Troque a imagem ilustrativa pelas fotos reais do seu produto.</p>
             } @else {
               <p>A primeira foto é a capa do anúncio. Até 6 fotos.</p>
             }
@@ -97,6 +97,24 @@
         <p class="illus-done" *ngIf="illustrationReplaced && !onlyIllustration">
           <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Imagem ilustrativa trocada pelas suas fotos.
         </p>
+
+        @if (hasCatalogOptionPhotos) {
+          <div class="option-photos">
+            <p class="op-title">Fotos de cada {{ optionPhotoAttribute.toLowerCase() }}</p>
+            @for (g of chosenOptionGalleries; track g.value) {
+              <div class="op-row">
+                <span class="op-value">{{ g.value }} <small>{{ g.photos.length }} {{ g.photos.length === 1 ? 'foto' : 'fotos' }}</small></span>
+                <div class="op-strip">
+                  @for (photo of g.photos; track photo) {
+                    <img [src]="photo" [alt]="g.value" loading="lazy" (click)="openPreview(photo)">
+                  }
+                </div>
+              </div>
+            } @empty {
+              <p class="op-hint">Marque as opções que você tem em “Variações”: as fotos de cada uma entram no anúncio e aparecem quando o comprador escolher.</p>
+            }
+          </div>
+        }
       </section>
 
       <!-- INFORMAÇÕES BÁSICAS -->
@@ -255,7 +273,7 @@
           [attributes]="variantAttributes"
           [skus]="variantSkus"
           [variantImages]="variantImages"
-          [availablePhotos]="selectedPhotos"
+          [availablePhotos]="hasCatalogOptionPhotos ? [] : selectedPhotos"
           [basePrice]="submitProductForm.controls.price.value"
           [catalogOptions]="catalogProduct?.variantAttributes?.length ? catalogProduct!.variantAttributes : null"
           (hasVariantsChange)="hasVariants = $event"

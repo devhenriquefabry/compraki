@@ -3,7 +3,7 @@ import { CurrencyPipe } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 
 import { getCurrentUser } from '../../../core/auth-state';
-import { catalogCode, packageSummary } from '../../../core/catalog';
+import { catalogCode, catalogPhotos, packageSummary } from '../../../core/catalog';
 import { illustrationUrl } from '../../../core/catalog-illustrations';
 import { CatalogCompetition, CatalogProduct } from '../../../interfaces/catalog';
 import { CatalogService } from '../../../services/catalog.service';
@@ -38,8 +38,9 @@ export class CatalogConfirmComponent implements OnInit {
   readonly code = computed(() => catalogCode(this.product().id));
   readonly packageText = computed(() => packageSummary(this.product()));
   /** Sem foto oficial, a galeria mostra a imagem ilustrativa do tipo de produto. */
-  readonly illustrative = computed(() => !this.product().photos.length);
-  readonly photos = computed(() => (this.illustrative() ? [illustrationUrl(this.product())] : this.product().photos));
+  readonly allPhotos = computed(() => catalogPhotos(this.product()));
+  readonly illustrative = computed(() => !this.allPhotos().length);
+  readonly photos = computed(() => (this.illustrative() ? [illustrationUrl(this.product())] : this.allPhotos()));
   readonly currentPhoto = computed(() => this.photos()[this.photoIndex()] ?? this.photos()[0] ?? null);
   readonly specs = computed(() => {
     const specs = this.product().specs;
@@ -65,16 +66,17 @@ export class CatalogConfirmComponent implements OnInit {
     this.photoIndex.set(index);
   }
 
-  /** Ao tocar numa cor com foto, a galeria mostra aquela foto. */
+  /** Ao tocar numa cor com foto, a galeria pula para a 1ª foto dela. */
   previewValue(value: string) {
-    const url = this.product().variantImages[value];
+    const url = this.imageFor(value);
     if (!url) return;
     const index = this.photos().indexOf(url);
     if (index >= 0) this.photoIndex.set(index);
   }
 
   imageFor(value: string): string | null {
-    return this.product().variantImages[value] || null;
+    const p = this.product();
+    return p.variantPhotos?.[value]?.[0] || p.variantImages[value] || null;
   }
 
   confirm() {

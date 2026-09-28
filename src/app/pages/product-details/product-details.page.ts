@@ -519,19 +519,28 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
 
   /** Foto associada a um valor do 1º atributo (ex: cor -> foto daquela cor). */
   public variantImageFor(product: Product, value: string): string | null {
-    return product.variantImages?.[value] || null;
+    return product.variantPhotos?.[value]?.[0] || product.variantImages?.[value] || null;
   }
 
   /**
-   * Fotos da galeria: quando o 1º atributo (normalmente Cor) tem uma foto
-   * associada ao valor escolhido, ela vai pra frente — a galeria já reage
-   * sozinha a essa troca (ver efeito em `ProductGalleryComponent`).
+   * Fotos da galeria. Escolhida uma opção do 1º atributo (normalmente Cor):
+   * - com galeria própria, mostra as fotos dela e depois as gerais — as das
+   *   outras cores saem;
+   * - com uma foto só (anúncio antigo), ela vai para a frente.
+   * A galeria reage sozinha à troca (ver efeito em `ProductGalleryComponent`).
    */
   public galleryPhotos(product: Product): string[] {
     const photos = product.photoURL || [];
     const firstAttr = product.variantAttributes?.[0]?.name;
     const value = firstAttr ? this.selectedVariant[firstAttr] : undefined;
-    const variantPhoto = value ? this.variantImageFor(product, value) : null;
+    if (!value) return photos;
+
+    const own = product.variantPhotos?.[value] ?? [];
+    if (own.length) {
+      const optionPhotos = new Set(Object.values(product.variantPhotos || {}).flat());
+      return [...own, ...photos.filter(p => !optionPhotos.has(p))];
+    }
+    const variantPhoto = this.variantImageFor(product, value);
     if (!variantPhoto) return photos;
     return [variantPhoto, ...photos.filter(p => p !== variantPhoto)];
   }
