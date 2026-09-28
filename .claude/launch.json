@@ -1,0 +1,50 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vineon-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "start"
+      ],
+      "port": 4200
+    },
+    {
+      "name": "vineon-dev-4300",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "ng",
+        "serve",
+        "--port",
+        "4300"
+      ],
+      "port": 4300
+    },
+    {
+      "name": "vineon-emulators",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "emulators"
+      ],
+      "port": 4000
+    },
+    {
+      "name": "vineon-emulator-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "start:emulator"
+      ],
+      "port": 4210
+    },
+    {
+      "name": "vineon-www",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server.mjs"
+      ],
+      "port": 8080
+    }
+  ]
+}
