@@ -36,9 +36,9 @@
     }
   </ng-template>
 
-  <!-- Rota de pedidos: paradas com a contagem dentro, ligadas por uma linha -->
-  <ng-template #routeTpl let-stops let-link="link" let-light="light">
-    <ol class="route" [class.route--light]="light" [style.--stops]="stops.length">
+  <!-- Rota das vendas: paradas com a contagem dentro, ligadas por uma linha -->
+  <ng-template #routeTpl let-stops let-link="link">
+    <ol class="route" [style.--stops]="stops.length">
       @for (stop of stops; track stop.tab) {
         <li>
           <a [routerLink]="link" [queryParams]="{ aba: stop.tab }" [class.is-on]="stop.count > 0"
@@ -54,7 +54,7 @@
   @if (view() === 'overview') {
     <!-- ======================= TOPO ======================= -->
     <section class="acc-hero">
-      <div class="acc-wrap acc-hero-grid">
+      <div class="acc-wrap">
         <div class="acc-id">
           <button type="button" class="acc-avatar" (click)="photoInput.click()" [disabled]="isSavingProfile()"
                   aria-label="Trocar foto de perfil">
@@ -77,21 +77,71 @@
             <span>Editar perfil</span>
           </button>
         </div>
-
-        <div class="acc-orders">
-          <div class="acc-orders-head">
-            <h2>Seus pedidos</h2>
-            <a routerLink="/my-orders">Ver todos <vn-icon name="chevron" /></a>
-          </div>
-          <ng-container *ngTemplateOutlet="routeTpl; context: { $implicit: buyerStops(), link: '/my-orders', light: false }"></ng-container>
-          <p class="acc-orders-note">{{ buyerNote() }}</p>
-        </div>
       </div>
     </section>
 
     <!-- ======================= CORPO ======================= -->
     <div class="acc-wrap acc-body">
       <div class="acc-col">
+        <!-- Seus pedidos: o que mais pede atenção + atalho para cada etapa -->
+        <section class="acc-orders" aria-labelledby="acc-orders-title">
+          <header class="acc-orders-head">
+            <h2 id="acc-orders-title">Seus pedidos</h2>
+            @if (orders()?.length) {
+              <a routerLink="/my-orders">Ver todos <vn-icon name="chevron" /></a>
+            }
+          </header>
+
+          @if (ordersFailed()) {
+            <p class="acc-orders-msg is-alert">Não conseguimos carregar seus pedidos agora.
+              <a routerLink="/my-orders">Tentar em Minhas compras</a></p>
+          } @else if (orders() === null) {
+            <div class="acc-feat is-loading" aria-label="Carregando seus pedidos">
+              <span class="acc-feat-photo"></span>
+              <span class="acc-feat-text"><i></i><i></i></span>
+            </div>
+          } @else if (featuredOrder(); as feat) {
+            <a class="acc-feat" [class.is-urgent]="feat.urgent" routerLink="/my-orders" [queryParams]="{ aba: feat.tab }">
+              <span class="acc-feat-photo">
+                @if (feat.photo) { <img [src]="feat.photo" alt="" loading="lazy"> } @else { <vn-icon name="bag" /> }
+              </span>
+              <span class="acc-feat-text">
+                <em class="acc-feat-stage">{{ feat.stage }}</em>
+                <strong>{{ feat.title }}</strong>
+                <small>{{ feat.hint }}</small>
+              </span>
+              <span class="acc-feat-side">
+                <b>{{ feat.total }}</b>
+                @if (feat.more) { <small>{{ feat.more }}</small> }
+              </span>
+            </a>
+          } @else {
+            <div class="acc-orders-empty">
+              <span class="acc-orders-empty-icon"><vn-icon name="bag" /></span>
+              <div>
+                <strong>Nenhuma compra ainda</strong>
+                <p>Quando você comprar, o pagamento e a entrega aparecem aqui.</p>
+                <a routerLink="/tabs/tab2">Explorar produtos <vn-icon name="chevron" /></a>
+              </div>
+            </div>
+          }
+
+          @if (orders()?.length) {
+            <nav class="acc-stages" aria-label="Pedidos por etapa">
+              @for (s of orderShortcuts(); track s.tab) {
+                <a routerLink="/my-orders" [queryParams]="{ aba: s.tab }"
+                   [attr.aria-label]="s.label + (s.count ? ': ' + s.count : '')">
+                  <span class="acc-stage-icon">
+                    <vn-icon [name]="s.icon" />
+                    @if (s.count) { <b>{{ s.count }}</b> }
+                  </span>
+                  <span>{{ s.label }}</span>
+                </a>
+              }
+            </nav>
+          }
+        </section>
+
         <nav class="acc-pockets" aria-label="Atalhos">
           <a routerLink="/tabs/saved">
             <span class="acc-pocket-icon">
@@ -126,13 +176,13 @@
           </div>
         </section>
 
-        <section class="acc-block">
-          <header class="acc-block-head">
-            <h2>Sua loja</h2>
-            <a routerLink="/my-showcase">Ver vitrine</a>
-          </header>
+        @if (storeState() === 'seller') {
+          <section class="acc-block">
+            <header class="acc-block-head">
+              <h2>Sua loja</h2>
+              <a routerLink="/my-showcase">Ver vitrine</a>
+            </header>
 
-          @if (isActiveSeller()) {
             <div class="acc-store">
               <div class="acc-store-month">
                 <span>Vendido em {{ monthLabel }}</span>
@@ -143,27 +193,42 @@
                   <small>{{ m.count === 1 ? '1 venda paga' : m.count + ' vendas pagas' }}</small>
                 }
               </div>
-              <ng-container *ngTemplateOutlet="routeTpl; context: { $implicit: sellerStops(), link: '/my-sales', light: true }"></ng-container>
+              <ng-container *ngTemplateOutlet="routeTpl; context: { $implicit: sellerStops(), link: '/my-sales' }"></ng-container>
             </div>
-          } @else {
-            <div class="acc-store-empty">
+
+            <a class="acc-sell" routerLink="/tabs/upload-product">
+              <span class="acc-sell-plus"><vn-icon name="plus" /></span>
+              <strong>Anunciar produto</strong>
+              <vn-icon class="acc-row-go" name="chevron" />
+            </a>
+
+            <div class="acc-list">
+              @for (row of storeRows(); track row.label) {
+                <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row }"></ng-container>
+              }
+            </div>
+          </section>
+        } @else if (storeState() === 'newcomer') {
+          <!-- Quem ainda não anunciou: a loja só aparece depois do primeiro produto -->
+          <section class="acc-block">
+            <header class="acc-block-head"><h2>Vender na Vineon</h2></header>
+
+            <div class="acc-first">
               <strong>Tem algo parado em casa?</strong>
-              <p>Anuncie em 3 passos, direto do celular, e acompanhe cada venda por aqui.</p>
+              <p>Anuncie direto do celular. Depois do primeiro produto, sua loja aparece aqui com vendas, envios e notas fiscais.</p>
+              <ol class="acc-first-steps">
+                <li><span>1</span>Escolha o produto</li>
+                <li><span>2</span>Confira a ficha</li>
+                <li><span>3</span>Defina preço e estoque</li>
+              </ol>
+              <a class="acc-sell" routerLink="/tabs/upload-product">
+                <span class="acc-sell-plus"><vn-icon name="plus" /></span>
+                <strong>Vender meu primeiro produto</strong>
+                <vn-icon class="acc-row-go" name="chevron" />
+              </a>
             </div>
-          }
-
-          <a class="acc-sell" routerLink="/tabs/upload-product">
-            <span class="acc-sell-plus"><vn-icon name="plus" /></span>
-            <strong>Anunciar produto</strong>
-            <vn-icon class="acc-row-go" name="chevron" />
-          </a>
-
-          <div class="acc-list">
-            @for (row of storeRows(); track row.label) {
-              <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row }"></ng-container>
-            }
-          </div>
-        </section>
+          </section>
+        }
 
       </div>
 

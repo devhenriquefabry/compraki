@@ -8,7 +8,10 @@ import { collection, getDocs, getFirestore, query, where } from 'firebase/firest
 import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { isCurrentUserAdmin, onAuthUserChanged } from 'src/app/core/auth-state';
-import { MONTHS_LONG, OrderStage, formatBRL, isPaid, orderStage, sellerAmount, toDate } from 'src/app/core/order-stage';
+import {
+  COUNTED_TABS, MONTHS_LONG, OrderStage, STAGE_LABEL, deliveryWindow, formatBRL, formatDay, isPaid, itemCount, orderStage,
+  paymentDueDate, sellerAmount, toDate,
+} from 'src/app/core/order-stage';
 import { VnIconName } from 'src/app/core/vn-icons';
 import { AppUser } from 'src/app/interfaces/app-user';
 import { Order } from 'src/app/interfaces/order';
@@ -26,6 +29,27 @@ interface RouteStop {
   count: number | null;
 }
 
+/** Atalho de uma etapa no cartão "Seus pedidos". */
+interface OrderShortcut {
+  tab: OrderStage;
+  label: string;
+  icon: VnIconName;
+  /** Só etapas que pedem atenção ganham número (mesma regra de "Minhas compras"). */
+  count: number;
+}
+
+/** O pedido em destaque no cartão: o que mais pede atenção, ou o último. */
+interface FeaturedOrder {
+  tab: OrderStage;
+  stage: string;
+  title: string;
+  more: string | null;
+  photo: string | null;
+  total: string;
+  hint: string;
+  urgent: boolean;
+}
+
 /** Linha das listas da conta. Sem `link` nem `action`, é um item "Em breve". */
 interface AccountRow {
   icon: VnIconName;
@@ -39,10 +63,11 @@ interface AccountRow {
 }
 
 /**
- * Minha conta. O topo é a rota dos pedidos de quem compra (A pagar → Entregues),
- * lida de `orders/`; a seção "Sua loja" mostra a mesma rota do lado de quem
- * vende e o total vendido no mês. Nada aqui é número de exemplo: sem dado, a
- * parada mostra 0 ou "–" enquanto carrega.
+ * Minha conta. Logo abaixo do topo, "Seus pedidos" mostra o pedido que mais pede
+ * atenção e atalhos para cada etapa, lidos de `orders/`. A seção "Sua loja" só
+ * existe para quem já anunciou (ou vendeu): rota das vendas e total do mês.
+ * Quem só compra vê o convite para vender o primeiro produto. Nada aqui é
+ * número de exemplo.
  */
 @Component({
   selector: 'app-my-account',
@@ -120,26 +145,60 @@ export class MyAccountPage {
     return missing;
   });
 
-  readonly buyerStops = computed<RouteStop[]>(() => {
+  readonly orderShortcuts = computed<OrderShortcut[]>(() => {
     const counts = this.countStages(this.orders());
+    const count = (tab: OrderStage) => (COUNTED_TABS.includes(tab) ? counts?.[tab] ?? 0 : 0);
     return [
-      { tab: 'pay', label: 'A pagar', count: counts?.pay ?? null },
-      { tab: 'preparing', label: 'Preparando', count: counts?.preparing ?? null },
-      { tab: 'shipping', label: 'A caminho', count: counts?.shipping ?? null },
-      { tab: 'done', label: 'Entregues', count: counts?.done ?? null },
+      { tab: 'pay', label: 'A pagar', icon: 'wallet', count: count('pay') },
+      { tab: 'preparing', label: 'Preparando', icon: 'box', count: count('preparing') },
+      { tab: 'shipping', label: 'A caminho', icon: 'truck', count: count('shipping') },
+      { tab: 'done', label: 'Entregues', icon: 'check', count: count('done') },
     ];
   });
 
-  /** Uma frase sobre o que pede atenção, na ordem do que é mais urgente. */
-  readonly buyerNote = computed(() => {
+  /**
+   * Pedido em destaque: primeiro o que espera pagamento, depois o que está a
+   * caminho, depois o que a loja prepara; sem nenhum andando, o mais recente.
+   */
+  readonly featuredOrder = computed<FeaturedOrder | null>(() => {
+    const orders = this.orders();
+    if (!orders?.length) return null;
+    const newest = [...orders].sort((a, b) => (toDate(b.createdAt)?.getTime() ?? 0) - (toDate(a.createdAt)?.getTime() ?? 0));
+    const pick = (['pay', 'shipping', 'preparing'] as OrderStage[])
+      .map(stage => newest.find(order => orderStage(order) === stage))
+      .find(Boolean) ?? newest[0];
+
+    const stage = orderStage(pick);
+    const first = pick.items?.[0]?.productData;
+    const others = itemCount(pick) - (pick.items?.[0]?.quantity || 0);
+    const eta = deliveryWindow(pick);
+    const arrives = eta ? `Chega entre ${formatDay(eta.from)} e ${formatDay(eta.to)}` : null;
+    const due = paymentDueDate(pick);
+
+    let hint: string;
+    switch (stage) {
+      case 'pay': hint = this.dueHint(due); break;
+      case 'preparing': hint = arrives ?? 'A loja está preparando o envio'; break;
+      case 'shipping': hint = arrives ?? 'Já saiu da loja'; break;
+      default: hint = `Pedido de ${formatDay(toDate(pick.createdAt), true)}`;
+    }
+
+    return {
+      tab: stage,
+      stage: stage === 'pay' ? 'A pagar' : STAGE_LABEL[stage],
+      title: first?.name || 'Pedido',
+      more: others > 0 ? (others === 1 ? '+ 1 item' : `+ ${others} itens`) : null,
+      photo: first?.photoURL?.[0] || null,
+      total: formatBRL(pick.total),
+      hint,
+      urgent: stage === 'pay',
+    };
+  });
+
+  /** Quantos pedidos estão andando (pagar, preparar, a caminho). */
+  readonly activeOrders = computed(() => {
     const counts = this.countStages(this.orders());
-    if (this.ordersFailed()) return 'Não conseguimos carregar seus pedidos agora. Toque em "Ver todos" para tentar de novo.';
-    if (!counts) return 'Carregando seus pedidos…';
-    if (counts.pay) return counts.pay === 1 ? '1 pedido esperando pagamento' : `${counts.pay} pedidos esperando pagamento`;
-    if (counts.shipping) return counts.shipping === 1 ? '1 pedido a caminho de você' : `${counts.shipping} pedidos a caminho de você`;
-    if (counts.preparing) return counts.preparing === 1 ? 'A loja está preparando 1 pedido' : `As lojas estão preparando ${counts.preparing} pedidos`;
-    if (counts.done) return 'Nenhum pedido em andamento agora';
-    return 'Você ainda não fez nenhum pedido';
+    return counts ? counts.pay + counts.preparing + counts.shipping : 0;
   });
 
   readonly refundCount = computed(() => this.countStages(this.orders())?.refund ?? 0);
@@ -153,8 +212,18 @@ export class MyAccountPage {
     ];
   });
 
-  /** A loja tem movimento? Sem anúncio e sem venda, a seção vira convite. */
-  readonly isActiveSeller = computed(() => (this.productCount() ?? 0) > 0 || (this.sales()?.length ?? 0) > 0);
+  /**
+   * Quem já anunciou (ou já vendeu) vê a loja; quem só compra vê o convite para
+   * vender o primeiro produto. Enquanto não dá para saber, nenhum dos dois —
+   * senão o convite pisca na tela de quem já vende.
+   */
+  readonly storeState = computed<'loading' | 'seller' | 'newcomer'>(() => {
+    const products = this.productCount();
+    const sales = this.sales();
+    if ((products ?? 0) > 0 || (sales?.length ?? 0) > 0) return 'seller';
+    if (products === null || (sales === null && !this.salesFailed())) return 'loading';
+    return 'newcomer';
+  });
 
   readonly monthLabel = MONTHS_LONG[new Date().getMonth()];
 
@@ -318,6 +387,17 @@ export class MyAccountPage {
     } catch {
       this.unseenInvoices.set(0);
     }
+  }
+
+  /** "Vence hoje", "Pague até 30 set" ou "Venceu em 25 set". */
+  private dueHint(due: Date | null): string {
+    if (!due) return 'Falta pagar para a loja enviar';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = new Date(due);
+    day.setHours(0, 0, 0, 0);
+    if (day.getTime() === today.getTime()) return 'Vence hoje';
+    return day < today ? `Venceu em ${formatDay(due)}` : `Pague até ${formatDay(due)}`;
   }
 
   private countStages(orders: Order[] | null): Record<OrderStage, number> | null {

@@ -55,7 +55,7 @@ button:focus-visible {
 .acc-hero {
   background: var(--navy);
   color: #ffffff;
-  padding: 6px 0 22px;
+  padding: 6px 0 46px;
 
   a:focus-visible,
   button:focus-visible { outline-color: var(--lime); }
@@ -158,142 +158,6 @@ button:focus-visible {
   &:active { background: var(--navy-2); }
 }
 
-/* ---------- a rota dos pedidos ---------- */
-
-.acc-orders {
-  margin-top: 24px;
-}
-
-.acc-orders-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 14px;
-
-  h2 {
-    margin: 0;
-    font-family: var(--display);
-    font-size: 15px;
-    font-weight: 600;
-  }
-
-  a {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--lime);
-
-    vn-icon { font-size: 15px; }
-  }
-}
-
-.acc-orders-note {
-  margin: 14px 0 0;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.64);
-}
-
-.route {
-  --stop: 46px;
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(var(--stops, 4), 1fr);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  /* A linha tracejada liga o centro da primeira parada ao da última. */
-  &::before {
-    content: '';
-    position: absolute;
-    top: calc(var(--stop) / 2 - 1px);
-    left: calc(50% / var(--stops, 4));
-    right: calc(50% / var(--stops, 4));
-    height: 2px;
-    background: repeating-linear-gradient(90deg, rgba(216, 245, 31, 0.5) 0 7px, transparent 7px 13px);
-  }
-
-  li { position: relative; }
-
-  a {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    border-radius: 12px;
-  }
-
-  .route-stop {
-    width: var(--stop);
-    height: var(--stop);
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: var(--navy-2);
-    border: 1.5px solid rgba(255, 255, 255, 0.14);
-    color: rgba(255, 255, 255, 0.5);
-    font-family: var(--display);
-    font-size: 17px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    transition: transform 0.15s ease;
-  }
-
-  .route-label {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.66);
-    text-align: center;
-    line-height: 1.2;
-  }
-
-  a.is-on {
-    .route-stop {
-      background: var(--lime);
-      border-color: var(--lime);
-      color: var(--navy);
-      box-shadow: 0 0 0 5px rgba(216, 245, 31, 0.14);
-    }
-
-    .route-label { color: #ffffff; }
-  }
-
-  a:active .route-stop { transform: scale(0.94); }
-
-  /* Versão clara, dentro do cartão da loja */
-  &--light {
-    --stop: 42px;
-
-    &::before {
-      background: repeating-linear-gradient(90deg, rgba(11, 22, 35, 0.2) 0 7px, transparent 7px 13px);
-    }
-
-    .route-stop {
-      background: #ffffff;
-      border-color: rgba(11, 22, 35, 0.14);
-      color: rgba(11, 22, 35, 0.4);
-      font-size: 16px;
-    }
-
-    .route-label { color: var(--muted); }
-
-    a.is-on {
-      .route-stop {
-        background: var(--navy);
-        border-color: var(--navy);
-        color: var(--lime);
-        box-shadow: 0 0 0 5px rgba(11, 22, 35, 0.07);
-      }
-
-      .route-label { color: var(--navy); }
-    }
-
-    a:focus-visible { outline-color: var(--navy); }
-  }
-}
-
 /* ================================================================ CORPO */
 
 .acc-body {
@@ -327,6 +191,266 @@ button:focus-visible {
     text-decoration-thickness: 1.5px;
   }
 }
+
+/* ---------- seus pedidos ---------- */
+
+/* No celular o cartão sobe por cima do fim do topo azul. */
+.acc-orders {
+  position: relative;
+  margin-top: -42px;
+  padding: 14px 14px 4px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 10px 28px -12px rgba(11, 22, 35, 0.28);
+}
+
+.acc-orders-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 2px 12px;
+
+  h2 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    font-size: 13px;
+    font-weight: 800;
+
+    vn-icon { font-size: 15px; }
+  }
+}
+
+.acc-orders-msg {
+  margin: 0 2px 12px;
+  font-size: 13.5px;
+  line-height: 1.45;
+
+  &.is-alert { color: var(--danger); font-weight: 700; }
+
+  a {
+    display: inline-block;
+    color: var(--navy);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+/* O pedido em destaque */
+.acc-feat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #F4F6F8;
+
+  &:active { background: #ECEFF3; }
+}
+
+.acc-feat-photo {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  border-radius: 11px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 24px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.acc-feat-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+
+  strong {
+    max-width: 100%;
+    font-size: 14.5px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: var(--muted);
+  }
+}
+
+.acc-feat-stage {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.acc-feat.is-urgent .acc-feat-stage {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--navy);
+}
+
+.acc-feat-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  align-self: flex-start;
+  padding-top: 2px;
+
+  b {
+    font-size: 13.5px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    font-size: 12px;
+    color: var(--muted);
+  }
+}
+
+.acc-feat.is-loading {
+  pointer-events: none;
+
+  .acc-feat-photo { border-color: transparent; background: #E7EBEF; }
+
+  i {
+    display: block;
+    height: 11px;
+    width: 70%;
+    border-radius: 6px;
+    background: #E7EBEF;
+
+    & + i { width: 45%; margin-top: 8px; }
+  }
+}
+
+/* Atalho para cada etapa */
+.acc-stages {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 2px 10px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-align: center;
+
+    &:active { background: #F0F2F5; }
+  }
+}
+
+.acc-stage-icon {
+  position: relative;
+  display: inline-flex;
+  font-size: 25px;
+
+  b {
+    position: absolute;
+    top: -6px;
+    left: 16px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border-radius: 9px;
+    border: 2px solid #ffffff;
+    background: var(--lime);
+    color: var(--navy);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 14px;
+    text-align: center;
+  }
+}
+
+/* Ainda sem compra */
+.acc-orders-empty {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #F4F6F8;
+
+  strong {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 800;
+  }
+
+  p {
+    margin: 2px 0 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
+
+    vn-icon { font-size: 15px; }
+  }
+}
+
+.acc-orders-empty-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--navy);
+  color: var(--lime);
+  font-size: 21px;
+}
+
+.acc-orders + .acc-pockets { margin-top: 14px; }
 
 /* ---------- atalhos ---------- */
 
@@ -380,7 +504,7 @@ button:focus-visible {
 /* ---------- loja ---------- */
 
 .acc-store,
-.acc-store-empty {
+.acc-first {
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -417,18 +541,121 @@ button:focus-visible {
   }
 }
 
-.acc-store-empty {
-  strong {
+/* Rota das vendas: paradas com a contagem dentro, ligadas por uma linha */
+.route {
+  --stop: 42px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--stops, 3), 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  /* A linha tracejada liga o centro da primeira parada ao da última. */
+  &::before {
+    content: '';
+    position: absolute;
+    top: calc(var(--stop) / 2 - 1px);
+    left: calc(50% / var(--stops, 3));
+    right: calc(50% / var(--stops, 3));
+    height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(11, 22, 35, 0.2) 0 7px, transparent 7px 13px);
+  }
+
+  li { position: relative; }
+
+  a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border-radius: 12px;
+  }
+
+  .route-stop {
+    width: var(--stop);
+    height: var(--stop);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #ffffff;
+    border: 1.5px solid rgba(11, 22, 35, 0.14);
+    color: rgba(11, 22, 35, 0.4);
     font-family: var(--display);
     font-size: 16px;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.15s ease;
   }
 
-  p {
+  .route-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  a.is-on {
+    .route-stop {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: var(--lime);
+      box-shadow: 0 0 0 5px rgba(11, 22, 35, 0.07);
+    }
+
+    .route-label { color: var(--navy); }
+  }
+
+  a:active .route-stop { transform: scale(0.94); }
+}
+
+/* Convite para quem ainda não anunciou */
+.acc-first {
+  > strong {
+    display: block;
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  > p {
     margin: 4px 0 0;
-    font-size: 14px;
+    font-size: 13.5px;
     line-height: 1.45;
     color: var(--muted);
+  }
+
+  .acc-sell { margin-top: 14px; }
+}
+
+.acc-first-steps {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+
+  span {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1.5px solid rgba(11, 22, 35, 0.2);
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
   }
 }
 
@@ -836,13 +1063,6 @@ button:focus-visible {
 
   .acc-hero { padding: 36px 0 40px; }
 
-  .acc-hero-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.15fr;
-    gap: 48px;
-    align-items: center;
-  }
-
   .acc-avatar:not(.acc-avatar--sm) {
     width: 84px;
     height: 84px;
@@ -868,13 +1088,11 @@ button:focus-visible {
     height: 36px;
   }
 
+  /* Duas colunas: o cartão fica no fluxo, sem subir no topo. */
   .acc-orders {
     margin-top: 0;
-    padding: 20px 24px 18px;
-    border-radius: 20px;
-    background: var(--navy-2);
-
-    .route-stop { background: var(--navy); }
+    padding: 18px 18px 6px;
+    box-shadow: none;
   }
 
   .acc-body {
@@ -887,6 +1105,7 @@ button:focus-visible {
 
   .acc-col > .acc-block:first-child { margin-top: 0; }
   .acc-col > .acc-pockets + .acc-block { margin-top: 26px; }
+  .acc-orders + .acc-pockets { margin-top: 16px; }
 
   .ed-top { padding: 24px 0; }
 }
