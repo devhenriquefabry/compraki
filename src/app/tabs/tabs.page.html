@@ -1,35 +1,143 @@
 <ion-tabs>
 
-  <ion-tab-bar slot="bottom" class="custom-tab-bar" translucent="true">
-    <ion-tab-button tab="tab2" href="/tabs/tab2">
-      <div class="icon-wrapper">
-        <ion-icon aria-hidden="true" name="home"></ion-icon>
-      </div>
+  <ion-tab-bar slot="bottom" class="vn-tabbar">
+    <ion-tab-button tab="tab2" href="/tabs/tab2" (click)="closeMenu()">
+      <svg class="vn-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.home" /></svg>
+      <span class="vn-tab-label">Início</span>
     </ion-tab-button>
 
-    <ion-tab-button tab="saved" href="/tabs/saved">
-      <div class="icon-wrapper">
-        <ion-icon aria-hidden="true" name="heart"></ion-icon>
-      </div>
+    <ion-tab-button tab="my-account" href="/tabs/my-account" (click)="closeMenu()">
+      <svg class="vn-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.account" /></svg>
+      <span class="vn-tab-label">Conta</span>
     </ion-tab-button>
 
-    <ion-tab-button tab="upload-product" href="/tabs/upload-product" class="center-button">
-      <div class="center-icon-wrapper">
-        <ion-icon aria-hidden="true" name="add"></ion-icon>
-      </div>
+    <ion-tab-button tab="cart" href="/tabs/cart" (click)="closeMenu()">
+      <span class="vn-tab-cart">
+        <svg class="vn-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.cart" /></svg>
+        @if (cartCount() > 0) {
+          <span class="vn-tab-badge">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
+        }
+      </span>
+      <span class="vn-tab-label">Carrinho</span>
     </ion-tab-button>
 
-    <ion-tab-button tab="cart" href="/tabs/cart">
-      <div class="icon-wrapper">
-        <ion-icon aria-hidden="true" name="cart"></ion-icon>
-      </div>
-    </ion-tab-button>
-
-    <ion-tab-button tab="my-account" href="/tabs/my-account">
-      <div class="icon-wrapper">
-        <ion-icon aria-hidden="true" name="person"></ion-icon>
-      </div>
-    </ion-tab-button>
+    <button
+      type="button"
+      class="vn-tab-menu"
+      [class.is-open]="menuOpen()"
+      [attr.aria-expanded]="menuOpen()"
+      aria-controls="vn-menu-sheet"
+      (click)="toggleMenu()"
+    >
+      <svg class="vn-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path [attr.d]="menuOpen() ? icons.close : icons.menu" />
+      </svg>
+      <span class="vn-tab-label">Menu</span>
+    </button>
   </ion-tab-bar>
 
 </ion-tabs>
+
+<!-- Menu: painel que sobe por cima da página, sem sair da aba atual -->
+<div class="vn-menu-backdrop" [class.is-open]="menuOpen()" (click)="closeMenu()" aria-hidden="true"></div>
+
+<nav
+  id="vn-menu-sheet"
+  class="vn-menu"
+  [class.is-open]="menuOpen()"
+  [attr.aria-hidden]="!menuOpen()"
+  [attr.inert]="menuOpen() ? null : ''"
+  aria-label="Menu"
+  (click)="onMenuClick($event)"
+>
+  <div class="vn-menu-grip" aria-hidden="true"></div>
+
+  @if (user(); as u) {
+    <a class="vn-menu-profile" routerLink="/tabs/my-account">
+      <span class="vn-menu-avatar">{{ initials() }}</span>
+      <span class="vn-menu-hello">
+        <strong>Olá, {{ firstName() }}</strong>
+        <small>{{ u.email }}</small>
+      </span>
+      <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+    </a>
+  } @else {
+    <div class="vn-menu-guest">
+      <strong>Entre para comprar, vender e acompanhar seus pedidos</strong>
+      <div class="vn-menu-guest-actions">
+        <a class="vn-btn vn-btn--lime" routerLink="/login" [queryParams]="authQuery()">Entrar</a>
+        <a class="vn-btn vn-btn--ghost" routerLink="/sign-in" [queryParams]="authQuery()">Criar conta</a>
+      </div>
+    </div>
+  }
+
+  <div class="vn-menu-tiles">
+    <a class="vn-tile" routerLink="/my-orders">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.bag" /></svg>
+      <span>Compras</span>
+    </a>
+    <a class="vn-tile" routerLink="/tabs/saved">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.heart" /></svg>
+      <span>Salvos</span>
+      @if (savedCount() > 0) { <em>{{ savedCount() }}</em> }
+    </a>
+    <a class="vn-tile" routerLink="/tabs/chats">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chat" /></svg>
+      <span>Mensagens</span>
+    </a>
+    <a class="vn-tile" routerLink="/tabs/notifications">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.bell" /></svg>
+      <span>Avisos</span>
+    </a>
+  </div>
+
+  <a class="vn-menu-sell" routerLink="/tabs/upload-product">
+    <span class="vn-menu-sell-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
+    </span>
+    <span class="vn-menu-sell-text">
+      <strong>Anunciar um produto</strong>
+      <small>Em 3 passos, direto do celular</small>
+    </span>
+    <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+  </a>
+
+  <p class="vn-menu-heading">Vendas</p>
+  <ul class="vn-menu-list">
+    <li><a routerLink="/my-products">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.tag" /></svg>Meus anúncios
+      <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+    </a></li>
+    <li><a routerLink="/my-sales">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chart" /></svg>Minhas vendas
+      <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+    </a></li>
+    <li><a routerLink="/my-showcase">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.store" /></svg>Minha vitrine
+      <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+    </a></li>
+  </ul>
+
+  <p class="vn-menu-heading">Conta</p>
+  <ul class="vn-menu-list">
+    <li><a routerLink="/purchase-history">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.history" /></svg>Histórico de compras
+      <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+    </a></li>
+    <li><a routerLink="/address">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.pin" /></svg>Endereços
+      <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+    </a></li>
+    @if (isAdmin()) {
+      <li><a routerLink="/admin">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.shield" /></svg>Painel de gestão
+        <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+      </a></li>
+    }
+    @if (user()) {
+      <li><button type="button" class="vn-menu-logout" (click)="logout()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.logout" /></svg>Sair
+      </button></li>
+    }
+  </ul>
+</nav>

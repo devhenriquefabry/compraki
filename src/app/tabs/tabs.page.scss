@@ -1,75 +1,452 @@
-ion-tab-bar.custom-tab-bar {
-  --background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  height: 75px;
-  padding: 0 5px;
-  position: relative;
-  contain: none;
-  --color: #a0a0a0;
-  --color-selected: #0B1623;
+/*
+ * Barra inferior do celular (Início · Conta · Carrinho · Menu) e o painel do
+ * Menu. Paleta Noite: azul-noite no texto/ícone ativo, lima só como fundo.
+ */
+
+:host {
+  --vn-tabbar-h: 58px;
+  --vn-tab-muted: #5E6878;
+  --vn-line: rgba(11, 22, 35, 0.09);
 }
 
-ion-tab-button {
+/* ===== BARRA ===== */
+
+ion-tab-bar.vn-tabbar {
+  --background: #ffffff;
+  --border: none;
+  --color: var(--vn-tab-muted);
+  --color-selected: var(--vn-navy);
+  height: var(--vn-tabbar-h);
+  border-top: 1px solid var(--vn-line);
+  padding: 0;
+  contain: none;
+  position: relative;
+  z-index: 30;
+}
+
+ion-tab-button,
+.vn-tab-menu {
   --background-focused: transparent;
   --ripple-color: transparent;
+  --padding-top: 0;
+  --padding-bottom: 0;
   position: relative;
-  
-  .icon-wrapper {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-  }
+  flex: 1 1 0;
+  color: var(--vn-tab-muted);
+}
 
-  ion-icon {
-    font-size: 24px;
-    color: #8e8e93;
-    transition: all 0.3s ease;
-  }
+/* Traço no topo marca a aba atual, como na Amazon. */
+ion-tab-button::before,
+.vn-tab-menu::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 36px;
+  height: 3px;
+  margin-left: -18px;
+  border-radius: 0 0 3px 3px;
+  background: var(--vn-navy);
+  transform: scaleX(0);
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
-  &[aria-selected="true"] {
-    ion-icon {
-        color: #0B1623;
-        transform: scale(1.1);
-    }
-  }
+.vn-tab-icon {
+  width: 26px;
+  height: 26px;
+  display: block;
+  margin: 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke-width 0.15s ease;
+}
 
-  /* BOTÃO CENTRAL (+) */
-  &.center-button {
-    overflow: visible;
-    z-index: 10;
-    
-    .center-icon-wrapper {
-      width: 54px;
-      height: 54px;
-      background: #D8F51F;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 20px rgba(216, 245, 31, 0.4);
-      transform: translateY(-5px);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 4px solid #ffffff;
-      color: #0B1623;
+.vn-tab-label {
+  display: block;
+  margin-top: 3px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
 
-      ion-icon {
-        color: #0B1623;
-        font-size: 30px;
-      }
-    }
+ion-tab-button.tab-selected,
+.vn-tab-menu.is-open {
+  color: var(--vn-navy);
 
-    &:active .center-icon-wrapper {
-      transform: translateY(-8px) scale(0.95);
-      box-shadow: 0 4px 10px rgba(216, 245, 31, 0.3);
-    }
+  &::before { transform: scaleX(1); }
+  .vn-tab-icon { stroke-width: 2.1; }
+  .vn-tab-label { font-weight: 800; }
+}
+
+/* Enquanto o menu está aberto, só ele fica marcado. */
+:host(.menu-open) ion-tab-button.tab-selected {
+  color: var(--vn-tab-muted);
+  &::before { transform: scaleX(0); }
+  .vn-tab-icon { stroke-width: 1.75; }
+  .vn-tab-label { font-weight: 600; }
+}
+
+ion-tab-button:active .vn-tab-icon,
+.vn-tab-menu:active .vn-tab-icon {
+  transform: scale(0.92);
+}
+
+.vn-tab-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vn-tab-cart {
+  position: relative;
+  display: block;
+}
+
+.vn-tab-badge {
+  position: absolute;
+  top: -5px;
+  left: 15px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+  background: var(--vn-lime);
+  color: var(--vn-navy);
+  font-family: 'Nunito', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+
+/* ===== PAINEL DO MENU ===== */
+
+.vn-menu-backdrop {
+  position: fixed;
+  inset: 0 0 calc(var(--vn-tabbar-h) + var(--ion-safe-area-bottom, 0px)) 0;
+  z-index: 25;
+  background: rgba(11, 22, 35, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+
+  &.is-open {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
-ion-tab-bar {
-  --border: none;
+.vn-menu {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--vn-tabbar-h) + var(--ion-safe-area-bottom, 0px));
+  z-index: 26;
+  max-height: calc(100% - var(--vn-tabbar-h) - var(--ion-safe-area-bottom, 0px) - var(--ion-safe-area-top, 0px) - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 16px 18px;
+  border-radius: 20px 20px 0 0;
+  background: #F4F6F8;
+  box-shadow: 0 -10px 30px rgba(11, 22, 35, 0.14);
+  font-family: 'Nunito', sans-serif;
+  color: var(--vn-navy);
+  transform: translateY(calc(100% + 24px));
+  visibility: hidden;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.3s;
+
+  &.is-open {
+    transform: translateY(0);
+    visibility: visible;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+  }
+
+  a,
+  button {
+    color: inherit;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: none;
+  }
+}
+
+.vn-menu-grip {
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 2px;
+  background: rgba(11, 22, 35, 0.16);
+}
+
+.vn-menu-chevron {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+  opacity: 0.4;
+}
+
+/* Cabeçalho: perfil ou convite para entrar */
+.vn-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--vn-navy);
+  color: #ffffff !important;
+
+  .vn-menu-chevron { opacity: 0.6; }
+}
+
+.vn-menu-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--vn-lime);
+  color: var(--vn-navy);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.vn-menu-hello {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  small {
+    font-size: 12.5px;
+    opacity: 0.7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.vn-menu-guest {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--vn-navy);
+  color: #ffffff;
+
+  strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+}
+
+.vn-menu-guest-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.vn-btn {
+  flex: 1;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 800;
+
+  &--lime {
+    background: var(--vn-lime);
+    color: var(--vn-navy) !important;
+  }
+
+  &--ghost {
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff !important;
+  }
+}
+
+/* Atalhos em grade */
+.vn-menu-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.vn-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--vn-line);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  em {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    box-sizing: border-box;
+    background: var(--vn-lime);
+    color: var(--vn-navy);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 18px;
+  }
+
+  &:active { background: #EAEDF1; }
+}
+
+/* Chamada para vender */
+.vn-menu-sell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--vn-lime);
+  color: var(--vn-navy) !important;
+
+  .vn-menu-chevron { opacity: 0.7; }
+}
+
+.vn-menu-sell-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--vn-navy);
+  color: var(--vn-lime);
+
+  svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2.2;
+  }
+}
+
+.vn-menu-sell-text {
+  display: flex;
+  flex-direction: column;
+
+  strong {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  small {
+    font-size: 12.5px;
+    font-weight: 600;
+    opacity: 0.75;
+  }
+}
+
+/* Listas */
+.vn-menu-heading {
+  margin: 18px 4px 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vn-tab-muted);
+}
+
+.vn-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid var(--vn-line);
+  overflow: hidden;
+
+  li + li { border-top: 1px solid var(--vn-line); }
+
+  a,
+  button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 50px;
+    padding: 0 14px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: left;
+
+    &:active { background: #F0F2F5; }
+  }
+
+  svg:first-child {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.vn-menu-logout {
+  color: #B42318 !important;
+}
+
+/* No desktop a navegação é o header do site. */
+:host-context(html.vn-desktop-shell) {
+  .vn-menu,
+  .vn-menu-backdrop { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vn-menu,
+  .vn-menu.is-open,
+  .vn-menu-backdrop,
+  ion-tab-button::before,
+  .vn-tab-menu::before {
+    transition: none;
+  }
 }
