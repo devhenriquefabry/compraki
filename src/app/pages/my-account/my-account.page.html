@@ -2,475 +2,349 @@
   <app-mini-header [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
 </ion-header>
 
-<ion-content class="account-content">
-  <input
-    #profileImageInput
-    type="file"
-    accept="image/*"
-    hidden
-    (change)="onProfilePhotoSelected($event)">
+<ion-content class="acc">
+  <input #photoInput type="file" accept="image/*" hidden (change)="onPhotoSelected($event)">
 
-  <ng-container *ngIf="activeView === 'overview'; else editProfileTpl">
-  <section class="account-hero">
-    <div class="hero-top">
-      <h1>Minha Conta</h1>
-      <button type="button" class="notification-button" (click)="goToNotifications()" aria-label="Notificações">
-        <ion-icon name="notifications-outline"></ion-icon>
-        <span></span>
+  <!-- Linha das listas: link, ação (editor) ou "Em breve" -->
+  <ng-template #rowTpl let-row>
+    @if (row.link) {
+      <a class="acc-row" [routerLink]="row.link" [queryParams]="row.query">
+        <ng-container *ngTemplateOutlet="rowBody; context: { $implicit: row }"></ng-container>
+      </a>
+    } @else if (row.action) {
+      <button type="button" class="acc-row" (click)="onRow(row)">
+        <ng-container *ngTemplateOutlet="rowBody; context: { $implicit: row }"></ng-container>
       </button>
-    </div>
-
-    <div class="profile-row">
-      <div class="avatar-wrap">
-        <img
-          [src]="currentPhotoUrl"
-          referrerpolicy="no-referrer"
-          alt="Foto do usuário"
-          (error)="image.src='https://ionicframework.com/docs/img/demos/avatar.svg'"
-          #image>
-        <button
-          type="button"
-          class="camera-button"
-          aria-label="Alterar foto"
-          [disabled]="isSavingProfile"
-          (click)="profileImageInput.click()">
-          <ion-icon name="camera-outline"></ion-icon>
-        </button>
-      </div>
-
-      <div class="profile-info">
-        <h2>{{ usuario?.displayName || 'Usuário Compraki' }}</h2>
-        <p>{{ usuario?.email || 'Entre para acessar sua conta' }}</p>
-        <div class="verified-badge">
-          <ion-icon [name]="usuario?.emailVerified ? 'shield-checkmark' : 'shield-outline'"></ion-icon>
-          {{ usuario?.emailVerified ? 'Conta verificada' : 'Conta protegida' }}
-        </div>
-      </div>
-
-      <button type="button" class="logout-pill" (click)="logout()">
-        <ion-icon name="log-out-outline"></ion-icon>
-        Sair
+    } @else {
+      <button type="button" class="acc-row is-soon" (click)="soon(row.label)">
+        <ng-container *ngTemplateOutlet="rowBody; context: { $implicit: row }"></ng-container>
       </button>
-    </div>
-  </section>
+    }
+  </ng-template>
 
-  <main class="account-shell">
-    <section class="summary-card">
-      <div class="summary-item">
-        <span class="summary-icon">
-          <ion-icon name="ribbon-outline"></ion-icon>
-        </span>
-        <div>
-          <small>Membro desde</small>
-          <strong>{{ memberSinceLabel }}</strong>
-        </div>
-      </div>
+  <ng-template #rowBody let-row>
+    <span class="acc-row-icon"><vn-icon [name]="row.icon" /></span>
+    <span class="acc-row-text">
+      <strong>{{ row.label }}</strong>
+      @if (row.hint) { <small [class.is-alert]="row.alert">{{ row.hint }}</small> }
+    </span>
+    @if (row.badge) { <em class="acc-count">{{ row.badge }}</em> }
+    @if (row.link || row.action) {
+      <vn-icon class="acc-row-go" name="chevron" />
+    } @else {
+      <span class="acc-soon">Em breve</span>
+    }
+  </ng-template>
 
-      <div class="summary-divider"></div>
+  <!-- Rota de pedidos: paradas com a contagem dentro, ligadas por uma linha -->
+  <ng-template #routeTpl let-stops let-link="link" let-light="light">
+    <ol class="route" [class.route--light]="light" [style.--stops]="stops.length">
+      @for (stop of stops; track stop.tab) {
+        <li>
+          <a [routerLink]="link" [queryParams]="{ aba: stop.tab }" [class.is-on]="stop.count > 0"
+             [attr.aria-label]="stop.label + ': ' + (stop.count ?? 'carregando')">
+            <span class="route-stop">{{ stop.count ?? '–' }}</span>
+            <span class="route-label">{{ stop.label }}</span>
+          </a>
+        </li>
+      }
+    </ol>
+  </ng-template>
 
-      <button type="button" class="summary-item level-item">
-        <span class="summary-icon">
-          <ion-icon name="trophy-outline"></ion-icon>
-        </span>
-        <div>
-          <small>Nível</small>
-          <strong>Comprador Premium</strong>
-        </div>
-        <ion-icon name="chevron-forward-outline"></ion-icon>
-      </button>
-    </section>
-
-    <section class="account-section">
-      <h3>Compras</h3>
-      <div class="shortcut-card">
-        <button type="button" class="shortcut-item" (click)="goToCart()">
-          <span class="shortcut-icon with-badge">
-            <ion-icon name="bag-handle-outline"></ion-icon>
-            <em>3</em>
-          </span>
-          <strong>Carrinho</strong>
-        </button>
-
-        <button type="button" class="shortcut-item" (click)="goToOrders()">
-          <span class="shortcut-icon">
-            <ion-icon name="cube-outline"></ion-icon>
-          </span>
-          <strong>Meus Pedidos</strong>
-        </button>
-
-        <button type="button" class="shortcut-item" (click)="goToPurchaseHistory()">
-          <span class="shortcut-icon">
-            <ion-icon name="cash-outline"></ion-icon>
-          </span>
-          <strong>Histórico de Compras</strong>
-        </button>
-
-        <button type="button" class="shortcut-item" (click)="goToSaved()">
-          <span class="shortcut-icon">
-            <ion-icon name="heart-outline"></ion-icon>
-          </span>
-          <strong>Favoritos</strong>
-        </button>
-      </div>
-    </section>
-
-    <section class="account-section">
-      <h3>Vendas</h3>
-      <div class="seller-card">
-        <div class="shortcut-card seller-shortcuts">
-          <button type="button" class="shortcut-item" (click)="goToSellerProfile()">
-            <span class="shortcut-icon">
-              <ion-icon name="storefront-outline"></ion-icon>
-            </span>
-            <strong>Perfil de vendedor</strong>
+  @if (view() === 'overview') {
+    <!-- ======================= TOPO ======================= -->
+    <section class="acc-hero">
+      <div class="acc-wrap acc-hero-grid">
+        <div class="acc-id">
+          <button type="button" class="acc-avatar" (click)="photoInput.click()" [disabled]="isSavingProfile()"
+                  aria-label="Trocar foto de perfil">
+            @if (photoUrl(); as url) {
+              <img [src]="url" alt="" referrerpolicy="no-referrer">
+            } @else {
+              <span>{{ initials() }}</span>
+            }
+            <span class="acc-avatar-cam"><vn-icon name="camera" /></span>
           </button>
 
-          <button type="button" class="shortcut-item" (click)="goToMyProducts()">
-            <span class="shortcut-icon">
-              <ion-icon name="archive-outline"></ion-icon>
-            </span>
-            <strong>Meus Produtos</strong>
-          </button>
-
-          <button type="button" class="shortcut-item" (click)="goToMySales()">
-            <span class="shortcut-icon with-badge">
-              <ion-icon name="bar-chart-outline"></ion-icon>
-              <em>12</em>
-            </span>
-            <strong>Vendas</strong>
-          </button>
-
-          <button type="button" class="shortcut-item" (click)="goToInvoices()">
-            <span class="shortcut-icon" [class.with-badge]="unseenInvoices > 0">
-              <ion-icon name="receipt-outline"></ion-icon>
-              <em *ngIf="unseenInvoices > 0" [attr.aria-label]="unseenInvoices + ' notas novas'">{{ unseenInvoices }}</em>
-            </span>
-            <strong>Notas fiscais</strong>
-          </button>
-        </div>
-
-        <button type="button" class="performance-banner" (click)="goToMySales()">
-          <span class="performance-icon">
-            <ion-icon name="trending-up-outline"></ion-icon>
-          </span>
-          <span>
-            <small>Desempenho da loja</small>
-            <strong>Ótimo! Você vendeu 32% mais este mês.</strong>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-      </div>
-    </section>
-
-    <section class="account-section">
-      <h3>Minha Conta</h3>
-      <div class="settings-card">
-        <button type="button" class="settings-row" (click)="goToAddress()">
-          <ion-icon name="location-outline"></ion-icon>
-          <span>
-            <strong>Endereços</strong>
-            <small>Gerencie seus endereços de entrega</small>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-
-        <button type="button" class="settings-row" (click)="openProfileEditor()">
-          <ion-icon name="person-outline"></ion-icon>
-          <span>
-            <strong>Dados Pessoais</strong>
-            <small>Atualize suas informações</small>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-
-        <button type="button" class="settings-row" (click)="goToPayments()">
-          <ion-icon name="card-outline"></ion-icon>
-          <span>
-            <strong>Formas de Pagamento</strong>
-            <small>Cartões, PIX e mais</small>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-
-        <button type="button" class="settings-row">
-          <ion-icon name="shield-checkmark-outline"></ion-icon>
-          <span>
-            <strong>Segurança</strong>
-            <small>Senha, verificação em duas etapas</small>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-
-        <button type="button" class="settings-row">
-          <ion-icon name="help-circle-outline"></ion-icon>
-          <span>
-            <strong>Ajuda e Suporte</strong>
-            <small>Dúvidas, termos e políticas</small>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-      </div>
-    </section>
-
-    <app-social-links class="account-social" heading="Siga a Vineon"></app-social-links>
-  </main>
-  </ng-container>
-
-  <ng-template #editProfileTpl>
-    <section class="edit-hero">
-      <div class="edit-topbar">
-        <button type="button" class="back-button" (click)="closeProfileEditor()" aria-label="Voltar">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-        </button>
-        <h1>Editar Perfil</h1>
-        <button type="button" class="save-chip" (click)="saveProfile()" [disabled]="isSavingProfile">
-          @if (isSavingProfile) {
-            <ion-spinner name="crescent"></ion-spinner>
-            Salvando
-          } @else {
-            <ion-icon name="checkmark-outline"></ion-icon>
-            Salvar
-          }
-        </button>
-      </div>
-
-      <div class="edit-profile-row">
-        <div class="avatar-wrap edit-avatar">
-          <img
-            [src]="currentPhotoUrl"
-            referrerpolicy="no-referrer"
-            alt="Foto do usuário"
-            (error)="editImage.src='https://ionicframework.com/docs/img/demos/avatar.svg'"
-            #editImage>
-          <button
-            type="button"
-            class="camera-button"
-            aria-label="Alterar foto"
-            [disabled]="isSavingProfile"
-            (click)="profileImageInput.click()">
-            <ion-icon name="camera-outline"></ion-icon>
-          </button>
-        </div>
-
-        <div class="edit-profile-info">
-          <h2>{{ profileForm.displayName || 'Usuário Compraki' }}</h2>
-          <p>Membro desde {{ memberSinceLabel }}</p>
-          <span>Perfil {{ profileCompletion }}% completo</span>
-          <div class="profile-progress">
-            <div [style.width]="profileCompletionWidth"></div>
+          <div class="acc-id-text">
+            <h1>Olá, {{ firstName() }}</h1>
+            <p>{{ user()?.email }}</p>
+            @if (memberSince(); as since) { <p class="acc-since">Na Vineon desde {{ since }}</p> }
           </div>
+
+          <button type="button" class="acc-edit" (click)="openEditor()">
+            <vn-icon name="pencil" />
+            <span>Editar perfil</span>
+          </button>
+        </div>
+
+        <div class="acc-orders">
+          <div class="acc-orders-head">
+            <h2>Seus pedidos</h2>
+            <a routerLink="/my-orders">Ver todos <vn-icon name="chevron" /></a>
+          </div>
+          <ng-container *ngTemplateOutlet="routeTpl; context: { $implicit: buyerStops(), link: '/my-orders', light: false }"></ng-container>
+          <p class="acc-orders-note">{{ buyerNote() }}</p>
         </div>
       </div>
     </section>
 
-    <main class="edit-shell">
-      <section class="edit-card">
-        <div class="edit-card-title">
-          <span>
-            <ion-icon name="person-outline"></ion-icon>
-          </span>
-          <h3>Informações Pessoais</h3>
-        </div>
+    <!-- ======================= CORPO ======================= -->
+    <div class="acc-wrap acc-body">
+      <div class="acc-col">
+        <nav class="acc-pockets" aria-label="Atalhos">
+          <a routerLink="/tabs/saved">
+            <span class="acc-pocket-icon">
+              <vn-icon name="heart" />
+              @if (savedCount() > 0) { <b>{{ savedCount() }}</b> }
+            </span>
+            <span>Favoritos</span>
+          </a>
+          <a routerLink="/tabs/cart">
+            <span class="acc-pocket-icon">
+              <vn-icon name="cart" />
+              @if (cartCount() > 0) { <b>{{ cartCount() }}</b> }
+            </span>
+            <span>Carrinho</span>
+          </a>
+          <a routerLink="/my-orders">
+            <span class="acc-pocket-icon"><vn-icon name="box" /></span>
+            <span>Compras</span>
+          </a>
+          <a routerLink="/tabs/chats">
+            <span class="acc-pocket-icon"><vn-icon name="chat" /></span>
+            <span>Mensagens</span>
+          </a>
+        </nav>
 
-        <label class="edit-field">
-          <small>Nome completo</small>
-          <div class="edit-input">
-            <ion-icon name="person-outline"></ion-icon>
-            <input type="text" [(ngModel)]="profileForm.displayName" placeholder="Seu nome completo">
-          </div>
-        </label>
-
-        <label class="edit-field">
-          <small>Nome de usuário</small>
-          <div class="edit-input">
-            <ion-icon name="at-outline"></ion-icon>
-            <input type="text" [(ngModel)]="profileForm.username" placeholder="usuario.compraki">
-            <ion-icon name="checkmark-circle-outline" class="valid-icon"></ion-icon>
-          </div>
-        </label>
-
-        <label class="edit-field">
-          <small>E-mail</small>
-          <div class="edit-input disabled">
-            <ion-icon name="mail-outline"></ion-icon>
-            <input type="email" [(ngModel)]="profileForm.email" readonly>
-            <ion-icon name="checkmark-circle-outline" class="valid-icon"></ion-icon>
-          </div>
-        </label>
-
-        <label class="edit-field">
-          <small>Telefone</small>
-          <div class="edit-input">
-            <ion-icon name="call-outline"></ion-icon>
-            <input type="tel" [(ngModel)]="profileForm.phoneNumber" placeholder="(11) 98765-4321">
-            @if (profileForm.phoneNumber) {
-              <ion-icon name="checkmark-circle-outline" class="valid-icon"></ion-icon>
+        <section class="acc-block">
+          <header class="acc-block-head"><h2>Compras</h2></header>
+          <div class="acc-list">
+            @for (row of shoppingRows(); track row.label) {
+              <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row }"></ng-container>
             }
           </div>
-        </label>
+        </section>
 
-        <label class="edit-field">
-          <small>CPF</small>
-          <div class="edit-input">
-            <ion-icon name="document-text-outline"></ion-icon>
-            <input type="text" [(ngModel)]="profileForm.cpf" placeholder="000.000.000-00">
+        <section class="acc-block">
+          <header class="acc-block-head">
+            <h2>Sua loja</h2>
+            <a routerLink="/my-showcase">Ver vitrine</a>
+          </header>
+
+          @if (isActiveSeller()) {
+            <div class="acc-store">
+              <div class="acc-store-month">
+                <span>Vendido em {{ monthLabel }}</span>
+                <strong>{{ monthSales()?.total ?? '–' }}</strong>
+                @if (salesFailed()) {
+                  <small class="is-alert">Não conseguimos carregar suas vendas agora. Abra "Vendas" para tentar de novo.</small>
+                } @else if (monthSales(); as m) {
+                  <small>{{ m.count === 1 ? '1 venda paga' : m.count + ' vendas pagas' }}</small>
+                }
+              </div>
+              <ng-container *ngTemplateOutlet="routeTpl; context: { $implicit: sellerStops(), link: '/my-sales', light: true }"></ng-container>
+            </div>
+          } @else {
+            <div class="acc-store-empty">
+              <strong>Tem algo parado em casa?</strong>
+              <p>Anuncie em 3 passos, direto do celular, e acompanhe cada venda por aqui.</p>
+            </div>
+          }
+
+          <a class="acc-sell" routerLink="/tabs/upload-product">
+            <span class="acc-sell-plus"><vn-icon name="plus" /></span>
+            <strong>Anunciar produto</strong>
+            <vn-icon class="acc-row-go" name="chevron" />
+          </a>
+
+          <div class="acc-list">
+            @for (row of storeRows(); track row.label) {
+              <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row }"></ng-container>
+            }
           </div>
-        </label>
+        </section>
+
+      </div>
+
+      <div class="acc-col">
+
+        <section class="acc-block">
+          <header class="acc-block-head"><h2>Conta</h2></header>
+          <div class="acc-list">
+            @for (row of accountRows(); track row.label) {
+              <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row }"></ng-container>
+            }
+          </div>
+        </section>
+
+        <section class="acc-block">
+          <header class="acc-block-head"><h2>Ajuda</h2></header>
+          <div class="acc-list">
+            @for (row of helpRows; track row.label) {
+              <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row }"></ng-container>
+            }
+          </div>
+        </section>
+
+        <button type="button" class="acc-logout" (click)="logout()">
+          <vn-icon name="logout" />
+          Sair da conta
+        </button>
+
+        <app-social-links class="acc-social" heading="Siga a Vineon"></app-social-links>
+      </div>
+    </div>
+  } @else {
+    <!-- ======================= DADOS PESSOAIS ======================= -->
+    <section class="ed-top">
+      <div class="acc-wrap ed-top-bar">
+        <button type="button" class="ed-back" (click)="closeEditor()" aria-label="Voltar para Minha conta">
+          <vn-icon name="arrowLeft" />
+        </button>
+        <h1>Dados pessoais</h1>
+      </div>
+    </section>
+
+    <div class="acc-wrap ed">
+      <section class="ed-card ed-photo">
+        <button type="button" class="acc-avatar acc-avatar--sm" (click)="photoInput.click()" [disabled]="isSavingProfile()"
+                aria-label="Trocar foto de perfil">
+          @if (photoUrl(); as url) {
+            <img [src]="url" alt="" referrerpolicy="no-referrer">
+          } @else {
+            <span>{{ initials() }}</span>
+          }
+          <span class="acc-avatar-cam"><vn-icon name="camera" /></span>
+        </button>
+        <div>
+          <strong>{{ profileForm.displayName || 'Seu nome' }}</strong>
+          <span class="ed-progress-label">Cadastro {{ profileCompletion }}% completo</span>
+          <div class="ed-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="profileCompletion">
+            <div [style.width.%]="profileCompletion"></div>
+          </div>
+        </div>
       </section>
 
-      <section class="edit-card">
-        <div class="edit-card-title split-title">
-          <div>
-            <span>
-              <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <section class="ed-card">
+        <h2>Informações</h2>
+
+        <label class="ed-field">
+          <span>Nome completo</span>
+          <div class="ed-input">
+            <vn-icon name="account" />
+            <input type="text" [(ngModel)]="profileForm.displayName" autocomplete="name" placeholder="Como aparece nos pedidos">
+          </div>
+        </label>
+
+        <label class="ed-field">
+          <span>Nome de usuário</span>
+          <div class="ed-input">
+            <vn-icon name="at" />
+            <input type="text" [(ngModel)]="profileForm.username" autocomplete="username" placeholder="seu.nome">
+          </div>
+        </label>
+
+        <label class="ed-field">
+          <span>E-mail</span>
+          <div class="ed-input is-locked">
+            <vn-icon name="mail" />
+            <input type="email" [ngModel]="profileForm.email" readonly>
+            <vn-icon name="lock" />
+          </div>
+          <small>É o e-mail de acesso da conta e não pode ser trocado aqui.</small>
+        </label>
+
+        <div class="ed-pair">
+          <label class="ed-field">
+            <span>Telefone</span>
+            <div class="ed-input">
+              <vn-icon name="phone" />
+              <input type="tel" inputmode="tel" [(ngModel)]="profileForm.phoneNumber" autocomplete="tel" placeholder="(11) 98765-4321">
+            </div>
+          </label>
+
+          <label class="ed-field">
+            <span>CPF</span>
+            <div class="ed-input">
+              <vn-icon name="idcard" />
+              <input type="text" inputmode="numeric" [(ngModel)]="profileForm.cpf" placeholder="000.000.000-00">
+            </div>
+          </label>
+        </div>
+        <small class="ed-note">Telefone e CPF são usados na nota fiscal e na etiqueta de envio.</small>
+
+        <button type="button" class="ed-save" (click)="saveProfile()" [disabled]="isSavingProfile()">
+          @if (isSavingProfile()) { <ion-spinner name="crescent"></ion-spinner> Salvando… } @else { Salvar alterações }
+        </button>
+      </section>
+
+      <section class="ed-card" id="acc-security">
+        <h2>Senha e segurança</h2>
+
+        @if (hasPassword()) {
+          <button type="button" class="acc-row ed-row" (click)="passwordOpen.set(!passwordOpen())" [attr.aria-expanded]="passwordOpen()">
+            <span class="acc-row-icon"><vn-icon name="lock" /></span>
+            <span class="acc-row-text">
+              <strong>Trocar senha</strong>
+              <small>Informe a senha atual e escolha uma nova</small>
             </span>
-            <h3>Segurança</h3>
-          </div>
-          <em>
-            <ion-icon name="lock-closed-outline"></ion-icon>
-            Protegido
-          </em>
-        </div>
+            <vn-icon class="acc-row-go" [class.is-open]="passwordOpen()" name="chevron" />
+          </button>
 
-        <button type="button" class="edit-row" (click)="togglePasswordPanel()">
-          <ion-icon name="lock-closed-outline"></ion-icon>
-          <span>
-            <strong>Alterar senha</strong>
-            <small>{{ isPasswordPanelOpen ? 'Informe sua senha atual e a nova senha' : 'Gerencie sua senha de acesso' }}</small>
-          </span>
-          <ion-icon [name]="isPasswordPanelOpen ? 'chevron-up-outline' : 'chevron-forward-outline'"></ion-icon>
-        </button>
-
-        @if (isPasswordPanelOpen) {
-          <div class="password-panel">
-            <label class="edit-field">
-              <small>Senha atual</small>
-              <div class="edit-input">
-                <ion-icon name="lock-closed-outline"></ion-icon>
-                <input
-                  type="password"
-                  [(ngModel)]="passwordForm.currentPassword"
-                  autocomplete="current-password"
-                  placeholder="Digite sua senha atual">
-              </div>
-            </label>
-
-            <label class="edit-field">
-              <small>Nova senha</small>
-              <div class="edit-input">
-                <ion-icon name="key-outline"></ion-icon>
-                <input
-                  type="password"
-                  [(ngModel)]="passwordForm.newPassword"
-                  autocomplete="new-password"
-                  placeholder="Mínimo 6 caracteres">
-              </div>
-            </label>
-
-            <label class="edit-field">
-              <small>Confirmar nova senha</small>
-              <div class="edit-input">
-                <ion-icon name="shield-checkmark-outline"></ion-icon>
-                <input
-                  type="password"
-                  [(ngModel)]="passwordForm.confirmPassword"
-                  autocomplete="new-password"
-                  placeholder="Repita a nova senha">
-              </div>
-            </label>
-
-            <button
-              type="button"
-              class="password-save-button"
-              (click)="changePassword()"
-              [disabled]="isChangingPassword">
-              @if (isChangingPassword) {
-                <ion-spinner name="crescent"></ion-spinner>
-                Alterando...
-              } @else {
-                <ion-icon name="checkmark-outline"></ion-icon>
-                Alterar senha
-              }
-            </button>
-          </div>
-        }
-
-        <div class="edit-row toggle-row">
-          <ion-icon name="shield-outline"></ion-icon>
-          <span>
-            <strong>Verificação em duas etapas</strong>
-            <small>Sua conta está protegida</small>
-          </span>
-          <ion-toggle color="success" checked="true"></ion-toggle>
-        </div>
-      </section>
-
-      <section class="edit-card">
-        <div class="edit-card-title">
-          <span>
-            <ion-icon name="location-outline"></ion-icon>
-          </span>
-          <h3>Endereço</h3>
-        </div>
-        <button type="button" class="edit-row" (click)="goToAddress()">
-          <ion-icon name="home-outline"></ion-icon>
-          <span>
-            <strong>Endereço principal</strong>
-            <small>Gerencie seu endereço de entrega</small>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-      </section>
-
-      <section class="edit-card">
-        <div class="edit-card-title">
-          <span>
-            <ion-icon name="card-outline"></ion-icon>
-          </span>
-          <h3>Pagamentos</h3>
-        </div>
-        <button type="button" class="edit-row" (click)="goToPayments()">
-          <ion-icon name="wallet-outline"></ion-icon>
-          <span>
-            <strong>Formas de pagamento</strong>
-            <small>Cartões, PIX e mais</small>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-      </section>
-
-      <section class="edit-card danger-card">
-        <div class="edit-card-title">
-          <span>
-            <ion-icon name="trash-outline"></ion-icon>
-          </span>
-          <h3>Ações da conta</h3>
-        </div>
-        <button type="button" class="edit-row danger-row">
-          <ion-icon name="trash-outline"></ion-icon>
-          <span>
-            <strong>Excluir minha conta</strong>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-        <button type="button" class="edit-row" (click)="logout()">
-          <ion-icon name="log-out-outline"></ion-icon>
-          <span>
-            <strong>Sair da conta</strong>
-          </span>
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </button>
-      </section>
-
-      <button type="button" class="bottom-save-button" (click)="saveProfile()" [disabled]="isSavingProfile">
-        @if (isSavingProfile) {
-          <ion-spinner name="crescent"></ion-spinner>
-          Salvando alterações
+          @if (passwordOpen()) {
+            <div class="ed-password">
+              <label class="ed-field">
+                <span>Senha atual</span>
+                <div class="ed-input">
+                  <input type="password" [(ngModel)]="passwordForm.currentPassword" autocomplete="current-password">
+                </div>
+              </label>
+              <label class="ed-field">
+                <span>Nova senha</span>
+                <div class="ed-input">
+                  <input type="password" [(ngModel)]="passwordForm.newPassword" autocomplete="new-password" placeholder="Pelo menos 6 caracteres">
+                </div>
+              </label>
+              <label class="ed-field">
+                <span>Repita a nova senha</span>
+                <div class="ed-input">
+                  <input type="password" [(ngModel)]="passwordForm.confirmPassword" autocomplete="new-password">
+                </div>
+              </label>
+              <button type="button" class="ed-save ed-save--navy" (click)="changePassword()" [disabled]="isChangingPassword()">
+                @if (isChangingPassword()) { <ion-spinner name="crescent"></ion-spinner> Trocando… } @else { Trocar senha }
+              </button>
+            </div>
+          }
         } @else {
-          <ion-icon name="save-outline"></ion-icon>
-          Salvar alterações
+          <div class="acc-row ed-row is-static">
+            <span class="acc-row-icon"><vn-icon name="shield" /></span>
+            <span class="acc-row-text">
+              <strong>Você entra com o Google</strong>
+              <small>A senha e a verificação em duas etapas ficam na sua conta Google.</small>
+            </span>
+          </div>
         }
-      </button>
-    </main>
-  </ng-template>
+
+        <button type="button" class="acc-row ed-row is-soon" (click)="soon('Verificação em duas etapas')">
+          <span class="acc-row-icon"><vn-icon name="shield" /></span>
+          <span class="acc-row-text">
+            <strong>Verificação em duas etapas</strong>
+            <small>Um código extra ao entrar em outro aparelho</small>
+          </span>
+          <span class="acc-soon">Em breve</span>
+        </button>
+
+        <button type="button" class="acc-row ed-row is-soon is-danger" (click)="soon('Excluir conta')">
+          <span class="acc-row-icon"><vn-icon name="trash" /></span>
+          <span class="acc-row-text">
+            <strong>Excluir conta</strong>
+            <small>Apaga seus dados, anúncios e histórico</small>
+          </span>
+          <span class="acc-soon">Em breve</span>
+        </button>
+      </section>
+    </div>
+  }
 </ion-content>

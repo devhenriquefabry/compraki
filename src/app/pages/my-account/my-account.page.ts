@@ -1,341 +1,467 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
+import { ToastController } from '@ionic/angular';
 import { User } from 'firebase/auth';
-import { FirebaseProducts } from 'src/app/services/firebase-products';
-import { NavController, ToastController } from '@ionic/angular';
-import { AppUser } from 'src/app/interfaces/app-user';
-import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { getApp } from 'firebase/app';
 import { collection, getDocs, getFirestore, query, where } from 'firebase/firestore';
+import { Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { isCurrentUserAdmin, onAuthUserChanged } from 'src/app/core/auth-state';
+import { MONTHS_LONG, OrderStage, formatBRL, isPaid, orderStage, sellerAmount, toDate } from 'src/app/core/order-stage';
+import { VnIconName } from 'src/app/core/vn-icons';
+import { AppUser } from 'src/app/interfaces/app-user';
+import { Order } from 'src/app/interfaces/order';
+import { AddressService } from 'src/app/services/address.service';
+import { FirebaseProducts } from 'src/app/services/firebase-products';
+import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
+import { OrdersService } from 'src/app/services/orders.service';
+import { SalesService } from 'src/app/services/sales.service';
+import { StorefrontDataService } from 'src/app/services/storefront-data.service';
 
+/** Uma parada da rota de pedidos (compras ou vendas). */
+interface RouteStop {
+  tab: OrderStage;
+  label: string;
+  count: number | null;
+}
+
+/** Linha das listas da conta. Sem `link` nem `action`, é um item "Em breve". */
+interface AccountRow {
+  icon: VnIconName;
+  label: string;
+  hint?: string;
+  link?: string;
+  query?: Record<string, string>;
+  action?: 'editor' | 'security';
+  badge?: number;
+  alert?: boolean;
+}
+
+/**
+ * Minha conta. O topo é a rota dos pedidos de quem compra (A pagar → Entregues),
+ * lida de `orders/`; a seção "Sua loja" mostra a mesma rota do lado de quem
+ * vende e o total vendido no mês. Nada aqui é número de exemplo: sem dado, a
+ * parada mostra 0 ou "–" enquanto carrega.
+ */
 @Component({
   selector: 'app-my-account',
   templateUrl: './my-account.page.html',
   styleUrls: ['./my-account.page.scss'],
-  standalone: false
+  standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MyAccountPage implements OnInit, OnDestroy {
+export class MyAccountPage {
+  private readonly fbProducts = inject(FirebaseProducts);
+  private readonly usersService = inject(FirebaseUsersService);
+  private readonly ordersService = inject(OrdersService);
+  private readonly salesService = inject(SalesService);
+  private readonly addressService = inject(AddressService);
+  private readonly storefront = inject(StorefrontDataService);
+  private readonly toastCtrl = inject(ToastController);
+  private readonly router = inject(Router);
 
-  public usuario!: User | null;
-  public appUser: AppUser | null = null;
-  public activeView: 'overview' | 'editProfile' = 'overview';
-  public isSavingProfile = false;
-  public isPasswordPanelOpen = false;
-  public isChangingPassword = false;
-  /** Notas fiscais da Vineon que a loja ainda não abriu (selo no atalho). */
-  public unseenInvoices = 0;
-  public profileForm = {
-    displayName: '',
-    username: '',
-    email: '',
-    phoneNumber: '',
-    cpf: ''
-  };
-  public passwordForm = {
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  };
-  public firebaseService = inject(FirebaseProducts);
-  private usersService = inject(FirebaseUsersService);
-  private navCtrl = inject(NavController);
-  private toastCtrl = inject(ToastController);
-  private userPoll?: ReturnType<typeof setInterval>;
-  private loadedUid = '';
+  // ---------------------------------------------------------------- estado
 
-  constructor() { }
+  readonly view = signal<'overview' | 'editor'>('overview');
+  readonly user = signal<User | null>(null);
+  readonly appUser = signal<AppUser | null>(null);
+  readonly isAdmin = signal(false);
 
-  ngOnInit() {
-    this.syncCurrentUser();
-    this.userPoll = setInterval(() => {
-      this.syncCurrentUser();
-    }, 1000);
+  readonly orders = signal<Order[] | null>(null);
+  readonly sales = signal<Order[] | null>(null);
+  readonly productCount = signal<number | null>(null);
+  readonly unseenInvoices = signal(0);
+  /** Leitura de pedidos/vendas falhou: a tela diz isso em vez de mostrar zeros. */
+  readonly ordersFailed = signal(false);
+  readonly salesFailed = signal(false);
+
+  readonly cartCount = toSignal(this.storefront.cartCount$, { initialValue: 0 });
+  readonly savedCount = toSignal(this.storefront.savedItems$.pipe(map(items => items.length)), { initialValue: 0 });
+  readonly addresses = toSignal(this.addressService.addresses$, { initialValue: [] });
+
+  readonly isSavingProfile = signal(false);
+  readonly isChangingPassword = signal(false);
+  readonly passwordOpen = signal(false);
+
+  profileForm = { displayName: '', username: '', email: '', phoneNumber: '', cpf: '' };
+  passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+
+  private dataSubs: Subscription[] = [];
+
+  // ------------------------------------------------------------- derivados
+
+  readonly firstName = computed(() => {
+    const user = this.user();
+    const name = this.appUser()?.displayName || user?.displayName || user?.email?.split('@')[0] || '';
+    return name.trim().split(/\s+/)[0] || 'você';
+  });
+
+  readonly fullName = computed(() => this.appUser()?.displayName || this.user()?.displayName || '');
+
+  readonly initials = computed(() => {
+    const parts = (this.fullName() || this.firstName()).trim().split(/\s+/);
+    return ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  });
+
+  readonly photoUrl = computed(() => this.user()?.photoURL || this.appUser()?.photoURL || null);
+
+  readonly memberSince = computed(() => {
+    const created = toDate(this.user()?.metadata?.creationTime);
+    return created ? `${MONTHS_LONG[created.getMonth()]} de ${created.getFullYear()}` : null;
+  });
+
+  /** Dados pessoais que faltam — vira aviso na linha "Dados pessoais". */
+  readonly missingProfile = computed(() => {
+    const u = this.appUser();
+    const missing: string[] = [];
+    if (!u?.phoneNumber) missing.push('telefone');
+    if (!u?.cpf) missing.push('CPF');
+    return missing;
+  });
+
+  readonly buyerStops = computed<RouteStop[]>(() => {
+    const counts = this.countStages(this.orders());
+    return [
+      { tab: 'pay', label: 'A pagar', count: counts?.pay ?? null },
+      { tab: 'preparing', label: 'Preparando', count: counts?.preparing ?? null },
+      { tab: 'shipping', label: 'A caminho', count: counts?.shipping ?? null },
+      { tab: 'done', label: 'Entregues', count: counts?.done ?? null },
+    ];
+  });
+
+  /** Uma frase sobre o que pede atenção, na ordem do que é mais urgente. */
+  readonly buyerNote = computed(() => {
+    const counts = this.countStages(this.orders());
+    if (this.ordersFailed()) return 'Não conseguimos carregar seus pedidos agora. Toque em "Ver todos" para tentar de novo.';
+    if (!counts) return 'Carregando seus pedidos…';
+    if (counts.pay) return counts.pay === 1 ? '1 pedido esperando pagamento' : `${counts.pay} pedidos esperando pagamento`;
+    if (counts.shipping) return counts.shipping === 1 ? '1 pedido a caminho de você' : `${counts.shipping} pedidos a caminho de você`;
+    if (counts.preparing) return counts.preparing === 1 ? 'A loja está preparando 1 pedido' : `As lojas estão preparando ${counts.preparing} pedidos`;
+    if (counts.done) return 'Nenhum pedido em andamento agora';
+    return 'Você ainda não fez nenhum pedido';
+  });
+
+  readonly refundCount = computed(() => this.countStages(this.orders())?.refund ?? 0);
+
+  readonly sellerStops = computed<RouteStop[]>(() => {
+    const counts = this.countStages(this.sales());
+    return [
+      { tab: 'preparing', label: 'A enviar', count: counts?.preparing ?? null },
+      { tab: 'shipping', label: 'Enviadas', count: counts?.shipping ?? null },
+      { tab: 'done', label: 'Entregues', count: counts?.done ?? null },
+    ];
+  });
+
+  /** A loja tem movimento? Sem anúncio e sem venda, a seção vira convite. */
+  readonly isActiveSeller = computed(() => (this.productCount() ?? 0) > 0 || (this.sales()?.length ?? 0) > 0);
+
+  readonly monthLabel = MONTHS_LONG[new Date().getMonth()];
+
+  /** Vendas pagas no mês corrente, só os itens desta loja (sem frete). */
+  readonly monthSales = computed(() => {
+    const sales = this.sales();
+    const uid = this.user()?.uid;
+    if (!sales || !uid) return null;
+    const now = new Date();
+    const inMonth = sales.filter(order => {
+      const stage = orderStage(order);
+      if (!isPaid(order) || stage === 'refund' || stage === 'cancelled') return false;
+      const date = toDate(order.paymentConfirmedAt) ?? toDate(order.createdAt);
+      return !!date && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    });
+    return {
+      count: inMonth.length,
+      total: formatBRL(inMonth.reduce((sum, order) => sum + sellerAmount(order, uid), 0)),
+    };
+  });
+
+  readonly defaultAddress = computed(() => {
+    const list = this.addresses();
+    const main = list.find(a => a.isDefault) || list[0];
+    return main ? `${main.street}, ${main.number} · ${main.city}/${main.state}` : null;
+  });
+
+  readonly shoppingRows = computed<AccountRow[]>(() => [
+    { icon: 'history', label: 'Histórico de compras', hint: 'Tudo o que você já comprou', link: '/purchase-history' },
+    {
+      icon: 'returns', label: 'Devoluções e reembolsos', hint: 'Acompanhe pedidos devolvidos',
+      link: '/my-orders', query: { aba: 'refund' }, badge: this.refundCount(),
+    },
+    { icon: 'star', label: 'Minhas avaliações', hint: 'Notas que você deu aos produtos' },
+    { icon: 'question', label: 'Perguntas aos vendedores', hint: 'Dúvidas que você enviou' },
+    { icon: 'ticket', label: 'Cupons', hint: 'Descontos disponíveis para você' },
+  ]);
+
+  readonly storeRows = computed<AccountRow[]>(() => [
+    {
+      icon: 'tag', label: 'Meus anúncios', link: '/my-products',
+      hint: this.productCount() === null ? undefined : this.plural(this.productCount()!, 'anúncio', 'anúncios'),
+    },
+    { icon: 'chart', label: 'Vendas', hint: 'Pedidos, etiquetas e envios', link: '/my-sales' },
+    { icon: 'receipt', label: 'Notas fiscais', hint: 'Notas mensais da Vineon', link: '/my-invoices', badge: this.unseenInvoices() },
+    { icon: 'store', label: 'Perfil de vendedor', hint: 'Nome da loja, foto e descrição', link: '/seller-profile' },
+  ]);
+
+  readonly accountRows = computed<AccountRow[]>(() => {
+    const missing = this.missingProfile();
+    const rows: AccountRow[] = [
+      {
+        icon: 'account', label: 'Dados pessoais', action: 'editor',
+        hint: missing.length ? `Falta ${missing.join(' e ')}` : 'Nome, telefone e CPF', alert: missing.length > 0,
+      },
+      { icon: 'pin', label: 'Endereços', hint: this.defaultAddress() ?? 'Cadastre onde receber seus pedidos', link: '/address' },
+      { icon: 'card', label: 'Formas de pagamento', hint: 'Pix, boleto e cartões', link: '/payments' },
+      { icon: 'lock', label: 'Senha e segurança', hint: 'Troque sua senha de acesso', action: 'security' },
+      { icon: 'bell', label: 'Notificações', hint: 'Avisos de pedidos e mensagens', link: '/tabs/notifications' },
+      { icon: 'privacy', label: 'Privacidade e dados', hint: 'O que a Vineon guarda sobre você' },
+    ];
+    if (this.isAdmin()) rows.push({ icon: 'grid', label: 'Painel de gestão', hint: 'Área administrativa', link: '/admin' });
+    return rows;
+  });
+
+  readonly helpRows: AccountRow[] = [
+    { icon: 'help', label: 'Central de ajuda', hint: 'Respostas para as dúvidas mais comuns' },
+    { icon: 'chat', label: 'Fale com a Vineon', hint: 'Atendimento para compras e vendas' },
+    { icon: 'doc', label: 'Termos e políticas', hint: 'Termos de uso, privacidade e devolução' },
+  ];
+
+  /** Quanto do cadastro está preenchido (lido do formulário, muda enquanto a pessoa digita). */
+  get profileCompletion(): number {
+    const f = this.profileForm;
+    const filled = [f.displayName, f.username, f.email, f.phoneNumber, f.cpf].filter(v => v && v.trim()).length;
+    return Math.round((filled / 5) * 100);
+  }
+
+  /** Conta criada com e-mail e senha? Quem entra só pelo Google não tem senha aqui. */
+  readonly hasPassword = computed(() => !!this.user()?.providerData.some(p => p.providerId === 'password'));
+
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    const stopAuth = onAuthUserChanged(user => this.bindUser(user));
+    destroyRef.onDestroy(() => {
+      stopAuth();
+      this.unbindData();
+    });
   }
 
   /** Volta de "Notas fiscais": o selo reflete o que a loja já abriu. */
   ionViewWillEnter() {
-    if (this.usuario?.uid) void this.countUnseenInvoices(this.usuario.uid);
+    const uid = this.user()?.uid;
+    if (uid) void this.countUnseenInvoices(uid);
   }
 
-  ngOnDestroy() {
-    if (this.userPoll) {
-      clearInterval(this.userPoll);
-    }
-  }
+  // ----------------------------------------------------------------- dados
 
-  get profileCompletion(): number {
-    const fields = [
-      this.profileForm.displayName,
-      this.profileForm.username,
-      this.profileForm.email,
-      this.profileForm.phoneNumber,
-      this.profileForm.cpf
-    ];
-    const filledFields = fields.filter(value => value && value.trim()).length;
-    return Math.round((filledFields / fields.length) * 100);
-  }
+  private bindUser(user: User | null) {
+    const previous = this.user()?.uid;
+    this.user.set(user);
+    if (user?.uid === previous) return;
 
-  get profileCompletionWidth(): string {
-    return `${this.profileCompletion}%`;
-  }
+    this.unbindData();
+    this.appUser.set(null);
+    this.orders.set(null);
+    this.sales.set(null);
+    this.productCount.set(null);
+    this.ordersFailed.set(false);
+    this.salesFailed.set(false);
+    this.isAdmin.set(false);
+    if (!user) return;
 
-  get currentPhotoUrl(): string {
-    return this.usuario?.photoURL || this.appUser?.photoURL || 'assets/imagens/default-avatar.png';
-  }
-
-  private syncCurrentUser() {
-    const previousUid = this.usuario?.uid || '';
-    const currentUser = this.firebaseService.getUser();
-    this.usuario = currentUser;
-
-    if (currentUser && currentUser.uid !== this.loadedUid) {
-      this.loadedUid = currentUser.uid;
-      void this.loadProfileData(currentUser);
-      return;
-    }
-
-    if (!currentUser && previousUid) {
-      this.loadedUid = '';
-      this.appUser = null;
-      this.resetProfileForm();
-    }
-  }
-
-  private async loadProfileData(user: User) {
+    void this.loadProfile(user);
     void this.countUnseenInvoices(user.uid);
-    this.appUser = await this.usersService.getUserById(user.uid);
+    isCurrentUserAdmin().then(isAdmin => this.isAdmin.set(isAdmin));
+
+    this.dataSubs = [
+      this.ordersService.getUserOrders(user.uid).subscribe({
+        next: orders => this.orders.set(orders),
+        error: err => {
+          console.error('Minha conta: falha ao ler pedidos', err);
+          this.ordersFailed.set(true);
+        },
+      }),
+      this.salesService.getSellerSales(user.uid).subscribe({
+        next: sales => this.sales.set(sales),
+        error: err => {
+          console.error('Minha conta: falha ao ler vendas', err);
+          this.salesFailed.set(true);
+        },
+      }),
+      this.fbProducts.getBySeller(user.uid, true).subscribe({
+        next: products => this.productCount.set(products.length),
+        error: () => this.productCount.set(0),
+      }),
+    ];
+  }
+
+  private unbindData() {
+    this.dataSubs.forEach(sub => sub.unsubscribe());
+    this.dataSubs = [];
+  }
+
+  private async loadProfile(user: User) {
+    const appUser = await this.usersService.getUserById(user.uid);
+    this.appUser.set(appUser);
     this.profileForm = {
-      displayName: this.appUser?.displayName || user.displayName || '',
-      username: this.appUser?.username || this.buildDefaultUsername(user),
-      email: this.appUser?.email || user.email || '',
-      phoneNumber: this.appUser?.phoneNumber || user.phoneNumber || '',
-      cpf: this.appUser?.cpf || ''
+      displayName: appUser?.displayName || user.displayName || '',
+      username: appUser?.username || this.defaultUsername(user),
+      email: appUser?.email || user.email || '',
+      phoneNumber: appUser?.phoneNumber || user.phoneNumber || '',
+      cpf: appUser?.cpf || '',
     };
   }
 
   private async countUnseenInvoices(uid: string) {
     try {
       const snap = await getDocs(query(collection(getFirestore(getApp()), 'sellerInvoices'), where('sellerId', '==', uid)));
-      this.unseenInvoices = snap.docs.filter(d => !d.get('seenAt')).length;
+      this.unseenInvoices.set(snap.docs.filter(d => !d.get('seenAt')).length);
     } catch {
-      this.unseenInvoices = 0;
+      this.unseenInvoices.set(0);
     }
   }
 
-  private resetProfileForm() {
-    this.profileForm = {
-      displayName: '',
-      username: '',
-      email: '',
-      phoneNumber: '',
-      cpf: ''
-    };
+  private countStages(orders: Order[] | null): Record<OrderStage, number> | null {
+    if (!orders) return null;
+    const counts: Record<OrderStage, number> = { pay: 0, preparing: 0, shipping: 0, done: 0, refund: 0, cancelled: 0 };
+    for (const order of orders) counts[orderStage(order)]++;
+    return counts;
   }
 
-  private buildDefaultUsername(user: User): string {
+  private defaultUsername(user: User): string {
     const source = user.email?.split('@')[0] || user.displayName || '';
-    return source
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9._-]/g, '.')
-      .toLowerCase();
+    return source.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]/g, '.').toLowerCase();
   }
 
-  async onProfilePhotoSelected(event: Event) {
+  private plural(n: number, one: string, many: string) {
+    return `${n} ${n === 1 ? one : many}`;
+  }
+
+  // ---------------------------------------------------------------- ações
+
+  onRow(row: AccountRow) {
+    if (row.action === 'editor') this.openEditor();
+    else if (row.action === 'security') this.openEditor(true);
+  }
+
+  openEditor(focusSecurity = false) {
+    this.view.set('editor');
+    this.passwordOpen.set(focusSecurity);
+    if (focusSecurity) {
+      setTimeout(() => document.getElementById('acc-security')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }
+  }
+
+  closeEditor() {
+    this.view.set('overview');
+  }
+
+  async onPhotoSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
+    const user = this.user();
+    if (!file || !user) return;
 
-    if (!file || !this.usuario) return;
-
-    this.isSavingProfile = true;
+    this.isSavingProfile.set(true);
     try {
-      const photoURL = await this.usersService.uploadProfilePhoto(this.usuario.uid, file);
+      const photoURL = await this.usersService.uploadProfilePhoto(user.uid, file);
       await this.usersService.updateCurrentUserProfile({ photoURL });
-      await this.usuario.reload();
-      this.usuario = this.firebaseService.getUser();
-      await this.loadProfileData(this.usuario!);
-      await this.showToast('Foto de perfil atualizada.');
+      await user.reload();
+      this.user.set(this.fbProducts.getUser());
+      await this.loadProfile(user);
+      await this.toast('Foto de perfil atualizada.');
     } catch (error) {
       console.error(error);
-      await this.showToast('Não foi possível atualizar a foto.', 'danger');
+      await this.toast('Não foi possível trocar a foto. Tente uma imagem JPG ou PNG menor.', 'danger');
     } finally {
-      this.isSavingProfile = false;
+      this.isSavingProfile.set(false);
     }
-  }
-
-  openProfileEditor() {
-    this.activeView = 'editProfile';
-  }
-
-  closeProfileEditor() {
-    this.activeView = 'overview';
   }
 
   async saveProfile() {
-    if (!this.usuario || this.isSavingProfile) return;
+    const user = this.user();
+    if (!user || this.isSavingProfile()) return;
 
     const displayName = this.profileForm.displayName.trim();
     if (!displayName) {
-      await this.showToast('Informe seu nome completo.', 'warning');
+      await this.toast('Informe seu nome completo.', 'warning');
       return;
     }
 
-    this.isSavingProfile = true;
+    this.isSavingProfile.set(true);
     try {
       await this.usersService.updateCurrentUserProfile({
         displayName,
         username: this.profileForm.username.trim() || null,
         phoneNumber: this.profileForm.phoneNumber.trim() || null,
-        cpf: this.profileForm.cpf.trim() || null
+        cpf: this.profileForm.cpf.trim() || null,
       });
-
-      await this.usuario.reload();
-      this.usuario = this.firebaseService.getUser();
-      await this.loadProfileData(this.usuario!);
-      this.activeView = 'overview';
-      await this.showToast('Cadastro atualizado com sucesso.');
+      await user.reload();
+      this.user.set(this.fbProducts.getUser());
+      await this.loadProfile(user);
+      this.view.set('overview');
+      await this.toast('Dados pessoais salvos.');
     } catch (error) {
       console.error(error);
-      await this.showToast('Não foi possível salvar seus dados.', 'danger');
+      await this.toast('Não foi possível salvar seus dados. Confira a conexão e tente de novo.', 'danger');
     } finally {
-      this.isSavingProfile = false;
+      this.isSavingProfile.set(false);
     }
   }
 
-  togglePasswordPanel() {
-    this.isPasswordPanelOpen = !this.isPasswordPanelOpen;
-  }
-
   async changePassword() {
-    if (this.isChangingPassword) return;
-
+    if (this.isChangingPassword()) return;
     const currentPassword = this.passwordForm.currentPassword.trim();
     const newPassword = this.passwordForm.newPassword.trim();
     const confirmPassword = this.passwordForm.confirmPassword.trim();
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      await this.showToast('Preencha a senha atual, a nova senha e a confirmação.', 'warning');
+      await this.toast('Preencha a senha atual, a nova senha e a confirmação.', 'warning');
       return;
     }
-
     if (newPassword.length < 6) {
-      await this.showToast('A nova senha precisa ter pelo menos 6 caracteres.', 'warning');
+      await this.toast('A nova senha precisa ter pelo menos 6 caracteres.', 'warning');
       return;
     }
-
     if (newPassword !== confirmPassword) {
-      await this.showToast('A confirmação não confere com a nova senha.', 'warning');
+      await this.toast('A confirmação não é igual à nova senha.', 'warning');
       return;
     }
 
-    this.isChangingPassword = true;
+    this.isChangingPassword.set(true);
     try {
       await this.usersService.changeCurrentUserPassword(currentPassword, newPassword);
-      this.passwordForm = {
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      };
-      this.isPasswordPanelOpen = false;
-      await this.showToast('Senha alterada com sucesso.');
+      this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+      this.passwordOpen.set(false);
+      await this.toast('Senha trocada.');
     } catch (error) {
       console.error(error);
-      await this.showToast(this.getPasswordErrorMessage(error), 'danger');
+      await this.toast(this.passwordError(error), 'danger');
     } finally {
-      this.isChangingPassword = false;
+      this.isChangingPassword.set(false);
     }
   }
 
-  private getPasswordErrorMessage(error: unknown): string {
-    const serializedError = JSON.stringify(error);
-    if (serializedError.includes('auth/wrong-password') || serializedError.includes('auth/invalid-credential')) {
-      return 'Senha atual incorreta.';
-    }
-
-    if (serializedError.includes('auth/weak-password')) {
-      return 'A nova senha está fraca. Use pelo menos 6 caracteres.';
-    }
-
-    if (serializedError.includes('auth/requires-recent-login')) {
-      return 'Por segurança, faça login novamente antes de alterar a senha.';
-    }
-
-    if (serializedError.includes('auth/operation-not-allowed')) {
-      return 'Esta conta não usa senha. Tente acessar com o provedor usado no cadastro.';
-    }
-
-    return 'Não foi possível alterar a senha.';
+  private passwordError(error: unknown): string {
+    const text = JSON.stringify(error);
+    if (text.includes('auth/wrong-password') || text.includes('auth/invalid-credential')) return 'A senha atual está incorreta.';
+    if (text.includes('auth/weak-password')) return 'A nova senha é fraca. Use pelo menos 6 caracteres.';
+    if (text.includes('auth/requires-recent-login')) return 'Por segurança, saia e entre de novo antes de trocar a senha.';
+    if (text.includes('auth/operation-not-allowed')) return 'Esta conta não usa senha. Entre pelo Google.';
+    return 'Não foi possível trocar a senha.';
   }
 
-  private async showToast(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
-    const toast = await this.toastCtrl.create({
-      message,
-      color,
-      duration: 2400,
-      position: 'top'
-    });
-    await toast.present();
-  }
-
-  get memberSinceLabel(): string {
-    const creationTime = this.usuario?.metadata?.creationTime;
-    if (!creationTime) return 'Agora';
-
-    const createdAt = new Date(creationTime);
-    if (Number.isNaN(createdAt.getTime())) return 'Agora';
-
-    return createdAt.toLocaleDateString('pt-BR', {
-      month: 'long',
-      year: 'numeric'
-    });
-  }
-
-  goToCart() {
-    this.navCtrl.navigateForward('/tabs/cart');
-  }
-
-  goToOrders() {
-    this.navCtrl.navigateForward('/my-orders');
-  }
-
-  goToPurchaseHistory() {
-    this.navCtrl.navigateForward('/purchase-history');
-  }
-
-  goToSaved() {
-    this.navCtrl.navigateForward('/tabs/saved');
-  }
-
-  goToAddress() {
-    this.navCtrl.navigateForward('/address');
-  }
-
-  goToPayments() {
-    this.navCtrl.navigateForward('/payments');
-  }
-
-  goToNotifications() {
-    this.navCtrl.navigateForward('/tabs/notifications');
-  }
-
-  goToMyProducts() {
-    this.navCtrl.navigateForward('/my-products');
-  }
-
-  goToInvoices() {
-    this.navCtrl.navigateForward('/my-invoices');
-  }
-
-  goToMySales() {
-    this.navCtrl.navigateForward('/my-sales');
-  }
-
-  goToSellerProfile() {
-    this.navCtrl.navigateForward('/seller-profile');
+  async soon(label: string) {
+    await this.toast(`${label} chega em breve.`, 'medium');
   }
 
   logout() {
-    this.firebaseService.signOut();
+    this.fbProducts.signOut();
+    this.router.navigate(['/login']);
   }
 
+  private async toast(message: string, color: 'success' | 'danger' | 'warning' | 'medium' = 'success') {
+    const toast = await this.toastCtrl.create({ message, color, duration: 2600, position: 'top' });
+    await toast.present();
+  }
 }
