@@ -160,12 +160,15 @@
         [attributes]="variantAttributes"
         [skus]="variantSkus"
         [variantImages]="variantImages"
+        [variantPhotos]="variantPhotos"
         [availablePhotos]="selectedPhotos"
         [basePrice]="editProductForm.controls.price.value"
         (hasVariantsChange)="hasVariants = $event"
         (attributesChange)="variantAttributes = $event"
         (skusChange)="variantSkus = $event"
-        (variantImagesChange)="variantImages = $event">
+        (variantImagesChange)="variantImages = $event"
+        (variantPhotosChange)="variantPhotos = $event"
+        (optionFilesAdded)="onOptionFiles($event)">
       </app-product-variants-editor>
     </div>
 

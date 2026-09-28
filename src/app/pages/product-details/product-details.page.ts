@@ -21,7 +21,7 @@ import {
 } from 'ionicons/icons';
 
 import { Product, ProductSpec } from 'src/app/interfaces/product';
-import { findSku, variantAttributeNames, variantLabel } from 'src/app/core/product-variants';
+import { findSku, generalPhotos, variantAttributeNames, variantLabel } from 'src/app/core/product-variants';
 import { Category } from 'src/app/interfaces/category';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
@@ -536,10 +536,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     if (!value) return photos;
 
     const own = product.variantPhotos?.[value] ?? [];
-    if (own.length) {
-      const optionPhotos = new Set(Object.values(product.variantPhotos || {}).flat());
-      return [...own, ...photos.filter(p => !optionPhotos.has(p))];
-    }
+    if (own.length) return [...own, ...generalPhotos(product).filter(p => !own.includes(p))];
     const variantPhoto = this.variantImageFor(product, value);
     if (!variantPhoto) return photos;
     return [variantPhoto, ...photos.filter(p => p !== variantPhoto)];

@@ -5,7 +5,9 @@ import { IonicModule } from '@ionic/angular';
 import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
-import { cleanVariantImages, cleanVariantPhotos, cleanVariants, mainOptionImages, optionGalleryPhotos, totalVariantStock } from 'src/app/core/product-variants';
+import {
+  cleanVariantImages, cleanVariantPhotos, cleanVariants, mainOptionImages, optionGalleryPhotos, resolveGalleries, totalVariantStock,
+} from 'src/app/core/product-variants';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
@@ -57,6 +59,10 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   public variantAttributes: ProductVariantAttribute[] = [];
   public variantSkus: Record<string, ProductSku> = {};
   public variantImages: Record<string, string> = {};
+  /** Galeria de cada cor feita pelo vendedor (anúncio sem catálogo); prévias `data:` até publicar. */
+  public variantPhotos: Record<string, string[]> = {};
+  /** Arquivo de cada prévia das galerias, para subir ao publicar. */
+  private optionFiles = new Map<string, File>();
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
@@ -337,6 +343,10 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     this.filesToUpload.splice(index, 1);
   }
 
+  onOptionFiles(items: { preview: string; file: File }[]) {
+    for (const { preview, file } of items) this.optionFiles.set(preview, file);
+  }
+
   // ===== REORDER PHOTOS (INSTAGRAM STYLE) =====
   public isReorderModalOpen = false;
   public reorderIndices: number[] = [];
@@ -432,9 +442,18 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
         // (base64); troca pela URL definitiva no Storage, na mesma ordem de upload.
         const photoUrlByPreview = new Map(this.selectedPhotos.map((preview, i) => [preview, uploadedUrls[i]]));
 
-        // Fotos de cada cor marcada (do catálogo) vão para a galeria do anúncio,
-        // depois das gerais: a capa e as vitrines continuam lendo `photoURL`.
-        const variantPhotos = variantsEnabled ? cleanVariantPhotos(variantAttributes, this.catalogOptionPhotos) : {};
+        // Galeria de cada cor: a do catálogo (só das cores marcadas) ou a que o
+        // vendedor montou, com as prévias locais subindo agora. As fotos vão
+        // também para o fim de `photoURL`: capa e vitrines leem só ele.
+        const galleries = this.catalogProduct ? this.catalogOptionPhotos : this.variantPhotos;
+        const variantPhotos = variantsEnabled
+          ? await resolveGalleries(cleanVariantPhotos(variantAttributes, galleries), photo => {
+              const known = photoUrlByPreview.get(photo);
+              if (known) return Promise.resolve(known);
+              const file = this.optionFiles.get(photo);
+              return file ? this.servicoFirebase.uploadImage(file) : Promise.resolve(photo);
+            })
+          : {};
         const optionPhotos = optionGalleryPhotos(variantAttributes, variantPhotos);
         this.submitProductForm.patchValue({ photoURL: Array.from(new Set([...uploadedUrls, ...optionPhotos])) });
 
@@ -468,6 +487,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
           variantAttributes: variantsEnabled ? variantAttributes : [],
           variantImages,
           variantPhotos,
+          generalPhotoCount: uploadedUrls.length,
           skus: variantsEnabled ? skus : {},
           sellerId: currentUser.uid,
           catalogId: this.catalogProduct?.id ?? null,
@@ -516,6 +536,8 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
       this.variantSkus = {};
       this.variantImages = {};
       this.catalogOptionPhotos = {};
+      this.variantPhotos = {};
+      this.optionFiles.clear();
       this.published.emit(id ?? '');
       // Mostra o anúncio recém-publicado, do jeito que o comprador vê.
       this.router.navigate(id ? ['/product-details', id] : ['/home']);

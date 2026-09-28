@@ -5,7 +5,10 @@ import { IonicModule } from '@ionic/angular';
 import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
-import { cleanVariantImages, cleanVariantPhotos, cleanVariants, totalVariantStock } from 'src/app/core/product-variants';
+import {
+  cleanVariantPhotos, cleanVariants, galleriesFromProduct, generalPhotos, mainOptionImages, optionGalleryPhotos, resolveGalleries,
+  totalVariantStock,
+} from 'src/app/core/product-variants';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { Category, Subcategory } from 'src/app/interfaces/category';
@@ -44,8 +47,10 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
   public variantAttributes: ProductVariantAttribute[] = [];
   public variantSkus: Record<string, ProductSku> = {};
   public variantImages: Record<string, string> = {};
-  /** Galeria de cada cor (veio do catálogo); some a foto que o vendedor tirar do anúncio. */
-  private variantPhotos: Record<string, string[]> = {};
+  /** Galeria de cada cor (URL salva ou prévia `data:` até salvar). */
+  public variantPhotos: Record<string, string[]> = {};
+  /** Arquivo de cada prévia das galerias, para subir ao salvar. */
+  private optionFiles = new Map<string, File>();
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
@@ -115,19 +120,25 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
   private updateFormWithProduct(product: Product) {
     if (product) {
       this.editProductForm.patchValue({ ...product, specs: product.specs || [] });
-      this.selectedPhotos = [...(product.photoURL || [])];
+      // As fotos de cada cor ficam na galeria dela, não na grade de fotos gerais.
+      this.selectedPhotos = generalPhotos(product);
       this.filesToUpload = []; // Reset local files on product change
       this.hasVariants = !!product.hasVariants;
       this.variantAttributes = product.variantAttributes ? [...product.variantAttributes] : [];
       this.variantSkus = product.skus ? { ...product.skus } : {};
       this.variantImages = product.variantImages ? { ...product.variantImages } : {};
-      this.variantPhotos = product.variantPhotos ? { ...product.variantPhotos } : {};
+      this.variantPhotos = galleriesFromProduct(product);
+      this.optionFiles.clear();
     }
   }
 
   private updateAvailableSubcategories(categoryId: string) {
     const selectedCat = this.allCategories.find(c => c.id === categoryId);
     this.availableSubcategories = selectedCat?.subcategories || [];
+  }
+
+  onOptionFiles(items: { preview: string; file: File }[]) {
+    for (const { preview, file } of items) this.optionFiles.set(preview, file);
   }
 
   selectCategory(catId: string) {
@@ -311,29 +322,29 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
           return photo;
         });
 
-        // Fotos escolhidas para as variações podem apontar para a prévia local
-        // (base64) de um arquivo recém-adicionado; troca pela URL definitiva.
-        const rawVariantImages = variantsEnabled ? cleanVariantImages(variantAttributes, this.variantImages) : {};
-        const variantImages: Record<string, string> = {};
-        for (const [value, preview] of Object.entries(rawVariantImages)) {
-          variantImages[value] = photoUrlByPreview.get(preview) || preview;
-        }
-
-        const kept = new Set(finalPhotoURL);
+        // Galeria de cada cor: prévias locais sobem agora; foto geral reaproveitada
+        // já tem URL (acima). A foto única antiga já virou galeria ao abrir, então
+        // a principal de cada opção sai só da galeria.
         const variantPhotos = variantsEnabled
-          ? cleanVariantPhotos(variantAttributes, Object.fromEntries(
-              Object.entries(this.variantPhotos).map(([value, list]) => [value, list.filter(url => kept.has(url))])))
+          ? await resolveGalleries(cleanVariantPhotos(variantAttributes, this.variantPhotos), photo => {
+              const known = photoUrlByPreview.get(photo);
+              if (known) return Promise.resolve(known);
+              const file = this.optionFiles.get(photo);
+              return file ? this.servicoFirebase.uploadImage(file) : Promise.resolve(photo);
+            })
           : {};
+        const variantImages = mainOptionImages(variantAttributes, {}, variantPhotos);
 
         const updatedProduct = {
           ...this.editProductForm.value,
           specs: cleanSpecs(this.editProductForm.value.specs),
-          photoURL: finalPhotoURL,
+          photoURL: Array.from(new Set([...finalPhotoURL, ...optionGalleryPhotos(variantAttributes, variantPhotos)])),
           stock: variantsEnabled ? totalVariantStock(skus) : this.editProductForm.value.stock,
           hasVariants: variantsEnabled,
           variantAttributes: variantsEnabled ? variantAttributes : [],
           variantImages,
           variantPhotos,
+          generalPhotoCount: finalPhotoURL.length,
           skus: variantsEnabled ? skus : {}
         } as Product;
 

@@ -79,27 +79,58 @@
             </div>
           </div>
 
-          @if (i === 0 && attr.values.length > 0 && availablePhotos().length > 0) {
+          @if (i === 0 && attr.values.length > 0) {
             <div class="pve-images">
-              <span class="pve-images-label">Foto de cada {{ attr.name || 'valor' }} <small>(opcional)</small></span>
+              <span class="pve-images-label">Fotos de cada {{ (attr.name || 'valor').toLowerCase() }} <small>(opcional, até {{ maxOptionPhotos }} por opção)</small></span>
+              <p class="pve-images-hint">Quando o comprador escolhe uma opção, a página do produto mostra as fotos dela.</p>
               @for (value of attr.values; track value) {
                 <div class="pve-image-row">
-                  <span class="pve-image-value">{{ value }}</span>
-                  <div class="pve-image-options">
-                    @for (photo of availablePhotos(); track photo) {
-                      <button
-                        type="button"
-                        class="pve-photo-btn"
-                        [class.is-active]="imageFor(value) === photo"
-                        [attr.aria-label]="'Usar esta foto para ' + value"
-                        (click)="pickImage(value, photo)">
-                        <img [src]="photo" [alt]="value">
-                      </button>
+                  <div class="pve-gallery-head">
+                    <span class="pve-image-value">{{ value }}</span>
+                    <span class="pve-gallery-count">{{ galleryFor(value).length }}/{{ maxOptionPhotos }}</span>
+                  </div>
+                  <div class="pve-gallery" role="group" [attr.aria-label]="'Fotos de ' + value">
+                    @for (photo of galleryFor(value); track photo; let j = $index) {
+                      <div class="pve-gallery-item" [class.is-main]="j === 0">
+                        <img [src]="photo" [alt]="value + ', foto ' + (j + 1)">
+                        @if (j === 0) {
+                          <span class="pve-gallery-main">Principal</span>
+                        } @else {
+                          <button type="button" class="pve-gallery-star" (click)="makeGalleryMain(value, j)" [attr.aria-label]="'Usar como principal de ' + value">
+                            <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
+                          </button>
+                        }
+                        <button type="button" class="pve-gallery-remove" (click)="removeGalleryPhoto(value, j)" [attr.aria-label]="'Remover foto de ' + value">
+                          <ion-icon name="close" aria-hidden="true"></ion-icon>
+                        </button>
+                      </div>
                     }
-                    @if (imageFor(value)) {
-                      <button type="button" class="pve-photo-clear" (click)="clearImage(value)">Remover</button>
+                    @if (galleryFor(value).length < maxOptionPhotos) {
+                      <label class="pve-gallery-add">
+                        <input type="file" accept="image/*" multiple (change)="addGalleryFiles(value, $event)" [attr.aria-label]="'Enviar fotos de ' + value">
+                        <ion-icon name="camera-outline" aria-hidden="true"></ion-icon>
+                        <span>Fotos</span>
+                      </label>
                     }
                   </div>
+                  @if (availablePhotos().length > 0) {
+                    <div class="pve-reuse">
+                      <span>Usar das fotos do anúncio:</span>
+                      <div class="pve-image-options">
+                        @for (photo of availablePhotos(); track photo) {
+                          <button
+                            type="button"
+                            class="pve-photo-btn"
+                            [class.is-active]="galleryFor(value).includes(photo)"
+                            [attr.aria-pressed]="galleryFor(value).includes(photo)"
+                            [attr.aria-label]="'Usar esta foto em ' + value"
+                            (click)="toggleGalleryPhoto(value, photo)">
+                            <img [src]="photo" [alt]="value">
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
               }
             </div>

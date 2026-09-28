@@ -72,6 +72,14 @@ No anúncio, entram as galerias das opções que o vendedor marcou:
 (capa e vitrines leem `photoURL`). Na página do produto, escolher a cor mostra
 as fotos dela e depois as gerais; as das outras cores saem da galeria.
 
+Anúncio **sem catálogo** ("Criar do zero" e a edição de qualquer anúncio) tem a
+mesma galeria no editor de variações (`product-variants-editor`): o vendedor
+envia fotos para cada opção ou reaproveita fotos gerais do anúncio. As prévias
+sobem ao publicar/salvar (`resolveGalleries`). `generalPhotoCount` diz quantas
+fotos do começo de `photoURL` são gerais — uma foto geral pode estar também
+numa galeria, então não dá para separar só pelo conteúdo. Sem o campo (anúncio
+antigo), geral é o que não está em galeria nenhuma (`generalPhotos`).
+
 ## Testar no emulador
 
 `npm run emulators:seed` cria 8 fichas (1 rascunho) e um anúncio do Ateliê

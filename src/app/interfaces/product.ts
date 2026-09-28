@@ -48,6 +48,12 @@ export interface Product {
      * As fotos também estão em `photoURL`, para capa e vitrines.
      */
     variantPhotos?: Record<string, string[]>;
+    /**
+     * Quantas fotos do começo de `photoURL` são gerais (valem para todas as
+     * opções); o resto são fotos só das galerias. Sem o campo (anúncio antigo),
+     * geral é toda foto que não está em galeria nenhuma.
+     */
+    generalPhotoCount?: number;
     /** Uma combinação por chave (ver `skuKey` em `core/product-variants.ts`). */
     skus?: Record<string, ProductSku>;
 

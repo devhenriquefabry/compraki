@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { ProductSku, ProductVariantAttribute } from '../../interfaces/product';
-import { MAX_VARIANT_ATTRIBUTES, cartesianCombinations, skuKey } from '../../core/product-variants';
+import { MAX_OPTION_PHOTOS, MAX_VARIANT_ATTRIBUTES, cartesianCombinations, skuKey } from '../../core/product-variants';
 
 /** Nomes mais comuns, viram atalhos de um clique ao adicionar um atributo. */
 const SUGGESTED_ATTRIBUTES = ['Cor', 'Tamanho', 'Voltagem'];
@@ -38,6 +38,8 @@ export class ProductVariantsEditorComponent {
   readonly attributes = input<ProductVariantAttribute[]>([]);
   readonly skus = input<Record<string, ProductSku>>({});
   readonly variantImages = input<Record<string, string>>({});
+  /** Galeria de cada valor do 1º atributo (URL salva ou prévia local `data:`). */
+  readonly variantPhotos = input<Record<string, string[]>>({});
   readonly availablePhotos = input<string[]>([]);
   readonly basePrice = input<number | null>(null);
   /**
@@ -50,6 +52,11 @@ export class ProductVariantsEditorComponent {
   readonly attributesChange = output<ProductVariantAttribute[]>();
   readonly skusChange = output<Record<string, ProductSku>>();
   readonly variantImagesChange = output<Record<string, string>>();
+  readonly variantPhotosChange = output<Record<string, string[]>>();
+  /** Fotos novas escolhidas numa galeria: o formulário guarda o arquivo para subir ao publicar. */
+  readonly optionFilesAdded = output<{ preview: string; file: File }[]>();
+
+  readonly maxOptionPhotos = MAX_OPTION_PHOTOS;
 
   readonly maxAttributes = MAX_VARIANT_ATTRIBUTES;
 
@@ -149,7 +156,10 @@ export class ProductVariantsEditorComponent {
     const removed = this.attributes()[index];
     this.attributesChange.emit(this.attributes().filter((_, i) => i !== index));
     // Só o 1º atributo tem fotos associadas; se ele sumir, as fotos ficam órfãs.
-    if (index === 0 && removed) this.variantImagesChange.emit({});
+    if (index === 0 && removed) {
+      this.variantImagesChange.emit({});
+      this.variantPhotosChange.emit({});
+    }
   }
 
   addValue(index: number, el: HTMLInputElement) {
@@ -166,7 +176,10 @@ export class ProductVariantsEditorComponent {
     this.attributesChange.emit(
       this.attributes().map((a, i) => (i === index ? { ...a, values: a.values.filter(v => v !== value) } : a))
     );
-    if (index === 0) this.clearImage(value);
+    if (index === 0) {
+      this.clearImage(value);
+      this.setGallery(value, []);
+    }
   }
 
   // ------------------------------------------------------------- combinações
@@ -200,7 +213,54 @@ export class ProductVariantsEditorComponent {
   // --------------------------------------------------- foto por valor (1º atributo)
 
   imageFor(value: string): string | null {
-    return this.variantImages()[value] || null;
+    return this.variantPhotos()[value]?.[0] || this.variantImages()[value] || null;
+  }
+
+  // ------------------------------------------- galeria por valor (1º atributo)
+
+  galleryFor(value: string): string[] {
+    return this.variantPhotos()[value] ?? [];
+  }
+
+  private setGallery(value: string, photos: string[]) {
+    const next = { ...this.variantPhotos() };
+    if (photos.length) next[value] = photos;
+    else delete next[value];
+    this.variantPhotosChange.emit(next);
+  }
+
+  async addGalleryFiles(value: string, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const room = this.maxOptionPhotos - this.galleryFor(value).length;
+    const files = Array.from(input.files ?? []).filter(f => f.type.startsWith('image/')).slice(0, Math.max(0, room));
+    input.value = '';
+    if (!files.length) return;
+    // Lê todas antes de acrescentar: a galeria fica na ordem em que foram escolhidas.
+    const previews = await Promise.all(files.map(file => new Promise<string>(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    })));
+    this.optionFilesAdded.emit(previews.map((preview, i) => ({ preview, file: files[i] })));
+    this.setGallery(value, [...this.galleryFor(value), ...previews]);
+  }
+
+  /** Põe ou tira da galeria uma das fotos gerais do anúncio. */
+  toggleGalleryPhoto(value: string, photo: string) {
+    const gallery = this.galleryFor(value);
+    if (gallery.includes(photo)) this.setGallery(value, gallery.filter(p => p !== photo));
+    else if (gallery.length < this.maxOptionPhotos) this.setGallery(value, [...gallery, photo]);
+  }
+
+  removeGalleryPhoto(value: string, index: number) {
+    this.setGallery(value, this.galleryFor(value).filter((_, i) => i !== index));
+  }
+
+  /** Leva a foto para a 1ª posição: vira a principal da opção. */
+  makeGalleryMain(value: string, index: number) {
+    const gallery = [...this.galleryFor(value)];
+    const [photo] = gallery.splice(index, 1);
+    this.setGallery(value, [photo, ...gallery]);
   }
 
   pickImage(value: string, photo: string) {

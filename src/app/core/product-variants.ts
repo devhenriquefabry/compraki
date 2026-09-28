@@ -148,6 +148,51 @@ export function optionGalleryPhotos(
   return Array.from(new Set(order.flatMap(value => photos?.[value] || [])));
 }
 
+/**
+ * Galerias por opção de um anúncio salvo: `variantPhotos`; sem ela, a foto
+ * única escolhida antes de existir galeria vira a 1ª foto da opção.
+ */
+export function galleriesFromProduct(
+  product: Pick<Product, 'variantAttributes' | 'variantPhotos' | 'variantImages'>
+): Record<string, string[]> {
+  const galleries: Record<string, string[]> = {};
+  for (const value of product.variantAttributes?.[0]?.values ?? []) {
+    const own = product.variantPhotos?.[value] ?? [];
+    const legacy = product.variantImages?.[value];
+    const list = own.length ? own : legacy ? [legacy] : [];
+    if (list.length) galleries[value] = [...list];
+  }
+  return galleries;
+}
+
+/**
+ * Fotos gerais de um anúncio salvo: `photoURL` guarda também as fotos de cada
+ * opção (no fim, para capa e vitrines); no formulário elas ficam só na galeria.
+ * Uma foto geral pode estar também numa galeria — por isso vale
+ * `generalPhotoCount` quando existe.
+ */
+export function generalPhotos(product: Pick<Product, 'photoURL' | 'variantPhotos' | 'generalPhotoCount'>): string[] {
+  const all = product.photoURL || [];
+  if (typeof product.generalPhotoCount === 'number') return all.slice(0, product.generalPhotoCount);
+  const optionPhotos = new Set(Object.values(product.variantPhotos || {}).flat());
+  return all.filter(url => !optionPhotos.has(url));
+}
+
+/** Troca cada foto das galerias pela URL definitiva (sobe as prévias locais). */
+export async function resolveGalleries(
+  galleries: Record<string, string[]>,
+  resolve: (photo: string) => Promise<string>
+): Promise<Record<string, string[]>> {
+  const cache = new Map<string, Promise<string>>();
+  const once = (photo: string) => {
+    if (!cache.has(photo)) cache.set(photo, resolve(photo));
+    return cache.get(photo)!;
+  };
+  const entries = await Promise.all(Object.entries(galleries).map(async ([value, list]) =>
+    [value, await Promise.all(list.map(once))] as const));
+  return Object.fromEntries(entries);
+}
+
 export function cleanVariantImages(
   attributes: ProductVariantAttribute[],
   images: Record<string, string> | null | undefined
