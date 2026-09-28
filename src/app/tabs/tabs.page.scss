@@ -134,46 +134,30 @@ ion-tab-button:active .vn-tab-icon,
   text-align: center;
 }
 
-/* ===== PAINEL DO MENU ===== */
-
-.vn-menu-backdrop {
-  position: fixed;
-  inset: 0 0 calc(var(--vn-tabbar-h) + var(--ion-safe-area-bottom, 0px)) 0;
-  z-index: 25;
-  background: rgba(11, 22, 35, 0.42);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.22s ease;
-
-  &.is-open {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
+/* ===== MENU EM TELA CHEIA ===== */
 
 .vn-menu {
   position: fixed;
+  top: 0;
   left: 0;
   right: 0;
   bottom: calc(var(--vn-tabbar-h) + var(--ion-safe-area-bottom, 0px));
   z-index: 26;
-  max-height: calc(100% - var(--vn-tabbar-h) - var(--ion-safe-area-bottom, 0px) - var(--ion-safe-area-top, 0px) - 48px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 8px 16px 18px;
-  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
   background: #F4F6F8;
-  box-shadow: 0 -10px 30px rgba(11, 22, 35, 0.14);
   font-family: 'Nunito', sans-serif;
   color: var(--vn-navy);
-  transform: translateY(calc(100% + 24px));
+  opacity: 0;
+  transform: translateY(16px);
   visibility: hidden;
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.3s;
+  transition: opacity 0.2s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.26s;
 
   &.is-open {
-    transform: translateY(0);
+    opacity: 1;
+    transform: none;
     visibility: visible;
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+    transition: opacity 0.2s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
   }
 
   a,
@@ -193,14 +177,6 @@ ion-tab-button:active .vn-tab-icon,
   }
 }
 
-.vn-menu-grip {
-  width: 36px;
-  height: 4px;
-  margin: 0 auto 12px;
-  border-radius: 2px;
-  background: rgba(11, 22, 35, 0.16);
-}
-
 .vn-menu-chevron {
   width: 18px;
   height: 18px;
@@ -208,29 +184,71 @@ ion-tab-button:active .vn-tab-icon,
   opacity: 0.4;
 }
 
-/* Cabeçalho: perfil ou convite para entrar */
+/* Cabeçalho azul-noite: mesma faixa do header das páginas */
+.vn-menu-top {
+  flex: none;
+  padding: calc(var(--ion-safe-area-top, 0px) + 6px) 16px 20px;
+  background: var(--vn-navy);
+  color: #ffffff;
+}
+
+.vn-menu-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+}
+
+.vn-menu-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.vn-menu-close {
+  width: 40px;
+  height: 40px;
+  margin-right: -8px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: #ffffff !important;
+  cursor: pointer;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+  }
+
+  &:active { background: var(--vn-navy-2); }
+}
+
 .vn-menu-profile {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  margin-top: 10px;
   padding: 14px;
   border-radius: 14px;
-  background: var(--vn-navy);
+  background: var(--vn-navy-2);
   color: #ffffff !important;
 
   .vn-menu-chevron { opacity: 0.6; }
 }
 
 .vn-menu-avatar {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   flex: none;
   background: var(--vn-lime);
   color: var(--vn-navy);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
 }
 
@@ -240,12 +258,12 @@ ion-tab-button:active .vn-tab-icon,
   min-width: 0;
 
   strong {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 800;
   }
 
   small {
-    font-size: 12.5px;
+    font-size: 13px;
     opacity: 0.7;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -254,14 +272,11 @@ ion-tab-button:active .vn-tab-icon,
 }
 
 .vn-menu-guest {
-  padding: 16px;
-  border-radius: 14px;
-  background: var(--vn-navy);
-  color: #ffffff;
+  margin-top: 10px;
 
   strong {
     display: block;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1.35;
   }
@@ -271,6 +286,15 @@ ion-tab-button:active .vn-tab-icon,
   display: flex;
   gap: 10px;
   margin-top: 14px;
+}
+
+/* Conteúdo que rola */
+.vn-menu-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 16px 24px;
 }
 
 .vn-btn {
@@ -436,15 +460,13 @@ ion-tab-button:active .vn-tab-icon,
 }
 
 /* No desktop a navegação é o header do site. */
-:host-context(html.vn-desktop-shell) {
-  .vn-menu,
-  .vn-menu-backdrop { display: none; }
+:host-context(html.vn-desktop-shell) .vn-menu {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .vn-menu,
   .vn-menu.is-open,
-  .vn-menu-backdrop,
   ion-tab-button::before,
   .vn-tab-menu::before {
     transition: none;

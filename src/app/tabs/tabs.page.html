@@ -38,9 +38,7 @@
 
 </ion-tabs>
 
-<!-- Menu: painel que sobe por cima da página, sem sair da aba atual -->
-<div class="vn-menu-backdrop" [class.is-open]="menuOpen()" (click)="closeMenu()" aria-hidden="true"></div>
-
+<!-- Menu: tela cheia por cima da página atual; a barra de baixo continua visível -->
 <nav
   id="vn-menu-sheet"
   class="vn-menu"
@@ -50,27 +48,35 @@
   aria-label="Menu"
   (click)="onMenuClick($event)"
 >
-  <div class="vn-menu-grip" aria-hidden="true"></div>
-
-  @if (user(); as u) {
-    <a class="vn-menu-profile" routerLink="/tabs/my-account">
-      <span class="vn-menu-avatar">{{ initials() }}</span>
-      <span class="vn-menu-hello">
-        <strong>Olá, {{ firstName() }}</strong>
-        <small>{{ u.email }}</small>
-      </span>
-      <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
-    </a>
-  } @else {
-    <div class="vn-menu-guest">
-      <strong>Entre para comprar, vender e acompanhar seus pedidos</strong>
-      <div class="vn-menu-guest-actions">
-        <a class="vn-btn vn-btn--lime" routerLink="/login" [queryParams]="authQuery()">Entrar</a>
-        <a class="vn-btn vn-btn--ghost" routerLink="/sign-in" [queryParams]="authQuery()">Criar conta</a>
-      </div>
+  <header class="vn-menu-top">
+    <div class="vn-menu-bar">
+      <span class="vn-menu-title">Menu</span>
+      <button type="button" class="vn-menu-close" aria-label="Fechar menu" (click)="closeMenu()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.close" /></svg>
+      </button>
     </div>
-  }
 
+    @if (user(); as u) {
+      <a class="vn-menu-profile" routerLink="/tabs/my-account">
+        <span class="vn-menu-avatar">{{ initials() }}</span>
+        <span class="vn-menu-hello">
+          <strong>Olá, {{ firstName() }}</strong>
+          <small>{{ u.email }}</small>
+        </span>
+        <svg class="vn-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chevron" /></svg>
+      </a>
+    } @else {
+      <div class="vn-menu-guest">
+        <strong>Entre para comprar, vender e acompanhar seus pedidos</strong>
+        <div class="vn-menu-guest-actions">
+          <a class="vn-btn vn-btn--lime" routerLink="/login" [queryParams]="authQuery()">Entrar</a>
+          <a class="vn-btn vn-btn--ghost" routerLink="/sign-in" [queryParams]="authQuery()">Criar conta</a>
+        </div>
+      </div>
+    }
+  </header>
+
+  <div class="vn-menu-body">
   <div class="vn-menu-tiles">
     <a class="vn-tile" routerLink="/my-orders">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.bag" /></svg>
@@ -140,4 +146,5 @@
       </button></li>
     }
   </ul>
+  </div>
 </nav>
