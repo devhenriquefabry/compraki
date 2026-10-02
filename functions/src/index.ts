@@ -1503,11 +1503,16 @@ export const evolutionWebhook = onRequest({ region, cors: false, maxInstances: M
   const instanceName = getString(payload.instance) || getString(payload.instanceName) || 'unknown';
   const eventName = getString(payload.event) || getString(payload.type) || 'unknown';
 
+  // Log de depuração: ninguém lê esta coleção. A política de TTL em `expireAt`
+  // (firestore.indexes.json) apaga cada evento após 7 dias — sem isso ela
+  // chegou a 157 mil docs / 12 GB e virou a única cobrança do projeto.
+  const receivedAt = new Date();
   await db.collection('whatsappWebhookEvents').add({
     instanceName,
     eventName,
     payload,
-    receivedAt: new Date()
+    receivedAt,
+    expireAt: new Date(receivedAt.getTime() + 7 * 24 * 60 * 60 * 1000)
   });
 
   const normalizedStatus = getNormalizedInstanceStatus(payload);

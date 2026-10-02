@@ -163,6 +163,17 @@
       "indexes": []
     },
     {
+      "collectionGroup": "whatsappWebhookEvents",
+      "fieldPath": "payload",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "whatsappWebhookEvents",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "messages",
       "fieldPath": "type",
       "indexes": [
