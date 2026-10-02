@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject, signal } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
-import { enablePush } from '../../core/push';
+import { PushStepError, enablePush, preparePush } from '../../core/push';
 import { VnIconComponent } from '../vn-icon/vn-icon.component';
 
 /**
@@ -33,6 +33,8 @@ import { VnIconComponent } from '../vn-icon/vn-icon.component';
 
       @if (denied()) {
         <p class="pi-note" role="status">As notificações ficaram bloqueadas. Dá para liberar depois nos ajustes do celular.</p>
+      } @else if (failed()) {
+        <p class="pi-note" role="alert">{{ failed() }}</p>
       }
 
       <button type="button" class="pi-btn pi-btn--lime" (click)="activate()" [disabled]="busy()">
@@ -97,21 +99,34 @@ import { VnIconComponent } from '../vn-icon/vn-icon.component';
 export class PushInviteComponent {
   private readonly modalCtrl = inject(ModalController);
 
-  readonly uid = input.required<string>();
+  /**
+   * Conta atual. Propriedade comum, NÃO `input()`: o `ModalController` do Ionic
+   * grava `componentProps` direto na instância, e um signal input virava string
+   * — `this.uid()` quebrava e o botão ficava em "Ativando…" para sempre.
+   */
+  @Input() uid = '';
   readonly busy = signal(false);
   readonly denied = signal(false);
+  readonly failed = signal('');
+
+  constructor() {
+    // Service worker pronto antes do toque: o toque inscreve na hora.
+    void preparePush();
+  }
 
   activate(): void {
     this.busy.set(true);
+    this.failed.set('');
     // Sem await antes: o pedido de permissão precisa do toque "quente".
-    enablePush(this.uid())
+    enablePush(this.uid)
       .then(status => {
         if (status === 'granted') void this.modalCtrl.dismiss(null, 'granted');
         else if (status === 'denied') this.denied.set(true);
       })
       .catch(err => {
         console.error('[avisos] ativar push', err);
-        void this.modalCtrl.dismiss(null, 'error');
+        const where = err instanceof PushStepError ? ` (etapa: ${err.step})` : '';
+        this.failed.set(`Não deu para ativar agora${where}. Feche o app, abra de novo e tente outra vez.`);
       })
       .finally(() => this.busy.set(false));
   }

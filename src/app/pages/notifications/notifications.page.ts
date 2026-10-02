@@ -10,7 +10,8 @@ import { environment } from '../../../environments/environment';
 import { onAuthUserChanged } from '../../core/auth-state';
 import { toDate } from '../../core/order-stage';
 import {
-  PushStatus, disablePush, enablePush, hasActiveSubscription, pushStatus, sendTestNotification, syncPushSubscription,
+  PushStatus, PushStepError, disablePush, enablePush, hasActiveSubscription, preparePush, pushStatus, sendTestNotification,
+  syncPushSubscription,
 } from '../../core/push';
 import { canPromptInstall, devicePlatform, onInstallAvailabilityChange, promptInstall } from '../../core/pwa';
 import { VN_ICONS, VnIconName } from '../../core/vn-icons';
@@ -132,6 +133,9 @@ export class NotificationsPage {
       void this.checkSubscription(user.uid);
     });
 
+    // Service worker pronto antes do toque em "Ativar" (ver `preparePush`).
+    if (this.push() === 'default' || this.push() === 'granted') void preparePush();
+
     const stopInstall = onInstallAvailabilityChange(() => this.installReady.set(canPromptInstall()));
 
     // Voltou ao app depois de mexer nos ajustes do sistema: relê a permissão.
@@ -231,7 +235,8 @@ export class NotificationsPage {
       })
       .catch(err => {
         console.error('[avisos] ativar push', err);
-        void this.toast('Não deu para ativar agora. Tente de novo em instantes.');
+        const where = err instanceof PushStepError ? ` (etapa: ${err.step})` : '';
+        void this.toast(`Não deu para ativar agora${where}. Feche o app, abra de novo e tente outra vez.`);
       })
       .finally(() => this.pushBusy.set(false));
   }

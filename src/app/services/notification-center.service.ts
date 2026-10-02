@@ -78,6 +78,8 @@ export class NotificationCenterService {
           void import('../core/push').then(m => m.syncPushSubscription(user.uid))
             .catch(err => console.warn('[avisos] inscrição de push não sincronizada', err));
         } else if (Notification.permission === 'default') {
+          // Já deixa o service worker pronto para o toque em "Ativar".
+          void import('../core/push').then(m => m.preparePush()).catch(() => undefined);
           this.scheduleInvite(user.uid);
         }
       }
