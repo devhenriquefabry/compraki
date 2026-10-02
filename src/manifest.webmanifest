@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "name": "Vineon",
+  "short_name": "Vineon",
+  "description": "Compre e venda na Vineon. Acompanhe pedidos, vendas e mensagens com avisos no celular.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B1623",
+  "theme_color": "#0B1623",
+  "categories": ["shopping"],
+  "icons": [
+    { "src": "assets/icon/pwa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon/pwa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon/pwa-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Notificações", "url": "/tabs/notifications", "icons": [{ "src": "assets/icon/pwa-192.png", "sizes": "192x192" }] },
+    { "name": "Minhas compras", "url": "/my-orders", "icons": [{ "src": "assets/icon/pwa-192.png", "sizes": "192x192" }] },
+    { "name": "Minhas vendas", "url": "/my-sales", "icons": [{ "src": "assets/icon/pwa-192.png", "sizes": "192x192" }] }
+  ]
+}

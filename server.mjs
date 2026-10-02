@@ -124,7 +124,10 @@ async function serveStatic(req, res) {
   // index.html sempre revalida (aponta para os chunks do deploy atual); os
   // chunks tem hash no nome e podem ficar em cache para sempre.
   const hashed = /-[A-Z0-9]{8}\.(js|css)$/.test(file.path);
-  const cache = isIndex
+  // Service worker e manifest nao tem hash: sempre revalidam, para o celular
+  // pegar a versao nova no proximo acesso.
+  const noHash = isIndex || pathname === '/sw.js' || pathname === '/manifest.webmanifest';
+  const cache = noHash
     ? 'no-cache'
     : hashed
       ? 'public, max-age=31536000, immutable'

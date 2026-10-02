@@ -1,3 +1,208 @@
-<ion-content [fullscreen]="true">
-  <app-custom-header backButton="Voltar" titlePage="NOTIFICAÇÕES"></app-custom-header>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Notificações</h1>
+    @if (unread() > 0) {
+      <button type="button" class="pg-text-btn nt-readall" (click)="markAllRead()">
+        <vn-icon name="checks" />
+        <span>Marcar lidas</span>
+      </button>
+    } @else {
+      <span class="pg-icon-btn" aria-hidden="true"></span>
+    }
+  </div>
+
+  <nav class="pg-tabs" aria-label="Filtrar notificações">
+    @for (f of filters; track f.id) {
+      <button type="button" class="pg-tab" [class.is-active]="filter() === f.id"
+              [attr.aria-pressed]="filter() === f.id" (click)="setFilter(f.id)">
+        {{ f.label }}
+        @if (unreadBy()[f.id] > 0) {
+          <span class="pg-tab-count" [attr.aria-label]="unreadBy()[f.id] + ' não lidas'">{{ unreadBy()[f.id] > 99 ? '99+' : unreadBy()[f.id] }}</span>
+        }
+      </button>
+    }
+  </nav>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+
+    <!-- ====================== PUSH NESTE APARELHO ====================== -->
+    @switch (push()) {
+      @case ('default') {
+        <section class="nt-push" aria-labelledby="nt-push-title">
+          <span class="nt-push-mark" aria-hidden="true"><vn-icon name="bell" /></span>
+          <div class="nt-push-text">
+            <h2 id="nt-push-title">Receba os avisos no celular</h2>
+            <p>Pagamento aprovado, pedido a caminho, venda nova, mensagem: chega na hora, mesmo com o app fechado.</p>
+          </div>
+          <button type="button" class="nt-btn nt-btn--lime" (click)="activatePush()" [disabled]="pushBusy() || !uid()">
+            {{ pushBusy() ? 'Ativando…' : 'Ativar notificações' }}
+          </button>
+        </section>
+      }
+
+      @case ('granted') {
+        <section class="nt-on" aria-label="Notificações neste celular">
+          <div class="nt-on-row">
+            <span class="nt-on-mark" aria-hidden="true"><vn-icon name="bell" /></span>
+            <span class="nt-on-text">
+              <strong>Notificações ativas</strong>
+              <small>Os avisos chegam neste celular.</small>
+            </span>
+            <button type="button" class="nt-chip" (click)="sendTest()" [disabled]="testing()">
+              <vn-icon name="send" /> {{ testing() ? 'Enviando…' : 'Testar' }}
+            </button>
+            <button type="button" class="nt-chip nt-chip--icon" (click)="showPrefs.set(!showPrefs())"
+                    [attr.aria-expanded]="showPrefs()" aria-controls="nt-prefs" aria-label="Escolher o que avisar">
+              <vn-icon name="sliders" />
+            </button>
+          </div>
+
+          @if (showPrefs()) {
+            <div class="nt-prefs" id="nt-prefs">
+              <p class="nt-prefs-title">Avisar no celular sobre</p>
+              <label class="nt-pref">
+                <span><strong>Compras</strong><small>Pagamento, envio, entrega e devolução</small></span>
+                <input type="checkbox" role="switch" [checked]="prefs().orders" (change)="togglePref('orders')">
+              </label>
+              <label class="nt-pref">
+                <span><strong>Vendas</strong><small>Venda nova e pedido de devolução</small></span>
+                <input type="checkbox" role="switch" [checked]="prefs().sales" (change)="togglePref('sales')">
+              </label>
+              <label class="nt-pref">
+                <span><strong>Mensagens</strong><small>Conversas com lojas e compradores</small></span>
+                <input type="checkbox" role="switch" [checked]="prefs().messages" (change)="togglePref('messages')">
+              </label>
+              <label class="nt-pref">
+                <span><strong>Avaliações</strong><small>Quando avaliam um produto seu</small></span>
+                <input type="checkbox" role="switch" [checked]="prefs().reviews" (change)="togglePref('reviews')">
+              </label>
+              <p class="nt-prefs-note">Mesmo desligado, o aviso continua aparecendo nesta lista.</p>
+              <button type="button" class="nt-link" (click)="deactivatePush()" [disabled]="pushBusy()">
+                Desativar notificações neste celular
+              </button>
+            </div>
+          }
+        </section>
+      }
+
+      @case ('denied') {
+        <section class="nt-help is-warn" aria-labelledby="nt-denied-title">
+          <span class="nt-help-mark" aria-hidden="true"><vn-icon name="bellOff" /></span>
+          <div>
+            <h2 id="nt-denied-title">Notificações bloqueadas</h2>
+            @if (platform === 'ios') {
+              <p>Para liberar, abra <b>Ajustes</b> › <b>Notificações</b> › <b>Vineon</b> e ative <b>Permitir Notificações</b>.</p>
+            } @else {
+              <p>Para liberar, toque e segure o ícone da Vineon › <b>Informações do app</b> › <b>Notificações</b> e ative.</p>
+            }
+          </div>
+        </section>
+      }
+
+      @case ('ios-too-old') {
+        <section class="nt-help" aria-labelledby="nt-old-title">
+          <span class="nt-help-mark" aria-hidden="true"><vn-icon name="bellOff" /></span>
+          <div>
+            <h2 id="nt-old-title">Atualize o iPhone para receber avisos</h2>
+            <p>Notificações do app precisam do iOS 16.4 ou mais novo. Enquanto isso, os avisos aparecem aqui.</p>
+          </div>
+        </section>
+      }
+
+      @case ('needs-install') {
+        @if (!installHintClosed()) {
+          <section class="nt-install" aria-labelledby="nt-install-title">
+            <button type="button" class="nt-install-close" (click)="closeInstallHint()" aria-label="Fechar dica">
+              <vn-icon name="close" />
+            </button>
+            <img class="nt-install-icon" src="assets/icon/pwa-192.png" alt="" width="52" height="52">
+            <h2 id="nt-install-title">Instale o app para receber avisos</h2>
+            <p>Com a Vineon na tela inicial, os avisos de pedidos, vendas e mensagens chegam no seu celular na hora.</p>
+
+            @if (platform === 'ios') {
+              <ol class="nt-steps">
+                <li><span class="nt-step-n">1</span><span>Toque em <b>Compartilhar</b></span><vn-icon name="share" /></li>
+                <li><span class="nt-step-n">2</span><span>Escolha <b>Adicionar à Tela de Início</b></span><vn-icon name="addSquare" /></li>
+                <li><span class="nt-step-n">3</span><span>Abra a Vineon pelo ícone e ative os avisos</span><vn-icon name="bell" /></li>
+              </ol>
+            } @else if (installReady()) {
+              <button type="button" class="nt-btn nt-btn--lime" (click)="install()">
+                <vn-icon name="download" /> Instalar app
+              </button>
+            } @else {
+              <ol class="nt-steps">
+                <li><span class="nt-step-n">1</span><span>Toque no menu do navegador</span><vn-icon name="dots" /></li>
+                <li><span class="nt-step-n">2</span><span>Escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b></span><vn-icon name="addSquare" /></li>
+                <li><span class="nt-step-n">3</span><span>Abra a Vineon pelo ícone e ative os avisos</span><vn-icon name="bell" /></li>
+              </ol>
+            }
+          </section>
+        }
+      }
+    }
+
+    <!-- ============================ AVISOS ============================ -->
+    @if (loading()) {
+      <div class="nt-group" aria-hidden="true">
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <div class="nt-sk">
+            <span class="sk nt-sk-pic"></span>
+            <span class="nt-sk-lines"><span class="sk sk-line sk-w40"></span><span class="sk sk-line sk-w80"></span></span>
+          </div>
+        }
+      </div>
+    } @else if (failed()) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><vn-icon name="bellOff" /></span>
+        <h2>Não deu para carregar os avisos</h2>
+        <p>Confira a conexão. A lista volta sozinha quando a internet voltar.</p>
+      </div>
+    } @else if (!visible().length) {
+      <div class="pg-empty nt-empty">
+        <span class="pg-empty-mark"><vn-icon name="bell" /></span>
+        <h2>{{ filter() === 'all' ? 'Tudo em dia por aqui' : 'Nenhum aviso nesta aba' }}</h2>
+        <p>{{ emptyText() }}</p>
+      </div>
+    } @else {
+      @for (group of groups(); track group.label) {
+        <h2 class="nt-day">{{ group.label }}</h2>
+        <ul class="nt-group">
+          @for (n of group.items; track n.id) {
+            <li class="nt-item" [class.is-unread]="!n.read">
+              <button type="button" class="nt-open" (click)="open(n)">
+                <span class="nt-pic" [class.has-photo]="!!n.image" [attr.data-kind]="n.kind">
+                  @if (n.image) {
+                    <img [src]="n.image" alt="" loading="lazy" referrerpolicy="no-referrer">
+                    <span class="nt-pic-badge"><vn-icon [name]="iconOf(n)" /></span>
+                  } @else {
+                    <vn-icon [name]="iconOf(n)" />
+                  }
+                </span>
+                <span class="nt-text">
+                  <span class="nt-top">
+                    <strong>{{ n.title }}</strong>
+                    <time>{{ when(n) }}</time>
+                  </span>
+                  <span class="nt-body">{{ n.body }}</span>
+                </span>
+                @if (!n.read) { <span class="nt-dot"><span class="vn-sr-only">Não lida</span></span> }
+              </button>
+              <button type="button" class="nt-del" (click)="remove(n, $event)" [attr.aria-label]="'Apagar aviso: ' + n.title">
+                <vn-icon name="trash" />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (hasMore()) {
+        <button type="button" class="nt-more" (click)="loadMore()">Ver avisos mais antigos</button>
+      }
+    }
+  </div>
 </ion-content>

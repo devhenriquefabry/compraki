@@ -26,12 +26,16 @@
       class="vn-tab-menu"
       [class.is-open]="menuOpen()"
       [attr.aria-expanded]="menuOpen()"
+      [attr.aria-label]="unread() > 0 && !menuOpen() ? 'Menu, ' + unread() + (unread() === 1 ? ' aviso novo' : ' avisos novos') : null"
       aria-controls="vn-menu-sheet"
       (click)="toggleMenu()"
     >
-      <svg class="vn-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path [attr.d]="menuOpen() ? icons.close : icons.menu" />
-      </svg>
+      <span class="vn-tab-cart">
+        <svg class="vn-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path [attr.d]="menuOpen() ? icons.close : icons.menu" />
+        </svg>
+        @if (unread() > 0 && !menuOpen()) { <span class="vn-tab-dot" aria-hidden="true"></span> }
+      </span>
       <span class="vn-tab-label">Menu</span>
     </button>
   </ion-tab-bar>
@@ -94,6 +98,7 @@
     <a class="vn-tile" routerLink="/tabs/notifications">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.bell" /></svg>
       <span>Avisos</span>
+      @if (unread() > 0) { <em>{{ unread() > 99 ? '99+' : unread() }}</em> }
     </a>
   </div>
 

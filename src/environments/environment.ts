@@ -31,6 +31,12 @@ export const environment = {
   mediaCacheEnabled: true,
 
   /**
+   * Chave PUBLICA do Web Push (VAPID). O par privado fica em functions/.env
+   * (VAPID_PRIVATE_KEY). Trocar o par invalida as inscricoes dos celulares.
+   */
+  vapidPublicKey: 'BH-kDfxgw9XaIl3ZLsPlBIYJQjBjM2tSqX69885ckuHb61N2nfgQP9CY303sqgPe2k7bMwYH3C4J3Qg9V0PMZUY',
+
+  /**
    * Serviços auxiliares que rodam fora do Firebase.
    * Estavam com `localhost` fixo dentro do código do app — em produção isso
    * falha silenciosamente. Agora vêm daqui e o build de produção os desliga.

@@ -437,3 +437,18 @@ ion-loading, ion-toast {
 
 /* Checkbox marcado é lima (paleta Noite): o visto vai em azul-noite, não branco. */
 ion-checkbox { --checkmark-color: #0B1623; }
+
+/* Convite de notificações (components/push-invite): cartão preso embaixo que
+   cresce com o conteúdo — receita de "modal com altura automática" do Ionic. */
+ion-modal.vn-push-invite {
+  --height: auto;
+  --width: min(100%, 480px);
+  --border-radius: 22px 22px 0 0;
+  align-items: flex-end;
+
+  .ion-page {
+    position: relative;
+    display: block;
+    contain: content;
+  }
+}

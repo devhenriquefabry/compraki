@@ -134,6 +134,20 @@ ion-tab-button:active .vn-tab-icon,
   text-align: center;
 }
 
+/* Aviso novo: ponto lima no botão Menu (o número fica no atalho "Avisos"). */
+.vn-tab-dot {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+  background: var(--vn-lime);
+  box-shadow: 0 0 0 1px var(--vn-navy);
+}
+
 /* ===== MENU EM TELA CHEIA ===== */
 
 .vn-menu {

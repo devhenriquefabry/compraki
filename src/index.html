@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
   <meta charset="utf-8" />
@@ -21,6 +21,10 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="64x64" href="assets/icon/favicon.png" />
   <link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" />
+  <!-- App instalado (PWA): o manifest e o que faz o "Adicionar a Tela de
+       Inicio" do iPhone abrir como app e liberar notificacoes (iOS 16.4+), e
+       o Android oferecer "Instalar app". Service worker: src/sw.js. -->
+  <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0B1623" />
 
   <!-- Abertura (uma vez por sessão): a página fica azul-noite e a logo já
@@ -49,6 +53,8 @@
 
   <!-- add to homescreen for ios -->
   <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Vineon" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   
 </head>

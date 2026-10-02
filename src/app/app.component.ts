@@ -25,7 +25,8 @@ import {
   syncOutline, closeCircleOutline, helpCircleOutline, trashOutline
 } from 'ionicons/icons';
 
-import { NotificationService } from './services/notification.service';
+import { NotificationCenterService } from './services/notification-center.service';
+import { setupPwa } from './core/pwa';
 import { PresenceService } from './services/presence.service';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { isCurrentUserAdmin, onAuthUserChanged } from './core/auth-state';
@@ -42,7 +43,7 @@ export class AppComponent implements OnInit, OnDestroy {
   public appUser: AppUser | null = null;
   private fbProducts = inject(FirebaseProducts);
   private usersService = inject(FirebaseUsersService);
-  private notifyService = inject(NotificationService);
+  private notificationCenter = inject(NotificationCenterService);
   private presenceService = inject(PresenceService);
   /** Liga o header de site em telas grandes (só no navegador). */
   readonly layout = inject(LayoutService);
@@ -121,7 +122,10 @@ export class AppComponent implements OnInit, OnDestroy {
       'trash-outline': trashOutline
     });
     this.initializeApp();
-    this.notifyService.initOrderListener();
+    // Site instalado (PWA): service worker das notificações + convite de
+    // instalação do Android. Avisos: contador e toque na notificação.
+    setupPwa();
+    this.notificationCenter.start();
     this.setupRouteTracking();
   }
 

@@ -144,8 +144,12 @@
       </a>
 
       @if (user()) {
-        <a class="dh-icon-link" routerLink="/tabs/notifications" routerLinkActive="is-active" aria-label="Notificações">
+        <a class="dh-icon-link" routerLink="/tabs/notifications" routerLinkActive="is-active"
+           [attr.aria-label]="unread() ? 'Notificações, ' + unread() + (unread() === 1 ? ' não lida' : ' não lidas') : 'Notificações'">
           <ion-icon name="notifications-outline" aria-hidden="true"></ion-icon>
+          @if (unread()) {
+            <span class="dh-badge" aria-hidden="true">{{ unread() > 99 ? '99+' : unread() }}</span>
+          }
         </a>
       }
 

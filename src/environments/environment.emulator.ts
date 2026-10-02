@@ -31,6 +31,12 @@ export const environment = {
 
   mediaCacheEnabled: true,
 
+  /**
+   * Chave PUBLICA do Web Push (VAPID). O par privado fica em functions/.env
+   * (VAPID_PRIVATE_KEY). Trocar o par invalida as inscricoes dos celulares.
+   */
+  vapidPublicKey: 'BH-kDfxgw9XaIl3ZLsPlBIYJQjBjM2tSqX69885ckuHb61N2nfgQP9CY303sqgPe2k7bMwYH3C4J3Qg9V0PMZUY',
+
   botServerUrl: 'http://localhost:3001',
   webhookTesterUrl: 'http://localhost:3000'
 };

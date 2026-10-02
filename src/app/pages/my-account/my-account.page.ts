@@ -21,6 +21,7 @@ import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { OrdersService } from 'src/app/services/orders.service';
 import { SalesService } from 'src/app/services/sales.service';
 import { StorefrontDataService } from 'src/app/services/storefront-data.service';
+import { NotificationCenterService } from 'src/app/services/notification-center.service';
 
 /** Uma parada da rota de pedidos (compras ou vendas). */
 interface RouteStop {
@@ -97,6 +98,7 @@ export class MyAccountPage {
   readonly sales = signal<Order[] | null>(null);
   readonly productCount = signal<number | null>(null);
   readonly unseenInvoices = signal(0);
+  readonly unreadNotifications = inject(NotificationCenterService).unread;
   /** Leitura de pedidos/vendas falhou: a tela diz isso em vez de mostrar zeros. */
   readonly ordersFailed = signal(false);
   readonly salesFailed = signal(false);
@@ -282,7 +284,7 @@ export class MyAccountPage {
       { icon: 'pin', label: 'Endereços', hint: this.defaultAddress() ?? 'Cadastre onde receber seus pedidos', link: '/address' },
       { icon: 'card', label: 'Formas de pagamento', hint: 'Pix, boleto e cartões', link: '/payments' },
       { icon: 'lock', label: 'Senha e segurança', hint: 'Troque sua senha de acesso', action: 'security' },
-      { icon: 'bell', label: 'Notificações', hint: 'Avisos de pedidos e mensagens', link: '/tabs/notifications' },
+      { icon: 'bell', label: 'Notificações', hint: 'Avisos de pedidos e mensagens', link: '/tabs/notifications', badge: this.unreadNotifications() },
       { icon: 'privacy', label: 'Privacidade e dados', hint: 'O que a Vineon guarda sobre você' },
     ];
     if (this.isAdmin()) rows.push({ icon: 'grid', label: 'Painel de gestão', hint: 'Área administrativa', link: '/admin' });

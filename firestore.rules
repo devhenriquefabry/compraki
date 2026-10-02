@@ -223,6 +223,25 @@ service cloud.firestore {
       match /addresses/{addressId} {
         allow read, write: if isUser(userId);
       }
+
+      // Avisos (tela Notificacoes). Quem cria e a Cloud Function
+      // (functions/src/notifications.ts); o dono so marca como lido e apaga.
+      match /notifications/{notificationId} {
+        allow read, delete: if isUser(userId);
+        allow update: if isUser(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+      }
+
+      // Inscricao de push de cada aparelho (PWA instalado). O ID e o hash do
+      // endpoint; a function apaga as que o servico de push der como mortas.
+      match /pushSubscriptions/{subscriptionId} {
+        allow read, delete: if isUser(userId);
+        allow create, update: if isUser(userId)
+          && request.resource.data.endpoint is string
+          && request.resource.data.endpoint.matches('https://.+')
+          && request.resource.data.keys.p256dh is string
+          && request.resource.data.keys.auth is string;
+      }
     }
 
     // ------------------------------------------------ consultas collection group

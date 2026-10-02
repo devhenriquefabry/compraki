@@ -31,6 +31,13 @@ export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
 export { onSellerInvoiceWritten } from './seller-invoices';
 
 export {
+  onOrderWrittenNotify,
+  onChatMessageNotify,
+  onProductReviewNotify,
+  sendTestNotification
+} from './notifications';
+
+export {
   createAsaasCustomer,
   createAsaasPayment,
   getAsaasPayment,

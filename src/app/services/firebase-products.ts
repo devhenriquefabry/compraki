@@ -35,6 +35,7 @@ import { Router } from '@angular/router';
 import { FirebaseUsersService } from './firebase-users.service';
 import { WhatsappInstancesService } from './whatsapp-instances.service';
 import { environment } from '../../environments/environment';
+import { forgetPushDevice } from '../core/pwa';
 
 const SUSPENDED_ACCOUNT_MESSAGE =
   'Esta conta foi suspensa por violar os termos de uso do Vineon. Se acha que foi um engano, fale com o suporte.';
@@ -478,7 +479,8 @@ private async signInWithGoogleWeb(): Promise<User> {
   signOut() {
     if (this.getUser()) {
 
-      signOut(this.authenticator).then(() => {
+      // Tira a inscrição de push deste aparelho da conta ANTES de sair.
+      forgetPushDevice().then(() => signOut(this.authenticator)).then(() => {
 
         console.log("O usuario foi deslogado com sucesso!S")
         this.router.navigate(['login'])

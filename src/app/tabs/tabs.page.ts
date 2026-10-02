@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { isCurrentUserAdmin, onAuthUserChanged } from '../core/auth-state';
 import { FirebaseProducts } from '../services/firebase-products';
 import { StorefrontDataService } from '../services/storefront-data.service';
+import { NotificationCenterService } from '../services/notification-center.service';
 import { VN_ICONS } from '../core/vn-icons';
 
 
@@ -30,6 +31,9 @@ export class TabsPage {
   private readonly storefront = inject(StorefrontDataService);
 
   readonly icons = VN_ICONS;
+
+  /** Avisos não lidos: número no atalho "Avisos" e ponto no botão Menu. */
+  readonly unread = inject(NotificationCenterService).unread;
 
   readonly cartCount = toSignal(this.storefront.cartCount$, { initialValue: 0 });
   readonly savedCount = toSignal(this.storefront.savedItems$.pipe(map(items => items.length)), { initialValue: 0 });

@@ -157,6 +157,12 @@
       ]
     },
     {
+      "collectionGroup": "notifications",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "messages",
       "fieldPath": "type",
       "indexes": [

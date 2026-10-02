@@ -34,7 +34,7 @@ const routes: Routes = [
       },
       {
         path: 'notifications',
-        loadChildren: () => import('../pages/notifications/notifications.module').then(m => m.NotificationsPageModule),
+        loadComponent: () => import('../pages/notifications/notifications.page').then(m => m.NotificationsPage),
         canActivate: [authGuard]
       },
       {
