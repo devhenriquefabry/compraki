@@ -38,6 +38,12 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Política de Privacidade: aberta, sem guard — precisa poder ser lida
+    // antes de criar a conta (inclusive no app nativo).
+    path: 'privacy',
+    loadComponent: () => import('./pages/privacy/privacy.page').then(m => m.PrivacyPage)
+  },
+  {
     path: 'product-details/:id',
     loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage),
     data: { preload: true },

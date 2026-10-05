@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { User } from 'firebase/auth';
 import { getApp } from 'firebase/app';
@@ -285,7 +285,7 @@ export class MyAccountPage {
       { icon: 'card', label: 'Formas de pagamento', hint: 'Pix, boleto e cartões', link: '/payments' },
       { icon: 'lock', label: 'Senha e segurança', hint: 'Troque sua senha de acesso', action: 'security' },
       { icon: 'bell', label: 'Notificações', hint: 'Avisos de pedidos e mensagens', link: '/tabs/notifications', badge: this.unreadNotifications() },
-      { icon: 'privacy', label: 'Privacidade e dados', hint: 'O que a Vineon guarda sobre você' },
+      { icon: 'privacy', label: 'Privacidade e dados', hint: 'O que a Vineon guarda sobre você', link: '/privacy' },
     ];
     if (this.isAdmin()) rows.push({ icon: 'grid', label: 'Painel de gestão', hint: 'Área administrativa', link: '/admin' });
     return rows;
@@ -313,6 +313,13 @@ export class MyAccountPage {
     destroyRef.onDestroy(() => {
       stopAuth();
       this.unbindData();
+    });
+
+    // `?editar=dados` (vem de "Privacidade e dados") abre direto em Dados pessoais.
+    inject(ActivatedRoute).queryParamMap.pipe(takeUntilDestroyed()).subscribe(params => {
+      if (params.get('editar') !== 'dados') return;
+      this.openEditor();
+      void this.router.navigate([], { queryParams: { editar: null }, queryParamsHandling: 'merge', replaceUrl: true });
     });
   }
 

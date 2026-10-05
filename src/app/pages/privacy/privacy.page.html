@@ -1,0 +1,483 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Privacidade e dados</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pv">
+
+    <!-- ============================== ABERTURA ============================== -->
+    <section class="pv-hero" aria-labelledby="pv-hero-title">
+      <span class="pv-hero-mark" aria-hidden="true"><vn-icon name="privacy" /></span>
+      <p class="pv-eyebrow">Política de Privacidade</p>
+      <h2 id="pv-hero-title">Seus dados, às claras</h2>
+      <p class="pv-hero-lead">
+        O que a Vineon guarda sobre você, por que guarda, com quem divide e como você controla tudo isso —
+        de acordo com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+      </p>
+      <p class="pv-hero-date">Atualizada em {{ updatedLabel }}</p>
+
+      <ul class="pv-promises">
+        <li><vn-icon name="check" /><span>Não vendemos seus dados.</span></li>
+        <li><vn-icon name="check" /><span>O número do seu cartão não fica guardado na Vineon.</span></li>
+        <li><vn-icon name="check" /><span>Sem anúncios de terceiros e sem rastreadores de publicidade.</span></li>
+        <li><vn-icon name="check" /><span>Você pode baixar uma cópia dos seus dados quando quiser.</span></li>
+      </ul>
+    </section>
+
+    <div class="pv-layout">
+      <!-- ============================== ÍNDICE ============================== -->
+      <nav class="pv-index" aria-label="Nesta página">
+        <p class="pv-index-title">Nesta página</p>
+        <ol>
+          @for (s of sections; track s.id; let i = $index) {
+            <li>
+              <button type="button" [attr.data-section]="s.id" [class.is-active]="activeSection() === s.id"
+                      [attr.aria-current]="activeSection() === s.id ? 'location' : null" (click)="goTo(s.id)">
+                <span class="pv-index-n">{{ i + 1 }}</span>{{ s.title }}
+              </button>
+            </li>
+          }
+        </ol>
+      </nav>
+
+      <div class="pv-main">
+
+        <!-- ====================== O QUE GUARDAMOS SOBRE VOCÊ ====================== -->
+        @if (user()) {
+          <section class="pv-held" aria-labelledby="pv-held-title">
+            <header class="pv-held-head">
+              <div>
+                <h2 id="pv-held-title">O que a Vineon guarda sobre você</h2>
+                @if (memberSince(); as since) { <p>Conta criada em {{ since }}</p> }
+              </div>
+            </header>
+
+            <dl class="pv-held-list">
+              @for (row of heldRows(); track row.label) {
+                <div class="pv-held-row" [class.is-missing]="row.missing">
+                  <dt><vn-icon [name]="row.icon" />{{ row.label }}</dt>
+                  <dd>{{ row.value }}</dd>
+                </div>
+              }
+            </dl>
+
+            <div class="pv-held-actions">
+              <button type="button" class="pv-btn pv-btn--navy" (click)="downloadMyData()" [disabled]="exporting()">
+                <vn-icon name="download" />
+                {{ exporting() ? 'Gerando arquivo…' : 'Baixar meus dados' }}
+              </button>
+              <a class="pv-btn pv-btn--outline" routerLink="/tabs/my-account" [queryParams]="{ editar: 'dados' }">
+                <vn-icon name="pencil" />
+                Corrigir meus dados
+              </a>
+            </div>
+            <p class="pv-held-note">
+              O arquivo (JSON) traz cadastro, endereços, pedidos, carrinho, favoritos, lojas que você segue, conversas e avisos.
+              CPF e telefone aparecem completos só dentro dele.
+            </p>
+          </section>
+        } @else if (authResolved()) {
+          <section class="pv-guest">
+            <span class="pv-guest-mark" aria-hidden="true"><vn-icon name="lock" /></span>
+            <div>
+              <h2>Veja o que guardamos sobre você</h2>
+              <p>Entre na sua conta para conferir seus dados e baixar uma cópia deles.</p>
+            </div>
+            <a class="pv-btn pv-btn--navy" routerLink="/login" [queryParams]="{ redirectTo: '/privacy' }">Entrar</a>
+          </section>
+        }
+
+        <!-- ============================ 1. QUEM SOMOS ============================ -->
+        <section class="pv-sec" id="quem-somos" aria-labelledby="h-quem-somos">
+          <h2 id="h-quem-somos"><span class="pv-sec-n">1</span>Quem cuida dos seus dados</h2>
+          <p>
+            A Vineon é um marketplace: um lugar onde lojas e pessoas anunciam produtos e compradores compram deles,
+            com pagamento, frete e conversa dentro da plataforma. Para isso funcionar, a Vineon trata dados pessoais e é a
+            <strong>controladora</strong> desses dados — quem decide como e por que eles são usados.
+          </p>
+          <p>
+            Quando você compra, o <strong>vendedor</strong> recebe os dados necessários para entregar o pedido (nome, endereço,
+            telefone e CPF). A partir daí ele também responde pelo uso que faz desses dados e só pode usá-los para entregar,
+            emitir nota fiscal e atender aquele pedido — nunca para outra finalidade, como enviar propaganda.
+          </p>
+          @if (hasControllerData) {
+            <dl class="pv-kv">
+              @if (controller.legalName) { <div><dt>Razão social</dt><dd>{{ controller.legalName }}</dd></div> }
+              @if (controller.cnpj) { <div><dt>CNPJ</dt><dd>{{ controller.cnpj }}</dd></div> }
+              @if (controller.address) { <div><dt>Endereço</dt><dd>{{ controller.address }}</dd></div> }
+            </dl>
+          }
+        </section>
+
+        <!-- ============================ 2. DADOS ============================ -->
+        <section class="pv-sec" id="dados" aria-labelledby="h-dados">
+          <h2 id="h-dados"><span class="pv-sec-n">2</span>Dados que coletamos</h2>
+          <p>Coletamos só o que a compra, a venda e a segurança da conta precisam. Separado por momento:</p>
+
+          <div class="pv-cards">
+            <article class="pv-card">
+              <h3><vn-icon name="account" />Ao criar a conta</h3>
+              <ul>
+                <li>Nome, e-mail, CPF e telefone.</li>
+                <li>Endereço (CEP, rua, número, complemento, bairro, cidade e estado).</li>
+                <li>Senha — guardada cifrada pelo serviço de login do Google Firebase. Ninguém na Vineon consegue ver sua senha.</li>
+                <li>Se você entrar com o Google: nome, e-mail e foto da sua conta Google.</li>
+                <li>Opcionais: foto de perfil e nome de usuário.</li>
+              </ul>
+            </article>
+
+            <article class="pv-card">
+              <h3><vn-icon name="bag" />Ao comprar</h3>
+              <ul>
+                <li>Produtos, variações, quantidades, valores e frete.</li>
+                <li>Dados do comprador no pedido: nome, CPF, telefone e e-mail.</li>
+                <li>Endereço de entrega, código de rastreio e andamento da entrega.</li>
+                <li>Pedidos de devolução e o motivo que você informar.</li>
+              </ul>
+            </article>
+
+            <article class="pv-card">
+              <h3><vn-icon name="card" />Ao pagar</h3>
+              <ul>
+                <li><strong>Pix e boleto:</strong> gerados pelo Cora. Guardamos o código Pix, a linha digitável e o status da cobrança.</li>
+                <li>
+                  <strong>Cartão:</strong> processado pelo Asaas. Número, validade e código de segurança seguem direto para o Asaas e
+                  <strong>não ficam guardados na Vineon</strong>. Junto vão os dados do titular (nome, CPF, e-mail, telefone, CEP e
+                  número do endereço) e o endereço IP da compra, que o Asaas usa contra fraude.
+                </li>
+                <li>Da cobrança, guardamos só o identificador, o valor e se foi paga.</li>
+              </ul>
+            </article>
+
+            <article class="pv-card">
+              <h3><vn-icon name="store" />Ao vender</h3>
+              <ul>
+                <li>Anúncios, fotos, preços e estoque.</li>
+                <li>Perfil da loja: nome, descrição, banner, cores e os contatos que você escolher mostrar (Instagram, WhatsApp).</li>
+                <li>Vendas, valores, comissão da Vineon e notas fiscais mensais que a Vineon emite para você.</li>
+                <li>Notas fiscais e declarações de conteúdo que você envia nos pedidos.</li>
+              </ul>
+            </article>
+
+            <article class="pv-card">
+              <h3><vn-icon name="chat" />Ao conversar e interagir</h3>
+              <ul>
+                <li>Mensagens, fotos e áudios trocados no chat com lojas e compradores.</li>
+                <li>Avaliações, favoritos, carrinho e lojas que você segue.</li>
+                <li>Denúncias que você faz — e as que recebe, se for o caso.</li>
+              </ul>
+            </article>
+
+            <article class="pv-card">
+              <h3><vn-icon name="phone" />Ao usar o app</h3>
+              <ul>
+                <li>Se você está online e quando esteve ativo pela última vez.</li>
+                <li>Registros de acesso (endereço IP, data e hora), que a lei obriga a guardar.</li>
+                <li>Se você ativar as notificações: o endereço de entrega dos avisos no seu aparelho.</li>
+                <li>Para recuperar a senha: um código enviado por WhatsApp ou e-mail. Guardamos só uma versão embaralhada (hash) dele, que vale 15 minutos.</li>
+              </ul>
+            </article>
+          </div>
+
+          <p class="pv-note">
+            <vn-icon name="shield" />
+            <span>
+              A Vineon não pede dados sensíveis — saúde, religião, origem racial, opinião política, biometria. Não escreva esse tipo
+              de informação no chat ou nos anúncios.
+            </span>
+          </p>
+        </section>
+
+        <!-- ============================ 3. FINALIDADES ============================ -->
+        <section class="pv-sec" id="finalidades" aria-labelledby="h-finalidades">
+          <h2 id="h-finalidades"><span class="pv-sec-n">3</span>Para que usamos — e com qual base legal</h2>
+          <p>A LGPD só permite usar dados pessoais com uma justificativa prevista em lei (art. 7º). Estas são as nossas:</p>
+
+          <div class="pv-table" role="table" aria-label="Finalidades e bases legais">
+            <div class="pv-tr pv-tr--head" role="row">
+              <span role="columnheader">Para quê</span>
+              <span role="columnheader">Base legal</span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Criar e manter sua conta, deixar você entrar e mostrar seus pedidos e vendas.</span>
+              <span role="cell"><b>Execução de contrato</b><small>art. 7º, V</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Fechar a compra: cobrar, calcular e contratar o frete, entregar, segurar o pagamento por 7 dias até a entrega e processar devoluções.</span>
+              <span role="cell"><b>Execução de contrato</b><small>art. 7º, V</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Avisar sobre pedidos, vendas, mensagens e avaliações na tela de avisos, e mandar por e-mail as notas fiscais mensais de quem vende.</span>
+              <span role="cell"><b>Execução de contrato</b><small>art. 7º, V</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Atender você e mediar problemas entre comprador e vendedor — para isso a equipe da Vineon pode consultar o pedido e a conversa do caso.</span>
+              <span role="cell"><b>Execução de contrato</b><small>art. 7º, V</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Mandar notificações para o seu aparelho (push).</span>
+              <span role="cell"><b>Consentimento</b><small>art. 7º, I — só se você ativar; dá para desligar</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Emitir e guardar documentos fiscais, guardar registros de acesso e atender pedidos de autoridades.</span>
+              <span role="cell"><b>Obrigação legal</b><small>art. 7º, II</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Evitar fraude e golpe: conferir se o valor pago bate com o pedido, moderar anúncios, analisar denúncias, suspender contas que violam os termos e limitar tentativas de recuperar senha.</span>
+              <span role="cell"><b>Legítimo interesse</b><small>art. 7º, IX</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Entender como a loja vai — vendas, pedidos e cadastros por dia — em números somados.</span>
+              <span role="cell"><b>Legítimo interesse</b><small>art. 7º, IX</small></span>
+            </div>
+            <div class="pv-tr" role="row">
+              <span role="cell">Nos defender ou defender você em disputas, reclamações e processos.</span>
+              <span role="cell"><b>Exercício regular de direitos</b><small>art. 7º, VI</small></span>
+            </div>
+          </div>
+
+          <p class="pv-note">
+            <vn-icon name="sliders" />
+            <span>
+              <strong>Decisão automática:</strong> o título de cada anúncio passa por um filtro de palavras proibidas antes de ir ao ar.
+              Se o seu anúncio for barrado por ele, você pode pedir que uma pessoa da equipe revise (art. 20 da LGPD).
+            </span>
+          </p>
+        </section>
+
+        <!-- ============================ 4. COMPARTILHAMENTO ============================ -->
+        <section class="pv-sec" id="compartilhamento" aria-labelledby="h-compartilhamento">
+          <h2 id="h-compartilhamento"><span class="pv-sec-n">4</span>Com quem compartilhamos</h2>
+          <p>Só com quem precisa para o pedido acontecer ou para cumprir a lei — e só o necessário para cada um.</p>
+
+          <ul class="pv-share">
+            <li>
+              <span class="pv-share-who">Vendedor do seu pedido</span>
+              <span class="pv-share-what">Nome, CPF, telefone, e-mail e endereço de entrega — para enviar, emitir nota e falar com você sobre o pedido.</span>
+            </li>
+            <li>
+              <span class="pv-share-who">Cora</span>
+              <span class="pv-share-what">Pagamentos por Pix e boleto: nome, CPF, e-mail e valor.</span>
+            </li>
+            <li>
+              <span class="pv-share-who">Asaas</span>
+              <span class="pv-share-what">Pagamentos com cartão e estornos: dados do cartão e do titular e endereço IP.</span>
+            </li>
+            <li>
+              <span class="pv-share-who">Melhor Envio e transportadoras</span>
+              <span class="pv-share-what">Cotação, etiqueta e rastreio: nome, CPF, telefone e endereço de quem envia e de quem recebe.</span>
+            </li>
+            <li>
+              <span class="pv-share-who">Google (Firebase e Google Cloud)</span>
+              <span class="pv-share-what">Onde o app roda: login, banco de dados, fotos e arquivos, e-mails e entrega das notificações.</span>
+            </li>
+            <li>
+              <span class="pv-share-who">WhatsApp</span>
+              <span class="pv-share-what">Envio do código de recuperação de senha para o telefone cadastrado.</span>
+            </li>
+            <li>
+              <span class="pv-share-who">Serviço de notificação do aparelho</span>
+              <span class="pv-share-what">Google, Apple ou Mozilla, conforme o seu navegador, entregam os avisos push. Recebem o aviso, não seu cadastro.</span>
+            </li>
+            <li>
+              <span class="pv-share-who">Autoridades</span>
+              <span class="pv-share-what">Só quando a lei exigir ou houver ordem judicial, e apenas o que for pedido.</span>
+            </li>
+          </ul>
+
+          <p>
+            Esses parceiros tratam os dados em nome da Vineon ou para cumprir as próprias obrigações legais (os de pagamento são
+            regulados pelo Banco Central). <strong>Não vendemos, alugamos nem cedemos seus dados para publicidade.</strong>
+          </p>
+        </section>
+
+        <!-- ============================ 5. PÚBLICO ============================ -->
+        <section class="pv-sec" id="publico" aria-labelledby="h-publico">
+          <h2 id="h-publico"><span class="pv-sec-n">5</span>O que fica público</h2>
+          <p>Algumas informações aparecem para qualquer visitante, porque são o que faz o marketplace funcionar:</p>
+          <div class="pv-split">
+            <div class="pv-split-col">
+              <h3>Aparece para todos</h3>
+              <ul>
+                <li>Anúncios, com fotos, preço e descrição.</li>
+                <li>Perfil de vendedor: nome, foto, nome de usuário, dados da loja, quantos seguidores tem e se está online.</li>
+                <li>Instagram e WhatsApp da loja, só se o vendedor decidir mostrar.</li>
+                <li>Avaliações, assinadas com o primeiro nome e a inicial do sobrenome.</li>
+              </ul>
+            </div>
+            <div class="pv-split-col pv-split-col--private">
+              <h3>Nunca aparece</h3>
+              <ul>
+                <li>CPF.</li>
+                <li>E-mail e telefone do cadastro.</li>
+                <li>Endereço.</li>
+                <li>Pedidos, pagamentos e conversas.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================ 6. INTERNACIONAL ============================ -->
+        <section class="pv-sec" id="internacional" aria-labelledby="h-internacional">
+          <h2 id="h-internacional"><span class="pv-sec-n">6</span>Dados fora do Brasil</h2>
+          <p>
+            O app roda na infraestrutura do Google (Firebase e Google Cloud). O banco de dados principal fica no Brasil, em
+            São Paulo; já o servidor do site, as funções que processam pagamentos, frete e avisos e alguns serviços do Google
+            (como login e arquivos) podem rodar fora do Brasil, inclusive nos Estados Unidos. Essa transferência internacional
+            segue o art. 33 da LGPD: é feita com cláusulas contratuais de proteção de dados do provedor, que garantem um nível
+            de proteção compatível com o da lei brasileira.
+          </p>
+        </section>
+
+        <!-- ============================ 7. RETENÇÃO ============================ -->
+        <section class="pv-sec" id="retencao" aria-labelledby="h-retencao">
+          <h2 id="h-retencao"><span class="pv-sec-n">7</span>Por quanto tempo guardamos</h2>
+          <dl class="pv-kv pv-kv--wide">
+            <div><dt>Cadastro e conta</dt><dd>Enquanto a conta existir.</dd></div>
+            <div><dt>Pedidos, pagamentos e notas fiscais</dt><dd>5 anos, prazo das leis fiscais e do Código de Defesa do Consumidor.</dd></div>
+            <div><dt>Registros de acesso</dt><dd>6 meses, como manda o Marco Civil da Internet (art. 15).</dd></div>
+            <div><dt>Conversas</dt><dd>Enquanto a conta existir — servem para resolver disputas sobre pedidos.</dd></div>
+            <div><dt>Código de recuperação de senha</dt><dd>15 minutos.</dd></div>
+            <div><dt>Notificações push</dt><dd>Até você desativar, ou até o aparelho deixar de aceitar os avisos.</dd></div>
+          </dl>
+          <p>
+            Quando a conta é excluída, apagamos ou anonimizamos os dados. Fica guardado só o que a lei obriga — como pedidos e
+            notas fiscais — pelo prazo exigido, e depois é apagado.
+          </p>
+        </section>
+
+        <!-- ============================ 8. APARELHO ============================ -->
+        <section class="pv-sec" id="aparelho" aria-labelledby="h-aparelho">
+          <h2 id="h-aparelho"><span class="pv-sec-n">8</span>Cookies e armazenamento no aparelho</h2>
+          <p>
+            A Vineon <strong>não usa cookies de publicidade nem ferramentas de rastreamento de terceiros</strong>. O app guarda
+            no seu navegador só o que precisa para funcionar:
+          </p>
+          <ul class="pv-list">
+            <li><strong>Sessão de login</strong>, para você não precisar entrar toda vez.</li>
+            <li><strong>Produtos vistos recentemente</strong>, para a vitrine sugerir o que você olhou (só neste aparelho).</li>
+            <li><strong>Preferências da tela</strong>, como uma conversa aberta ou um aviso que você fechou.</li>
+          </ul>
+          <p>Você pode apagar tudo isso limpando os dados do site nas configurações do navegador; só vai precisar entrar de novo.</p>
+        </section>
+
+        <!-- ============================ 9. SEGURANÇA ============================ -->
+        <section class="pv-sec" id="seguranca" aria-labelledby="h-seguranca">
+          <h2 id="h-seguranca"><span class="pv-sec-n">9</span>Como protegemos</h2>
+          <ul class="pv-list">
+            <li>Toda comunicação é criptografada (HTTPS).</li>
+            <li>Regras de acesso no banco de dados: cada conta só lê os próprios dados; o vendedor só vê os pedidos em que vendeu.</li>
+            <li>O perfil público de vendedor é uma cópia separada, sem CPF, e-mail, telefone ou endereço.</li>
+            <li>Senhas e dados de cartão ficam com o Google e com o Asaas — a Vineon não os guarda.</li>
+            <li>Códigos de recuperação guardados embaralhados, com prazo curto e limite de tentativas.</li>
+            <li>Acesso administrativo restrito a quem precisa, com permissão própria.</li>
+          </ul>
+          <p>
+            Se acontecer um incidente de segurança que possa trazer risco ou dano relevante a você, avisaremos você e a Autoridade
+            Nacional de Proteção de Dados (ANPD), como pede o art. 48 da LGPD.
+          </p>
+        </section>
+
+        <!-- ============================ 10. DIREITOS ============================ -->
+        <section class="pv-sec" id="direitos" aria-labelledby="h-direitos">
+          <h2 id="h-direitos"><span class="pv-sec-n">10</span>Seus direitos</h2>
+          <p>A LGPD (art. 18) garante a você, a qualquer momento e sem custo:</p>
+
+          <ol class="pv-rights">
+            <li>
+              <strong>Confirmar e acessar</strong> os dados que temos sobre você.
+              <small>Veja no topo desta página ou baixe a cópia completa.</small>
+            </li>
+            <li>
+              <strong>Corrigir</strong> dados incompletos, errados ou desatualizados.
+              <small>Em Minha conta › Dados pessoais e Endereços.</small>
+            </li>
+            <li>
+              <strong>Portabilidade:</strong> levar seus dados para outro serviço.
+              <small>O botão "Baixar meus dados" gera um arquivo em formato aberto (JSON).</small>
+            </li>
+            <li>
+              <strong>Excluir</strong> sua conta e os dados tratados com o seu consentimento.
+              <small>Peça ao encarregado. Fica só o que a lei obriga a guardar.</small>
+            </li>
+            <li>
+              <strong>Anonimizar, bloquear ou eliminar</strong> dados desnecessários, excessivos ou tratados fora da lei.
+            </li>
+            <li>
+              <strong>Saber com quem</strong> compartilhamos seus dados.
+              <small>Está na seção 4; peça detalhes se quiser.</small>
+            </li>
+            <li>
+              <strong>Não consentir e revogar o consentimento</strong>, sabendo o que muda.
+              <small>Desligar as notificações push não afeta compras nem vendas — os avisos continuam na tela de avisos.</small>
+            </li>
+            <li>
+              <strong>Se opor</strong> a um uso baseado em legítimo interesse que você considere irregular.
+            </li>
+            <li>
+              <strong>Pedir revisão</strong> de decisão tomada só por meio automático (art. 20).
+            </li>
+          </ol>
+
+          <p>
+            Para os pedidos que não dá para fazer direto no app, fale com o encarregado (seção 13). Respondemos em até
+            <strong>15 dias</strong>. Podemos pedir uma confirmação de identidade antes, para que ninguém peça os seus dados no seu lugar.
+          </p>
+          <p>
+            Se achar que não resolvemos, você pode reclamar na
+            <a href="https://www.gov.br/anpd/pt-br" target="_blank" rel="noopener">Autoridade Nacional de Proteção de Dados (ANPD)</a>
+            ou nos órgãos de defesa do consumidor.
+          </p>
+        </section>
+
+        <!-- ============================ 11. MENORES ============================ -->
+        <section class="pv-sec" id="menores" aria-labelledby="h-menores">
+          <h2 id="h-menores"><span class="pv-sec-n">11</span>Menores de idade</h2>
+          <p>
+            Comprar e vender exige capacidade civil, por isso a conta na Vineon é para maiores de 18 anos. Não coletamos de propósito
+            dados de crianças e adolescentes. Se descobrirmos uma conta de menor de idade, ela será encerrada e os dados, apagados.
+            Se você é responsável e sabe de um caso, fale com o encarregado.
+          </p>
+        </section>
+
+        <!-- ============================ 12. MUDANÇAS ============================ -->
+        <section class="pv-sec" id="mudancas" aria-labelledby="h-mudancas">
+          <h2 id="h-mudancas"><span class="pv-sec-n">12</span>Mudanças nesta política</h2>
+          <p>
+            Quando o app mudar o jeito de tratar dados, esta política muda junto e a data no topo é atualizada. Se a mudança for
+            relevante, avisamos na tela de avisos do app antes de ela valer. Se ela depender do seu consentimento, pediremos de novo.
+          </p>
+        </section>
+
+        <!-- ============================ 13. CONTATO ============================ -->
+        <section class="pv-sec pv-contact" id="contato" aria-labelledby="h-contato">
+          <h2 id="h-contato"><span class="pv-sec-n">13</span>Fale com o encarregado</h2>
+          <p>
+            O encarregado pelo tratamento de dados pessoais (DPO) é quem responde pela Vineon em qualquer assunto de privacidade:
+            pedidos sobre os seus dados, dúvidas sobre esta política e comunicações da ANPD.
+          </p>
+          @if (controller.dpoName || controller.dpoEmail) {
+            <dl class="pv-kv">
+              @if (controller.dpoName) { <div><dt>Encarregado</dt><dd>{{ controller.dpoName }}</dd></div> }
+              @if (controller.dpoEmail) { <div><dt>E-mail</dt><dd>{{ controller.dpoEmail }}</dd></div> }
+            </dl>
+          }
+          @if (dpoMailto(); as mailto) {
+            <a class="pv-btn pv-btn--lime" [href]="mailto">
+              <vn-icon name="mail" />
+              Escrever para o encarregado
+            </a>
+          }
+        </section>
+
+        <p class="pv-foot">{{ controller.brand }} · Política de Privacidade · versão de {{ updatedLabel }}</p>
+      </div>
+    </div>
+  </div>
+</ion-content>

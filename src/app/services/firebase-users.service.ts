@@ -43,12 +43,19 @@ export class FirebaseUsersService {
         email: user.email,
         displayName: extraData?.displayName || user.displayName || 'Novo Usuário',
         photoURL: user.photoURL || null,
-        phoneNumber: extraData?.phoneNumber || user.phoneNumber || null,
-        cpf: extraData?.cpf || null,
         isSeller: true,
         lastLoginAt: serverTimestamp(),
         ...extraData
       };
+
+      // Telefone e CPF só entram quando há valor. Este método roda a cada
+      // abertura do app; gravar `null` aqui apagava o que a pessoa salvou em
+      // "Dados pessoais".
+      const phoneNumber = extraData?.phoneNumber || user.phoneNumber;
+      if (phoneNumber) payload.phoneNumber = phoneNumber;
+      else delete payload.phoneNumber;
+      if (extraData?.cpf) payload.cpf = extraData.cpf;
+      else delete payload.cpf;
 
       // Blindagem: mesmo que algum chamador passe um campo de privilégio em
       // `extraData`, ele não sai daqui — a regra do Firestore negaria a escrita
