@@ -294,7 +294,7 @@ export class MyAccountPage {
   readonly helpRows: AccountRow[] = [
     { icon: 'help', label: 'Central de ajuda', hint: 'Respostas para as dúvidas mais comuns' },
     { icon: 'chat', label: 'Fale com a Vineon', hint: 'Atendimento para compras e vendas' },
-    { icon: 'doc', label: 'Termos e políticas', hint: 'Termos de uso, privacidade e devolução' },
+    { icon: 'doc', label: 'Termos e políticas', hint: 'Termos de uso, privacidade e devolução', link: '/terms' },
   ];
 
   /** Quanto do cadastro está preenchido (lido do formulário, muda enquanto a pessoa digita). */

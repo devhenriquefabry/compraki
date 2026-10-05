@@ -32,7 +32,16 @@
   </div>
 
   <div class="df-legal">
-    <span>© {{ year }} Vineon</span>
-    <span>vineonsite.com.br</span>
+    <div class="df-company">
+      <span>© {{ year }} {{ company.legalName || company.brand }}</span>
+      @if (company.cnpj) { <span>CNPJ {{ company.cnpj }}</span> }
+      @if (company.address) { <span>{{ company.address }}</span> }
+      @if (company.supportEmail) { <a [href]="'mailto:' + company.supportEmail">{{ company.supportEmail }}</a> }
+    </div>
+    <nav class="df-policies" aria-label="Termos e privacidade">
+      <a routerLink="/terms">Termos de uso</a>
+      <a routerLink="/terms" [queryParams]="{ aba: 'compras' }">Trocas e devoluções</a>
+      <a routerLink="/privacy">Privacidade</a>
+    </nav>
   </div>
 </footer>

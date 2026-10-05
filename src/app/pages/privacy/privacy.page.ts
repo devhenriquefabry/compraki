@@ -4,8 +4,9 @@ import { IonContent, IonicModule, NavController, ToastController } from '@ionic/
 import { User } from 'firebase/auth';
 
 import { onAuthUserChanged } from '../../core/auth-state';
+import { LegalIndex } from '../../core/legal-index';
 import { PrivacyCounts, buildMyDataExport, countMyData, downloadJson } from '../../core/privacy-export';
-import { PRIVACY_CONTROLLER, PRIVACY_POLICY_UPDATED } from '../../core/privacy-policy';
+import { COMPANY, PRIVACY_POLICY_UPDATED, formatLegalDate, mailtoLink } from '../../core/legal-info';
 import { MONTHS_LONG } from '../../core/order-stage';
 import { VnIconName } from '../../core/vn-icons';
 import { VnIconComponent } from '../../components/vn-icon/vn-icon.component';
@@ -65,8 +66,8 @@ export class PrivacyPage {
   private readonly content = viewChild.required(IonContent);
 
   readonly sections = SECTIONS;
-  readonly controller = PRIVACY_CONTROLLER;
-  readonly updatedLabel = formatLongDate(PRIVACY_POLICY_UPDATED);
+  readonly controller = COMPANY;
+  readonly updatedLabel = formatLegalDate(PRIVACY_POLICY_UPDATED);
 
   readonly authResolved = signal(false);
   readonly user = signal<User | null>(null);
@@ -74,7 +75,6 @@ export class PrivacyPage {
   readonly counts = signal<PrivacyCounts | null>(null);
   readonly countsFailed = signal(false);
   readonly exporting = signal(false);
-  readonly activeSection = signal(SECTIONS[0].id);
 
   /** Controlador com algum dado de identificação preenchido. */
   readonly hasControllerData = !!(this.controller.legalName || this.controller.cnpj || this.controller.address);
@@ -110,30 +110,25 @@ export class PrivacyPage {
     return `${MONTHS_LONG[date.getMonth()]} de ${date.getFullYear()}`;
   });
 
-  readonly dpoMailto = computed(() => {
-    const email = this.controller.dpoEmail;
-    if (!email) return null;
-    const subject = encodeURIComponent('Pedido sobre meus dados pessoais (LGPD)');
-    return `mailto:${email}?subject=${subject}`;
-  });
+  readonly dpoMailto = mailtoLink(COMPANY.dpoEmail, 'Pedido sobre meus dados pessoais (LGPD)');
 
-  private observer?: IntersectionObserver;
+  readonly index = new LegalIndex(this.host.nativeElement, () => this.content(), SECTIONS[0].id);
 
   constructor() {
     const destroyRef = inject(DestroyRef);
     const stopAuth = onAuthUserChanged(user => this.bindUser(user));
     destroyRef.onDestroy(() => {
       stopAuth();
-      this.observer?.disconnect();
+      this.index.stop();
     });
   }
 
   ionViewDidEnter() {
-    this.watchSections();
+    this.index.watch(SECTIONS.map(s => s.id));
   }
 
   ionViewWillLeave() {
-    this.observer?.disconnect();
+    this.index.stop();
   }
 
   private bindUser(user: User | null) {
@@ -152,51 +147,6 @@ export class PrivacyPage {
         console.error('Privacidade: falha ao contar dados', err);
         this.countsFailed.set(true);
       });
-  }
-
-  /** Índice acompanha a seção que está na tela (só aparece fixo no computador). */
-  private watchSections() {
-    this.observer?.disconnect();
-    // Faixa de leitura = terço de cima da tela. Quando o fim de uma seção e o
-    // começo da seguinte dividem a faixa, vale a seguinte (a que está chegando).
-    const visible = new Set<string>();
-    this.observer = new IntersectionObserver(entries => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) visible.add(entry.target.id);
-        else visible.delete(entry.target.id);
-      }
-      const current = [...SECTIONS].reverse().find(s => visible.has(s.id));
-      if (current && current.id !== this.activeSection()) {
-        this.activeSection.set(current.id);
-        this.revealChip(current.id);
-      }
-    }, { rootMargin: '0px 0px -65% 0px' });
-
-    for (const section of SECTIONS) {
-      const el = this.host.nativeElement.querySelector(`#${section.id}`);
-      if (el) this.observer.observe(el);
-    }
-  }
-
-  /** No celular o índice é uma fila de chips: traz o chip da seção atual para a vista. */
-  private revealChip(id: string) {
-    const list = this.host.nativeElement.querySelector('.pv-index ol') as HTMLElement | null;
-    const chip = list?.querySelector(`[data-section="${id}"]`) as HTMLElement | null;
-    if (!list || !chip || list.scrollWidth <= list.clientWidth) return;
-    list.scrollTo({ left: chip.offsetLeft - (list.clientWidth - chip.offsetWidth) / 2, behavior: 'smooth' });
-  }
-
-  /** `scrollIntoView` não alcança o scroll do ion-content; o deslocamento respeita o `scroll-margin-top` da seção. */
-  async goTo(id: string) {
-    this.activeSection.set(id);
-    this.revealChip(id);
-    const target = this.host.nativeElement.querySelector(`#${id}`) as HTMLElement | null;
-    if (!target) return;
-    const scroller = await this.content().getScrollElement();
-    const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
-    const delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - margin;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    await this.content().scrollByPoint(0, delta, reduce ? 0 : 400);
   }
 
   async downloadMyData() {
@@ -223,12 +173,6 @@ export class PrivacyPage {
     const toast = await this.toastCtrl.create({ message, duration: 3200, position: 'top', color: 'dark' });
     await toast.present();
   }
-}
-
-/** "2026-10-05" → "5 de outubro de 2026". */
-function formatLongDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  return `${d} de ${MONTHS_LONG[m - 1]} de ${y}`;
 }
 
 /** Mostra só os dois últimos dígitos: •••.•••.•••-45. */

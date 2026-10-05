@@ -1,0 +1,125 @@
+/*
+ * Termos e políticas
+ * ----------------------------------------------------------------------------
+ * Base visual em theme/_vn-legal.scss (a mesma de Privacidade e dados). Aqui
+ * só o que é desta página: as abas dos documentos no topo, os passos
+ * numerados (compra, devolução) e os chips de itens proibidos.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+@use '../../../theme/vn-legal' as lg;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(1080px);
+@include vc.desktop-header(1080px);
+@include vc.reduced-motion;
+@include lg.page;
+
+$wide: lg.$wide;
+
+/* Referência de posição para trazer a aba ativa à vista no celular. */
+.pg-tabs { position: relative; }
+
+/* Privacidade tem tela própria: a aba é um link, com a seta indicando que sai daqui. */
+.tm-tab-link {
+  text-decoration: none;
+
+  vn-icon { font-size: 15px; opacity: 0.8; }
+}
+
+/* Passo a passo: número azul-noite com miolo lima, ligado por um fio. */
+.tm-steps {
+  display: grid;
+  gap: 0;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+
+  li {
+    position: relative;
+    padding: 0 0 18px 46px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--vc-ink-2);
+    counter-increment: step;
+
+    &::before {
+      content: counter(step);
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--vc-navy);
+      color: var(--vc-neon);
+      font-size: 13.5px;
+      font-weight: 800;
+    }
+
+    /* Fio entre um passo e o próximo. */
+    &:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 34px;
+      bottom: 4px;
+      left: 14px;
+      width: 2px;
+      border-radius: 2px;
+      background: var(--vc-line);
+    }
+
+    &:last-child { padding-bottom: 0; }
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 15px;
+    color: var(--vc-ink);
+  }
+}
+
+/* Itens proibidos: etiquetas, para ler de relance. */
+.tm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 14px 0 12px;
+    border-radius: 999px;
+    background: var(--vc-ground);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--vc-ink);
+
+    /* Marca de "proibido": traço sobre círculo, em azul-noite. */
+    &::before {
+      content: '';
+      flex: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, transparent 44%, var(--vc-navy) 44% 56%, transparent 56%);
+      box-shadow: inset 0 0 0 2px var(--vc-navy);
+    }
+  }
+}
+
+.lg-btn--outline { margin-top: 4px; }
+
+@media (min-width: $wide) {
+  .tm-steps li { padding-left: 50px; }
+}

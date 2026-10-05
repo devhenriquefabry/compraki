@@ -1,0 +1,498 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Termos e políticas</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+
+  <nav class="pg-tabs" aria-label="Documentos">
+    @for (d of docs; track d.id) {
+      <button type="button" class="pg-tab" [class.is-active]="tab() === d.id"
+              [attr.aria-pressed]="tab() === d.id" (click)="showTab(d.id)">{{ d.tab }}</button>
+    }
+    <a class="pg-tab tm-tab-link" routerLink="/privacy">Privacidade <vn-icon name="chevron" /></a>
+  </nav>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="lg">
+
+    <!-- ============================== ABERTURA ============================== -->
+    <section class="lg-hero" aria-labelledby="tm-hero-title">
+      <span class="lg-hero-mark" aria-hidden="true"><vn-icon name="doc" /></span>
+      <p class="lg-eyebrow">{{ doc().eyebrow }}</p>
+      <h2 id="tm-hero-title">{{ doc().title }}</h2>
+      <p class="lg-hero-lead">{{ doc().lead }}</p>
+      <p class="lg-hero-date">Atualizados em {{ updatedLabel }}</p>
+
+      <ul class="lg-promises">
+        @for (item of doc().summary; track item) {
+          <li><vn-icon name="check" /><span>{{ item }}</span></li>
+        }
+      </ul>
+    </section>
+
+    <div class="lg-layout">
+      <!-- ============================== ÍNDICE ============================== -->
+      <nav class="lg-index" aria-label="Nesta página">
+        <p class="lg-index-title">Nesta página</p>
+        <ol>
+          @for (s of doc().sections; track s.id; let i = $index) {
+            <li>
+              <button type="button" [attr.data-section]="s.id" [class.is-active]="index.active() === s.id"
+                      [attr.aria-current]="index.active() === s.id ? 'location' : null" (click)="index.goTo(s.id)">
+                <span class="lg-index-n">{{ i + 1 }}</span>{{ s.title }}
+              </button>
+            </li>
+          }
+        </ol>
+      </nav>
+
+      <div class="lg-main">
+        @switch (tab()) {
+
+          <!-- ================================================================
+               TERMOS DE USO
+               ================================================================ -->
+          @case ('uso') {
+            <section class="lg-sec" id="u-quem" aria-labelledby="h-u-quem">
+              <h2 id="h-u-quem"><span class="lg-sec-n">1</span>O que é a Vineon</h2>
+              <p>
+                A Vineon é um marketplace: uma plataforma on-line onde lojas e pessoas (os <strong>vendedores</strong>) anunciam
+                produtos e onde quem compra (o <strong>comprador</strong>) encontra, paga e acompanha o pedido. A Vineon oferece a
+                vitrine, o pagamento por meio de parceiros autorizados, o cálculo e a etiqueta do frete e a conversa entre as partes.
+              </p>
+              <p>
+                Os produtos não pertencem à Vineon: cada um é anunciado, vendido e enviado pelo vendedor, que responde pelo que
+                anuncia. Isso não diminui os seus direitos de consumidor — a Vineon ajuda a resolver qualquer problema com o pedido
+                e responde nos termos do Código de Defesa do Consumidor.
+              </p>
+              <dl class="lg-kv">
+                @if (company.legalName) { <div><dt>Razão social</dt><dd>{{ company.legalName }}</dd></div> }
+                @if (company.cnpj) { <div><dt>CNPJ</dt><dd>{{ company.cnpj }}</dd></div> }
+                @if (company.address) { <div><dt>Endereço</dt><dd>{{ company.address }}</dd></div> }
+              </dl>
+            </section>
+
+            <section class="lg-sec" id="u-aceite" aria-labelledby="h-u-aceite">
+              <h2 id="h-u-aceite"><span class="lg-sec-n">2</span>Aceite e mudanças</h2>
+              <p>
+                Ao criar uma conta, anunciar ou fazer um pedido, você declara que leu e aceita estes Termos, a
+                <a routerLink="/terms" [queryParams]="{ aba: 'compras' }">Política de Trocas e Devoluções</a>,
+                as <a routerLink="/terms" [queryParams]="{ aba: 'vendedores' }">Regras para vender</a>
+                (se você vende) e a <a routerLink="/privacy">Política de Privacidade</a>.
+              </p>
+              <p>
+                Podemos atualizar estes textos quando o app mudar ou a lei exigir. Mudanças relevantes são avisadas na tela de avisos
+                do app antes de valerem, e a data no topo é atualizada. Pedidos já feitos seguem as regras da data da compra. Se não
+                concordar com a nova versão, você pode encerrar sua conta.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-conta" aria-labelledby="h-u-conta">
+              <h2 id="h-u-conta"><span class="lg-sec-n">3</span>Sua conta</h2>
+              <ul class="lg-list">
+                <li>A conta é para maiores de 18 anos com capacidade civil para comprar e vender.</li>
+                <li>Use dados verdadeiros e seus: nome, CPF, telefone e endereço. Eles são usados no pagamento, na nota fiscal e na entrega.</li>
+                <li>Cada pessoa tem uma conta. Não empreste, venda nem transfira a sua.</li>
+                <li>Guarde sua senha. O que for feito com a sua conta é de sua responsabilidade, salvo se você nos avisar de um acesso indevido.</li>
+                <li>Suspeitou de acesso que não foi seu? Troque a senha em Minha conta › Senha e segurança e fale com a gente.</li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="u-compra" aria-labelledby="h-u-compra">
+              <h2 id="h-u-compra"><span class="lg-sec-n">4</span>Como funciona uma compra</h2>
+              <ol class="tm-steps">
+                <li>
+                  <strong>Você vê tudo antes de pagar.</strong>
+                  Preço, frete, prazo estimado e total aparecem no checkout. O frete é calculado pelo Melhor Envio para o seu CEP.
+                </li>
+                <li>
+                  <strong>Você paga pela Vineon.</strong>
+                  Pix ou boleto (pelo Cora) vencem em 3 dias — sem pagamento até lá, o pedido não segue.
+                  Cartão de crédito é processado pelo Asaas.
+                </li>
+                <li>
+                  <strong>A loja prepara e posta.</strong>
+                  Com o pagamento confirmado, o vendedor tem até 2 dias úteis para postar. A previsão de entrega soma esse prazo ao da transportadora.
+                </li>
+                <li>
+                  <strong>Você acompanha e confirma.</strong>
+                  O andamento e o código de rastreio ficam em Minhas compras. Quando chegar, confirme o recebimento.
+                </li>
+              </ol>
+              <p>
+                Um pedido pode ter produtos de mais de uma loja; cada loja envia a sua parte. A nota fiscal (ou declaração de
+                conteúdo, quando a loja é dispensada de nota) é emitida pelo vendedor e fica disponível no pedido.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-retencao" aria-labelledby="h-u-retencao">
+              <h2 id="h-u-retencao"><span class="lg-sec-n">5</span>Pagamento protegido</h2>
+              <p>
+                O valor que você paga não vai direto para o vendedor. A Vineon o mantém <strong>retido por, no mínimo, 7 dias</strong>
+                depois da compra, enquanto o pedido anda. Se houver devolução aprovada ou o pedido não for entregue, o dinheiro volta
+                para você. Sem pendências, o valor é liberado ao vendedor, já descontada a taxa da Vineon.
+              </p>
+              <p class="lg-note">
+                <vn-icon name="shield" />
+                <span>
+                  Essa proteção só existe para pagamentos feitos dentro da Vineon. Se alguém pedir Pix, depósito ou pagamento "por fora",
+                  não pague e denuncie — é a forma mais comum de golpe.
+                </span>
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-precos" aria-labelledby="h-u-precos">
+              <h2 id="h-u-precos"><span class="lg-sec-n">6</span>Preços, ofertas e frete</h2>
+              <ul class="lg-list">
+                <li>O preço é definido pelo vendedor. O preço riscado só aparece quando há desconto de verdade sobre o preço anterior.</li>
+                <li>Vale o preço mostrado no momento em que você finaliza o pedido.</li>
+                <li>
+                  Se um anúncio tiver um erro de preço evidente (por exemplo, um celular por R$ 1), o pedido pode ser cancelado com
+                  devolução integral do que foi pago.
+                </li>
+                <li>
+                  Frete grátis: vale quando todos os produtos do pedido têm o selo. Se o pedido misturar produtos com e sem frete
+                  grátis, o frete do pacote é cobrado normalmente — o valor aparece antes de você pagar.
+                </li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="u-conversas" aria-labelledby="h-u-conversas">
+              <h2 id="h-u-conversas"><span class="lg-sec-n">7</span>Conversas e avaliações</h2>
+              <p>
+                O chat existe para tirar dúvidas sobre produtos e combinar detalhes do pedido. Trate todos com respeito. Não envie
+                dados sensíveis, não ofereça nem peça pagamento ou contato para fechar negócio fora da Vineon.
+              </p>
+              <p>
+                Só quem comprou e pagou pode avaliar um produto. A avaliação deve ser honesta e sobre a experiência real — sem ofensas,
+                dados pessoais, propaganda ou avaliação combinada. Avaliações aparecem com o primeiro nome e a inicial do sobrenome.
+                Podemos remover conversas, avaliações e conteúdos que violem estas regras.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-proibido" aria-labelledby="h-u-proibido">
+              <h2 id="h-u-proibido"><span class="lg-sec-n">8</span>O que não é permitido</h2>
+              <ul class="lg-list">
+                <li>Golpes e fraudes, inclusive pedir pagamento fora da Vineon ou usar cartão e dados de outra pessoa.</li>
+                <li>Perfil falso ou se passar por outra pessoa, loja ou marca.</li>
+                <li>Ameaça, assédio, discriminação, ofensa ou spam.</li>
+                <li>Anunciar produtos proibidos (veja as <a routerLink="/terms" [queryParams]="{ aba: 'vendedores' }">Regras para vender</a>).</li>
+                <li>Usar os dados de outros usuários para qualquer coisa além do pedido em questão.</li>
+                <li>Burlar o sistema: robôs, coleta automática de dados, avaliações falsas, tentar acessar o que não é seu.</li>
+                <li>Violar direitos autorais ou marcas de terceiros.</li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="u-moderacao" aria-labelledby="h-u-moderacao">
+              <h2 id="h-u-moderacao"><span class="lg-sec-n">9</span>Denúncias, moderação e suspensão</h2>
+              <p>
+                Qualquer pessoa pode denunciar um anúncio ou uma loja pelo link "Denunciar" na página do produto ou da loja. A equipe
+                da Vineon analisa cada denúncia. Títulos de anúncio também passam por um filtro automático de termos proibidos.
+              </p>
+              <p>Conforme a gravidade, a Vineon pode:</p>
+              <ul class="lg-list">
+                <li>tirar um anúncio do ar;</li>
+                <li>bloquear o uso do chat;</li>
+                <li>suspender a conta — o acesso é bloqueado e todos os anúncios saem do ar.</li>
+              </ul>
+              <p>
+                Pedidos já pagos de uma conta suspensa são acompanhados pela Vineon para que o comprador receba o produto ou o
+                dinheiro de volta. Se você discordar de uma medida, inclusive de um bloqueio feito pelo filtro automático, peça
+                revisão pelo nosso contato; uma pessoa da equipe vai analisar.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-responsabilidades" aria-labelledby="h-u-responsabilidades">
+              <h2 id="h-u-responsabilidades"><span class="lg-sec-n">10</span>Responsabilidades</h2>
+              <div class="lg-cards">
+                <article class="lg-card">
+                  <h3><vn-icon name="store" />Vendedor</h3>
+                  <ul>
+                    <li>O produto, o anúncio fiel e o estoque.</li>
+                    <li>Postar no prazo, bem embalado.</li>
+                    <li>Nota fiscal e obrigações fiscais da venda.</li>
+                    <li>Trocas, devoluções e garantia legal.</li>
+                  </ul>
+                </article>
+                <article class="lg-card">
+                  <h3><vn-icon name="bag" />Comprador</h3>
+                  <ul>
+                    <li>Dados e endereço corretos.</li>
+                    <li>Pagar dentro do prazo.</li>
+                    <li>Conferir o produto ao receber e avisar se houver problema.</li>
+                  </ul>
+                </article>
+                <article class="lg-card">
+                  <h3><vn-icon name="shield" />Vineon</h3>
+                  <ul>
+                    <li>Manter a plataforma funcionando e segura.</li>
+                    <li>Receber e reter o pagamento com os parceiros.</li>
+                    <li>Mediar problemas e devolver o dinheiro quando for o caso.</li>
+                    <li>Agir contra anúncios e contas irregulares.</li>
+                  </ul>
+                </article>
+              </div>
+              <p>
+                O app pode ficar fora do ar por manutenção ou falha técnica; trabalhamos para que isso seja raro e curto. Nada
+                nestes termos exclui responsabilidades que a lei não permite excluir.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-marca" aria-labelledby="h-u-marca">
+              <h2 id="h-u-marca"><span class="lg-sec-n">11</span>Marca e conteúdo</h2>
+              <p>
+                O nome Vineon, o logotipo, o visual e o código do app pertencem à Vineon e não podem ser usados sem autorização.
+                Fotos e textos dos anúncios pertencem a quem os criou. Ao publicar, o vendedor garante ter direito sobre esse
+                conteúdo e autoriza a Vineon a exibi-lo no app e a usá-lo para divulgar o próprio anúncio.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-encerrar" aria-labelledby="h-u-encerrar">
+              <h2 id="h-u-encerrar"><span class="lg-sec-n">12</span>Encerrar a conta</h2>
+              <p>
+                Você pode encerrar sua conta quando quiser, pedindo pelo nosso contato. Pedidos em andamento precisam ser concluídos
+                antes. Depois do encerramento, os dados são apagados ou anonimizados, exceto o que a lei manda guardar, como explica a
+                <a routerLink="/privacy">Política de Privacidade</a>. A Vineon pode encerrar contas que violem estes termos.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-foro" aria-labelledby="h-u-foro">
+              <h2 id="h-u-foro"><span class="lg-sec-n">13</span>Lei e foro</h2>
+              <p>
+                Estes termos seguem as leis brasileiras, entre elas o Código de Defesa do Consumidor, o Marco Civil da Internet e a
+                LGPD. Se você é consumidor, pode buscar seus direitos no foro da sua cidade. Nos demais casos, como entre a Vineon e um
+                vendedor, fica eleito o foro de {{ company.forum }}. Antes disso, fale com a gente: a maior parte dos problemas se
+                resolve por aqui.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="u-contato" aria-labelledby="h-u-contato">
+              <h2 id="h-u-contato"><span class="lg-sec-n">14</span>Fale com a Vineon</h2>
+              <p>Dúvidas, reclamações, pedidos de revisão ou de encerramento de conta:</p>
+              <dl class="lg-kv">
+                @if (company.supportEmail) { <div><dt>E-mail</dt><dd>{{ company.supportEmail }}</dd></div> }
+                @if (company.address) { <div><dt>Endereço</dt><dd>{{ company.address }}</dd></div> }
+              </dl>
+              @if (supportMailto; as mailto) {
+                <a class="lg-btn lg-btn--lime" [href]="mailto"><vn-icon name="mail" />Escrever para a Vineon</a>
+              }
+            </section>
+          }
+
+          <!-- ================================================================
+               COMPRAS E DEVOLUÇÕES
+               ================================================================ -->
+          @case ('compras') {
+            <section class="lg-sec" id="c-arrependimento" aria-labelledby="h-c-arrependimento">
+              <h2 id="h-c-arrependimento"><span class="lg-sec-n">1</span>Desistência em 7 dias</h2>
+              <p>
+                Compras pela internet podem ser desfeitas em até <strong>7 dias corridos depois que você recebe o produto</strong>,
+                sem precisar dar motivo (art. 49 do Código de Defesa do Consumidor).
+              </p>
+              <ul class="lg-list">
+                <li>Devolva o produto com acessórios, manual e, se possível, a embalagem. Abrir para conferir é normal e não tira o direito.</li>
+                <li>Você recebe de volta tudo o que pagou, inclusive o frete de ida.</li>
+                <li>O envio de volta não tem custo para você: a Vineon passa as instruções e a etiqueta.</li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="c-defeito" aria-labelledby="h-c-defeito">
+              <h2 id="h-c-defeito"><span class="lg-sec-n">2</span>Defeito ou diferente do anúncio</h2>
+              <p>Chegou com defeito, quebrado, errado, faltando peça ou diferente do que o anúncio mostrava? Avise dentro destes prazos, contados do recebimento:</p>
+              <dl class="lg-kv lg-kv--wide">
+                <div><dt>Produtos não duráveis</dt><dd>30 dias (ex.: cosméticos, alimentos, itens de consumo).</dd></div>
+                <div><dt>Produtos duráveis</dt><dd>90 dias (ex.: eletrônicos, roupas, calçados, móveis).</dd></div>
+                <div><dt>Defeito que só aparece com o uso</dt><dd>Os mesmos prazos, contados a partir de quando o defeito aparece.</dd></div>
+              </dl>
+              <p>
+                O vendedor tem até 30 dias para resolver. Se não resolver, você escolhe: troca por outro igual, dinheiro de volta ou
+                desconto proporcional (art. 18 do CDC). Produto errado ou diferente do anúncio pode ser devolvido na hora, com reembolso integral.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="c-naochegou" aria-labelledby="h-c-naochegou">
+              <h2 id="h-c-naochegou"><span class="lg-sec-n">3</span>Pedido que não chegou</h2>
+              <p>
+                Passou a previsão de entrega e o rastreio não anda? Fale com o vendedor pelo chat do pedido e, se não resolver, com a
+                Vineon. Se o pedido se perder, for extraviado ou a loja não enviar, você recebe <strong>todo o valor de volta</strong>.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="c-como" aria-labelledby="h-c-como">
+              <h2 id="h-c-como"><span class="lg-sec-n">4</span>Como pedir a devolução</h2>
+              <ol class="tm-steps">
+                <li>
+                  <strong>Abra o pedido.</strong>
+                  Em Minhas compras, no pedido, toque em "Problema com o pedido? Solicitar devolução" e conte o que aconteceu.
+                  Se o botão não aparecer mais, escreva para a Vineon com o número do pedido — o seu direito continua valendo dentro dos prazos acima.
+                </li>
+                <li>
+                  <strong>A Vineon analisa.</strong>
+                  O pedido aparece em Devoluções e reembolsos, com o andamento. Podemos pedir fotos do produto e da embalagem.
+                </li>
+                <li>
+                  <strong>Você envia de volta.</strong>
+                  Com a devolução aprovada, você recebe as instruções de envio. Guarde o comprovante de postagem.
+                </li>
+                <li>
+                  <strong>O dinheiro volta.</strong>
+                  Quando o produto chega ao vendedor (ou logo após a aprovação, se não houver o que devolver), fazemos o estorno.
+                </li>
+              </ol>
+              @if (refundMailto; as mailto) {
+                <a class="lg-btn lg-btn--outline" [href]="mailto"><vn-icon name="mail" />Pedir devolução por e-mail</a>
+              }
+            </section>
+
+            <section class="lg-sec" id="c-reembolso" aria-labelledby="h-c-reembolso">
+              <h2 id="h-c-reembolso"><span class="lg-sec-n">5</span>Como o dinheiro volta</h2>
+              <dl class="lg-kv lg-kv--wide">
+                <div><dt>Cartão de crédito</dt><dd>Estorno no mesmo cartão, feito pelo Asaas. Pode aparecer na fatura atual ou na seguinte, conforme o banco emissor.</dd></div>
+                <div><dt>Pix ou boleto</dt><dd>Devolução por Pix para uma conta em nome de quem fez a compra.</dd></div>
+              </dl>
+              <p>O valor devolvido é o total pago no pedido (ou na parte devolvida), sem descontos de taxas.</p>
+            </section>
+
+            <section class="lg-sec" id="c-cancelar" aria-labelledby="h-c-cancelar">
+              <h2 id="h-c-cancelar"><span class="lg-sec-n">6</span>Cancelar antes do envio</h2>
+              <ul class="lg-list">
+                <li>Pix ou boleto ainda não pagos: não precisa fazer nada. Sem o pagamento até o vencimento (3 dias), o pedido não segue e nada é cobrado.</li>
+                <li>Pedido pago e ainda não postado: peça o cancelamento pelo chat da loja ou pelo nosso contato; você recebe tudo de volta.</li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="c-nao-cabe" aria-labelledby="h-c-nao-cabe">
+              <h2 id="h-c-nao-cabe"><span class="lg-sec-n">7</span>Quando não cabe devolução</h2>
+              <ul class="lg-list">
+                <li>Pedido feito depois dos prazos legais (7 dias para desistência; 30 ou 90 dias para defeito).</li>
+                <li>Dano causado por mau uso, acidente ou conserto feito por terceiros depois do recebimento.</li>
+                <li>Desgaste natural de uso, quando o produto funcionou como anunciado.</li>
+              </ul>
+              <p>Na dúvida, peça mesmo assim: a equipe analisa cada caso e explica a decisão.</p>
+            </section>
+
+            <section class="lg-sec" id="c-garantia" aria-labelledby="h-c-garantia">
+              <h2 id="h-c-garantia"><span class="lg-sec-n">8</span>Garantia do fabricante</h2>
+              <p>
+                Produtos com garantia do fabricante (por exemplo, eletrônicos com 1 ano) têm essa garantia somada à garantia legal.
+                Para acioná-la depois dos prazos acima, siga as instruções do fabricante ou da nota fiscal; a loja pode ajudar pelo chat.
+              </p>
+            </section>
+          }
+
+          <!-- ================================================================
+               PARA VENDEDORES
+               ================================================================ -->
+          @case ('vendedores') {
+            <section class="lg-sec" id="v-quem" aria-labelledby="h-v-quem">
+              <h2 id="h-v-quem"><span class="lg-sec-n">1</span>Quem pode vender</h2>
+              <p>
+                Qualquer conta da Vineon pode anunciar, desde que o titular seja maior de 18 anos e tenha os dados de cadastro
+                completos e verdadeiros (nome, CPF, telefone e endereço). Quem vende com frequência ou como empresa é responsável
+                pelas próprias obrigações fiscais, inclusive emitir nota fiscal das vendas.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="v-anuncios" aria-labelledby="h-v-anuncios">
+              <h2 id="h-v-anuncios"><span class="lg-sec-n">2</span>Anúncios</h2>
+              <ul class="lg-list">
+                <li>Anuncie só produtos que você tem e pode enviar; mantenha o estoque atualizado.</li>
+                <li>Descreva o produto como ele é: novo ou usado, marca, modelo, tamanho, defeitos e o que vem na caixa.</li>
+                <li>Use fotos do próprio produto ou que você tenha direito de usar.</li>
+                <li>O preço anunciado é o preço final do produto. Desconto só vale se o preço anterior era real.</li>
+                <li>Escolha a categoria certa. Ao anunciar a partir do Catálogo Vineon, confira se a ficha corresponde exatamente ao que você vende.</li>
+                <li>Não coloque telefone, links ou contatos no anúncio para levar a venda para fora da Vineon.</li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="v-proibidos" aria-labelledby="h-v-proibidos">
+              <h2 id="h-v-proibidos"><span class="lg-sec-n">3</span>Itens proibidos</h2>
+              <p>Não podem ser anunciados na Vineon:</p>
+              <div class="tm-chips" role="list">
+                <span role="listitem">Armas, munições e acessórios</span>
+                <span role="listitem">Drogas e substâncias ilícitas</span>
+                <span role="listitem">Medicamentos e produtos controlados</span>
+                <span role="listitem">Animais silvestres</span>
+                <span role="listitem">Falsificados, réplicas e piratas</span>
+                <span role="listitem">Produtos roubados ou de origem ilegal</span>
+                <span role="listitem">Documentos, contas e dados pessoais</span>
+                <span role="listitem">Conteúdo ofensivo ou impróprio</span>
+                <span role="listitem">Itens que exigem licença sem tê-la</span>
+                <span role="listitem">Qualquer produto proibido por lei</span>
+              </div>
+              <p>
+                Títulos com termos proibidos são barrados automaticamente, e anúncios irregulares saem do ar quando identificados ou
+                denunciados. Se achar que seu anúncio foi barrado por engano, peça revisão pelo nosso contato.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="v-envio" aria-labelledby="h-v-envio">
+              <h2 id="h-v-envio"><span class="lg-sec-n">4</span>Vendas e envio</h2>
+              <ul class="lg-list">
+                <li>Você é avisado de cada venda nova. Só envie depois que o pedido aparecer como pago em Minhas vendas.</li>
+                <li><strong>Prazo de postagem: até 2 dias úteis</strong> depois da confirmação do pagamento — é o prazo que o comprador vê na previsão de entrega.</li>
+                <li>Embale bem, use o serviço de frete escolhido no pedido e informe o código de rastreio ao marcar como enviado.</li>
+                <li>Anexe a nota fiscal (ou a declaração de conteúdo, quando dispensado de nota) na tela da venda.</li>
+                <li>Responda o comprador pelo chat sempre que ele precisar.</li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="v-taxa" aria-labelledby="h-v-taxa">
+              <h2 id="h-v-taxa"><span class="lg-sec-n">5</span>Taxa e repasse</h2>
+              <ul class="lg-list">
+                <li>
+                  A Vineon cobra uma <strong>taxa percentual sobre o valor dos produtos vendidos</strong>. O frete não entra na conta.
+                  Vale a taxa em vigor na data do pagamento de cada venda.
+                </li>
+                <li>Mudanças na taxa são avisadas antes de valer e nunca alteram vendas já pagas.</li>
+                <li>
+                  Repasse: depois do período de retenção (no mínimo 7 dias após a compra) e sem devolução pendente, a Vineon libera
+                  a você o valor dos produtos menos a taxa.
+                </li>
+                <li>Todo mês a Vineon emite a nota fiscal da taxa e envia por e-mail; ela também fica em Minha conta › Notas fiscais, com o resumo do mês.</li>
+              </ul>
+            </section>
+
+            <section class="lg-sec" id="v-devolucoes" aria-labelledby="h-v-devolucoes">
+              <h2 id="h-v-devolucoes"><span class="lg-sec-n">6</span>Devoluções e reclamações</h2>
+              <p>
+                O vendedor deve aceitar devoluções e trocas nos termos da
+                <a routerLink="/terms" [queryParams]="{ aba: 'compras' }">Política de Trocas e Devoluções</a>
+                e do Código de Defesa do Consumidor. Com a devolução aprovada, o valor da venda é estornado ao comprador e não é
+                repassado; o produto volta para você. Reclamações são mediadas pela Vineon, que pode pedir informações e provas às duas partes.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="v-dados" aria-labelledby="h-v-dados">
+              <h2 id="h-v-dados"><span class="lg-sec-n">7</span>Dados do comprador</h2>
+              <p>
+                Para entregar, você recebe nome, CPF, telefone, e-mail e endereço do comprador. Pela LGPD, você passa a responder pelo
+                uso desses dados e só pode usá-los para enviar, emitir nota e atender aquele pedido. É proibido usá-los para
+                propaganda, repassá-los a terceiros ou guardá-los além do necessário.
+              </p>
+            </section>
+
+            <section class="lg-sec" id="v-medidas" aria-labelledby="h-v-medidas">
+              <h2 id="h-v-medidas"><span class="lg-sec-n">8</span>Desempenho e medidas</h2>
+              <p>
+                Atrasos frequentes, pedidos não enviados, anúncios enganosos, denúncias procedentes ou qualquer violação destas regras
+                podem levar a advertência, retirada de anúncios, bloqueio do chat ou suspensão da conta. Pedidos em andamento continuam
+                sendo acompanhados para que nenhum comprador fique sem o produto ou sem o dinheiro.
+              </p>
+            </section>
+          }
+        }
+
+        <p class="lg-foot">
+          {{ company.legalName || company.brand }}
+          @if (company.cnpj) { · CNPJ {{ company.cnpj }} }
+          · versão de {{ updatedLabel }}
+        </p>
+      </div>
+    </div>
+  </div>
+</ion-content>

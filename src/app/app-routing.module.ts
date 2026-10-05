@@ -44,6 +44,11 @@ const routes: Routes = [
     loadComponent: () => import('./pages/privacy/privacy.page').then(m => m.PrivacyPage)
   },
   {
+    // Termos de uso, trocas e devoluções e regras para vender. Aberta, como a privacidade.
+    path: 'terms',
+    loadComponent: () => import('./pages/terms/terms.page').then(m => m.TermsPage)
+  },
+  {
     path: 'product-details/:id',
     loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage),
     data: { preload: true },
