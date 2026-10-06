@@ -14,8 +14,11 @@ service firebase.storage {
     }
 
     // Mesma fonte de verdade do firestore.rules: so o custom claim `admin`.
+    // `get` com padrao: quem nao e admin nao tem o campo no token, e ler
+    // `token.admin` direto dava erro ("Property admin is undefined") e
+    // derrubava a regra inteira em consultas como "minhas vendas".
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn() && request.auth.token.get('admin', false) == true;
     }
 
     function isImage() {

@@ -29,8 +29,11 @@ service cloud.firestore {
     }
 
     // Somente custom claim. Ver functions/src/admin-claims.ts para atribuir.
+    // `get` com padrao: quem nao e admin nao tem o campo no token, e ler
+    // `token.admin` direto dava erro ("Property admin is undefined") e
+    // derrubava a regra inteira em consultas como "minhas vendas".
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn() && request.auth.token.get('admin', false) == true;
     }
 
     // Campos que definem privilegio ou punicao: so admin encosta.
@@ -264,11 +267,13 @@ service cloud.firestore {
     // ---------------------------------------------------------------- chats
 
     match /chats/{chatId} {
+      // `get` com padrao em vez de ler o campo direto: numa consulta ("minhas
+      // conversas") o motor nao conhece os outros campos, e um campo ausente
+      // dava erro e derrubava a regra inteira.
       allow read: if isAdmin() || (isSignedIn() && (
-        (resource.data.participantIds is list
-          && request.auth.uid in resource.data.participantIds) ||
-        request.auth.uid == resource.data.buyerId ||
-        request.auth.uid == resource.data.sellerId
+        request.auth.uid in resource.data.get('participantIds', []) ||
+        request.auth.uid == resource.data.get('buyerId', null) ||
+        request.auth.uid == resource.data.get('sellerId', null)
       ));
 
       // Quem cria precisa estar dentro da propria conversa.
@@ -357,10 +362,12 @@ service cloud.firestore {
           && after.requestedAt == request.time;
       }
 
+      // `get` com padrao: na consulta "minhas vendas" (sellerIds contem eu) o
+      // motor nao conhece `userId`, e ler o campo direto dava erro e negava a
+      // lista inteira.
       allow read: if isAdmin() || (isSignedIn() && (
-        request.auth.uid == resource.data.userId ||
-        (resource.data.sellerIds is list
-          && request.auth.uid in resource.data.sellerIds)
+        request.auth.uid == resource.data.get('userId', null) ||
+        request.auth.uid in resource.data.get('sellerIds', [])
       ));
 
       // O pedido nasce esperando pagamento e com o valor retido. Quem diz que
