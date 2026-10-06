@@ -26,6 +26,8 @@ export { onProductReviewWritten } from './reviews';
 
 export { moderateProductName, onStorefrontConfigWritten, setAccountSuspension } from './moderation';
 
+export { deleteMyAccount } from './account-deletion';
+
 export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
 
 export { onSellerInvoiceWritten } from './seller-invoices';

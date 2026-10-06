@@ -733,14 +733,14 @@ export const HELP_TOPICS: HelpTopic[] = [
         a: [
           {
             t: 'p',
-            text: 'O botão de exclusão ainda não está no app. Por enquanto, peça pelo e-mail da Vineon. Pedidos em andamento precisam ser concluídos antes.',
+            text: 'Em **Minha conta › Dados pessoais**, no fim da tela, toque em **Excluir conta**. O app mostra o que será apagado e o que fica guardado por lei, e pede sua senha (ou o Google) para confirmar. Compras e vendas em andamento precisam ser concluídas antes.',
           },
           {
             t: 'p',
             text: 'Depois do encerramento, os dados são apagados ou anonimizados — exceto o que a lei manda guardar, como explica a Política de Privacidade.',
           },
         ],
-        links: [{ label: 'Política de Privacidade', route: '/privacy' }],
+        links: [{ label: 'Excluir conta', route: '/account/delete' }, { label: 'Política de Privacidade', route: '/privacy' }],
       },
     ],
   },

@@ -401,14 +401,17 @@
           <span class="acc-soon">Em breve</span>
         </button>
 
-        <button type="button" class="acc-row ed-row is-soon is-danger" (click)="soon('Excluir conta')">
-          <span class="acc-row-icon"><vn-icon name="trash" /></span>
-          <span class="acc-row-text">
-            <strong>Excluir conta</strong>
-            <small>Apaga seus dados, anúncios e histórico</small>
-          </span>
-          <span class="acc-soon">Em breve</span>
-        </button>
+        <!-- Admin não exclui a conta pelo app: levaria junto o acesso à gestão. -->
+        @if (!isAdmin()) {
+          <a class="acc-row ed-row is-danger" routerLink="/account/delete">
+            <span class="acc-row-icon"><vn-icon name="trash" /></span>
+            <span class="acc-row-text">
+              <strong>Excluir conta</strong>
+              <small>Apaga seus dados e anúncios; pedidos ficam pelo prazo da lei</small>
+            </span>
+            <vn-icon class="acc-row-go" name="chevron" />
+          </a>
+        }
       </section>
     </div>
   }

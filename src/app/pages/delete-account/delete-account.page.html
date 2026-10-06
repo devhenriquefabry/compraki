@@ -1,0 +1,145 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Excluir conta</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap da">
+
+    @switch (view()) {
+      @case ('loading') {
+        <div class="sheet" aria-busy="true" aria-label="Conferindo sua conta">
+          <div class="sk sk-line sk-w40"></div>
+          <div class="sk sk-panel da-sk"></div>
+          <div class="sk sk-line sk-w80"></div>
+          <div class="sk sk-line sk-w80"></div>
+        </div>
+      }
+
+      @case ('failed') {
+        <section class="pg-empty">
+          <span class="pg-empty-mark" aria-hidden="true"><vn-icon name="close" /></span>
+          <h2>Não deu para conferir sua conta</h2>
+          <p>{{ error() }}</p>
+          <button type="button" class="btn btn--primary" (click)="load()">Tentar de novo</button>
+        </section>
+      }
+
+      @case ('admin') {
+        <section class="pg-empty">
+          <span class="pg-empty-mark" aria-hidden="true"><vn-icon name="lock" /></span>
+          <h2>Conta de administrador</h2>
+          <p>
+            Contas de administrador não podem ser excluídas pelo app, para não levar junto o acesso à gestão da loja.
+            Se precisar, primeiro tire o acesso de administrador desta conta.
+          </p>
+          <a class="btn btn--outline" routerLink="/tabs/my-account">Voltar para Minha conta</a>
+        </section>
+      }
+
+      @default {
+        <!-- ============================ AVISO ============================ -->
+        <section class="da-warn" aria-labelledby="da-warn-title">
+          <span class="da-warn-mark" aria-hidden="true"><vn-icon name="trash" /></span>
+          <div>
+            <h2 id="da-warn-title">Excluir é definitivo</h2>
+            <p>Seu login deixa de existir e não dá para recuperar a conta depois. Se quiser voltar, vai precisar criar outra.</p>
+          </div>
+        </section>
+
+        <!-- ======================= O QUE FALTA TERMINAR ======================= -->
+        @if (blockers().length) {
+          <section class="sheet da-block" aria-labelledby="da-block-title">
+            <h2 class="sheet-title" id="da-block-title">Antes, termine estes pedidos</h2>
+            <p class="da-lead">
+              Enquanto houver compra ou venda em andamento, a conta não pode ser excluída — é o que garante a entrega,
+              a devolução e o repasse para todo mundo.
+            </p>
+            <ul class="da-orders">
+              @for (b of blockers(); track b.orderId + b.kind) {
+                <li>
+                  <a [routerLink]="orderLink(b)">
+                    <span class="da-order-kind">{{ b.kind === 'sale' ? 'Venda' : 'Compra' }} #{{ shortId(b.orderId) }}</span>
+                    <span class="da-order-why">{{ b.reason }}</span>
+                    <vn-icon name="chevron" />
+                  </a>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <!-- =========================== APAGADO =========================== -->
+        <section class="sheet" aria-labelledby="da-del-title">
+          <h2 class="sheet-title" id="da-del-title">O que será apagado</h2>
+          <ul class="da-lines">
+            @for (line of deleted(); track line.text) {
+              <li><vn-icon [name]="line.icon" /><span>{{ line.text }}</span></li>
+            }
+          </ul>
+        </section>
+
+        <!-- ============================ FICA ============================ -->
+        @if (kept().length) {
+          <section class="sheet" aria-labelledby="da-keep-title">
+            <h2 class="sheet-title" id="da-keep-title">O que fica guardado</h2>
+            <ul class="da-lines da-lines--kept">
+              @for (line of kept(); track line.text) {
+                <li><vn-icon [name]="line.icon" /><span>{{ line.text }}</span></li>
+              }
+            </ul>
+            <p class="da-note">
+              Nada disso fica ligado ao seu nome na vitrine. Os detalhes estão na
+              <a routerLink="/privacy">Política de Privacidade</a>.
+            </p>
+          </section>
+        }
+
+        <a class="da-export" routerLink="/privacy">
+          <vn-icon name="download" />
+          <span><strong>Quer uma cópia antes?</strong> Baixe seus dados em Privacidade e dados.</span>
+          <vn-icon name="chevron" />
+        </a>
+
+        <!-- ========================== CONFIRMAR ========================== -->
+        @if (!blockers().length) {
+          <section class="sheet da-confirm" aria-labelledby="da-confirm-title">
+            <h2 class="sheet-title" id="da-confirm-title">Confirmar exclusão</h2>
+
+            <label class="da-check">
+              <input type="checkbox" [checked]="understood()" (change)="understood.set(!understood())"
+                     [disabled]="view() === 'deleting'">
+              <span>Entendo que a exclusão é definitiva e não pode ser desfeita.</span>
+            </label>
+
+            @if (methods().password) {
+              <label class="da-label" for="da-password">Sua senha</label>
+              <input id="da-password" class="da-input" type="password" autocomplete="current-password"
+                     [ngModel]="password()" (ngModelChange)="password.set($event)" [disabled]="view() === 'deleting'"
+                     (keyup.enter)="confirmDelete()">
+              <button type="button" class="da-btn" (click)="confirmDelete()"
+                      [disabled]="!understood() || !password() || view() === 'deleting'">
+                {{ view() === 'deleting' ? 'Excluindo…' : 'Excluir minha conta' }}
+              </button>
+              @if (methods().google) {
+                <button type="button" class="da-alt" (click)="confirmDelete(true)" [disabled]="!understood() || view() === 'deleting'">
+                  Confirmar com o Google em vez da senha
+                </button>
+              }
+            } @else {
+              <p class="da-lead">Para confirmar que é você, entre de novo com a sua conta do Google.</p>
+              <button type="button" class="da-btn" (click)="confirmDelete(true)" [disabled]="!understood() || view() === 'deleting'">
+                {{ view() === 'deleting' ? 'Excluindo…' : 'Confirmar com o Google e excluir' }}
+              </button>
+            }
+          </section>
+        }
+      }
+    }
+  </div>
+</ion-content>

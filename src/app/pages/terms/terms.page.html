@@ -255,8 +255,9 @@
             <section class="lg-sec" id="u-encerrar" aria-labelledby="h-u-encerrar">
               <h2 id="h-u-encerrar"><span class="lg-sec-n">12</span>Encerrar a conta</h2>
               <p>
-                Você pode encerrar sua conta quando quiser, pedindo pelo nosso contato. Pedidos em andamento precisam ser concluídos
-                antes. Depois do encerramento, os dados são apagados ou anonimizados, exceto o que a lei manda guardar, como explica a
+                Você pode excluir sua conta quando quiser, em Minha conta › Dados pessoais ›
+                <a routerLink="/account/delete">Excluir conta</a>. Compras e vendas em andamento precisam ser concluídas antes. Depois
+                da exclusão, os dados são apagados ou anonimizados, exceto o que a lei manda guardar, como explica a
                 <a routerLink="/privacy">Política de Privacidade</a>. A Vineon pode encerrar contas que violem estes termos.
               </p>
             </section>
@@ -273,7 +274,7 @@
 
             <section class="lg-sec" id="u-contato" aria-labelledby="h-u-contato">
               <h2 id="h-u-contato"><span class="lg-sec-n">14</span>Fale com a Vineon</h2>
-              <p>Dúvidas, reclamações, pedidos de revisão ou de encerramento de conta:</p>
+              <p>Dúvidas, reclamações e pedidos de revisão:</p>
               <dl class="lg-kv">
                 @if (company.supportEmail) { <div><dt>E-mail</dt><dd>{{ company.supportEmail }}</dd></div> }
                 @if (company.address) { <div><dt>Endereço</dt><dd>{{ company.address }}</dd></div> }

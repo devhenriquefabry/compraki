@@ -36,7 +36,7 @@ export const COMPANY = {
  * Datas das versões (AAAA-MM-DD). Trocar sempre que o texto mudar de forma
  * relevante — e avisar quem tem conta.
  */
-export const PRIVACY_POLICY_UPDATED = '2026-10-05';
+export const PRIVACY_POLICY_UPDATED = '2026-10-06';
 export const TERMS_UPDATED = '2026-10-06';
 
 /** "2026-10-05" → "5 de outubro de 2026". */

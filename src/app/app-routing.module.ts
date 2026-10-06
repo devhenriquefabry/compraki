@@ -44,6 +44,12 @@ const routes: Routes = [
     loadComponent: () => import('./pages/privacy/privacy.page').then(m => m.PrivacyPage)
   },
   {
+    // Excluir conta (LGPD). O servidor recusa conta de admin; a tela também.
+    path: 'account/delete',
+    loadComponent: () => import('./pages/delete-account/delete-account.page').then(m => m.DeleteAccountPage),
+    canActivate: [authGuard]
+  },
+  {
     // Termos de uso, trocas e devoluções e regras para vender. Aberta, como a privacidade.
     path: 'terms',
     loadComponent: () => import('./pages/terms/terms.page').then(m => m.TermsPage)

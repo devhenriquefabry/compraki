@@ -1,0 +1,213 @@
+/*
+ * Excluir conta
+ * ----------------------------------------------------------------------------
+ * Mesma casca das telas de conta (topo azul-noite, folhas brancas). O aviso e
+ * o botão final usam ferrugem — é a única ação destrutiva sem volta do app.
+ * Lima não aparece aqui de propósito.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(640px);
+@include vc.desktop-header(640px);
+@include vc.empty;
+@include vc.skeleton;
+@include vc.sheet;
+@include vc.buttons;
+@include vc.reduced-motion;
+
+.da { padding-top: 12px; }
+
+.da-sk { margin: 12px 0; }
+
+.pg-empty-mark vn-icon { font-size: 32px; }
+
+/* Aviso de topo. */
+.da-warn {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #FDF1EB;
+  color: var(--vc-ink-2);
+
+  h2 {
+    margin: 0 0 4px;
+    font-family: var(--vc-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--vc-rust);
+  }
+
+  p { margin: 0; font-size: 14px; line-height: 1.5; }
+}
+
+.da-warn-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--vc-rust);
+  color: #fff;
+  font-size: 21px;
+}
+
+.da-lead {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vc-ink-2);
+}
+
+/* Pedidos que impedem a exclusão. */
+.da-block { box-shadow: inset 0 0 0 2px #F3C9B5, 0 1px 2px rgba(11, 22, 35, 0.07); }
+
+.da-orders {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li + li { border-top: 1px solid var(--vc-line); }
+
+  a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2px 10px;
+    min-height: 52px;
+    padding: 8px 0;
+    color: var(--vc-ink);
+    text-decoration: none;
+
+    vn-icon { grid-row: 1 / 3; grid-column: 2; font-size: 18px; color: var(--vc-muted); }
+  }
+}
+
+.da-order-kind { font-size: 14.5px; font-weight: 800; }
+.da-order-why { font-size: 13px; color: var(--vc-rust); font-weight: 700; }
+
+/* Listas "apagado" e "fica". */
+.da-lines {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--vc-ink-2);
+  }
+
+  vn-icon { flex: none; margin-top: 1px; font-size: 19px; color: var(--vc-ink); }
+}
+
+.da-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vc-muted);
+
+  a { color: var(--vc-ink); font-weight: 700; }
+}
+
+/* Atalho para baixar os dados antes. */
+.da-export {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
+  color: var(--vc-ink-2);
+  font-size: 14px;
+  line-height: 1.4;
+  text-decoration: none;
+
+  strong { color: var(--vc-ink); }
+  span { flex: 1; }
+  vn-icon { flex: none; font-size: 20px; color: var(--vc-ink); }
+}
+
+/* Confirmação. */
+.da-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--vc-ink);
+  cursor: pointer;
+
+  input {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin: 1px 0 0;
+    accent-color: var(--vc-rust);
+  }
+}
+
+.da-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--vc-ink-2);
+}
+
+.da-input {
+  width: 100%;
+  height: 46px;
+  margin-bottom: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vc-ground);
+  box-shadow: inset 0 0 0 1px var(--vc-line);
+  font: 600 15px var(--vc-body);
+  color: var(--vc-ink);
+
+  &:focus { outline: none; box-shadow: inset 0 0 0 2px var(--vc-navy); }
+}
+
+.da-btn {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  background: var(--vc-rust) !important;
+  color: #fff !important;
+  font-family: var(--vc-body);
+  font-size: 15.5px;
+  font-weight: 800;
+
+  &:disabled { opacity: 0.45; }
+}
+
+.da-alt {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--vc-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:disabled { opacity: 0.5; }
+}

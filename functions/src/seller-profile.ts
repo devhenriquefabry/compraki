@@ -95,7 +95,16 @@ export const syncSellerProfile = onDocumentWritten(
       return;
     }
 
-    await sellerRef.set(buildPublicProfile(afterData), { merge: true });
+    // Gatilhos podem chegar fora de ordem: um evento antigo processado depois
+    // da exclusão da conta recriaria o perfil público. Relê o cadastro e só
+    // espelha se ele ainda existe.
+    const current = await getFirestore().doc(`users/${uid}`).get();
+    if (!current.exists) {
+      await sellerRef.delete().catch(() => undefined);
+      return;
+    }
+
+    await sellerRef.set(buildPublicProfile(current.data() ?? afterData), { merge: true });
     logger.debug('Perfil público sincronizado', { uid });
   }
 );
