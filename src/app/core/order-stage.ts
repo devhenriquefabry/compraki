@@ -136,13 +136,64 @@ export function productIdOf(item: CartItem): string | null {
   return item.productId || item.productData?.id || null;
 }
 
-/** Até quando a devolução ainda pode ser pedida (fim da retenção de 7 dias). */
+// ---------------------------------------------- desistência e retenção (CDC)
+
+/**
+ * Prazo de desistência de compra feita pela internet: 7 dias corridos
+ * contados do RECEBIMENTO do produto (CDC, art. 49). Não da compra.
+ */
+export const RETURN_WINDOW_DAYS = 7;
+
+/**
+ * Quando o comprador recebeu o pedido, ou `null` se ainda não chegou.
+ *
+ * Há dois registros: a loja marca "entregue" (`deliveredAt`) e o comprador
+ * confirma (`deliveryConfirmedAt`). Com os dois, vale o mais tardio — na
+ * dúvida, o prazo corre a favor do consumidor. Pedido marcado como entregue
+ * sem nenhuma data (anterior a esses campos) usa a última atualização.
+ */
+export function receivedAt(order: Order): Date | null {
+  const dates = [toDate(order.deliveredAt), toDate(order.deliveryConfirmedAt)].filter((d): d is Date => !!d);
+  if (dates.length) return new Date(Math.max(...dates.map(d => d.getTime())));
+  if (order.status === 'DELIVERED' || order.shipmentStatus === 'DELIVERED') return toDate(order.updatedAt);
+  return null;
+}
+
+/**
+ * Último instante para desistir: fim do 7º dia corrido depois do recebimento
+ * (o dia da entrega não conta, o último conta inteiro). `null` enquanto o
+ * pedido não chegou — aí o prazo nem começou.
+ */
+export function returnDeadline(order: Order): Date | null {
+  const received = receivedAt(order);
+  if (!received) return null;
+  const end = new Date(received);
+  end.setDate(end.getDate() + RETURN_WINDOW_DAYS);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
+/**
+ * A partir de quando o valor pode ser liberado à loja: o fim do prazo de
+ * desistência. Antes da entrega não há data — o dinheiro fica retido.
+ *
+ * `escrowInfo.releaseDate` (compra + 7 dias, gravado no checkout) ficou só
+ * para ordenar a lista do admin; não decide mais nada.
+ */
+export const escrowReleaseDate = returnDeadline;
+
+/**
+ * Se o comprador ainda pode pedir devolução pelo app: pedido pago, sem pedido
+ * de devolução aberto, com o valor retido, e — se já chegou — dentro dos 7
+ * dias do recebimento. Antes de chegar (atraso, extravio, desistência) pode
+ * sempre. Defeito depois desse prazo (30/90 dias) segue pelo atendimento.
+ */
 export function canRequestRefund(order: Order, now = new Date()): boolean {
-  if (!['RECEIVED', 'CONFIRMED', 'DELIVERED'].includes(order.status)) return false;
+  if (!['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'].includes(order.status)) return false;
   if (order.refundInfo?.status) return false;
-  if (order.escrowInfo?.status !== 'HOLDING') return false;
-  const release = toDate(order.escrowInfo?.releaseDate);
-  return !!release && release.getTime() > now.getTime();
+  if (order.escrowInfo && order.escrowInfo.status !== 'HOLDING') return false;
+  const deadline = returnDeadline(order);
+  return !deadline || deadline.getTime() > now.getTime();
 }
 
 // ------------------------------------------------------------ lado da loja

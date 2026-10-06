@@ -52,6 +52,7 @@ import {
   STAGE_LABEL,
   TRACK_STEPS,
   canRequestRefund,
+  returnDeadline,
   deliveryWindow,
   itemCount,
   listUnitPrice,
@@ -102,6 +103,8 @@ interface OrderView {
   due: { label: string; overdue: boolean } | null;
   trackingCode: string | null;
   refundable: boolean;
+  /** Último dia para desistir (7 dias do recebimento); `null` antes da entrega. */
+  returnUntil: string | null;
   searchText: string;
 }
 
@@ -249,6 +252,7 @@ export class MyOrdersPage {
     const eta = deliveryWindow(order);
     const due = paymentDueDate(order);
     const refundStatus = order.refundInfo?.status;
+    const returnUntil = returnDeadline(order);
 
     return {
       id,
@@ -265,6 +269,7 @@ export class MyOrdersPage {
       due: due ? { label: formatDay(due), overdue: due.getTime() < Date.now() } : null,
       trackingCode: order.shippingInfo?.trackingCode || null,
       refundable: canRequestRefund(order),
+      returnUntil: returnUntil ? formatDay(returnUntil) : null,
       searchText: normalize([id, ...items.map(i => i.name)].join(' ')),
     };
   }

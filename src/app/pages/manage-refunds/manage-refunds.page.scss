@@ -198,6 +198,13 @@
                 border-radius: 3px;
             }
         }
+
+        .escrow-waiting {
+            margin: 16px 0 0;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            color: #64748b;
+        }
     }
 
     .card-footer {
@@ -269,4 +276,11 @@
     padding: 12px;
     background: #f1f5f9;
     border-radius: 8px;
+}
+
+/* Rodapé do cartão retido quando há devolução pedida: nada de liberar. */
+.escrow-refund-note {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #b45309;
 }

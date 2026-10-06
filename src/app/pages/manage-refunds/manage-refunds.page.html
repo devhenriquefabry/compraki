@@ -39,7 +39,7 @@
       </div>
 
       <div class="list-header">
-        <h3>Pedidos em Escrow (7 Dias)</h3>
+        <h3>Pagamentos retidos (até 7 dias após a entrega)</h3>
       </div>
 
       <div *ngIf="isLoadingEscrow" class="loading-state">
@@ -67,24 +67,35 @@
               <span class="text fw-bold success">{{ formatCurrency(order.total) }}</span>
             </div>
             
-            <div class="escrow-progress">
+            <!-- Retenção: da entrega até o fim dos 7 dias de desistência (CDC, art. 49). -->
+            <div class="escrow-progress" *ngIf="releaseDate(order) as release; else awaitingDelivery">
               <div class="progress-labels">
-                <span>{{ formatDate(order.createdAt) }}</span>
-                <span>Libera em: {{ getDaysLeft(order.escrowInfo?.releaseDate) }} dia(s)</span>
-                <span>{{ formatDate(order.escrowInfo?.releaseDate) }}</span>
+                <span>Entregue {{ formatDate(receivedDate(order)) }}</span>
+                <span>{{ daysLeft(order) > 0 ? 'Libera em ' + daysLeft(order) + ' dia(s)' : 'Prazo de desistência encerrado' }}</span>
+                <span>{{ formatDate(release) }}</span>
               </div>
-              <ion-progress-bar 
-                [value]="getProgressBarValue(order.createdAt, order.escrowInfo?.releaseDate)" 
-                color="success">
-              </ion-progress-bar>
+              <ion-progress-bar [value]="releaseProgress(order)" color="success"></ion-progress-bar>
             </div>
+            <ng-template #awaitingDelivery>
+              <p class="escrow-waiting">
+                Aguardando a entrega. O valor só pode ser liberado 7 dias depois que o comprador receber
+                (prazo de desistência do CDC).
+              </p>
+            </ng-template>
           </div>
           <div class="card-footer">
-            <ion-button fill="clear" size="small" color="primary" (click)="forceReleaseEscrow(order)" 
-              *ngIf="getDaysLeft(order.escrowInfo?.releaseDate) <= 0">
-              Forçar Liberação (Atrasado)
-            </ion-button>
-            <span class="status-badge holding">Em Escrow</span>
+            <ng-container *ngIf="!refundOpen(order); else refundPending">
+              <ion-button *ngIf="canRelease(order)" fill="clear" size="small" color="primary" (click)="forceReleaseEscrow(order)">
+                Liberar à loja
+              </ion-button>
+              <ion-button *ngIf="!canRelease(order)" fill="clear" size="small" color="medium" (click)="forceReleaseEscrow(order)">
+                Liberar antes do prazo
+              </ion-button>
+            </ng-container>
+            <ng-template #refundPending>
+              <span class="escrow-refund-note">Devolução pedida — resolva na aba Devoluções</span>
+            </ng-template>
+            <span class="status-badge holding">Retido</span>
           </div>
         </div>
       </div>

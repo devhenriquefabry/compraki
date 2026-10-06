@@ -13,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { waitForAuthUser } from 'src/app/core/auth-state';
 import {
-  REFUND_LABEL, SALE_STAGE_LABEL, SALE_TRACK_STEPS, formatDay, isPaid, listUnitPrice,
+  REFUND_LABEL, SALE_STAGE_LABEL, SALE_TRACK_STEPS, escrowReleaseDate, formatDay, isPaid, listUnitPrice,
   orderStage, paidUnitPrice, productIdOf, sellerAmount, sellerItems, shipByDate, toDate, trackIndex, trackingUrl,
 } from 'src/app/core/order-stage';
 import { FISCAL_DOCUMENT_LABEL, FiscalDocumentType, Order } from 'src/app/interfaces/order';
@@ -70,7 +70,8 @@ export class SaleDetailsPage {
     const amount = sellerAmount(order, seller);
     const shipping = onlySeller ? order.shippingInfo?.price ?? 0 : 0;
     const shipBy = stage === 'preparing' ? shipByDate(order) : null;
-    const release = toDate(order.escrowInfo?.releasedAt) ?? toDate(order.escrowInfo?.releaseDate);
+    // Liberação: 7 dias depois que o comprador recebe (prazo de desistência do CDC).
+    const release = toDate(order.escrowInfo?.releasedAt) ?? escrowReleaseDate(order);
     const a = order.addressData;
     const refundStatus = order.refundInfo?.status;
 

@@ -9,7 +9,11 @@ export type EscrowStatus ='HOLDING' | 'RELEASED' | 'REFUNDED';
 export type RefundRequestStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
 
 export interface EscrowInfo {
-  /** Data em que o escrow será liberado automaticamente (createdAt + 7 dias) */
+  /**
+   * Compra + 7 dias, gravado no checkout. Só ordena a lista do admin: a
+   * liberação de verdade conta da entrega (`escrowReleaseDate` em
+   * core/order-stage.ts), como manda o CDC.
+   */
   releaseDate: any;
   /** Status atual do escrow */
   status: EscrowStatus;
@@ -131,7 +135,7 @@ export interface Order {
    */
   fiscalDocuments?: Record<string, FiscalDocument>;
 
-  // Sistema de Escrow — retenção de 7 dias
+  // Retenção: até 7 dias depois da entrega (prazo de desistência do CDC)
   escrowInfo?: EscrowInfo;
 
   // Sistema de Devoluções

@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { RefundsService } from '../../services/refunds.service';
 import { AsaasService } from '../../services/asaas.service';
 import { Order } from '../../interfaces/order';
+import { escrowReleaseDate, isPaid, receivedAt } from '../../core/order-stage';
 
 type ManageRefundsTab = 'escrow' | 'refunds' | 'released';
 
@@ -65,7 +66,8 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
   private loadData() {
     this.escrowSub = this.refundsService.getOrdersInEscrow().subscribe({
       next: (orders) => {
-        this.escrowOrders = orders;
+        // O checkout já cria o pedido "retido"; sem pagamento não há o que reter.
+        this.escrowOrders = orders.filter(isPaid);
         this.calculateEscrowTotals();
         this.isLoadingEscrow = false;
       },
@@ -107,7 +109,7 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
     this.escrowOrders.forEach(order => {
       this.totalRetido += order.total;
       
-      const releaseDate = this.toDate(order.escrowInfo?.releaseDate);
+      const releaseDate = escrowReleaseDate(order);
       if (releaseDate) {
         const releaseDay = new Date(releaseDate);
         releaseDay.setHours(0, 0, 0, 0);
@@ -218,8 +220,25 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
   }
 
   async forceReleaseEscrow(order: Order) {
-    if (!order.id) return;
-    
+    if (!order.id || this.refundOpen(order)) return;
+
+    if (!this.canRelease(order)) {
+      const release = this.releaseDate(order);
+      const alert = await this.alertCtrl.create({
+        header: 'Liberar antes do prazo?',
+        message: release
+          ? `O comprador pode desistir da compra até ${this.formatDate(release)} (7 dias depois da entrega, pelo CDC). Se ele desistir depois da liberação, a devolução sai do caixa da Vineon.`
+          : 'Este pedido ainda não tem entrega registrada. Pelo CDC o comprador pode desistir até 7 dias depois de receber. Libere só se tiver certeza de que o produto foi entregue e não há reclamação.',
+        buttons: [
+          { text: 'Cancelar', role: 'cancel' },
+          { text: 'Liberar mesmo assim', role: 'confirm' },
+        ],
+      });
+      await alert.present();
+      const { role } = await alert.onDidDismiss();
+      if (role !== 'confirm') return;
+    }
+
     const loading = await this.loadingCtrl.create({ message: 'Liberando fundos...' });
     await loading.present();
 
@@ -252,22 +271,40 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
     return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
   }
 
-  getDaysLeft(releaseDate: any): number {
-    const d = this.toDate(releaseDate);
-    if (!d) return 0;
-    const diff = d.getTime() - new Date().getTime();
-    return Math.ceil(diff / (1000 * 3600 * 24));
+  /** Quando o comprador recebeu (`null` = ainda não chegou). */
+  receivedDate(order: Order): Date | null {
+    return receivedAt(order);
   }
 
-  getProgressBarValue(createdAt: any, releaseDate: any): number {
-    const start = this.toDate(createdAt);
-    const end = this.toDate(releaseDate);
-    if (!start || !end) return 0;
+  /** Fim do prazo de desistência: 7 dias depois da entrega (`null` antes dela). */
+  releaseDate(order: Order): Date | null {
+    return escrowReleaseDate(order);
+  }
 
-    const totalDuration = end.getTime() - start.getTime();
-    const passedDuration = new Date().getTime() - start.getTime();
-    
-    const percent = passedDuration / totalDuration;
+  /** Devolução pedida ou aprovada: o dinheiro não sai para a loja enquanto isso. */
+  refundOpen(order: Order): boolean {
+    const status = order.refundInfo?.status;
+    return status === 'REQUESTED' || status === 'APPROVED';
+  }
+
+  /** Já passou o prazo de desistência? Só então a liberação é a normal. */
+  canRelease(order: Order): boolean {
+    const release = this.releaseDate(order);
+    return !!release && release.getTime() <= Date.now();
+  }
+
+  daysLeft(order: Order): number {
+    const release = this.releaseDate(order);
+    if (!release) return 0;
+    return Math.max(0, Math.ceil((release.getTime() - Date.now()) / (1000 * 3600 * 24)));
+  }
+
+  /** Andamento da entrega até o fim do prazo de desistência. */
+  releaseProgress(order: Order): number {
+    const start = this.receivedDate(order);
+    const end = this.releaseDate(order);
+    if (!start || !end) return 0;
+    const percent = (Date.now() - start.getTime()) / (end.getTime() - start.getTime());
     return Math.max(0, Math.min(1, percent));
   }
 

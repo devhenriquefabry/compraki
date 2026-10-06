@@ -283,6 +283,13 @@
   text-underline-offset: 3px;
   text-decoration-color: rgba(58, 68, 82, 0.35);
 }
+
+/* Prazo de desistência (7 dias do recebimento), logo abaixo do link. */
+.oc-return {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--vc-muted);
+}
 /* ---------------------------------------------------------------- ações */
 
 .oc-actions {

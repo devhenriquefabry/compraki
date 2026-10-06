@@ -233,6 +233,9 @@
 
                   @if (v.refundable) {
                     <button type="button" class="oc-link" (click)="openRefundModal(v)">Problema com o pedido? Solicitar devolução</button>
+                    @if (v.returnUntil) {
+                      <p class="oc-return">Você pode desistir da compra até {{ v.returnUntil }}.</p>
+                    }
                   }
                 </div>
               </div>

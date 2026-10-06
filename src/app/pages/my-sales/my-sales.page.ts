@@ -12,7 +12,7 @@ import {
 import { waitForAuthUser } from 'src/app/core/auth-state';
 import {
   OrderStage, SALE_STAGE_LABEL, SALE_TABS, SALE_TRACK_STEPS, SaleTab, REFUND_LABEL,
-  formatDay, isPaid, listUnitPrice, normalizeSearch, orderStage, paidUnitPrice, productIdOf,
+  escrowReleaseDate, formatDay, isPaid, listUnitPrice, normalizeSearch, orderStage, paidUnitPrice, productIdOf,
   sellerAmount, sellerItems, shipByDate, toDate, trackIndex, trackingUrl,
 } from 'src/app/core/order-stage';
 import { Order } from 'src/app/interfaces/order';
@@ -97,7 +97,7 @@ export class MySalesPage {
 
   /**
    * Resumo do topo. "Vendido no mês" soma pedidos pagos criados no mês corrente;
-   * "A liberar" é o que está retido na garantia de 7 dias; "Liberado" já saiu
+   * "A liberar" é o que está retido até 7 dias depois da entrega; "Liberado" já saiu
    * da retenção. Pedido com devolução não entra em nenhum dos dois.
    */
   readonly summary = computed(() => {
@@ -177,7 +177,8 @@ export class MySalesPage {
     const buyer = firstName(order.customerData?.name);
     const shipBy = stage === 'preparing' ? shipByDate(order) : null;
     const address = order.addressData;
-    const release = toDate(order.escrowInfo?.releasedAt) ?? toDate(order.escrowInfo?.releaseDate);
+    // Liberação: 7 dias depois que o comprador recebe (prazo de desistência do CDC).
+    const release = toDate(order.escrowInfo?.releasedAt) ?? escrowReleaseDate(order);
     const refundStatus = order.refundInfo?.status;
 
     return {

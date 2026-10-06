@@ -393,6 +393,10 @@ for (const [index, [daysAgo, lines, status]] of orderPlan.entries()) {
     createdAt: Timestamp.fromMillis(created),
     ...(paid ? { paymentConfirmedAt: Timestamp.fromMillis(created + 20 * 60_000) } : {}),
     ...(status === 'DELIVERED' ? { shipmentStatus: 'DELIVERED', deliveredAt: Timestamp.fromMillis(created + 4 * 86_400_000) } : {}),
+    // Igual ao checkout: retido desde a compra (releaseDate só ordena a lista do admin).
+    escrowInfo: status === 'REFUNDED'
+      ? { status: 'REFUNDED', releaseDate: Timestamp.fromMillis(created + 7 * 86_400_000) }
+      : { status: 'HOLDING', releaseDate: Timestamp.fromMillis(created + 7 * 86_400_000) },
     customerData: { name: users.comprador.displayName, cpf: users.comprador.cpf, phone: users.comprador.phoneNumber, email: users.comprador.email },
     addressData: { street: 'Avenida Paulista', number: '1000', city: 'São Paulo', state: 'SP', postalCode: '01310100', neighborhood: 'Bela Vista' },
     shippingInfo: { serviceId: 1, serviceName: 'PAC', price: 24.9, deliveryTime: 6 }

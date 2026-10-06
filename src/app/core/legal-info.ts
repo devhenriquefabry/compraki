@@ -37,7 +37,7 @@ export const COMPANY = {
  * relevante — e avisar quem tem conta.
  */
 export const PRIVACY_POLICY_UPDATED = '2026-10-05';
-export const TERMS_UPDATED = '2026-10-05';
+export const TERMS_UPDATED = '2026-10-06';
 
 /** "2026-10-05" → "5 de outubro de 2026". */
 export function formatLegalDate(iso: string): string {

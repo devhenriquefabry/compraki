@@ -101,7 +101,7 @@
               <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
             </button>
           }
-          <p class="ledger-note">O valor de cada venda fica retido 7 dias após a compra, como garantia ao comprador, e depois é liberado.</p>
+          <p class="ledger-note">O valor de cada venda fica retido até 7 dias depois da entrega — o prazo que o comprador tem para desistir, pelo Código de Defesa do Consumidor — e depois é liberado.</p>
         </section>
       }
 
@@ -217,7 +217,7 @@
                         @if (v.order.escrowInfo?.status === 'RELEASED') {
                           <p>Valor liberado em {{ v.payout }}.</p>
                         } @else if (v.payout) {
-                          <p>Valor liberado a partir de {{ v.payout }}.</p>
+                          <p>Valor retido até {{ v.payout }} (prazo de desistência do comprador).</p>
                         }
                       }
                     }

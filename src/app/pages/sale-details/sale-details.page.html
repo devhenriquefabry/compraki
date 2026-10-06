@@ -84,7 +84,7 @@
                 @case ('done') {
                   <p><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
                     @if (v.released) { Entregue. O valor foi liberado em {{ v.release }}. }
-                    @else if (v.release) { Entregue. O valor é liberado a partir de {{ v.release }}. }
+                    @else if (v.release) { Entregue. O valor fica retido até {{ v.release }}, o prazo de desistência do comprador. }
                     @else { Entregue. }
                   </p>
                 }
@@ -247,7 +247,8 @@
               <p class="payout" [class.is-released]="v.released">
                 <ion-icon [name]="v.released ? 'checkmark-circle' : 'time-outline'" aria-hidden="true"></ion-icon>
                 @if (v.released) { Valor liberado em {{ v.release }}. }
-                @else if (v.release) { Fica retido até {{ v.release }} como garantia ao comprador. }
+                @else if (v.release) { Fica retido até {{ v.release }}: são os 7 dias que o comprador tem para desistir depois de receber. }
+                @else { Fica retido até 7 dias depois da entrega, o prazo que o comprador tem para desistir. }
               </p>
             }
           </section>

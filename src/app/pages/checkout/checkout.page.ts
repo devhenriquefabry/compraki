@@ -183,7 +183,8 @@ export class CheckoutPage implements OnInit {
       const user = getAuth().currentUser;
       const sellerIds = [...new Set(this.cartItems.map(item => item.productData.sellerId || 'unknown'))];
 
-      // Calcular data de liberação do escrow (7 dias a partir de agora)
+      // Só para ordenar a lista do admin: a liberação conta 7 dias da ENTREGA
+      // (escrowReleaseDate em core/order-stage.ts).
       const releaseDate = new Date();
       releaseDate.setDate(releaseDate.getDate() + 7);
 
