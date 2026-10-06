@@ -177,6 +177,7 @@ export class MyOrdersPage {
   isRefundModalOpen = false;
   refundOrder: Order | null = null;
   refundReason = '';
+  private sendingRefund = false;
 
   private stopOrders?: () => void;
 
@@ -554,24 +555,27 @@ export class MyOrdersPage {
   }
 
   async submitRefundRequest() {
-    if (!this.refundOrder?.id) return;
+    // Um envio por vez: a regra do Firestore só aceita o primeiro pedido de devolução.
+    if (!this.refundOrder?.id || this.sendingRefund) return;
     if (this.refundReason.trim().length < 10) {
       this.showToast('Conte o motivo com pelo menos 10 caracteres.', 'warning');
       return;
     }
 
+    this.sendingRefund = true;
     const loading = await this.loadingCtrl.create({ message: 'Enviando solicitação...' });
     await loading.present();
 
     try {
       const user = await waitForAuthUser();
-      await this.refundsService.requestRefund(this.refundOrder.id, user?.uid || 'unknown', this.refundReason);
+      await this.refundsService.requestRefund(this.refundOrder.id, user?.uid || 'unknown', this.refundReason.trim());
       this.showToast('Devolução solicitada. Acompanhe na aba Devoluções.', 'success');
       this.closeRefundModal();
     } catch (err) {
       console.error(err);
       this.showToast('Não foi possível enviar a solicitação. Tente de novo.', 'danger');
     } finally {
+      this.sendingRefund = false;
       loading.dismiss();
     }
   }

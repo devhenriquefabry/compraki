@@ -313,41 +313,93 @@ service cloud.firestore {
     // Valores financeiros so mudam via Cloud Function (Admin SDK ignora regras).
 
     match /orders/{orderId} {
+      function isBuyer() {
+        return request.auth.uid == resource.data.userId;
+      }
+
+      function isOrderSeller() {
+        return resource.data.sellerIds is list && request.auth.uid in resource.data.sellerIds;
+      }
+
+      function changedKeys() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+
+      // Datas de envio e entrega so podem ser "agora" (hora do servidor). O
+      // prazo de desistencia do comprador (7 dias do recebimento, CDC art. 49)
+      // e a liberacao do repasse contam delas: ninguem volta o relogio para
+      // encurtar o prazo. Confirmar o recebimento e coisa do comprador.
+      function deliveryStampsAreNow() {
+        let keys = changedKeys();
+        let data = request.resource.data;
+        return (!keys.hasAny(['deliveredAt']) || data.deliveredAt == request.time)
+          && (!keys.hasAny(['shippedAt']) || data.shippedAt == request.time)
+          && (!keys.hasAny(['shipmentProblemAt']) || data.shipmentProblemAt == request.time)
+          && (!keys.hasAny(['deliveryConfirmedAt'])
+              || (isBuyer() && data.deliveryConfirmedAt == request.time));
+      }
+
+      // Pedido de devolucao: so o comprador, uma vez, em pedido pago com o
+      // valor ainda retido, e so com status REQUESTED. Aprovar, recusar e
+      // concluir o estorno e do admin.
+      function isRefundRequest() {
+        let after = request.resource.data.refundInfo;
+        return isBuyer()
+          && resource.data.get('refundInfo', {}).get('status', null) == null
+          && resource.data.status in ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW']
+          && resource.data.get('escrowInfo', {}).get('status', 'HOLDING') == 'HOLDING'
+          && after.keys().hasOnly(['status', 'reason', 'requestedAt', 'requestedBy'])
+          && after.status == 'REQUESTED'
+          && after.requestedBy == request.auth.uid
+          && after.reason is string
+          && after.reason.size() >= 10
+          && after.reason.size() <= 1000
+          && after.requestedAt == request.time;
+      }
+
       allow read: if isAdmin() || (isSignedIn() && (
         request.auth.uid == resource.data.userId ||
         (resource.data.sellerIds is list
           && request.auth.uid in resource.data.sellerIds)
       ));
 
+      // O pedido nasce esperando pagamento e com o valor retido. Quem diz que
+      // foi pago e o webhook (Admin SDK); devolucao, entrega e repasse vem
+      // depois, cada um por quem pode.
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
-        && !isSuspended();
+        && !isSuspended()
+        && request.resource.data.status == 'PENDING'
+        && request.resource.data.get('escrowInfo', {}).get('status', 'HOLDING') == 'HOLDING'
+        && !request.resource.data.keys().hasAny([
+             'refundInfo', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy',
+             'shipmentStatus', 'shippedAt', 'deliveredAt', 'deliveryConfirmedAt',
+             'shipmentProblemAt', 'fiscalDocuments'
+           ]);
 
       // Comprador e vendedor mexem em entrega e observacao, nunca no dinheiro
       // nem no `status`.
       //
       // `status` esta na lista porque e ele que diz se o pedido foi pago. Com
       // ele liberado, o comprador escrevia `status: 'RECEIVED'` direto pelo SDK
-      // e levava o produto sem pagar — era o que o botao "SIMULAR PAGAMENTO"
+      // e levava o produto sem pagar - era o que o botao "SIMULAR PAGAMENTO"
       // fazia. Quem confirma pagamento e a funcao `asaasWebhook`, pelo Admin
       // SDK, que nao passa por estas regras.
+      //
+      // `escrowInfo` (retencao/repasse) e so do admin: com ele aberto, o
+      // vendedor podia marcar o proprio repasse como liberado pelo SDK.
       allow update: if isAdmin() || (isSignedIn()
-        && (
-          request.auth.uid == resource.data.userId ||
-          (resource.data.sellerIds is list
-            && request.auth.uid in resource.data.sellerIds)
-        )
-        && !request.resource.data.diff(resource.data).affectedKeys()
-             .hasAny([
-               'total', 'userId', 'sellerIds', 'items', 'asaasPaymentId',
-               'coraInvoiceId', 'paymentProvider',
-               'status', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy'
-             ])
+        && (isBuyer() || isOrderSeller())
+        && !changedKeys().hasAny([
+             'total', 'userId', 'sellerIds', 'items', 'asaasPaymentId',
+             'coraInvoiceId', 'paymentProvider',
+             'status', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy',
+             'escrowInfo'
+           ])
+        && (!changedKeys().hasAny(['refundInfo']) || isRefundRequest())
         // Nota fiscal / declaracao de conteudo: so a loja anexa.
-        && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['fiscalDocuments'])
-          || (resource.data.sellerIds is list && request.auth.uid in resource.data.sellerIds)
-        ));
+        && (!changedKeys().hasAny(['fiscalDocuments']) || isOrderSeller())
+        && deliveryStampsAreNow());
 
       allow delete: if isAdmin();
     }
