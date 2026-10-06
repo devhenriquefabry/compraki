@@ -315,6 +315,14 @@
               <div><dt>Pagamento</dt><dd>{{ paymentLabel[v.order.paymentMethod] }}</dd></div>
             </dl>
           </section>
+
+          <!-- Ajuda -->
+          <section class="sheet" aria-labelledby="sd-help">
+            <h2 class="sheet-title" id="sd-help">Algum problema com esta venda?</h2>
+            <a class="btn btn--outline btn--block" routerLink="/support/new" [queryParams]="{ pedido: v.id, perfil: 'sell' }">
+              <ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon> Falar com a Vineon
+            </a>
+          </section>
         </aside>
       </div>
     } @else {

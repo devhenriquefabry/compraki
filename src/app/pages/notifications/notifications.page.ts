@@ -19,7 +19,7 @@ import { VnIconComponent } from '../../components/vn-icon/vn-icon.component';
 import { AppNotification, NotificationKind, NotificationPrefs } from '../../interfaces/notifications';
 import { NotificationCenterService } from '../../services/notification-center.service';
 
-type Filter = 'all' | 'orders' | 'sales' | 'messages';
+type Filter = 'all' | 'orders' | 'sales' | 'messages' | 'support';
 
 interface DayGroup {
   label: string;
@@ -31,6 +31,7 @@ const FILTERS: { id: Filter; label: string; kinds: NotificationKind[] | null }[]
   { id: 'orders', label: 'Compras', kinds: ['order'] },
   { id: 'sales', label: 'Vendas', kinds: ['sale', 'review'] },
   { id: 'messages', label: 'Mensagens', kinds: ['message'] },
+  { id: 'support', label: 'Atendimento', kinds: ['support'] },
 ];
 
 const PAGE = 40;
@@ -82,7 +83,7 @@ export class NotificationsPage {
   readonly unread = computed(() => this.items().filter(n => !n.read).length);
 
   readonly unreadBy = computed<Record<Filter, number>>(() => {
-    const counts: Record<Filter, number> = { all: 0, orders: 0, sales: 0, messages: 0 };
+    const counts: Record<Filter, number> = { all: 0, orders: 0, sales: 0, messages: 0, support: 0 };
     for (const n of this.items()) {
       if (n.read) continue;
       counts.all++;

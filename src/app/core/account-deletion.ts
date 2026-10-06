@@ -24,6 +24,7 @@ export interface DeletionSummary {
   addresses: number;
   savedProducts: number;
   chats: number;
+  tickets: number;
   reviews: number;
   ordersKept: number;
   salesKept: number;

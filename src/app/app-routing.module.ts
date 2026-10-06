@@ -60,6 +60,24 @@ const routes: Routes = [
     loadComponent: () => import('./pages/help/help.page').then(m => m.HelpPage)
   },
   {
+    // "Fale com a Vineon": atendimento por protocolo. Precisa de conta (o
+    // atendimento nasce ligado a ela); quem não entra usa o e-mail da Central.
+    // `support/new` vem antes de `support/:id`.
+    path: 'support',
+    loadComponent: () => import('./pages/support/support.page').then(m => m.SupportPage),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'support/new',
+    loadComponent: () => import('./pages/support-new/support-new.page').then(m => m.SupportNewPage),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'support/:id',
+    loadComponent: () => import('./pages/support-ticket/support-ticket.page').then(m => m.SupportTicketPage),
+    canActivate: [authGuard]
+  },
+  {
     path: 'product-details/:id',
     loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage),
     data: { preload: true },

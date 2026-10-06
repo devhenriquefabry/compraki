@@ -4,7 +4,7 @@ import { VnIconName } from '../core/vn-icons';
  * Aviso da tela Notificações: `users/{uid}/notifications/{id}`.
  * Escrito só pela Cloud Function (functions/src/notifications.ts).
  */
-export type NotificationKind = 'order' | 'sale' | 'message' | 'review' | 'system';
+export type NotificationKind = 'order' | 'sale' | 'message' | 'review' | 'system' | 'support';
 
 export interface AppNotification {
   id: string;

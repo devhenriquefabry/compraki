@@ -151,7 +151,7 @@ export class NotificationCenterService {
    */
   private markReadForUrl(url: string): void {
     const path = url.split('?')[0];
-    if (!/^\/(chat-details|sale-details)\//.test(path)) return;
+    if (!/^\/(chat-details|sale-details|support)\//.test(path)) return;
     const ids = this.entries.filter(e => e.link === path).map(e => e.id);
     if (ids.length) void this.markRead(ids);
   }

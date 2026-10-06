@@ -25,7 +25,7 @@ import { defaultRuntime, handleCors, methodNotAllowed, region, requireAuthentica
  * (404/410) é apagado aqui.
  */
 
-export type NotificationKind = 'order' | 'sale' | 'message' | 'review' | 'system';
+export type NotificationKind = 'order' | 'sale' | 'message' | 'review' | 'system' | 'support';
 
 /** Categorias que a pessoa pode silenciar no push (o aviso no app continua). */
 type PrefKey = 'orders' | 'sales' | 'messages' | 'reviews';
@@ -36,6 +36,8 @@ const PREF_OF: Record<NotificationKind, PrefKey | null> = {
   message: 'messages',
   review: 'reviews',
   system: null,
+  // Resposta de atendimento é aviso de serviço: não dá para silenciar.
+  support: null,
 };
 
 export interface NotificationInput {
@@ -197,7 +199,7 @@ function topicOf(tag: string): string {
 type Stage = 'pay' | 'preparing' | 'shipping' | 'done' | 'refund' | 'cancelled';
 const PAID_STATUSES = ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
 
-function stageOf(order: any): Stage | null {
+export function stageOf(order: any): Stage | null {
   if (!order) return null;
   if (order.refundInfo?.status || order.status === 'REFUNDED') return 'refund';
   if (order.status === 'CANCELLED') return 'cancelled';
@@ -212,33 +214,33 @@ function brl(value: number): string {
   return (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function itemsOf(order: any): any[] {
+export function itemsOf(order: any): any[] {
   return Array.isArray(order?.items) ? order.items : [];
 }
 
 /** "Fone XYZ" ou "Fone XYZ e mais 2 itens". */
-function describeItems(items: any[]): string {
+export function describeItems(items: any[]): string {
   if (!items.length) return 'seu pedido';
   const first = String(items[0]?.productData?.name || 'Produto');
   const rest = items.length - 1;
   return rest > 0 ? `${first} e mais ${rest} ${rest === 1 ? 'item' : 'itens'}` : first;
 }
 
-function photoOf(items: any[]): string | null {
+export function photoOf(items: any[]): string | null {
   const data = items[0]?.productData;
   const photo = Array.isArray(data?.photoURL) ? data.photoURL[0] : data?.photoURL;
   return typeof photo === 'string' && photo.startsWith('http') ? photo : null;
 }
 
 /** Itens da loja no pedido. Pedido antigo sem `sellerId` no item: tudo dela. */
-function sellerItemsOf(order: any, sellerId: string): any[] {
+export function sellerItemsOf(order: any, sellerId: string): any[] {
   const items = itemsOf(order);
   const mine = items.filter(item => item?.productData?.sellerId === sellerId);
   if (!mine.length && (order.sellerIds || []).length === 1) return items;
   return mine;
 }
 
-function sellerAmountOf(items: any[]): number {
+export function sellerAmountOf(items: any[]): number {
   return items.reduce((sum, item) => {
     const { price, priceDiscounted } = item?.productData || {};
     const unit = priceDiscounted ? Math.min(Number(price) || 0, Number(priceDiscounted) || 0) : Number(price) || 0;

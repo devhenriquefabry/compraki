@@ -1,0 +1,237 @@
+/*
+ * Fale com a Vineon — hub
+ * ----------------------------------------------------------------------------
+ * Casca das telas de conta (topo azul-noite, folhas brancas). A abertura é um
+ * cartão azul-noite com a busca da Central; o botão de abrir atendimento é o
+ * único lima da tela (preenchimento, texto azul-noite).
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+@use '../../../theme/vn-support' as vs;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(680px);
+@include vc.desktop-header(680px);
+@include vc.empty;
+@include vc.skeleton;
+@include vc.sheet;
+@include vc.buttons;
+@include vc.reduced-motion;
+@include vs.chips;
+
+.sp { padding-top: 12px; }
+.pg-empty-mark vn-icon { font-size: 32px; }
+
+/* ------------------------------------------------------------------ abertura */
+.sp-hero {
+  margin-bottom: 16px;
+  padding: 20px 18px 18px;
+  border-radius: 16px;
+  background: var(--vc-navy);
+  color: #fff;
+
+  h2 {
+    margin: 0 0 6px;
+    font-family: var(--vc-display);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+}
+
+.sp-eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vc-neon);
+}
+
+.sp-lead { margin: 0 0 14px; font-size: 14.5px; line-height: 1.55; color: rgba(255, 255, 255, 0.78); }
+
+.sp-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--vc-muted);
+
+  &:focus-within { box-shadow: 0 0 0 3px var(--vc-neon); }
+  vn-icon { font-size: 20px; flex: none; }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--vc-ink);
+    font: 600 15px var(--vc-body);
+    &::placeholder { color: var(--vc-muted); font-weight: 600; }
+  }
+}
+
+.sp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.sp-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  &:hover { background: rgba(255, 255, 255, 0.18); }
+  &:focus-visible { outline: 2px solid var(--vc-neon); outline-offset: 2px; }
+}
+
+.sp-found {
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--vc-ink);
+}
+
+.sp-found-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  color: var(--vc-ink);
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: none;
+
+  & + & { border-top: 1px solid var(--vc-line); }
+  small { display: block; margin-bottom: 1px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--vc-muted); }
+  vn-icon { flex: none; color: var(--vc-muted); }
+  &:hover { background: #F6F8FA; }
+  &:focus-visible { outline: 2px solid var(--vc-ink); outline-offset: -2px; }
+}
+
+.sp-found-empty { margin: 0; padding: 14px; font-size: 14px; color: var(--vc-ink-2); }
+
+.sp-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  margin-top: 16px;
+  border-radius: 12px;
+  background: var(--vc-neon);
+  color: var(--vc-navy);
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.1s;
+
+  vn-icon { font-size: 20px; }
+  &:active { transform: scale(0.99); }
+  &:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+}
+
+.sp-promise {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  vn-icon { font-size: 15px; }
+}
+
+/* -------------------------------------------------------------------- lista */
+.sp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 2px 10px;
+
+  h2 { margin: 0; font-family: var(--vc-display); font-size: 17px; font-weight: 600; color: var(--vc-ink); }
+}
+
+.sp-count {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--vc-neon);
+  color: var(--vc-navy);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sp-sub { margin: 18px 2px 8px; font-family: var(--vc-display); font-size: 14px; font-weight: 600; color: var(--vc-muted); }
+.sp-none { margin: 0 2px 6px; font-size: 14px; color: var(--vc-muted); }
+
+.sp-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
+
+  li + li { border-top: 1px solid var(--vc-line); }
+}
+
+.tk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 14px 16px;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover { background: #F6F8FA; }
+  &:focus-visible { outline: 2px solid var(--vc-ink); outline-offset: -2px; }
+  &.is-unread strong { font-weight: 800; }
+}
+
+.tk-main { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.tk-top { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+
+.tk-main strong {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--vc-ink);
+}
+
+.tk-main small { font-size: 12.5px; font-weight: 600; color: var(--vc-muted); }
+.tk-ago { display: flex; align-items: center; gap: 4px; vn-icon { font-size: 13px; } }
+.tk-go { flex: none; font-size: 18px; color: var(--vc-muted); }
+
+.tk-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--vc-navy); box-shadow: 0 0 0 3px rgba(216, 245, 31, 0.85); }
+
+.sp-list--past .tk-main strong { font-weight: 600; color: var(--vc-ink-2); }
+
+.sp-mail {
+  margin: 20px 4px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vc-muted);
+  text-align: center;
+  a { color: var(--vc-ink); font-weight: 800; }
+}

@@ -87,6 +87,12 @@ export class DeleteAccountPage {
         text: `${plural(s.chats, 'conversa', 'conversas')}: as mensagens continuam com a outra pessoa, com seu nome trocado por "Conta excluída"`,
       });
     }
+    if (s.tickets) {
+      lines.push({
+        icon: 'ticket',
+        text: `${plural(s.tickets, 'atendimento', 'atendimentos')} com a Vineon: o texto fica como registro, sem seu nome, e-mail e anexos`,
+      });
+    }
     return lines;
   });
 

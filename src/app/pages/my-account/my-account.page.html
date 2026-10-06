@@ -246,7 +246,7 @@
         <section class="acc-block">
           <header class="acc-block-head"><h2>Ajuda</h2></header>
           <div class="acc-list">
-            @for (row of helpRows; track row.label) {
+            @for (row of helpRows(); track row.label) {
               <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: row }"></ng-container>
             }
           </div>

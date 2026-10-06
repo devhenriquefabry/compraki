@@ -26,8 +26,10 @@ export const COMPANY = {
    */
   dpoEmail: 'vineon60@gmail.com',
   /**
-   * Atendimento (devoluções, reclamações, encerrar conta) enquanto o app não
-   * tem a tela "Fale com a Vineon". Provisório, igual ao do encarregado.
+   * E-mail de atendimento. O canal principal é a tela "Fale com a Vineon"
+   * (/support); este e-mail é para quem não consegue entrar na conta (conta
+   * suspensa, senha perdida) e também recebe o aviso de cada atendimento novo
+   * (SUPPORT_INBOX ou SMTP_USER nas functions). Provisório, igual ao do encarregado.
    */
   supportEmail: 'vineon60@gmail.com',
 };

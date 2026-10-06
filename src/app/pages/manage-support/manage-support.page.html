@@ -1,0 +1,242 @@
+<div class="adm ms" [class.has-detail]="!!selectedId()">
+
+  <!-- ================================ FILA ================================ -->
+  <section class="ms-queue" aria-label="Fila de atendimentos">
+    <header class="adm-head">
+      <div>
+        <h2>Atendimento</h2>
+        <p>Fale com a Vineon. Respostas chegam ao cliente por app e e-mail. <span class="adm-live">Ao vivo</span></p>
+      </div>
+    </header>
+
+    <div class="adm-stats">
+      <div class="adm-stat" [class.is-warn]="counts().new > 0"><span>Novos</span><strong>{{ counts().new }}</strong></div>
+      <div class="adm-stat" [class.is-danger]="overdue() > 0"><span>Atrasados</span><strong>{{ overdue() }}</strong></div>
+      <div class="adm-stat"><span>Na fila</span><strong>{{ counts().waiting_staff }}</strong></div>
+    </div>
+
+    <div class="adm-toolbar">
+      <label class="adm-search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <input type="search" placeholder="Protocolo, nome, e-mail, assunto ou pedido" aria-label="Buscar atendimento"
+               [ngModel]="search()" (ngModelChange)="search.set($event)" autocomplete="off" />
+      </label>
+    </div>
+
+    <div class="adm-toolbar ms-filters">
+      <div class="adm-chips" role="tablist" aria-label="Situação">
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'waiting_staff'" [class.is-alert]="counts().waiting_staff > 0" [attr.aria-selected]="filter() === 'waiting_staff'" (click)="filter.set('waiting_staff')">Aguardando a Vineon <small>{{ counts().waiting_staff }}</small></button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'new'" [attr.aria-selected]="filter() === 'new'" (click)="filter.set('new')">Novos <small>{{ counts().new }}</small></button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'waiting_customer'" [attr.aria-selected]="filter() === 'waiting_customer'" (click)="filter.set('waiting_customer')">Aguardando cliente <small>{{ counts().waiting_customer }}</small></button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'done'" [attr.aria-selected]="filter() === 'done'" (click)="filter.set('done')">Resolvidos <small>{{ counts().done }}</small></button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="filter() === 'all'" [attr.aria-selected]="filter() === 'all'" (click)="filter.set('all')">Todos <small>{{ counts().all }}</small></button>
+      </div>
+      <div class="adm-chips" aria-label="Responsável">
+        <button type="button" class="adm-chip" [class.is-active]="owner() === 'all'" (click)="owner.set('all')">Todos</button>
+        <button type="button" class="adm-chip" [class.is-active]="owner() === 'mine'" (click)="owner.set('mine')">Meus</button>
+        <button type="button" class="adm-chip" [class.is-active]="owner() === 'free'" (click)="owner.set('free')">Sem responsável</button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
+    } @else if (error()) {
+      <p class="adm-error" role="alert">{{ error() }} <button type="button" class="adm-btn" (click)="reload()">Tentar de novo</button></p>
+    } @else if (!list().length) {
+      <div class="adm-empty">
+        <ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon>
+        <p>{{ search() ? 'Nenhum atendimento encontrado para essa busca.' : 'Nada nesta fila. Tudo em dia.' }}</p>
+      </div>
+    } @else {
+      <ul class="ms-list">
+        @for (t of list(); track t.id) {
+          @let s = sla(t);
+          <li>
+            <button type="button" class="adm-card ms-item" [class.is-active]="selectedId() === t.id" [class.is-unread]="t.staffUnread" (click)="open(t.id)">
+              <span class="ms-item-top">
+                <span class="adm-tag" [class.is-ok]="s.tone === 'ok'" [class.is-warn]="s.tone === 'warn'" [class.is-danger]="s.tone === 'danger'">{{ s.label }}</span>
+                @if (t.priority === 'high') { <span class="adm-tag is-danger">Alta</span> }
+                @if (t.staffUnread) { <span class="ms-dot" aria-label="Não lido"></span> }
+              </span>
+              <strong class="ms-subject">{{ t.subject }}</strong>
+              <small class="ms-sub">{{ t.userName }} · {{ t.topicLabel }}</small>
+              <small class="ms-sub">
+                {{ t.protocol }}
+                @if (t.assigneeName) { · com {{ t.assigneeName }} } @else { · sem responsável }
+              </small>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- ============================== DETALHE ============================== -->
+  <section class="ms-detail" aria-label="Atendimento selecionado">
+    @if (!selectedId()) {
+      <div class="adm-empty ms-none">
+        <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon>
+        <p>Escolha um atendimento na fila para ver a conversa.</p>
+      </div>
+    } @else if (loading()) {
+      <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
+    } @else if (selectedMissing()) {
+      <div class="adm-empty">
+        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+        <p>Atendimento não encontrado entre os 300 mais recentes.</p>
+        <button type="button" class="adm-btn" (click)="back()">Voltar para a fila</button>
+      </div>
+    } @else if (selected(); as t) {
+      <article class="adm-card ms-card">
+
+        <header class="ms-head">
+          <button type="button" class="ms-back adm-btn" (click)="back()" aria-label="Voltar para a fila">
+            <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
+          </button>
+          <div class="ms-head-txt">
+            <div class="ms-tags">
+              <button type="button" class="ms-proto" (click)="copy(t.protocol, 'Protocolo')" aria-label="Copiar protocolo">{{ t.protocol }}</button>
+              <span class="adm-tag" [class.is-warn]="t.status === 'waiting_staff'" [class.is-info]="t.status === 'waiting_customer'" [class.is-ok]="t.status === 'resolved'">{{ statusLabel[t.status] }}</span>
+              @if (t.priority === 'high') { <span class="adm-tag is-danger">Prioridade alta</span> }
+            </div>
+            <h3>{{ t.subject }}</h3>
+            <p>{{ t.topicLabel }} · aberto {{ stamp(t.createdAt) }}</p>
+          </div>
+        </header>
+
+        <!-- Ações -->
+        <div class="ms-actions" [attr.aria-busy]="busy()">
+          @if (isMine()) {
+            <button type="button" class="adm-btn" (click)="release()" [disabled]="busy()"><ion-icon name="person-remove-outline" aria-hidden="true"></ion-icon> Liberar</button>
+          } @else {
+            <button type="button" class="adm-btn" (click)="assignToMe()" [disabled]="busy()">
+              <ion-icon name="person-add-outline" aria-hidden="true"></ion-icon> {{ t.assigneeName ? 'Assumir de ' + t.assigneeName : 'Assumir' }}
+            </button>
+          }
+          <button type="button" class="adm-btn" (click)="togglePriority()" [disabled]="busy()">
+            <ion-icon name="flag-outline" aria-hidden="true"></ion-icon> {{ t.priority === 'high' ? 'Tirar prioridade' : 'Marcar prioridade' }}
+          </button>
+          <span class="ms-spacer"></span>
+          @if (t.status === 'resolved' || t.status === 'closed') {
+            @if (t.status === 'resolved') {
+              <button type="button" class="adm-btn" (click)="setStatus('waiting_customer')" [disabled]="busy()">Reabrir</button>
+              <button type="button" class="adm-btn adm-btn--ghost-danger" (click)="setStatus('closed')" [disabled]="busy()">Encerrar</button>
+            }
+          } @else {
+            <button type="button" class="adm-btn adm-btn--accent" (click)="setStatus('resolved')" [disabled]="busy()">
+              <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Marcar resolvido
+            </button>
+            <button type="button" class="adm-btn adm-btn--ghost-danger" (click)="setStatus('closed')" [disabled]="busy()">Encerrar</button>
+          }
+        </div>
+
+        <!-- Contexto -->
+        <div class="ms-context">
+          <div class="ms-ctx">
+            <small>Cliente</small>
+            <strong>{{ t.userName }}</strong>
+            <span>{{ t.userEmail || 'sem e-mail' }} · {{ t.userRole === 'seller' ? 'vendedor' : 'comprador' }}</span>
+            <span>{{ previous() ? previous() + ' atendimento(s) antes deste' : 'Primeiro atendimento' }}</span>
+            <a class="ms-link" [routerLink]="['/admin/users']" [queryParams]="{ user: t.userId }">Ver cadastro</a>
+          </div>
+          @if (order(); as o) {
+            <div class="ms-ctx">
+              <small>Pedido</small>
+              <strong>{{ o.items }}</strong>
+              <span>#{{ o.shortId }}{{ o.stageLabel ? ' · ' + o.stageLabel : '' }} · {{ o.asRole === 'seller' ? 'parte da loja' : 'total' }} {{ o.totalText }}</span>
+              <a class="ms-link" [routerLink]="['/admin/orders']" [queryParams]="{ q: o.shortId }">Abrir em Pedidos</a>
+            </div>
+          }
+          @if (t.csat) {
+            <div class="ms-ctx">
+              <small>Avaliação do cliente</small>
+              <strong>{{ t.csat.score }} de 5</strong>
+              @if (t.csat.comment) { <span>“{{ t.csat.comment }}”</span> }
+            </div>
+          }
+        </div>
+
+        <!-- Conversa -->
+        <div class="ms-thread" #thread aria-live="polite" aria-label="Conversa">
+          @if (repliesFailed()) { <p class="adm-error">Não foi possível carregar a conversa.</p> }
+          @for (r of replies(); track r.id) {
+            @if (r.senderRole === 'system') {
+              <p class="ms-event"><span>{{ eventText(r) }}</span> <time>{{ stamp(r.createdAt) }}</time></p>
+            } @else {
+              <div class="ms-msg" [class.ms-msg--staff]="r.senderRole === 'staff'">
+                <header><strong>{{ r.senderName }}</strong><time>{{ stamp(r.createdAt) }}</time></header>
+                @if (r.text) { <p>{{ r.text }}</p> }
+                @if (r.attachments.length) {
+                  <div class="ms-files">@for (f of r.attachments; track f.path) { <vn-support-file [file]="f" /> }</div>
+                }
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Notas internas -->
+        <div class="ms-notes">
+          <button type="button" class="ms-notes-toggle" (click)="notesOpen.set(!notesOpen())" [attr.aria-expanded]="notesOpen()">
+            <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+            Notas internas ({{ notes().length }}) — o cliente não vê
+            <ion-icon [name]="notesOpen() ? 'chevron-up-outline' : 'chevron-down-outline'" aria-hidden="true"></ion-icon>
+          </button>
+          @if (notesOpen()) {
+            @for (n of notes(); track n.id) {
+              <p class="ms-note"><strong>{{ n.authorName }}</strong> · {{ stamp(n.createdAt) }}<br />{{ n.text }}</p>
+            }
+            <div class="ms-note-add">
+              <textarea rows="2" [maxlength]="info.noteMax" placeholder="Anotação para a equipe" aria-label="Nova nota interna"
+                        [ngModel]="noteText()" (ngModelChange)="noteText.set($event)"></textarea>
+              <button type="button" class="adm-btn" [disabled]="!noteText().trim() || savingNote()" (click)="addNote()">Salvar nota</button>
+            </div>
+          }
+        </div>
+
+        <!-- Responder -->
+        @if (t.status === 'closed') {
+          <p class="ms-closed"><ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon> Atendimento encerrado: o cliente não pode mais responder.</p>
+        } @else {
+          <div class="ms-compose">
+            <div class="ms-compose-top">
+              <label for="ms-macro">Resposta pronta</label>
+              <select id="ms-macro" #macro (change)="applyMacro(macro.value); macro.value = ''">
+                <option value="">Escolher…</option>
+                @for (m of macros; track m.id) { <option [value]="m.id">{{ m.label }}</option> }
+              </select>
+            </div>
+            <textarea id="ms-text" rows="4" [maxlength]="info.replyMax" aria-label="Resposta ao cliente"
+                      placeholder="Escreva a resposta. O cliente recebe no app e por e-mail."
+                      [ngModel]="text()" (ngModelChange)="text.set($event)"
+                      (keydown.control.enter)="send()" (keydown.meta.enter)="send()"></textarea>
+
+            @if (pending().length) {
+              <ul class="ms-pend">
+                @for (p of pending(); track p.key) {
+                  <li><ion-icon name="document-attach-outline" aria-hidden="true"></ion-icon>{{ p.name }} <small>{{ p.state === 'uploading' ? 'enviando…' : fileSize(p.size) }}</small>
+                    <button type="button" (click)="removePending(p.key)" [disabled]="p.state === 'uploading'" [attr.aria-label]="'Remover ' + p.name"><ion-icon name="close-outline" aria-hidden="true"></ion-icon></button>
+                  </li>
+                }
+              </ul>
+            }
+            @if (fileError()) { <p class="adm-error">{{ fileError() }}</p> }
+            @if (sendError()) { <p class="adm-error" role="alert">{{ sendError() }}</p> }
+
+            <div class="ms-compose-act">
+              <input #fileInput type="file" hidden multiple [accept]="info.fileAccept" (change)="onFiles($event)" />
+              <button type="button" class="adm-btn" (click)="pick()" [disabled]="pending().length >= info.maxAttachments">
+                <ion-icon name="attach-outline" aria-hidden="true"></ion-icon> Anexar
+              </button>
+              <span class="ms-spacer"></span>
+              <button type="button" class="adm-btn" (click)="send(true)" [disabled]="!canSend()">Responder e resolver</button>
+              <button type="button" class="adm-btn adm-btn--primary" (click)="send()" [disabled]="!canSend()">
+                @if (sending()) { <ion-spinner name="crescent"></ion-spinner> } @else { <ion-icon name="send-outline" aria-hidden="true"></ion-icon> }
+                Responder
+              </button>
+            </div>
+          </div>
+        }
+      </article>
+    }
+  </section>
+</div>

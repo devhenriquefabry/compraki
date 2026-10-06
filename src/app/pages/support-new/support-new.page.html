@@ -1,0 +1,227 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="back()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Novo atendimento</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+  @if (step() !== 'sent') {
+    <div class="sn-steps" role="group" [attr.aria-label]="'Passo ' + stepNo() + ' de 3'">
+      <span class="sn-seg" [class.is-on]="stepNo() >= 1"></span>
+      <span class="sn-seg" [class.is-on]="stepNo() >= 2"></span>
+      <span class="sn-seg" [class.is-on]="stepNo() >= 3"></span>
+    </div>
+  }
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap sn">
+
+    @switch (step()) {
+
+      <!-- ============================ 1 · ASSUNTO ============================ -->
+      @case ('topic') {
+        <section aria-labelledby="sn-t1">
+          <h2 class="sn-h" id="sn-t1">Sobre o que é?</h2>
+          <p class="sn-p">Escolha o assunto mais próximo. Isso leva o seu caso direto para quem resolve.</p>
+
+          <div class="sn-tabs" role="tablist" aria-label="Você está">
+            <button type="button" role="tab" [attr.aria-selected]="profile() === 'buy'" [class.is-active]="profile() === 'buy'" (click)="setProfile('buy')">Comprando</button>
+            <button type="button" role="tab" [attr.aria-selected]="profile() === 'sell'" [class.is-active]="profile() === 'sell'" (click)="setProfile('sell')">Vendendo</button>
+          </div>
+
+          <ul class="sn-topics">
+            @for (t of topics(); track t.id) {
+              <li>
+                <button type="button" class="tp" (click)="pickTopic(t)">
+                  <span class="tp-ico" aria-hidden="true"><vn-icon [name]="t.icon" /></span>
+                  <span class="tp-txt"><strong>{{ t.label }}</strong><small>{{ t.hint }}</small></span>
+                  <vn-icon name="chevron" class="tp-go" />
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <!-- ============================ 2 · PEDIDO ============================ -->
+      @case ('order') {
+        <section aria-labelledby="sn-t2">
+          <h2 class="sn-h" id="sn-t2">{{ profile() === 'sell' ? 'Qual venda?' : 'Qual pedido?' }}</h2>
+          <p class="sn-p">Escolha na lista, sem precisar digitar número. Assim a equipe já vê o pedido na tela.</p>
+
+          @if (orderList() === null) {
+            <div class="sheet" aria-busy="true" aria-label="Carregando pedidos">
+              <div class="sk sk-row"><div class="sk sk-thumb"></div><div class="sk-col"><div class="sk sk-line sk-w80"></div><div class="sk sk-line sk-w40"></div></div></div>
+              <div class="sk sk-row" style="margin-top: 14px"><div class="sk sk-thumb"></div><div class="sk-col"><div class="sk sk-line sk-w80"></div><div class="sk sk-line sk-w40"></div></div></div>
+            </div>
+          } @else {
+            @if (ordersFailed()) {
+              <p class="sn-warn" role="alert">
+                Não deu para carregar a sua lista agora.
+                <button type="button" (click)="loadOrders()">Tentar de novo</button>
+              </p>
+            }
+            @if (orderList()!.length) {
+              <ul class="sn-orders">
+                @for (o of orderList(); track o.id) {
+                  <li>
+                    <button type="button" class="oc" (click)="pickOrder(o.id)">
+                      @if (o.photo) { <img [src]="o.photo" alt="" loading="lazy" /> } @else { <span class="oc-ph" aria-hidden="true"><vn-icon name="box" /></span> }
+                      <span class="oc-txt">
+                        <strong>{{ o.items }}</strong>
+                        <small>#{{ o.shortId }} · {{ o.date }} · {{ o.stageLabel }}</small>
+                        <small>{{ money(o.amount) }}</small>
+                      </span>
+                      <vn-icon name="chevron" class="oc-go" />
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else if (!ordersFailed()) {
+              <p class="sn-none">Você ainda não tem {{ profile() === 'sell' ? 'vendas' : 'pedidos' }} para escolher.</p>
+            }
+            <button type="button" class="btn btn--outline btn--block sn-skip" (click)="pickOrder(null)">Não é sobre um pedido</button>
+          }
+        </section>
+      }
+
+      <!-- ============================ 3 · DETALHES ============================ -->
+      @case ('details') {
+        <section aria-labelledby="sn-t3">
+          <h2 class="sn-h" id="sn-t3">Conte o que aconteceu</h2>
+
+          <div class="sheet sn-ctx">
+            <div class="sn-ctx-row">
+              <span class="tp-ico" aria-hidden="true"><vn-icon [name]="topic()!.icon" /></span>
+              <span class="sn-ctx-txt"><small>Assunto</small><strong>{{ topic()!.label }}</strong></span>
+              <button type="button" class="sn-link" (click)="changeTopic()">Trocar</button>
+            </div>
+            @if (selectedOrder(); as o) {
+              <div class="oc oc--static">
+                @if (o.photo) { <img [src]="o.photo" alt="" /> } @else { <span class="oc-ph" aria-hidden="true"><vn-icon name="box" /></span> }
+                <span class="oc-txt"><strong>{{ o.items }}</strong><small>#{{ o.shortId }} · {{ o.stageLabel }}</small></span>
+                <button type="button" class="sn-link" (click)="changeOrder()">Trocar</button>
+              </div>
+            } @else if (topic()!.needsOrder && !orderId()) {
+              <p class="sn-ctx-none">Sem pedido ligado a este atendimento. <button type="button" class="sn-link" (click)="changeOrder()">Escolher pedido</button></p>
+            }
+          </div>
+
+          @if (helpTopic(); as ht) {
+            <a class="sn-help" routerLink="/help" [queryParams]="{ assunto: ht.id }">
+              <vn-icon name="help" />
+              <span><strong>Antes de enviar:</strong> veja o que a Central de ajuda diz sobre “{{ ht.title }}”.</span>
+              <vn-icon name="chevron" />
+            </a>
+          }
+
+          @if (duplicate(); as dup) {
+            <p class="sn-warn" role="status">
+              Você já tem um atendimento em aberto sobre isso (<strong>{{ dup.protocol }}</strong>).
+              <a [routerLink]="['/support', dup.id]">Abrir esse atendimento</a> — responder lá é mais rápido do que abrir outro.
+            </p>
+          }
+
+          <form class="sheet sn-form" (ngSubmit)="submit()" #form="ngForm" novalidate>
+            <div class="fld">
+              <label for="sn-subject">Título</label>
+              <input id="sn-subject" name="subject" type="text" autocomplete="off" [maxlength]="info.subjectMax"
+                     placeholder="Ex.: Pedido #A1B2C3D4 não chegou" [ngModel]="subject()" (ngModelChange)="subject.set($event)" />
+            </div>
+
+            @if (suggestions().length) {
+              <div class="sn-sug" role="region" aria-live="polite" aria-label="Respostas da Central de ajuda que podem ajudar">
+                <p class="sn-sug-title"><vn-icon name="help" /> Isso resolve? Veja antes de enviar</p>
+                @for (hit of suggestions(); track hit.article.id) {
+                  <button type="button" class="sn-sug-item" (click)="openSheet(hit)">
+                    <span>{{ hit.article.q }}</span><vn-icon name="chevron" />
+                  </button>
+                }
+              </div>
+            }
+
+            <div class="fld">
+              <label for="sn-message">O que aconteceu?</label>
+              <textarea id="sn-message" name="message" rows="6" [maxlength]="info.messageMax"
+                        placeholder="Conte com o máximo de detalhes: o que você esperava, o que aconteceu e desde quando."
+                        [ngModel]="message()" (ngModelChange)="message.set($event)"></textarea>
+              <p class="fld-meta">
+                @if (messageLeft() > 0) { <span>Faltam {{ messageLeft() }} caracteres para o mínimo.</span> } @else { <span>&nbsp;</span> }
+                <span>{{ message().length }}/{{ info.messageMax }}</span>
+              </p>
+            </div>
+
+            @if (topic()!.tips.length) {
+              <ul class="sn-tips">
+                @for (tip of topic()!.tips; track tip) { <li><vn-icon name="check" />{{ tip }}</li> }
+              </ul>
+            }
+
+            <div class="fld">
+              <span class="fld-label">Fotos ou PDF <em>(opcional)</em></span>
+              <input #file type="file" hidden multiple [accept]="info.fileAccept" (change)="onFiles($event)" />
+              @if (uploads().length) {
+                <ul class="sn-files">
+                  @for (u of uploads(); track u.key) {
+                    <li>
+                      @if (u.preview) { <img [src]="u.preview" alt="" /> } @else { <span class="sn-file-doc" aria-hidden="true"><vn-icon name="doc" /></span> }
+                      <span class="sn-file-txt"><strong>{{ u.name }}</strong><small>{{ u.state === 'uploading' ? 'Enviando…' : fileSize(u.size) }}</small></span>
+                      <button type="button" class="sn-x" (click)="removeUpload(u.key)" [attr.aria-label]="'Remover ' + u.name" [disabled]="u.state === 'uploading'">
+                        <vn-icon name="close" />
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+              @if (uploads().length < info.maxAttachments) {
+                <button type="button" class="btn btn--outline sn-attach" (click)="file.click()">
+                  <vn-icon name="clip" /> Anexar foto ou PDF
+                </button>
+              }
+              <p class="fld-hint">Até {{ info.maxAttachments }} arquivos de 5 MB (JPG, PNG, WebP ou PDF).</p>
+              @if (fileError()) { <p class="fld-err" role="alert">{{ fileError() }}</p> }
+            </div>
+
+            @if (error()) { <p class="sn-err" role="alert">{{ error() }}</p> }
+
+            <button type="submit" class="btn btn--primary btn--block sn-send" [disabled]="!canSubmit()">
+              @if (sending()) { <ion-spinner name="crescent"></ion-spinner> Enviando… } @else { <vn-icon name="send" /> Enviar atendimento }
+            </button>
+            <p class="sn-note">
+              A resposta chega aqui no app{{ email ? ' e em ' + email : '' }}. Respondemos {{ info.promise }} ({{ info.hours }}).
+            </p>
+          </form>
+        </section>
+      }
+
+      <!-- ============================ ENVIADO ============================ -->
+      @case ('sent') {
+        <section class="sn-done" aria-labelledby="sn-ok" role="status">
+          <span class="sn-ok-mark" aria-hidden="true"><vn-icon name="check" /></span>
+          <h2 id="sn-ok">Recebemos o seu atendimento</h2>
+          <p class="sn-p">Guarde o número do protocolo:</p>
+          <p class="sn-proto">{{ protocol() }}</p>
+          <p class="sn-p">
+            A Vineon responde {{ info.promise }} ({{ info.hours }}). Você será avisado no app{{ email ? ' e por e-mail (' + email + ')' : '' }}.
+          </p>
+          <button type="button" class="btn btn--primary btn--block" (click)="track()">Acompanhar atendimento</button>
+          <a class="btn btn--outline btn--block" routerLink="/tabs/my-account">Voltar para Minha conta</a>
+        </section>
+      }
+    }
+  </div>
+
+  <!-- ===================== Resposta da Central (folha) ===================== -->
+  <ion-modal [isOpen]="!!sheetHit()" (didDismiss)="sheetHit.set(null)" [breakpoints]="[0, 0.85, 1]" [initialBreakpoint]="0.85" class="sn-sheet">
+    <ng-template>
+      <ion-content class="ion-padding">
+        @if (sheetHit(); as hit) {
+          <vn-help-answer [hit]="hit" (navigated)="sheetHit.set(null)" />
+          <button type="button" class="btn btn--primary btn--block sn-back" (click)="sheetHit.set(null)">Voltar ao atendimento</button>
+        }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

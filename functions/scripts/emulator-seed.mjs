@@ -407,10 +407,117 @@ for (const [productId, count] of Object.entries(soldCount)) {
   await db.doc(`products/${productId}`).update({ soldCount: count });
 }
 
+// -------------------------------------------------------------- atendimentos
+
+// "Fale com a Vineon": um de cada situação, para a fila do painel e a lista da
+// pessoa já aparecerem completas. Protocolos seguem o contador `supportCounters`.
+const HOUR = 3_600_000;
+const year = new Date().getFullYear();
+
+const ticketPlan = [
+  {
+    id: 'seedticket0000000001', user: users.comprador, role: 'buyer', topic: 'pedido-atraso', label: 'Pedido não chegou ou atrasou', priority: 'high',
+    subject: 'Meu pedido não chegou', status: 'waiting_staff', createdAgo: 3 * HOUR, dueIn: 21 * HOUR, order: 'seed-04', stage: 'preparing',
+    replies: [{ by: 'user', agoMs: 3 * HOUR, text: 'O prazo de entrega venceu ontem e o rastreio não anda. Pode verificar com a transportadora?' }],
+  },
+  {
+    id: 'seedticket0000000002', user: users.comprador, role: 'buyer', topic: 'pagamento', label: 'Pagamento ou cobrança', priority: 'high',
+    subject: 'Paguei o Pix e o pedido continua pendente', status: 'waiting_customer', createdAgo: 20 * HOUR, firstResponseAgo: 18 * HOUR, order: 'seed-03', stage: 'pay', userUnread: true,
+    replies: [
+      { by: 'user', agoMs: 20 * HOUR, text: 'Fiz o Pix ontem à noite e o pedido ainda aparece como aguardando pagamento.' },
+      { by: 'staff', agoMs: 18 * HOUR, name: 'Henrique · Vineon', text: 'Olá! Conferimos aqui e não achamos o pagamento. Pode enviar o comprovante do Pix, com o horário?' },
+    ],
+  },
+  {
+    id: 'seedticket0000000003', user: users.comprador, role: 'buyer', topic: 'devolucao', label: 'Devolução e arrependimento', priority: 'normal',
+    subject: 'Como peço a devolução do celular?', status: 'resolved', createdAgo: 52 * HOUR, firstResponseAgo: 50 * HOUR, resolvedAgo: 26 * HOUR,
+    replies: [
+      { by: 'user', agoMs: 52 * HOUR, text: 'Quero devolver o celular que comprei, mas não encontro o botão no pedido.' },
+      { by: 'staff', agoMs: 50 * HOUR, name: 'Henrique · Vineon', text: 'Abra o pedido em Minha conta > Seus pedidos e toque em "Solicitar devolução". Se aparecer algum problema, responda aqui.' },
+      { by: 'system', agoMs: 26 * HOUR, event: 'resolved', eventBy: 'staff' },
+    ],
+  },
+  {
+    id: 'seedticket0000000004', user: users.comprador, role: 'buyer', topic: 'outro', label: 'Outro assunto', priority: 'normal',
+    subject: 'Sugestão para a vitrine', status: 'closed', createdAgo: 30 * 24 * HOUR, firstResponseAgo: 30 * 24 * HOUR - 5 * HOUR, resolvedAgo: 28 * 24 * HOUR, closedAgo: 20 * 24 * HOUR,
+    csat: { score: 5, comment: 'Atendimento rápido, obrigado!' },
+    replies: [
+      { by: 'user', agoMs: 30 * 24 * HOUR, text: 'Seria legal poder ordenar a vitrine por menor preço.' },
+      { by: 'staff', agoMs: 30 * 24 * HOUR - 5 * HOUR, name: 'Josué · Vineon', text: 'Obrigado pela sugestão! Já anotamos com o time.' },
+      { by: 'system', agoMs: 28 * 24 * HOUR, event: 'resolved', eventBy: 'staff' },
+      { by: 'system', agoMs: 20 * 24 * HOUR, event: 'closed', eventBy: 'staff' },
+    ],
+  },
+  {
+    id: 'seedticket0000000005', user: users.vendedor, role: 'seller', topic: 'repasse', label: 'Repasse e taxa', priority: 'normal',
+    subject: 'Dúvida sobre o repasse de setembro', status: 'waiting_staff', createdAgo: 30 * HOUR, dueIn: -6 * HOUR,
+    replies: [{ by: 'user', agoMs: 30 * HOUR, text: 'Gostaria de entender como a taxa da Vineon foi calculada nas vendas de setembro.' }],
+  },
+];
+
+for (const [index, t] of ticketPlan.entries()) {
+  const created = now - t.createdAgo;
+  const order = t.order ? orderPlan[Number(t.order.split('-')[1]) - 1] : null;
+  const product = order ? productDocs[order[1][0][0]] : null;
+  const ref = db.doc(`supportTickets/${t.id}`);
+  const lastReply = t.replies[t.replies.length - 1];
+  const lastMessage = [...t.replies].reverse().find(r => r.by !== 'system');
+
+  await ref.set({
+    protocol: `VN-${year}-${String(index + 1).padStart(6, '0')}`,
+    userId: t.user.uid,
+    userName: t.user.displayName,
+    userEmail: t.user.email,
+    userRole: t.role,
+    topic: t.topic,
+    topicLabel: t.label,
+    subject: t.subject,
+    orderId: t.order ?? null,
+    orderSnapshot: t.order ? {
+      shortId: t.order.substring(0, 8).toUpperCase(), stage: t.stage, items: product.name, photo: product.photoURL?.[0] ?? null,
+      total: 349.9, asRole: t.role,
+    } : null,
+    fromHelpArticle: null,
+    relatedTicketId: null,
+    status: t.status,
+    priority: t.priority,
+    assigneeId: t.firstResponseAgo ? users.admin.uid : null,
+    assigneeName: t.firstResponseAgo ? 'Henrique' : null,
+    channel: 'app',
+    createdAt: Timestamp.fromMillis(created),
+    updatedAt: Timestamp.fromMillis(now - Math.min(...t.replies.map(r => r.agoMs))),
+    lastReplyAt: Timestamp.fromMillis(now - lastMessage.agoMs),
+    lastReplyBy: lastMessage.by,
+    replyCount: t.replies.filter(r => r.by !== 'system').length,
+    firstResponseDueAt: Timestamp.fromMillis(t.dueIn !== undefined ? now + t.dueIn : created + 24 * HOUR),
+    firstResponseAt: t.firstResponseAgo ? Timestamp.fromMillis(now - t.firstResponseAgo) : null,
+    ...(t.resolvedAgo ? { resolvedAt: Timestamp.fromMillis(now - t.resolvedAgo), resolvedBy: 'staff' } : {}),
+    ...(t.closedAgo ? { closedAt: Timestamp.fromMillis(now - t.closedAgo) } : {}),
+    userUnread: t.userUnread === true,
+    staffUnread: t.status === 'waiting_staff',
+    csat: t.csat ? { ...t.csat, at: Timestamp.fromMillis(now - 19 * 24 * HOUR) } : null,
+  });
+
+  for (const [i, r] of t.replies.entries()) {
+    await ref.collection('replies').doc(`r${i + 1}`).set({
+      senderId: r.by === 'user' ? t.user.uid : users.admin.uid,
+      senderRole: r.by,
+      senderName: r.by === 'user' ? t.user.displayName : r.by === 'system' ? 'Vineon' : r.name,
+      text: r.text ?? '',
+      attachments: [],
+      createdAt: Timestamp.fromMillis(now - r.agoMs),
+      ...(r.event ? { event: r.event, eventBy: r.eventBy } : {}),
+    });
+  }
+}
+
+await db.doc(`supportCounters/${year}`).set({ seq: ticketPlan.length, updatedAt: FieldValue.serverTimestamp() });
+
 console.log(`Seed concluído em ${PROJECT_ID}:`);
 console.log(`  ${Object.keys(users).length} contas (admin, vendedor, atelie, comprador), senha "${PASSWORD}"`);
 console.log(`  ${categories.length} categorias, ${products.length + 1} produtos, ${orderPlan.length} pedidos`);
 console.log(`  ${catalog.length} produtos no catálogo (1 rascunho)`);
+console.log(`  ${ticketPlan.length} atendimentos (um por situação: novo, aguardando cliente, resolvido, encerrado e um atrasado)`);
 console.log('  Entre pelo app com ?testUser=admin | vendedor | atelie | comprador');
 
 process.exit(0);

@@ -147,6 +147,20 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // ------------------------------------------------------- atendimento
+
+    // Anexos do "Fale com a Vineon": support/{uid}/{ticketId}/{arquivo}, onde
+    // {uid} e a pessoa dona do atendimento. Ela e a equipe enviam; so elas
+    // leem. O arquivo nao pode ser trocado nem apagado pela pessoa depois de
+    // enviado (e prova do atendimento); a function confere tipo e tamanho de novo.
+    match /support/{uid}/{ticketId}/{fileName} {
+      allow read: if isAdmin() || isUser(uid);
+      allow create: if (isUser(uid) || isAdmin())
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('application/pdf|image/(jpeg|png|webp)');
+      allow update, delete: if isAdmin();
+    }
+
     // ---------------------------------------------------------------- chat
 
     // Fotos e audios trocados numa conversa (chat-box.component.ts -> upload).

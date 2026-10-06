@@ -6,6 +6,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as nodemailer from 'nodemailer';
 
 import { region } from './shared/http';
+import { appUrl, escapeHtml } from './shared/mail';
 
 /**
  * E-mail da nota fiscal mensal que a Vineon emite para a loja.
@@ -119,14 +120,6 @@ function rateText(summary: InvoiceDoc['summary']): string {
 
 function brl(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
-}
-
-function appUrl(): string {
-  return (process.env.APP_PUBLIC_URL || 'https://www.vineonsite.com.br').replace(/\/$/, '');
 }
 
 function invoiceText(name: string, period: string, invoice: InvoiceDoc): string {

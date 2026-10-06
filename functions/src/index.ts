@@ -32,6 +32,8 @@ export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
 
 export { onSellerInvoiceWritten } from './seller-invoices';
 
+export { createSupportTicket, replySupportTicket } from './support';
+
 export {
   onOrderWrittenNotify,
   onChatMessageNotify,

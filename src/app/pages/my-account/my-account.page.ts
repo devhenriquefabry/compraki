@@ -20,6 +20,7 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { OrdersService } from 'src/app/services/orders.service';
 import { SalesService } from 'src/app/services/sales.service';
+import { SupportService } from 'src/app/services/support.service';
 import { StorefrontDataService } from 'src/app/services/storefront-data.service';
 import { NotificationCenterService } from 'src/app/services/notification-center.service';
 
@@ -82,6 +83,7 @@ export class MyAccountPage {
   private readonly usersService = inject(FirebaseUsersService);
   private readonly ordersService = inject(OrdersService);
   private readonly salesService = inject(SalesService);
+  private readonly support = inject(SupportService);
   private readonly addressService = inject(AddressService);
   private readonly storefront = inject(StorefrontDataService);
   private readonly toastCtrl = inject(ToastController);
@@ -291,11 +293,17 @@ export class MyAccountPage {
     return rows;
   });
 
-  readonly helpRows: AccountRow[] = [
+  /** Atendimentos com resposta da Vineon que a pessoa ainda não abriu. */
+  readonly supportUnread = signal(0);
+
+  readonly helpRows = computed<AccountRow[]>(() => [
     { icon: 'help', label: 'Central de ajuda', hint: 'Respostas para as dúvidas mais comuns', link: '/help' },
-    { icon: 'chat', label: 'Fale com a Vineon', hint: 'Atendimento para compras e vendas' },
+    {
+      icon: 'chat', label: 'Fale com a Vineon', link: '/support', badge: this.supportUnread(),
+      hint: this.supportUnread() ? 'Você tem resposta nova' : 'Atendimento para compras e vendas',
+    },
     { icon: 'doc', label: 'Termos e políticas', hint: 'Termos de uso, privacidade e devolução', link: '/terms' },
-  ];
+  ]);
 
   /** Quanto do cadastro está preenchido (lido do formulário, muda enquanto a pessoa digita). */
   get profileCompletion(): number {
@@ -338,6 +346,7 @@ export class MyAccountPage {
 
     this.unbindData();
     this.appUser.set(null);
+    this.supportUnread.set(0);
     this.orders.set(null);
     this.sales.set(null);
     this.productCount.set(null);
@@ -368,6 +377,11 @@ export class MyAccountPage {
       this.fbProducts.getBySeller(user.uid, true).subscribe({
         next: products => this.productCount.set(products.length),
         error: () => this.productCount.set(0),
+      }),
+      // Só o selo de "resposta nova": falha aqui some o selo, não a tela.
+      this.support.watchMyTickets(user.uid, 30).subscribe({
+        next: list => this.supportUnread.set(list.filter(t => t.userUnread).length),
+        error: () => this.supportUnread.set(0),
       }),
     ];
   }

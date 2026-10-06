@@ -56,6 +56,9 @@ export const VN_ICONS = {
   dots: 'M12 6.25v.05 M12 12v.05 M12 17.75v.05',
   download: 'M12 4.25v10.5 M7.75 10.75 12 15l4.25-4.25 M5 19.75h14',
   send: 'M4.25 11.6 19.75 4.25l-4.6 15.5-3.4-6.4Z M11.75 13.35l8-9.1',
+  // Atendimento (Fale com a Vineon)
+  clip: 'M20.5 11.1 11.9 19.7a5.25 5.25 0 0 1-7.4-7.4l8.6-8.6a3.5 3.5 0 0 1 4.95 4.95l-8.6 8.6a1.75 1.75 0 0 1-2.5-2.5l7.9-7.9',
+  clock: 'M12 20.25a8.25 8.25 0 1 0 0-16.5 8.25 8.25 0 0 0 0 16.5Z M12 7.75V12l3 1.75',
 } as const;
 
 export type VnIconName = keyof typeof VN_ICONS;

@@ -312,9 +312,29 @@
   border-top: 1px dashed var(--vc-line);
   font-size: 12.5px;
   color: var(--vc-muted);
+
+  /* A data e o pagamento cedem lugar: o número do pedido e o link de ajuda não quebram de linha. */
+  > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+.oc-help {
+  flex: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--vc-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:focus-visible { outline: 2px solid var(--vc-green); outline-offset: 2px; border-radius: 6px; }
 }
 
 .oc-id {
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 5px;

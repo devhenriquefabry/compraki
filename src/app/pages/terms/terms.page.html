@@ -274,13 +274,18 @@
 
             <section class="lg-sec" id="u-contato" aria-labelledby="h-u-contato">
               <h2 id="h-u-contato"><span class="lg-sec-n">14</span>Fale com a Vineon</h2>
-              <p>Dúvidas, reclamações e pedidos de revisão:</p>
+              <p>
+                Dúvidas, reclamações e pedidos de revisão: abra um atendimento em <strong>Minha conta › Fale com a Vineon</strong>.
+                Você recebe um número de protocolo na hora, acompanha as respostas pelo app e a Vineon responde em até cinco dias
+                (a meta é bem menos). Quem não consegue entrar na conta pode escrever para:
+              </p>
               <dl class="lg-kv">
                 @if (company.supportEmail) { <div><dt>E-mail</dt><dd>{{ company.supportEmail }}</dd></div> }
                 @if (company.address) { <div><dt>Endereço</dt><dd>{{ company.address }}</dd></div> }
               </dl>
+              <a class="lg-btn lg-btn--lime" routerLink="/support"><vn-icon name="chat" />Abrir um atendimento</a>
               @if (supportMailto; as mailto) {
-                <a class="lg-btn lg-btn--lime" [href]="mailto"><vn-icon name="mail" />Escrever para a Vineon</a>
+                <a class="lg-btn lg-btn--outline" [href]="mailto"><vn-icon name="mail" />Escrever por e-mail</a>
               }
             </section>
           }
@@ -346,9 +351,7 @@
                   Quando o produto chega ao vendedor (ou logo após a aprovação, se não houver o que devolver), fazemos o estorno.
                 </li>
               </ol>
-              @if (refundMailto; as mailto) {
-                <a class="lg-btn lg-btn--outline" [href]="mailto"><vn-icon name="mail" />Pedir devolução por e-mail</a>
-              }
+              <a class="lg-btn lg-btn--lime" routerLink="/support/new" [queryParams]="{ assunto: 'devolucao' }"><vn-icon name="returns" />Falar com a Vineon sobre devolução</a>
             </section>
 
             <section class="lg-sec" id="c-reembolso" aria-labelledby="h-c-reembolso">

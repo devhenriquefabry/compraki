@@ -1,0 +1,213 @@
+/*
+ * Fale com a Vineon — conversa do atendimento
+ * ----------------------------------------------------------------------------
+ * A pessoa fala em cartão branco; a Vineon, em cartão azul-noite (lima só como
+ * texto sobre o escuro). Estado do atendimento aparece em chip e em faixa.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+@use '../../../theme/vn-support' as vs;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(680px);
+@include vc.desktop-header(680px);
+@include vc.empty;
+@include vc.skeleton;
+@include vc.sheet;
+@include vc.buttons;
+@include vc.reduced-motion;
+@include vs.chips;
+@include vs.order-chip;
+
+.tk { padding-top: 12px; }
+.pg-empty-mark vn-icon { font-size: 32px; }
+
+/* ------------------------------------------------------------------ resumo */
+.tk-sum { display: grid; gap: 10px; }
+.tk-sum-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.tk-topic { font-size: 13px; font-weight: 700; color: var(--vc-muted); }
+.tk-sum h2 { margin: 0; font-family: var(--vc-display); font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--vc-ink); overflow-wrap: anywhere; }
+
+.tk-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; font-size: 13px; font-weight: 600; color: var(--vc-muted); }
+
+.tk-proto {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: #EEF1F4;
+  color: var(--vc-ink);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  vn-icon { font-size: 15px; color: var(--vc-muted); }
+  &:hover { background: #E3E8EE; }
+}
+
+/* ------------------------------------------------------------ faixa de estado */
+.tk-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: #E6EAF0;
+  color: var(--vc-ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  vn-icon { flex: none; font-size: 18px; }
+
+  &--you { background: var(--vc-neon); color: var(--vc-navy); }
+}
+
+.tk-warn { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: #FDF1EB; color: var(--vc-rust); font-size: 13.5px; font-weight: 700; }
+
+/* ------------------------------------------------------------------ conversa */
+.tk-thread { display: grid; gap: 10px; margin-bottom: 14px; }
+
+.msg {
+  max-width: 94%;
+  justify-self: end;
+  padding: 12px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
+  color: var(--vc-ink);
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  strong { font-size: 13px; font-weight: 800; }
+  time { font-size: 12px; font-weight: 600; color: var(--vc-muted); white-space: nowrap; }
+
+  &--staff {
+    justify-self: start;
+    border-radius: 16px 16px 16px 4px;
+    background: var(--vc-navy);
+    color: #fff;
+    strong { color: var(--vc-neon); }
+    time { color: rgba(255, 255, 255, 0.6); }
+  }
+}
+
+.msg-text { margin: 0; font-size: 15px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.tk-event {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--vc-muted);
+  span { padding: 3px 12px; border-radius: 999px; background: #E3E8EE; color: var(--vc-ink-2); }
+}
+
+/* ------------------------------------------------------------------ resolvido */
+.tk-resolved {
+  h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-family: var(--vc-display); font-size: 16px; font-weight: 600; color: var(--vc-ink); vn-icon { font-size: 20px; } }
+  p { margin: 0 0 10px; font-size: 14px; line-height: 1.5; color: var(--vc-ink-2); }
+}
+
+.tk-new { margin-bottom: 12px; vn-icon { font-size: 18px; } }
+
+.tk-rate {
+  display: grid;
+  gap: 10px;
+  h3 { margin: 0; font-family: var(--vc-display); font-size: 16px; font-weight: 600; color: var(--vc-ink); }
+}
+
+.tk-stars {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  button, span { width: 44px; height: 44px; display: grid; place-items: center; font-size: 30px; line-height: 1; color: #C7CFD9; }
+  .is-on { color: var(--vc-navy); }
+  button:hover { color: #8A94A1; }
+  button.is-on:hover { color: var(--vc-navy); }
+  button:focus-visible { outline: 2px solid var(--vc-ink); outline-offset: -2px; border-radius: 10px; }
+}
+
+.tk-rate-text {
+  width: 100%;
+  border: 1.5px solid var(--vc-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: 600 14.5px/1.45 var(--vc-body);
+  color: var(--vc-ink);
+  outline: 0;
+  resize: vertical;
+  &:focus { border-color: var(--vc-navy); box-shadow: 0 0 0 3px rgba(216, 245, 31, 0.6); }
+}
+
+.tk-resolve {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px #B9C2CD;
+  color: var(--vc-ink);
+  font-size: 14.5px;
+  font-weight: 800;
+  vn-icon { font-size: 18px; }
+  &:hover:not(:disabled) { background: #fff; }
+  &:disabled { opacity: 0.5; }
+}
+
+/* ------------------------------------------------------------------ responder */
+.tk-footer { background: #fff; box-shadow: 0 -1px 0 var(--vc-line); }
+.tk-compose { max-width: 680px; margin: 0 auto; padding: 8px 10px calc(8px + var(--ion-safe-area-bottom, 0px)); display: grid; gap: 6px; font-family: var(--vc-body); }
+
+.tk-row { display: flex; align-items: flex-end; gap: 6px; }
+
+.tk-row textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 140px;
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--vc-line);
+  border-radius: 22px;
+  background: #fff;
+  color: var(--vc-ink);
+  font: 600 15.5px/1.4 var(--vc-body);
+  outline: 0;
+  resize: none;
+  field-sizing: content;
+  &::placeholder { color: #8A94A1; font-weight: 500; }
+  &:focus { border-color: var(--vc-navy); box-shadow: 0 0 0 3px rgba(216, 245, 31, 0.6); }
+}
+
+.tk-ico, .tk-send {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 22px;
+}
+
+.tk-ico { color: var(--vc-ink-2); &:hover:not(:disabled) { background: #EEF1F4; } &:disabled { opacity: 0.4; } }
+.tk-send { background: var(--vc-navy); color: var(--vc-neon); ion-spinner { width: 20px; height: 20px; color: #fff; } &:disabled { background: #B9C2CD; color: #fff; } }
+
+.tk-err { margin: 0; padding: 0 6px; font-size: 13px; font-weight: 700; color: var(--vc-rust); }
+
+.tk-pend { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.tk-pend li { display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 5px 4px 5px 5px; border-radius: 10px; background: #F6F8FA; }
+.tk-pend img, .tk-pend-doc { flex: none; width: 36px; height: 36px; border-radius: 7px; object-fit: cover; background: #E3E8EE; }
+.tk-pend-doc { display: grid; place-items: center; font-size: 19px; color: var(--vc-muted); }
+.tk-pend-txt { min-width: 0; display: grid; strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; font-size: 12.5px; color: var(--vc-ink); } small { font-size: 11.5px; font-weight: 600; color: var(--vc-muted); } }
+.tk-pend button { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; color: var(--vc-muted); &:disabled { opacity: 0.4; } }

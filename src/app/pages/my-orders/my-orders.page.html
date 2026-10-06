@@ -292,6 +292,7 @@
               Pedido #{{ v.shortId }}
             </button>
             <span>{{ v.placedAt }} · {{ paymentLabel[v.order.paymentMethod] }}</span>
+            <a class="oc-help" routerLink="/support/new" [queryParams]="{ pedido: v.id, perfil: 'buy' }">Preciso de ajuda</a>
           </footer>
         </article>
       }

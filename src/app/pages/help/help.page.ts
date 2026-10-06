@@ -84,6 +84,8 @@ export class HelpPage {
   readonly topicId = signal<string | null>(null);
   readonly query = signal('');
   readonly open = signal<ReadonlySet<string>>(new Set());
+  /** Última pergunta aberta: vai junto no pedido de atendimento (mede o que a Central não resolveu). */
+  private readonly lastOpened = signal<string | null>(null);
 
   readonly topic = computed(() => findTopic(this.topicId()));
   readonly topics = computed(() => topicsFor(this.profile()));
@@ -162,9 +164,18 @@ export class HelpPage {
   toggle(id: string) {
     this.open.update(set => {
       const next = new Set(set);
-      if (!next.delete(id)) next.add(id);
+      if (!next.delete(id)) {
+        next.add(id);
+        this.lastOpened.set(id);
+      }
       return next;
     });
+  }
+
+  /** Parâmetros de `/support/new`: se a pessoa estava lendo uma pergunta, o atendimento sabe de qual veio. */
+  contactQuery(): { de: string } | null {
+    const id = this.lastOpened();
+    return id && this.isOpen(id) ? { de: id } : null;
   }
 
   /** `**negrito**` → trechos; guardado para o template não refazer a cada ciclo. */
@@ -175,10 +186,6 @@ export class HelpPage {
       this.segmentCache.set(text, cached);
     }
     return cached;
-  }
-
-  goContact() {
-    void this.scrollToId('hc-contato');
   }
 
   // --------------------------------------------------------------- rolagem

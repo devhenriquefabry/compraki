@@ -1,7 +1,8 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, receiptOutline, refreshOutline, searchOutline } from 'ionicons/icons';
@@ -132,6 +133,11 @@ export class ManageOrdersPage {
   constructor() {
     addIcons({ chevronDownOutline, receiptOutline, refreshOutline, searchOutline });
     inject(DestroyRef).onDestroy(() => this.stop?.());
+    // `?q=` (vem do atendimento: "Abrir pedido") já chega com a busca preenchida.
+    inject(ActivatedRoute).queryParamMap.pipe(takeUntilDestroyed()).subscribe(params => {
+      const q = params.get('q');
+      if (q) this.search.set(q);
+    });
     this.listen();
   }
 

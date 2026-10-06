@@ -272,7 +272,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
           {
             t: 'p',
-            text: 'Passaram alguns minutos e nada mudou? Escreva para a Vineon com o **comprovante** e o **número do pedido** — a equipe confere o pagamento.',
+            text: 'Passaram alguns minutos e nada mudou? Fale com a Vineon com o **comprovante** e o **número do pedido** — a equipe confere o pagamento.',
           },
         ],
         links: [{ label: 'Pedidos a pagar', route: '/my-orders', query: { aba: 'pay' } }],
@@ -394,7 +394,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
           {
             t: 'p',
-            text: 'Passou desse prazo? Toque em **Falar com a loja** no pedido e cobre o envio. Sem resposta, escreva para a Vineon com o número do pedido.',
+            text: 'Passou desse prazo? Toque em **Falar com a loja** no pedido e cobre o envio. Sem resposta, fale com a Vineon com o número do pedido.',
           },
         ],
       },
@@ -409,7 +409,7 @@ export const HELP_TOPICS: HelpTopic[] = [
             items: [
               'Veja o rastreio: às vezes a transportadora só atrasou.',
               'O rastreio não anda, ou consta entregue sem você ter recebido? Toque em **Falar com a loja** e explique.',
-              'A loja não resolveu? Escreva para a Vineon com o número do pedido.',
+              'A loja não resolveu? Fale com a Vineon com o número do pedido.',
             ],
           },
           {
@@ -503,7 +503,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
           {
             t: 'note',
-            text: 'Defeito descoberto depois dos 7 dias? Ainda dá tempo: veja os prazos de 30 e 90 dias na pergunta sobre defeito e escreva para a Vineon com o número do pedido.',
+            text: 'Defeito descoberto depois dos 7 dias? Ainda dá tempo: veja os prazos de 30 e 90 dias na pergunta sobre defeito e fale com a Vineon com o número do pedido.',
           },
         ],
         links: [
@@ -563,7 +563,7 @@ export const HELP_TOPICS: HelpTopic[] = [
             t: 'ul',
             items: [
               '**Ainda não pagou:** não precisa fazer nada. Sem o pagamento em até 3 dias, o pedido não segue e nada é cobrado.',
-              '**Pagou e a loja ainda não postou:** peça o cancelamento pelo chat da loja ou escreva para a Vineon. Você recebe tudo de volta.',
+              '**Pagou e a loja ainda não postou:** peça o cancelamento pelo chat da loja ou fale com a Vineon. Você recebe tudo de volta.',
               '**Já foi postado:** o botão **Solicitar devolução** já está liberado no pedido.',
             ],
           },
@@ -581,7 +581,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
           {
             t: 'p',
-            text: 'Não concorda com a decisão? Escreva para a Vineon com o número do pedido e as fotos. A equipe analisa cada caso e explica a decisão.',
+            text: 'Não concorda com a decisão? Fale com a Vineon com o número do pedido e as fotos. A equipe analisa cada caso e explica a decisão.',
           },
         ],
         links: [{ label: 'Ver devoluções', route: '/my-orders', query: { aba: 'refund' } }],
@@ -800,7 +800,7 @@ export const HELP_TOPICS: HelpTopic[] = [
             items: [
               'Troque a senha agora, em **Minha conta › Senha e segurança**.',
               'Confira seus pedidos e mensagens por algo que você não reconheça.',
-              'Escreva para a Vineon contando o que viu.',
+              'Fale com a Vineon contando o que viu.',
             ],
           },
         ],
@@ -1089,7 +1089,7 @@ export const HELP_TOPICS: HelpTopic[] = [
             items: [
               'Vale a taxa em vigor na **data do pagamento** de cada venda.',
               'Mudanças são avisadas antes de valerem e nunca alteram vendas já pagas.',
-              'Quer saber o percentual em vigor? Escreva para a Vineon.',
+              'Quer saber o percentual em vigor? Fale com a Vineon.',
             ],
           },
         ],
@@ -1296,6 +1296,63 @@ export function searchHelp(query: string, limit = 12): HelpHit[] {
     if (all) scored.push({ hit: entry.hit, score });
   }
   return scored.sort((a, b) => b.score - a.score).slice(0, limit).map(s => s.hit);
+}
+
+/** Palavras que não ajudam a achar a resposta ("meu pedido não chegou" → "pedido", "chegou"). */
+const STOPWORDS = new Set([
+  'a', 'o', 'as', 'os', 'um', 'uma', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'por', 'pra', 'para',
+  'com', 'sem', 'que', 'se', 'eu', 'meu', 'minha', 'meus', 'minhas', 'foi', 'ser', 'sao', 'esta', 'esse', 'essa', 'isso',
+  'ao', 'aos', 'e', 'ou', 'mas', 'como', 'qual', 'quando', 'nao', 'ja', 'mais', 'muito', 'tem', 'tenho', 'quero', 'preciso',
+  'ajuda', 'problema', 'duvida',
+]);
+
+/** Em quantas perguntas (título ou palavras-chave) a palavra aparece: as comuns ("produto") valem menos que as raras ("devolver"). */
+const DOC_FREQ = new Map<string, number>();
+function wordWeight(stem: string): number {
+  let df = DOC_FREQ.get(stem);
+  if (df === undefined) {
+    df = SEARCH_INDEX.filter(e => e.question.includes(stem) || e.keys.includes(stem)).length;
+    DOC_FREQ.set(stem, df);
+  }
+  return Math.max(0.25, Math.log(SEARCH_INDEX.length / (1 + df)));
+}
+
+/**
+ * Sugestões para quem está escrevendo um atendimento: bem mais tolerante que
+ * `searchHelp` (que exige TODAS as palavras). Aqui basta casar alguma palavra
+ * útil; quanto mais palavras casam e quanto mais perto do título da pergunta,
+ * mais alto ela aparece. Exige pelo menos 3 letras de texto útil.
+ */
+export function suggestHelp(query: string, limit = 3): HelpHit[] {
+  const raw = normalize(query).split(/[^a-z0-9]+/).filter(Boolean);
+  const words = [...new Set(raw.filter(t => t.length >= 3 && !STOPWORDS.has(t)))];
+  if (!words.length) return [];
+  // Duas palavras seguidas no título ("nao chegou") valem muito: separam "não chegou" de "chegou".
+  const pairs = raw.slice(0, -1).map((w, i) => `${w} ${raw[i + 1]}`);
+
+  const scored: { hit: HelpHit; score: number; matched: number }[] = [];
+  for (const entry of SEARCH_INDEX) {
+    const title = ` ${entry.question.replace(/[^a-z0-9]+/g, ' ')} `;
+    let score = pairs.filter(pair => title.includes(` ${pair} `)).length * 5;
+    let matched = 0;
+    for (const word of words) {
+      const stem = word.length > 5 ? word.slice(0, 5) : word;
+      const inQ = entry.question.includes(stem);
+      const inK = entry.keys.includes(stem);
+      if (!inQ && !inK) continue; // o corpo da resposta é grande demais: gera ruído
+      matched++;
+      score += wordWeight(stem) * ((inQ ? 6 : 0) + (inK ? 3 : 0));
+    }
+    if (matched) scored.push({ hit: entry.hit, score, matched });
+  }
+
+  // Com mais de uma palavra útil, uma só batida é coincidência ("produto" sozinho acha qualquer coisa).
+  const need = words.length >= 2 ? 2 : 1;
+  return scored
+    .filter(s => s.matched >= need)
+    .sort((a, b) => b.score - a.score || b.matched - a.matched)
+    .slice(0, limit)
+    .map(s => s.hit);
 }
 
 /** Quebra o `**negrito**` de um texto em trechos, para o template montar sem innerHTML. */

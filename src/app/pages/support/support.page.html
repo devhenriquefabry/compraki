@@ -1,0 +1,133 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Fale com a Vineon</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap sp">
+
+    <!-- ============================ BUSCA PRIMEIRO ============================ -->
+    <section class="sp-hero" aria-labelledby="sp-hero-title">
+      <p class="sp-eyebrow">Atendimento</p>
+      <h2 id="sp-hero-title">Como podemos ajudar?</h2>
+      <p class="sp-lead">Veja se a Central de ajuda já resolve. Se não, abra um atendimento: você recebe um protocolo e acompanha tudo por aqui.</p>
+
+      <label class="sp-search">
+        <vn-icon name="help" />
+        <input type="search" placeholder="Busque: pedido, devolução, Pix…" autocomplete="off"
+               [ngModel]="query()" (ngModelChange)="query.set($event)" aria-label="Buscar na Central de ajuda" />
+      </label>
+
+      @if (query().trim().length >= 3) {
+        <div class="sp-found" role="region" aria-live="polite" aria-label="Respostas da Central de ajuda">
+          @if (results().length) {
+            @for (hit of results(); track hit.article.id) {
+              <a class="sp-found-item" routerLink="/help" [queryParams]="helpQuery(hit)">
+                <span><small>{{ hit.topic.title }}</small>{{ hit.article.q }}</span>
+                <vn-icon name="chevron" />
+              </a>
+            }
+          } @else {
+            <p class="sp-found-empty">Nada na Central com essas palavras. Abra um atendimento e a gente resolve.</p>
+          }
+        </div>
+      } @else {
+        <div class="sp-chips" aria-label="Perguntas frequentes">
+          @for (hit of popular(); track hit.article.id) {
+            <a class="sp-chip" routerLink="/help" [queryParams]="helpQuery(hit)">{{ hit.article.q }}</a>
+          }
+        </div>
+      }
+
+      <a class="sp-cta" routerLink="/support/new">
+        <vn-icon name="chat" />
+        Abrir atendimento
+      </a>
+      <p class="sp-promise"><vn-icon name="clock" /> Respondemos {{ info.promise }} · {{ info.hours }}.</p>
+    </section>
+
+    <!-- ============================ SEUS ATENDIMENTOS ============================ -->
+    <section class="sp-sec" aria-labelledby="sp-list-title" [attr.aria-busy]="tickets() === null && !failed()">
+      <header class="sp-head">
+        <h2 id="sp-list-title">Seus atendimentos</h2>
+        @if (waitingForYou() > 0) {
+          <span class="sp-count">{{ waitingForYou() }} {{ waitingForYou() === 1 ? 'espera' : 'esperam' }} você</span>
+        }
+      </header>
+
+      @if (failed()) {
+        <div class="pg-empty">
+          <span class="pg-empty-mark" aria-hidden="true"><vn-icon name="close" /></span>
+          <h2>Não deu para carregar</h2>
+          <p>Confira a internet e tente de novo. Seus atendimentos continuam guardados.</p>
+          <button type="button" class="btn btn--primary" (click)="goBack()">Voltar</button>
+        </div>
+      } @else if (tickets() === null) {
+        <div class="sheet">
+          <div class="sk sk-line sk-w40"></div>
+          <div class="sk sk-line sk-w80"></div>
+          <div class="sk sk-line sk-w30"></div>
+        </div>
+      } @else if (!tickets()!.length) {
+        <div class="pg-empty">
+          <span class="pg-empty-mark" aria-hidden="true"><vn-icon name="ticket" /></span>
+          <h2>Nenhum atendimento ainda</h2>
+          <p>Quando você abrir um, ele aparece aqui, com o protocolo e as respostas da Vineon.</p>
+        </div>
+      } @else {
+        @if (active().length) {
+          <ul class="sp-list">
+            @for (t of active(); track t.id) {
+              <li>
+                <a class="tk" [routerLink]="['/support', t.id]" [class.is-unread]="t.userUnread">
+                  <span class="tk-main">
+                    <span class="tk-top">
+                      <span class="st st--{{ t.status }}">{{ statusLabel[t.status] }}</span>
+                      @if (t.userUnread) { <span class="tk-dot" aria-label="Resposta nova"></span> }
+                    </span>
+                    <strong>{{ t.subject }}</strong>
+                    <small>{{ t.topicLabel }} · {{ t.protocol }}</small>
+                    <small class="tk-ago"><vn-icon name="clock" /> {{ t.lastReplyBy === 'staff' ? 'Vineon respondeu' : 'Você enviou' }} {{ ago(t.lastReplyAt) }}</small>
+                  </span>
+                  <vn-icon name="chevron" class="tk-go" />
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="sp-none">Nenhum atendimento em andamento.</p>
+        }
+
+        @if (past().length) {
+          <h3 class="sp-sub">Resolvidos e encerrados</h3>
+          <ul class="sp-list sp-list--past">
+            @for (t of past(); track t.id) {
+              <li>
+                <a class="tk" [routerLink]="['/support', t.id]" [class.is-unread]="t.userUnread">
+                  <span class="tk-main">
+                    <span class="tk-top">
+                      <span class="st st--{{ t.status }}">{{ statusLabel[t.status] }}</span>
+                      @if (t.userUnread) { <span class="tk-dot" aria-label="Resposta nova"></span> }
+                    </span>
+                    <strong>{{ t.subject }}</strong>
+                    <small>{{ t.protocol }} · {{ ago(t.updatedAt) }}</small>
+                  </span>
+                  <vn-icon name="chevron" class="tk-go" />
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      }
+    </section>
+
+    <p class="sp-mail">
+      Não consegue entrar na sua conta? Escreva para a Vineon pelo e-mail da <a routerLink="/help" fragment="hc-contato">Central de ajuda</a>.
+    </p>
+  </div>
+</ion-content>

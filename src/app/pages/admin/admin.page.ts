@@ -26,6 +26,7 @@ import { ManageReportsPage } from '../manage-reports/manage-reports.page';
 import { AdminSettingsPage } from '../admin-settings/admin-settings.page';
 import { ManageSellersPage } from '../manage-sellers/manage-sellers.page';
 import { ManageCatalogPage } from '../manage-catalog/manage-catalog.page';
+import { ManageSupportPage } from '../manage-support/manage-support.page';
 
 type AdminTab =
   | 'metrics'
@@ -41,7 +42,8 @@ type AdminTab =
   | 'reports'
   | 'settings'
   | 'sellers'
-  | 'catalog';
+  | 'catalog'
+  | 'support';
 
 interface NavItem {
   id: AdminTab;
@@ -87,6 +89,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Relacionamento',
     items: [
+      { id: 'support', title: 'Atendimento', icon: 'headset-outline', iconActive: 'headset', hint: 'Fale com a Vineon: protocolos, respostas e prazos' },
       { id: 'chats', title: 'Conversas', icon: 'chatbubbles-outline', iconActive: 'chatbubbles', hint: 'Mensagens entre compradores e vendedores' },
       { id: 'users', title: 'Usuários', icon: 'people-outline', iconActive: 'people', hint: 'Contas, suspensões e mapa de calor' },
       { id: 'whatsapp', title: 'WhatsApp', icon: 'logo-whatsapp', iconActive: 'logo-whatsapp', hint: 'Instâncias e respostas automáticas' },
@@ -138,6 +141,7 @@ const BADGE_CAP = 100;
     ManageUsersPage,
     ManageRefundsPage,
     ManageOrdersPage,
+    ManageSupportPage,
     ManageReportsPage,
     AdminSettingsPage,
     ManageSellersPage,
@@ -287,11 +291,12 @@ export class AdminPage implements OnInit {
         .then(snap => snap.size)
         .catch(() => 0);
 
-    const [reports, refunds] = await Promise.all([
+    const [reports, refunds, support] = await Promise.all([
       count('status', 'open', 'contentReports'),
       count('refundInfo.status', 'REQUESTED', 'orders'),
+      count('status', 'waiting_staff', 'supportTickets'),
     ]);
-    this.badges.set({ reports, refunds });
+    this.badges.set({ reports, refunds, support });
   }
 
   // ------------------------------------------------------------ busca rápida

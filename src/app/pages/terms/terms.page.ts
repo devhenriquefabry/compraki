@@ -127,7 +127,6 @@ export class TermsPage {
   readonly company = COMPANY;
   readonly updatedLabel = formatLegalDate(TERMS_UPDATED);
   readonly supportMailto = mailtoLink(COMPANY.supportEmail, 'Atendimento Vineon');
-  readonly refundMailto = mailtoLink(COMPANY.supportEmail, 'Pedido de devolução');
 
   readonly tab = signal<TermsTab>('uso');
   readonly doc = computed(() => DOCS.find(d => d.id === this.tab())!);

@@ -47,7 +47,7 @@ export async function buildMyDataExport(user: User): Promise<Record<string, unkn
   const uid = user.uid;
   const sub = (name: string) => settle(getDocs(collection(db(), 'users', uid, name)).then(rows));
 
-  const [profile, addresses, cart, saved, following, notifications, orders, chats] = await Promise.all([
+  const [profile, addresses, cart, saved, following, notifications, orders, chats, tickets] = await Promise.all([
     settle(getDoc(doc(db(), 'users', uid)).then(snap => (snap.exists() ? plain(snap.data()) : null))),
     sub('addresses'),
     sub('cart'),
@@ -62,9 +62,17 @@ export async function buildMyDataExport(user: User): Promise<Record<string, unkn
         messages: await getDocs(collection(db(), 'chats', chat.id, 'messages')).then(rows),
       }))),
     )),
+    // Atendimentos (Fale com a Vineon): o que a pessoa e a Vineon escreveram. Notas internas da equipe não saem.
+    settle(getDocs(query(collection(db(), 'supportTickets'), where('userId', '==', uid))).then(snap =>
+      Promise.all(snap.docs.map(async ticket => ({
+        id: ticket.id,
+        ...(plain(ticket.data()) as object),
+        mensagens: await getDocs(collection(db(), 'supportTickets', ticket.id, 'replies')).then(rows),
+      }))),
+    )),
   ]);
 
-  if ([profile, addresses, cart, saved, following, notifications, orders, chats].every(part => isFailure(part))) {
+  if ([profile, addresses, cart, saved, following, notifications, orders, chats, tickets].every(part => isFailure(part))) {
     throw new Error('Nenhuma parte dos dados pôde ser lida.');
   }
 
@@ -86,6 +94,7 @@ export async function buildMyDataExport(user: User): Promise<Record<string, unkn
     favoritos: saved,
     lojasQueSegue: following,
     conversas: chats,
+    atendimentos: tickets,
     avisos: notifications,
   };
 }

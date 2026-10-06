@@ -477,6 +477,73 @@ service cloud.firestore {
         && d.createdAt == request.time;
     }
 
+    // ------------------------------------------------------- atendimento
+
+    // "Fale com a Vineon". O CLIENTE SO LE: abrir atendimento, gravar mensagem
+    // e mudar STATUS passam pelas functions createSupportTicket e
+    // replySupportTicket, que validam, limitam abuso, numeram o protocolo e
+    // definem quem e a equipe (`senderRole`). Direto pelo app so da para:
+    //  - a pessoa: marcar como lido e avaliar (uma vez, depois de resolvido);
+    //  - a equipe: atribuir, mudar prioridade e marcar como lido.
+    // `supportCounters` (sequencia do protocolo) nao tem regra: so Admin SDK.
+    function isTicketOwner(ticketId) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.get('userId', null) == request.auth.uid;
+    }
+
+    function isValidCsat() {
+      let c = request.resource.data.csat;
+      return c is map
+        && c.keys().hasOnly(['score', 'comment', 'at'])
+        && c.score is int && c.score >= 1 && c.score <= 5
+        && c.comment is string && c.comment.size() <= 500
+        && c.at == request.time;
+    }
+
+    match /supportTickets/{ticketId} {
+      // `get` com padrao: na consulta "meus atendimentos" o motor nao conhece
+      // os outros campos (mesmo cuidado de `chats`).
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.get('userId', null) == request.auth.uid);
+
+      allow create, delete: if false;
+
+      allow update: if (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['assigneeId', 'assigneeName', 'priority', 'staffUnread'])
+          && request.resource.data.priority in ['normal', 'high'])
+        || (isSignedIn()
+          && resource.data.get('userId', null) == request.auth.uid
+          && (
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userUnread'])
+              && request.resource.data.userUnread == false)
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['csat'])
+              && resource.data.get('csat', null) == null
+              && resource.data.get('status', '') in ['resolved', 'closed']
+              && isValidCsat())
+          ));
+
+      // Subcolecao NAO herda a regra do pai — a checagem e repetida. Tudo
+      // que a pessoa le aqui foi escrito pela function.
+      match /replies/{replyId} {
+        allow read: if isAdmin() || isTicketOwner(ticketId);
+        allow write: if false;
+      }
+
+      // Notas internas: a pessoa nunca ve. Ficam fora de `replies` de proposito,
+      // para uma consulta de lista nao poder vazar nota junto com a conversa.
+      match /notes/{noteId} {
+        allow read, delete: if isAdmin();
+        allow create: if isAdmin()
+          && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'text', 'createdAt'])
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+      }
+    }
+
     // Marca de conta suspensa. So a funcao `setAccountSuspension` escreve; o
     // dono le a propria.
     match /accountSuspensions/{uid} {

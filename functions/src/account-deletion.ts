@@ -54,6 +54,7 @@ interface Summary {
   addresses: number;
   savedProducts: number;
   chats: number;
+  tickets: number;
   reviews: number;
   ordersKept: number;
   salesKept: number;
@@ -158,13 +159,14 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
 
   // 2. O que impede e o que vai ser apagado.
   const now = new Date();
-  const [purchases, sales, products, addresses, saved, chats] = await Promise.all([
+  const [purchases, sales, products, addresses, saved, chats, tickets] = await Promise.all([
     db.collection('orders').where('userId', '==', uid).get(),
     db.collection('orders').where('sellerIds', 'array-contains', uid).get(),
     db.collection('products').where('sellerId', '==', uid).get(),
     userRef.collection('addresses').get(),
     userRef.collection('savedProducts').get(),
     db.collection('chats').where('participantIds', 'array-contains', uid).get(),
+    db.collection('supportTickets').where('userId', '==', uid).get(),
   ]);
 
   const blockers: Blocker[] = [];
@@ -198,6 +200,7 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     addresses: addresses.size,
     savedProducts: saved.size,
     chats: chats.size,
+    tickets: tickets.size,
     reviews: reviewRefs.length,
     ordersKept: purchases.size,
     salesKept: sales.size,
@@ -254,6 +257,17 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
       await chat.ref.update({ participants, status: 'closed', closedAt: FieldValue.serverTimestamp() });
     }
 
+    // Atendimentos (Fale com a Vineon): o texto fica guardado (é o registro de uma reclamação),
+    // mas sem o nome, o e-mail e os anexos (fotos e PDFs que a pessoa mandou).
+    for (const ticket of tickets.docs) {
+      await ticket.ref.update({ userName: DELETED_NAME, userEmail: null });
+      const replies = await ticket.ref.collection('replies').get();
+      await Promise.all(replies.docs.map(reply => reply.ref.update({
+        attachments: [],
+        ...(reply.get('senderRole') === 'user' ? { senderName: DELETED_NAME } : {}),
+      })));
+    }
+
     // Denúncias feitas pela pessoa: o registro fica para a moderação, sem o nome.
     const [contentReports, chatReports] = await Promise.all([
       db.collection('contentReports').where('reporterId', '==', uid).get(),
@@ -274,6 +288,7 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     await Promise.all([
       bucket.deleteFiles({ prefix: `profile-photos/${uid}/` }),
       bucket.deleteFiles({ prefix: `showcase-banners/${uid}/` }),
+      bucket.deleteFiles({ prefix: `support/${uid}/` }),
       ...[...storagePaths].map(path => bucket.file(path).delete({ ignoreNotFound: true })),
     ]).catch(error => logger.warn('Exclusão de conta: arquivo não apagado', { uid, error }));
 

@@ -1,0 +1,44 @@
+<article class="ha">
+  <p class="ha-topic">{{ hit().topic.title }}</p>
+  <h3 class="ha-q">{{ hit().article.q }}</h3>
+
+  <div class="ha-body">
+    @for (b of hit().article.a; track $index) {
+      @switch (b.t) {
+        @case ('p') {
+          <p>@for (s of parts(b.text); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</p>
+        }
+        @case ('ul') {
+          <ul>
+            @for (item of b.items; track $index) {
+              <li>@for (s of parts(item); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</li>
+            }
+          </ul>
+        }
+        @case ('ol') {
+          <ol>
+            @for (item of b.items; track $index) {
+              <li>@for (s of parts(item); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</li>
+            }
+          </ol>
+        }
+        @case ('note') {
+          <p class="ha-note" [class.is-alert]="b.alert">
+            <vn-icon [name]="b.alert ? 'shield' : 'help'" />
+            <span>@for (s of parts(b.text); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</span>
+          </p>
+        }
+      }
+    }
+  </div>
+
+  @if (links().length) {
+    <div class="ha-links">
+      @for (l of links(); track trackLink($index, l)) {
+        <a class="ha-link" [routerLink]="l.route" [queryParams]="l.query" (click)="navigated.emit()">
+          {{ l.label }} <vn-icon name="chevron" />
+        </a>
+      }
+    </div>
+  }
+</article>

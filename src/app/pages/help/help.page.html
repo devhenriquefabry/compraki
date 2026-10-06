@@ -197,7 +197,7 @@
       <div class="hc-contact-main">
         <p class="hc-eyebrow">Fale com a gente</p>
         <h2 id="hc-contact-title">Ainda precisa de ajuda?</h2>
-        <p class="hc-contact-lead">Escreva para a Vineon. Para agilizar, conte:</p>
+        <p class="hc-contact-lead">Abra um atendimento e acompanhe a resposta pelo app. Para agilizar, conte:</p>
         <ul class="hc-checks">
           <li><vn-icon name="check" /><span>o <strong>número do pedido</strong>, que está em Minhas compras;</span></li>
           <li><vn-icon name="check" /><span><strong>o que aconteceu</strong>, com o máximo de detalhes;</span></li>
@@ -205,11 +205,10 @@
         </ul>
       </div>
       <div class="hc-contact-act">
+        <a class="lg-btn lg-btn--lime" routerLink="/support/new" [queryParams]="contactQuery()"><vn-icon name="chat" />Abrir atendimento</a>
+        <a class="hc-mine" routerLink="/support">Ver meus atendimentos</a>
         @if (contactMailto) {
-          <a class="lg-btn lg-btn--lime" [href]="contactMailto"><vn-icon name="mail" />Escrever para a Vineon</a>
-        }
-        @if (company.supportEmail) {
-          <p class="hc-mail">{{ company.supportEmail }}</p>
+          <p class="hc-mail">Sem conta ou sem acesso? Escreva para <a [href]="contactMailto">{{ company.supportEmail }}</a></p>
         }
       </div>
     </section>
@@ -292,7 +291,7 @@
             </div>
           }
 
-          <p class="hc-more">Não resolveu? <button type="button" (click)="goContact()">Fale com a Vineon</button></p>
+          <p class="hc-more">Não resolveu? <a class="hc-more-link" routerLink="/support/new" [queryParams]="{ de: hit.article.id }">Fale com a Vineon</a></p>
         </div>
       </div>
     </div>
