@@ -28,6 +28,12 @@
         <a routerLink="/address">Endereços</a>
         <a routerLink="/tabs/notifications">Notificações</a>
       </div>
+      <div>
+        <h2>Ajuda</h2>
+        <a routerLink="/help">Central de ajuda</a>
+        <a routerLink="/help" [queryParams]="{ assunto: 'devolucao' }">Trocas e devoluções</a>
+        <a routerLink="/help" [queryParams]="{ perfil: 'vender' }">Para vendedores</a>
+      </div>
     </nav>
   </div>
 

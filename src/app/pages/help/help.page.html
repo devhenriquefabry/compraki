@@ -1,0 +1,326 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Central de ajuda</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="hc">
+
+    <!-- ============================== ABERTURA ============================== -->
+    <section class="hc-hero" [class.hc-hero--compact]="searching() || !!topic()" aria-labelledby="hc-title">
+      <svg class="hc-art" viewBox="0 0 240 240" aria-hidden="true" focusable="false">
+        <circle class="hc-art-ring" cx="120" cy="120" r="104" />
+        <path class="hc-art-arc" d="M30 168a104 104 0 0 1 14-102" />
+        <path class="hc-art-arc hc-art-arc--b" d="M196 40a104 104 0 0 1 24 112" />
+        <path class="hc-art-bubble" d="M72 72h96a22 22 0 0 1 22 22v36a22 22 0 0 1-22 22h-52l-30 26v-26h-14a22 22 0 0 1-22-22V94a22 22 0 0 1 22-22Z" />
+        <path class="hc-art-q" d="M108 104a13 13 0 1 1 20 11c-5 3-8 6-8 12" />
+        <circle class="hc-art-dot" cx="120" cy="143" r="4.5" />
+      </svg>
+
+      <div class="hc-hero-main">
+        <p class="hc-eyebrow">Comece por aqui</p>
+        <h2 id="hc-title">Qual é a sua dúvida?</h2>
+        <p class="hc-lead">Compras, pagamentos, entregas, devoluções e vendas na Vineon, explicados sem enrolação.</p>
+
+        <form class="hc-search" role="search" (submit)="$event.preventDefault()">
+          <label class="hc-sr" for="hc-q">Buscar na Central de ajuda</label>
+          <input #q id="hc-q" type="search" name="q" autocomplete="off" enterkeyhint="search"
+                 placeholder="Ex.: Pix, rastreio, devolução" [value]="query()" (input)="onSearch(q.value)">
+          @if (searching()) {
+            <button type="button" class="hc-clear" (click)="clearSearch(q)" aria-label="Limpar busca"><vn-icon name="close" /></button>
+          }
+          <button type="submit" class="hc-go" aria-label="Buscar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+          </button>
+        </form>
+
+        @if (!searching()) {
+          <div class="hc-popular">
+            <p>Mais procurados</p>
+            <ul>
+              @for (hit of popular(); track hit.article.id) {
+                <li>
+                  <a [routerLink]="[]" [queryParams]="{ assunto: hit.topic.id, pergunta: hit.article.id }" queryParamsHandling="merge">{{ hit.article.q }}</a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (searching()) {
+      <!-- ============================== RESULTADOS ============================== -->
+      <section class="hc-block" aria-live="polite">
+        <header class="hc-head">
+          @if (results().length) {
+            <h2>{{ results().length }} {{ results().length === 1 ? 'resposta' : 'respostas' }} para “{{ query().trim() }}”</h2>
+          } @else {
+            <h2>Nada encontrado para “{{ query().trim() }}”</h2>
+          }
+        </header>
+
+        @if (results().length) {
+          <div class="hc-list">
+            @for (hit of results(); track hit.article.id) {
+              <ng-container *ngTemplateOutlet="art; context: { $implicit: hit, showTopic: true }" />
+            }
+          </div>
+        } @else {
+          <div class="hc-empty">
+            <span class="hc-empty-ico"><vn-icon name="help" /></span>
+            <p>Tente com outras palavras — por exemplo <strong>pagamento</strong>, <strong>rastreio</strong>, <strong>devolução</strong> ou <strong>taxa</strong>. Ou escolha um assunto:</p>
+            <button type="button" class="hc-link" (click)="clearSearch(q)">Ver todos os assuntos <vn-icon name="chevron" /></button>
+          </div>
+        }
+      </section>
+
+    } @else if (topic(); as t) {
+      <!-- ============================== ASSUNTO ============================== -->
+      <div class="hc-layout">
+        <nav class="hc-side" aria-label="Assuntos">
+          <p class="hc-side-title">Assuntos</p>
+          <ul>
+            @for (o of topics(); track o.id) {
+              <li>
+                <a [routerLink]="[]" [queryParams]="{ assunto: o.id, pergunta: null }" queryParamsHandling="merge"
+                   [class.is-active]="o.id === t.id" [attr.aria-current]="o.id === t.id ? 'page' : null">
+                  <vn-icon [name]="o.icon" />{{ o.title }}
+                </a>
+              </li>
+            }
+          </ul>
+        </nav>
+
+        <div class="hc-main">
+          <a class="hc-crumb" [routerLink]="[]" [queryParams]="{ assunto: null, pergunta: null }" queryParamsHandling="merge">
+            <vn-icon name="arrowLeft" />Todos os assuntos
+          </a>
+
+          <header class="hc-topic-head">
+            <span class="hc-topic-ico"><vn-icon [name]="t.icon" /></span>
+            <div>
+              <h2>{{ t.title }}</h2>
+              <p>{{ t.hint }}</p>
+            </div>
+          </header>
+
+          <div class="hc-list">
+            @for (a of t.articles; track a.id) {
+              <ng-container *ngTemplateOutlet="art; context: { $implicit: { topic: t, article: a }, showTopic: false }" />
+            }
+          </div>
+
+          @if (t.id === 'entrega' || t.id === 'devolucao') {
+            <ng-container *ngTemplateOutlet="order" />
+          }
+
+          <section class="hc-others" aria-label="Outros assuntos">
+            <h3>Outros assuntos</h3>
+            <div class="hc-topics">
+              @for (o of topics(); track o.id) {
+                @if (o.id !== t.id) {
+                  <a class="hc-topic" [routerLink]="[]" [queryParams]="{ assunto: o.id, pergunta: null }" queryParamsHandling="merge">
+                    <span class="hc-topic-ico"><vn-icon [name]="o.icon" /></span>
+                    <span class="hc-topic-text"><strong>{{ o.title }}</strong><small>{{ o.hint }}</small></span>
+                    <vn-icon class="hc-topic-go" name="chevron" />
+                  </a>
+                }
+              }
+            </div>
+          </section>
+        </div>
+      </div>
+
+    } @else {
+      <!-- ============================== INÍCIO ============================== -->
+      <section class="hc-block" aria-labelledby="hc-who">
+        <header class="hc-head"><h2 id="hc-who">Sua dúvida é sobre…</h2></header>
+
+        <div class="hc-switch" role="group" aria-label="Escolha a visão">
+          <button type="button" [class.is-active]="profile() === 'buy'" [attr.aria-pressed]="profile() === 'buy'"
+                  (click)="setProfile('buy')"><vn-icon name="bag" />Comprar</button>
+          <button type="button" [class.is-active]="profile() === 'sell'" [attr.aria-pressed]="profile() === 'sell'"
+                  (click)="setProfile('sell')"><vn-icon name="store" />Vender</button>
+        </div>
+
+        <ul class="hc-shorts" aria-label="Atalhos">
+          @for (s of shortcuts(); track s.label) {
+            <li>
+              <a class="hc-short" [routerLink]="s.route" [queryParams]="s.query">
+                <span class="hc-short-ico"><vn-icon [name]="s.icon" /></span>{{ s.label }}
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="hc-block" aria-labelledby="hc-topics-title">
+        <header class="hc-head">
+          <h2 id="hc-topics-title">Assuntos</h2>
+        </header>
+        <div class="hc-topics">
+          @for (o of topics(); track o.id) {
+            <a class="hc-topic" [routerLink]="[]" [queryParams]="{ assunto: o.id, pergunta: null }" queryParamsHandling="merge">
+              <span class="hc-topic-ico"><vn-icon [name]="o.icon" /></span>
+              <span class="hc-topic-text"><strong>{{ o.title }}</strong><small>{{ o.hint }}</small></span>
+              <em class="hc-count">{{ o.articles.length }}</em>
+              <vn-icon class="hc-topic-go" name="chevron" />
+            </a>
+          }
+        </div>
+      </section>
+
+      @if (profile() === 'buy') {
+        <ng-container *ngTemplateOutlet="order" />
+      }
+
+      <aside class="hc-safe">
+        <span class="hc-safe-ico"><vn-icon name="shield" /></span>
+        <p>
+          <strong>Pague sempre dentro da Vineon.</strong>
+          Pediram Pix direto, depósito ou conversa em outro aplicativo? Não pague e denuncie — a proteção só vale para o que é pago aqui.
+        </p>
+        <a class="hc-link" [routerLink]="[]" [queryParams]="{ assunto: 'seguranca', pergunta: 'seg-golpes' }" queryParamsHandling="merge">
+          Como evitar golpes <vn-icon name="chevron" />
+        </a>
+      </aside>
+    }
+
+    <!-- ============================== CONTATO ============================== -->
+    <section class="hc-contact" id="hc-contato" aria-labelledby="hc-contact-title">
+      <div class="hc-contact-main">
+        <p class="hc-eyebrow">Fale com a gente</p>
+        <h2 id="hc-contact-title">Ainda precisa de ajuda?</h2>
+        <p class="hc-contact-lead">Escreva para a Vineon. Para agilizar, conte:</p>
+        <ul class="hc-checks">
+          <li><vn-icon name="check" /><span>o <strong>número do pedido</strong>, que está em Minhas compras;</span></li>
+          <li><vn-icon name="check" /><span><strong>o que aconteceu</strong>, com o máximo de detalhes;</span></li>
+          <li><vn-icon name="check" /><span><strong>fotos</strong>, se o produto veio com defeito ou diferente do anúncio.</span></li>
+        </ul>
+      </div>
+      <div class="hc-contact-act">
+        @if (contactMailto) {
+          <a class="lg-btn lg-btn--lime" [href]="contactMailto"><vn-icon name="mail" />Escrever para a Vineon</a>
+        }
+        @if (company.supportEmail) {
+          <p class="hc-mail">{{ company.supportEmail }}</p>
+        }
+      </div>
+    </section>
+
+    <nav class="hc-docs" aria-label="Documentos">
+      <a routerLink="/terms">Termos de uso</a>
+      <a routerLink="/terms" [queryParams]="{ aba: 'compras' }">Trocas e devoluções</a>
+      <a routerLink="/terms" [queryParams]="{ aba: 'vendedores' }">Regras para vender</a>
+      <a routerLink="/privacy">Privacidade</a>
+    </nav>
+
+    <p class="lg-foot">
+      {{ company.legalName || company.brand }}
+      @if (company.cnpj) { · CNPJ {{ company.cnpj }} }
+    </p>
+  </div>
+</ion-content>
+
+<!-- ======================================================================
+     Pergunta: botão + resposta que abre em acordeão
+     ====================================================================== -->
+<ng-template #art let-hit let-showTopic="showTopic">
+  <article class="hc-item" [class.is-open]="isOpen(hit.article.id)" [id]="'a-' + hit.article.id">
+    <h3>
+      <button type="button" class="hc-q" [attr.aria-expanded]="isOpen(hit.article.id)"
+              [attr.aria-controls]="'p-' + hit.article.id" (click)="toggle(hit.article.id)">
+        <span class="hc-q-text">
+          @if (showTopic) { <small>{{ hit.topic.title }}</small> }
+          {{ hit.article.q }}
+        </span>
+        <span class="hc-q-ico" aria-hidden="true"><vn-icon name="plus" /></span>
+      </button>
+    </h3>
+
+    <div class="hc-a" [id]="'p-' + hit.article.id" role="region" [attr.aria-label]="hit.article.q"
+         [attr.inert]="isOpen(hit.article.id) ? null : ''">
+      <div class="hc-a-in">
+        <div class="hc-a-body">
+          @for (b of hit.article.a; track $index) {
+            @switch (b.t) {
+              @case ('p') {
+                <p>@for (s of parts(b.text); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</p>
+              }
+              @case ('ul') {
+                <ul class="hc-dots">
+                  @for (item of b.items; track $index) {
+                    <li>@for (s of parts(item); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</li>
+                  }
+                </ul>
+              }
+              @case ('ol') {
+                <ol class="hc-steps">
+                  @for (item of b.items; track $index) {
+                    <li>@for (s of parts(item); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</li>
+                  }
+                </ol>
+              }
+              @case ('note') {
+                <p class="lg-note" [class.is-alert]="b.alert">
+                  <vn-icon [name]="b.alert ? 'shield' : 'help'" />
+                  <span>@for (s of parts(b.text); track $index) {@if (s.bold) {<strong>{{ s.text }}</strong>} @else {<ng-container>{{ s.text }}</ng-container>}}</span>
+                </p>
+              }
+            }
+          }
+
+          @if (hit.article.links?.length) {
+            <div class="hc-links">
+              @for (l of hit.article.links; track l.label) {
+                @if (l.article) {
+                  <a class="hc-link" [routerLink]="[]" [queryParams]="articleQuery(l.article)" queryParamsHandling="merge">
+                    {{ l.label }} <vn-icon name="chevron" />
+                  </a>
+                } @else {
+                  <a class="hc-link" [routerLink]="l.route" [queryParams]="l.query">
+                    {{ l.label }} <vn-icon name="chevron" />
+                  </a>
+                }
+              }
+            </div>
+          }
+
+          <p class="hc-more">Não resolveu? <button type="button" (click)="goContact()">Fale com a Vineon</button></p>
+        </div>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+<!-- ======================================================================
+     Deu problema com um pedido? A ordem que resolve
+     ====================================================================== -->
+<ng-template #order>
+  <section class="hc-block hc-order" aria-labelledby="hc-order-title">
+    <header class="hc-head">
+      <h2 id="hc-order-title">Deu problema com um pedido?</h2>
+      <p>Siga esta ordem.</p>
+    </header>
+    <ol class="hc-route">
+      <li>
+        <strong>Fale com a loja</strong>
+        <span>No pedido, toque em <b>Falar com a loja</b> e conte o que aconteceu. Muita coisa se resolve ali.</span>
+      </li>
+      <li>
+        <strong>Peça a devolução</strong>
+        <span>Em Minhas compras, toque em <b>Solicitar devolução</b>. O botão fica liberado até 7 dias depois da entrega.</span>
+      </li>
+      <li>
+        <strong>Chame a Vineon</strong>
+        <span>Não resolveu, ou passou do prazo? Escreva para a gente com o número do pedido. Nós mediamos.</span>
+      </li>
+    </ol>
+  </section>
+</ng-template>

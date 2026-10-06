@@ -38,8 +38,8 @@
 
 .df-columns {
   display: grid;
-  grid-template-columns: repeat(3, minmax(160px, auto));
-  gap: 56px;
+  grid-template-columns: repeat(4, minmax(140px, auto));
+  gap: 44px;
 }
 
 .df-columns h2 {

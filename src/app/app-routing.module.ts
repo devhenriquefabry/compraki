@@ -49,6 +49,11 @@ const routes: Routes = [
     loadComponent: () => import('./pages/terms/terms.page').then(m => m.TermsPage)
   },
   {
+    // Central de ajuda: perguntas e respostas para quem compra e para quem vende. Aberta, sem guard.
+    path: 'help',
+    loadComponent: () => import('./pages/help/help.page').then(m => m.HelpPage)
+  },
+  {
     path: 'product-details/:id',
     loadComponent: () => import('./pages/product-details/product-details.page').then(m => m.ProductDetailsPage),
     data: { preload: true },

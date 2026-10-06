@@ -40,6 +40,81 @@ $wide: 640px;
   }
 }
 
+// Botões, nota de destaque e rodapé: separados para as telas que não usam o resto (ex.: Central de ajuda).
+@mixin btn {
+  .lg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 12px;
+    font-family: var(--vc-body);
+    font-size: 15px;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.15s, box-shadow 0.15s, transform 0.1s;
+
+    vn-icon { font-size: 19px; }
+    &:active:not(:disabled) { transform: scale(0.98); }
+    &:disabled { opacity: 0.7; }
+
+    &--navy {
+      background: var(--vc-navy);
+      color: #fff;
+      vn-icon { color: var(--vc-neon); }
+      &:hover:not(:disabled) { background: var(--vc-navy-2); }
+    }
+
+    &--outline {
+      background: #fff;
+      color: var(--vc-ink);
+      box-shadow: inset 0 0 0 1.5px #C7CED8;
+      &:hover { box-shadow: inset 0 0 0 1.5px var(--vc-ink-2); }
+    }
+
+    &--lime {
+      margin-top: 14px;
+      background: var(--vc-neon);
+      color: var(--vc-navy);
+      &:hover { filter: brightness(0.96); }
+    }
+  }
+}
+
+@mixin note {
+  .lg-note {
+    display: flex;
+    gap: 10px;
+    margin: 0 !important;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(216, 245, 31, 0.22);
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+
+    vn-icon { flex: none; margin-top: 1px; font-size: 20px; color: var(--vc-ink); }
+  }
+}
+
+@mixin foot {
+  .lg-foot {
+    margin: 20px 0 0;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--vc-muted);
+
+    a {
+      color: var(--vc-ink);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+}
+
 @mixin page {
   .lg {
     max-width: 1080px;
@@ -287,46 +362,7 @@ $wide: 640px;
 
   /* ----------------------------------------------------------------- botões */
 
-  .lg-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 46px;
-    padding: 0 18px;
-    border-radius: 12px;
-    font-family: var(--vc-body);
-    font-size: 15px;
-    font-weight: 800;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: background-color 0.15s, box-shadow 0.15s, transform 0.1s;
-
-    vn-icon { font-size: 19px; }
-    &:active:not(:disabled) { transform: scale(0.98); }
-    &:disabled { opacity: 0.7; }
-
-    &--navy {
-      background: var(--vc-navy);
-      color: #fff;
-      vn-icon { color: var(--vc-neon); }
-      &:hover:not(:disabled) { background: var(--vc-navy-2); }
-    }
-
-    &--outline {
-      background: #fff;
-      color: var(--vc-ink);
-      box-shadow: inset 0 0 0 1.5px #C7CED8;
-      &:hover { box-shadow: inset 0 0 0 1.5px var(--vc-ink-2); }
-    }
-
-    &--lime {
-      margin-top: 14px;
-      background: var(--vc-neon);
-      color: var(--vc-navy);
-      &:hover { filter: brightness(0.96); }
-    }
-  }
+  @include btn;
 
   /* ---------------------------------------------------------------- seções */
 
@@ -438,18 +474,7 @@ $wide: 640px;
     ul { @include dots; }
   }
 
-  .lg-note {
-    display: flex;
-    gap: 10px;
-    margin: 0 !important;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: rgba(216, 245, 31, 0.22);
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-
-    vn-icon { flex: none; margin-top: 1px; font-size: 20px; color: var(--vc-ink); }
-  }
+  @include note;
 
   /* Finalidades × base legal. No celular cada linha vira um bloco. */
   .lg-table {
@@ -550,19 +575,7 @@ $wide: 640px;
     &--wide > div { @media (min-width: $wide) { grid-template-columns: 260px minmax(0, 1fr); } }
   }
 
-  .lg-foot {
-    margin: 20px 0 0;
-    text-align: center;
-    font-size: 12.5px;
-    color: var(--vc-muted);
-
-    a {
-      color: var(--vc-ink);
-      font-weight: 700;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-  }
+  @include foot;
 
   @media (prefers-reduced-motion: reduce) {
     .lg-btn, .lg-index button { transition: none; }
