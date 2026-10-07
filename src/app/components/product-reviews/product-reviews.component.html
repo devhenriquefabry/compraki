@@ -7,11 +7,7 @@
       <div class="pr-score">
         <span class="pr-average">{{ formatAverage(s.average) }}</span>
         <div class="pr-score-meta">
-          <span class="pr-stars" role="img" [attr.aria-label]="'Nota ' + formatAverage(s.average) + ' de 5'">
-            @for (star of stars; track star) {
-              <span class="pr-star" [style.--fill]="starFill(s.average, star)"></span>
-            }
-          </span>
+          <app-review-stars [value]="s.average" [size]="18" />
           <span class="pr-count">{{ s.count }} {{ s.count === 1 ? 'avaliação' : 'avaliações' }}</span>
         </div>
       </div>
@@ -25,17 +21,26 @@
               [class.is-active]="starFilter() === bar.stars"
               [disabled]="!bar.count"
               [attr.aria-pressed]="starFilter() === bar.stars"
+              [attr.aria-label]="bar.count + ' avaliações com ' + bar.stars + (bar.stars === 1 ? ' estrela' : ' estrelas')"
               (click)="toggleStarFilter(bar.stars)">
-              <span class="pr-bar-label">{{ bar.stars }} <span class="pr-star pr-star--mini" style="--fill: 1" aria-hidden="true"></span></span>
+              <span class="pr-bar-label">{{ bar.stars }} <span class="pr-star-mini" aria-hidden="true"></span></span>
               <span class="pr-bar-track"><span class="pr-bar-fill" [style.width.%]="bar.percent"></span></span>
               <span class="pr-bar-count">{{ bar.count }}</span>
             </button>
           </li>
         }
       </ul>
+
+      @if (s.listing; as l) {
+        <p class="pr-listing">
+          <strong>{{ l.yesPercent }}%</strong>
+          disseram que o produto é igual ao anúncio
+          <small>({{ l.answered }} {{ l.answered === 1 ? 'resposta' : 'respostas' }})</small>
+        </p>
+      }
     } @else {
       <div class="pr-empty">
-        <ion-icon name="chatbox-ellipses-outline" aria-hidden="true"></ion-icon>
+        <vn-icon name="star" />
         <div>
           <strong>Este produto ainda não tem avaliações</strong>
           <p>As opiniões aparecem aqui depois que os primeiros compradores recebem o pedido.</p>
@@ -47,96 +52,89 @@
     <div class="pr-cta">
       @switch (eligibility()?.kind) {
         @case ('can-review') {
-          @if (!formOpen()) {
-            <p>{{ myReview() ? 'Você já avaliou este produto.' : 'Você comprou este produto. Conte como foi.' }}</p>
-            <button type="button" class="pr-btn pr-btn--primary" (click)="openForm()">
-              <ion-icon [name]="myReview() ? 'create-outline' : 'star-outline'" aria-hidden="true"></ion-icon>
-              {{ myReview() ? 'Editar minha avaliação' : 'Avaliar produto' }}
+          @if (myReview(); as mine) {
+            <p class="pr-cta-text">
+              Você avaliou com <app-review-stars [value]="mine.rating" [size]="14" />
+            </p>
+            <button type="button" class="pr-btn" [disabled]="busy()" (click)="openComposer()">
+              <vn-icon name="pencil" /> Editar avaliação
+            </button>
+          } @else {
+            <p class="pr-cta-text"><strong>Você recebeu este produto.</strong> Conte como foi para quem ainda vai comprar.</p>
+            <button type="button" class="pr-btn pr-btn--primary" [disabled]="busy()" (click)="openComposer()">
+              <vn-icon name="star" /> Avaliar produto
             </button>
           }
         }
+        @case ('awaiting-delivery') {
+          <p class="pr-note">
+            <vn-icon name="truck" />
+            Seu pedido está a caminho. A avaliação abre assim que ele for entregue.
+          </p>
+        }
         @case ('guest') {
-          <p>Comprou este produto? Entre na sua conta para avaliar.</p>
+          <p class="pr-cta-text">Comprou este produto? Entre na sua conta para avaliar.</p>
           <button type="button" class="pr-btn" (click)="goToLogin()">Entrar para avaliar</button>
+        }
+        @case ('seller') {
+          <p class="pr-note">
+            <vn-icon name="store" />
+            Este anúncio é seu. Responda às avaliações em
+            <a routerLink="/my-reviews" [queryParams]="{ aba: 'loja' }">Avaliações da loja</a>.
+          </p>
         }
         @case ('not-buyer') {
           <p class="pr-note">
-            <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
-            Só quem comprou pelo Vineon pode avaliar.
+            <vn-icon name="shield" />
+            Só quem comprou e recebeu pela Vineon pode avaliar.
           </p>
         }
       }
     </div>
   </div>
 
-  <!-- Formulário -->
-  @if (formOpen()) {
-    <form class="pr-form" (ngSubmit)="submit()">
-      <fieldset class="pr-form-stars">
-        <legend>Sua nota</legend>
-        <div class="pr-picker" (mouseleave)="hoverRating.set(0)">
-          @for (star of stars; track star) {
-            <label
-              class="pr-pick"
-              [class.is-on]="(hoverRating() || draftRating()) >= star"
-              (mouseenter)="hoverRating.set(star)">
-              <input
-                type="radio"
-                name="rating"
-                [value]="star"
-                [checked]="draftRating() === star"
-                (change)="draftRating.set(star)">
-              <ion-icon name="star" aria-hidden="true"></ion-icon>
-              <span class="vn-sr-only">{{ star }} {{ star === 1 ? 'estrela' : 'estrelas' }} — {{ starLabels[star] }}</span>
-            </label>
-          }
-          <span class="pr-pick-label" aria-hidden="true">{{ starLabels[hoverRating() || draftRating()] }}</span>
-        </div>
-      </fieldset>
-
-      <label class="pr-field">
-        <span>Comentário <small>(opcional)</small></span>
-        <textarea
-          name="comment"
-          rows="4"
-          [maxlength]="maxLength"
-          placeholder="O que achou da qualidade, do estado e da entrega?"
-          [ngModel]="draftComment()"
-          (ngModelChange)="draftComment.set($event)"></textarea>
-        <small class="pr-field-count">{{ draftComment().length }}/{{ maxLength }}</small>
-      </label>
-
-      <div class="pr-form-actions">
-        @if (myReview()) {
-          <button type="button" class="pr-btn pr-btn--ghost-danger" [disabled]="saving()" (click)="remove()">Excluir</button>
+  <!-- Fotos dos compradores -->
+  @if (photoStrip().length) {
+    <div class="pr-strip">
+      <span class="pr-strip-title">Fotos dos compradores</span>
+      <ul class="pr-strip-list">
+        @for (p of photoStrip(); track p.url; let i = $index; let last = $last) {
+          <li>
+            <button type="button" (click)="openStrip(i)" [attr.aria-label]="'Ver foto ' + (i + 1) + ' dos compradores'">
+              <img [src]="p.url" alt="" loading="lazy" />
+              @if (last && allPhotos().length > photoStrip().length) {
+                <span class="pr-strip-more">+{{ allPhotos().length - photoStrip().length }}</span>
+              }
+            </button>
+          </li>
         }
-        <span class="pr-spacer"></span>
-        <button type="button" class="pr-btn" [disabled]="saving()" (click)="cancelForm()">Cancelar</button>
-        <button type="submit" class="pr-btn pr-btn--primary" [disabled]="saving() || !draftRating()">
-          @if (saving()) {
-            <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
-          }
-          {{ myReview() ? 'Salvar avaliação' : 'Publicar avaliação' }}
-        </button>
-      </div>
-    </form>
+      </ul>
+    </div>
   }
 
   <!-- Lista -->
   @if (s.count) {
     <div class="pr-list-head">
-      <span class="pr-list-title">
-        @if (starFilter(); as f) {
-          Avaliações com {{ f }} {{ f === 1 ? 'estrela' : 'estrelas' }}
-          <button type="button" class="pr-clear" (click)="starFilter.set(null)">Limpar filtro</button>
-        } @else {
-          Opiniões em destaque
+      <div class="pr-filters">
+        @if (s.photoCount) {
+          <button type="button" class="pr-chip" [class.is-on]="photosOnly()" [attr.aria-pressed]="photosOnly()" (click)="togglePhotosOnly()">
+            <vn-icon name="camera" /> Com foto
+          </button>
         }
-      </span>
+        @if (starFilter(); as f) {
+          <button type="button" class="pr-chip is-on" (click)="starFilter.set(null)" [attr.aria-label]="'Tirar filtro de ' + f + ' estrelas'">
+            {{ f }} {{ f === 1 ? 'estrela' : 'estrelas' }} <vn-icon name="close" />
+          </button>
+        }
+        @if (starFilter() !== null || photosOnly()) {
+          <button type="button" class="pr-clear" (click)="clearFilters()">Limpar</button>
+        }
+      </div>
 
       <label class="pr-sort">
         <span class="vn-sr-only">Ordenar avaliações</span>
         <select [ngModel]="sort()" (ngModelChange)="sort.set($event)" name="sort">
+          <option value="relevantes">Mais relevantes</option>
           <option value="recentes">Mais recentes</option>
           <option value="melhores">Melhor nota</option>
           <option value="piores">Pior nota</option>
@@ -148,30 +146,68 @@
       @for (review of visible(); track review.id) {
         <li class="pr-item">
           <div class="pr-item-head">
-            <span class="pr-stars pr-stars--sm" role="img" [attr.aria-label]="review.rating + ' de 5 estrelas'">
-              @for (star of stars; track star) {
-                <span class="pr-star" [style.--fill]="starFill(review.rating, star)"></span>
-              }
-            </span>
-            <time class="pr-date">{{ formatDate(review.createdAt) }}</time>
+            <app-review-stars [value]="review.rating" [size]="15" />
+            <span class="pr-item-word">{{ starLabels[review.rating] }}</span>
+            <time class="pr-date">{{ formatDate(review.createdAt) }}{{ edited(review) ? ' · editada' : '' }}</time>
           </div>
+
+          @if (review.matchesListing) {
+            <span class="pr-match" [attr.data-kind]="review.matchesListing">
+              Igual ao anúncio: {{ review.matchesListing === 'yes' ? 'sim' : review.matchesListing === 'partly' ? 'em parte' : 'não' }}
+            </span>
+          }
 
           @if (review.comment) {
             <p class="pr-comment">{{ review.comment }}</p>
+          }
+
+          @if (photosOf(review).length) {
+            <ul class="pr-photos">
+              @for (path of photosOf(review); track path; let i = $index) {
+                <li>
+                  <button type="button" (click)="openPhotos(review, i)" [attr.aria-label]="'Ampliar foto ' + (i + 1) + ' de ' + review.userName">
+                    <img [src]="photoUrl(path)" alt="" loading="lazy" />
+                  </button>
+                </li>
+              }
+            </ul>
           }
 
           <div class="pr-item-foot">
             <span class="pr-author">{{ review.userName }}</span>
             @if (review.verifiedPurchase) {
               <span class="pr-verified">
-                <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+                <vn-icon name="shield" />
                 Compra verificada
               </span>
             }
           </div>
+
+          @if (review.sellerReply?.text) {
+            <div class="pr-reply">
+              <span class="pr-reply-head"><vn-icon name="store" /> Resposta da loja</span>
+              <p>{{ review.sellerReply!.text }}</p>
+            </div>
+          }
+
+          <div class="pr-item-actions">
+            @if (isMine(review)) {
+              <span class="pr-mine">Sua avaliação</span>
+              @if (helpfulCount(review)) {
+                <span class="pr-helpful-count">{{ helpfulCount(review) }} {{ helpfulCount(review) === 1 ? 'pessoa achou útil' : 'pessoas acharam útil' }}</span>
+              }
+            } @else {
+              <button type="button" class="pr-helpful" [class.is-on]="voted(review)" [attr.aria-pressed]="voted(review)" (click)="toggleHelpful(review)">
+                <vn-icon [name]="voted(review) ? 'checks' : 'check'" />
+                Útil
+                @if (helpfulCount(review)) { <span class="pr-helpful-n">{{ helpfulCount(review) }}</span> }
+              </button>
+              <button type="button" class="pr-report" (click)="report(review)">Denunciar</button>
+            }
+          </div>
         </li>
       } @empty {
-        <li class="pr-item pr-item--empty">Nenhuma avaliação com essa nota.</li>
+        <li class="pr-item pr-item--empty">Nenhuma avaliação com esse filtro.</li>
       }
     </ul>
 

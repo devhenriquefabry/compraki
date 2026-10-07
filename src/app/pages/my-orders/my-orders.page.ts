@@ -7,6 +7,7 @@ import {
   AlertController,
   IonicModule,
   LoadingController,
+  ModalController,
   NavController,
   ToastController,
 } from '@ionic/angular';
@@ -43,6 +44,8 @@ import { OrdersService } from 'src/app/services/orders.service';
 import { RefundsService } from 'src/app/services/refunds.service';
 import { SalesService } from 'src/app/services/sales.service';
 import { OrderTimelineComponent } from 'src/app/components/order-timeline/order-timeline.component';
+import { openReviewComposer } from 'src/app/components/review-composer/review-composer.component';
+import { ProductReviewsService } from 'src/app/services/product-reviews.service';
 import {
   COUNTED_TABS,
   ORDER_TABS,
@@ -53,6 +56,7 @@ import {
   TRACK_STEPS,
   canRequestRefund,
   returnDeadline,
+  receivedAt,
   deliveryWindow,
   itemCount,
   listUnitPrice,
@@ -130,6 +134,8 @@ export class MyOrdersPage {
   private readonly loadingCtrl = inject(LoadingController);
   private readonly alertCtrl = inject(AlertController);
   private readonly actionSheetCtrl = inject(ActionSheetController);
+  private readonly modalCtrl = inject(ModalController);
+  private readonly reviewsService = inject(ProductReviewsService);
 
   readonly tabs = ORDER_TABS;
   readonly trackSteps = TRACK_STEPS;
@@ -462,8 +468,15 @@ export class MyOrdersPage {
         shipmentStatus: 'DELIVERED',
         deliveryConfirmedAt: serverTimestamp(),
       });
-      this.showToast('Recebimento confirmado. Que tal avaliar a compra?', 'success');
       this.tab.set('done');
+      const toast = await this.toastCtrl.create({
+        message: 'Recebimento confirmado. Que tal contar como foi?',
+        color: 'success',
+        duration: 6000,
+        position: 'bottom',
+        buttons: [{ text: 'Avaliar', handler: () => { void this.review(view); } }],
+      });
+      await toast.present();
     } catch (err) {
       console.error('Falha ao confirmar recebimento', err);
       this.showToast('Não foi possível confirmar o recebimento. Tente de novo.', 'danger');
@@ -496,9 +509,27 @@ export class MyOrdersPage {
     }
   }
 
+  /** Abre a janela de avaliar ali mesmo (ou a de editar, se já avaliou o produto). */
   async review(view: OrderView) {
     const productId = await this.pickProduct(view, 'Qual produto você quer avaliar?');
-    if (productId) this.router.navigate(['/product-details', productId], { queryParams: { avaliar: 1 } });
+    const item = view.items.find(i => i.productId === productId);
+    if (!productId || !item) return;
+
+    try {
+      const existing = await this.reviewsService.getMyReview(productId);
+      await openReviewComposer(this.modalCtrl, {
+        productId,
+        productName: item.name,
+        productPhoto: item.photo || null,
+        orderId: existing?.orderId ?? view.id,
+        variant: item.variant,
+        deliveredAt: receivedAt(view.order),
+        existing,
+      });
+    } catch (err) {
+      console.error('Falha ao abrir avaliação', err);
+      this.showToast('Não foi possível abrir a avaliação agora. Tente de novo.', 'danger');
+    }
   }
 
   async buyAgain(view: OrderView) {

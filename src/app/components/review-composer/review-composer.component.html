@@ -1,0 +1,125 @@
+<header class="rc-bar">
+  <button type="button" class="rc-icon-btn" (click)="close()" aria-label="Fechar">
+    <vn-icon name="close" />
+  </button>
+  <h1 class="rc-title">{{ existing ? 'Editar avaliação' : 'Avaliar produto' }}</h1>
+</header>
+
+<div class="rc-scroll">
+  <div class="rc-wrap">
+    <section class="rc-product">
+      @if (productPhoto) {
+        <img class="rc-thumb" [src]="productPhoto" alt="" />
+      } @else {
+        <span class="rc-thumb rc-thumb--empty"><vn-icon name="box" /></span>
+      }
+      <div class="rc-product-text">
+        <strong>{{ productName }}</strong>
+        @if (deliveredLabel || variant) {
+          <small>{{ deliveredLabel }}{{ deliveredLabel && variant ? ' · ' : '' }}{{ variant }}</small>
+        }
+      </div>
+    </section>
+
+    <!-- Nota -->
+    <section class="rc-block rc-block--rating" aria-labelledby="rc-rating-title">
+      <h2 id="rc-rating-title">Que nota você dá?</h2>
+      <div class="rc-stars" role="radiogroup" aria-labelledby="rc-rating-title"
+           (mouseleave)="hover.set(0)" (keydown)="onStarsKey($event)">
+        @for (star of stars; track star) {
+          <button type="button" class="rc-star" role="radio"
+                  [attr.data-star]="star"
+                  [class.is-on]="shownRating() >= star"
+                  [attr.aria-checked]="rating() === star"
+                  [attr.tabindex]="(rating() || 1) === star ? 0 : -1"
+                  [attr.aria-label]="star + (star === 1 ? ' estrela' : ' estrelas') + ', ' + starLabels[star]"
+                  (mouseenter)="hover.set(star)" (click)="pick(star)">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2.9l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.9l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
+            </svg>
+          </button>
+        }
+      </div>
+      <p class="rc-rating-label" [class.is-empty]="!shownRating()" aria-live="polite">
+        {{ shownRating() ? starLabels[shownRating()] : 'Toque nas estrelas' }}
+      </p>
+    </section>
+
+    <!-- Como no anúncio -->
+    <section class="rc-block" aria-labelledby="rc-match-title">
+      <h2 id="rc-match-title">O produto é como no anúncio? <small>opcional</small></h2>
+      <p class="rc-hint">Cor, tamanho, estado e fotos batem com o que a loja mostrou?</p>
+      <div class="rc-seg" role="radiogroup" aria-labelledby="rc-match-title">
+        @for (opt of matchOptions; track opt.id) {
+          <button type="button" class="rc-seg-btn" role="radio" [attr.data-kind]="opt.id"
+                  [class.is-on]="match() === opt.id" [attr.aria-checked]="match() === opt.id"
+                  (click)="toggleMatch(opt.id)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Comentário -->
+    <section class="rc-block">
+      <label class="rc-label" for="rc-comment">Conte como foi <small>opcional</small></label>
+      <textarea id="rc-comment" rows="5" [maxlength]="maxLength" [placeholder]="prompt()"
+                [ngModel]="comment()" (ngModelChange)="comment.set($event)"></textarea>
+      <div class="rc-count" [class.is-near]="comment().length > maxLength - 100">
+        {{ comment().length }}/{{ maxLength }}
+      </div>
+    </section>
+
+    <!-- Fotos -->
+    <section class="rc-block" aria-labelledby="rc-photos-title">
+      <h2 id="rc-photos-title">Fotos do produto <small>até {{ maxPhotos }}</small></h2>
+      <p class="rc-hint">Avaliações com foto são as que mais ajudam quem ainda vai comprar.</p>
+      <ul class="rc-photos">
+        @for (photo of photos(); track photo.id; let i = $index) {
+          <li class="rc-photo" [class.is-uploading]="photo.uploading">
+            <img [src]="photo.url" [alt]="'Foto ' + (i + 1)" />
+            @if (photo.uploading) {
+              <span class="rc-photo-busy"><ion-spinner name="crescent" aria-label="Enviando foto"></ion-spinner></span>
+            } @else {
+              <button type="button" class="rc-photo-remove" (click)="removePhoto(photo)" [attr.aria-label]="'Remover foto ' + (i + 1)">
+                <vn-icon name="close" />
+              </button>
+            }
+          </li>
+        }
+        @if (canAddPhoto()) {
+          <li>
+            <label class="rc-photo-add">
+              <input type="file" accept="image/*" multiple (change)="onFiles($event)" />
+              <vn-icon name="camera" />
+              <span>{{ photos().length ? 'Mais fotos' : 'Adicionar' }}</span>
+            </label>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <p class="rc-public">
+      <vn-icon name="shield" />
+      <span>
+        Sua avaliação fica pública como <strong>{{ publicName }}</strong>, com o selo de compra verificada.
+        Não escreva telefone, e-mail ou links: avaliações assim são removidas.
+      </span>
+    </p>
+  </div>
+</div>
+
+<footer class="rc-foot">
+  @if (error()) {
+    <p class="rc-error" role="alert">{{ error() }}</p>
+  }
+  <button type="button" class="rc-submit" [disabled]="saving() || uploading()" (click)="save()">
+    @if (saving()) {
+      <ion-spinner name="crescent" aria-hidden="true"></ion-spinner> Publicando...
+    } @else if (uploading()) {
+      Enviando fotos...
+    } @else {
+      {{ existing ? 'Salvar alterações' : 'Publicar avaliação' }}
+    }
+  </button>
+</footer>

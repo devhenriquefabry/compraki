@@ -96,4 +96,18 @@ html.vn-desktop-shell {
     --height: min(780px, 92vh);
     --border-radius: 18px;
   }
+
+  /* Avaliar produto: diálogo com o botão de publicar sempre à vista. */
+  ion-modal.vn-review-modal {
+    --width: 600px;
+    --height: min(860px, 94vh);
+    --border-radius: 18px;
+  }
+
+  /* Fotos de avaliação em tamanho grande. */
+  ion-modal.vn-photo-viewer {
+    --width: min(1000px, 94vw);
+    --height: min(780px, 92vh);
+    --border-radius: 18px;
+  }
 }

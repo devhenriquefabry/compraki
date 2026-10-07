@@ -369,6 +369,7 @@ const orderPlan = [
   [74, [['smartphone', 1]], 'DELIVERED'], [80, [['colar-conchas', 2]], 'DELIVERED']
 ];
 const PAID = ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
+const DAY_MS = 86_400_000;
 const soldCount = {};
 
 for (const [index, [daysAgo, lines, status]] of orderPlan.entries()) {
@@ -405,6 +406,86 @@ for (const [index, [daysAgo, lines, status]] of orderPlan.entries()) {
 
 for (const [productId, count] of Object.entries(soldCount)) {
   await db.doc(`products/${productId}`).update({ soldCount: count });
+}
+
+// --------------------------------------------------------------- avaliações
+
+// A Marina (Ateliê) também compra: três pedidos entregues de produtos da Loja
+// de Teste, avaliados por ela. O comprador avalia dois dos que recebeu e fica
+// com o resto em "Para avaliar". Os campos do servidor (selo, loja, nome do
+// produto) já vão preenchidos; com o emulador de functions ligado,
+// `onProductReviewWritten` confere a compra e grava a nota agregada.
+const reviewBuyerOrders = [
+  ['seed-r1', 'fone', 9],
+  ['seed-r2', 'panela', 15],
+  ['seed-r3', 'smartphone', 24],
+];
+for (const [orderId, productId, daysAgo] of reviewBuyerOrders) {
+  const created = now - daysAgo * DAY_MS;
+  const productData = productDocs[productId];
+  await db.doc(`orders/${orderId}`).set({
+    userId: users.atelie.uid,
+    items: [{ productId, quantity: 1, addedAt: Timestamp.fromMillis(created), productData }],
+    total: Math.round(((productData.priceDiscounted ?? productData.price) + 24.9) * 100) / 100,
+    status: 'DELIVERED',
+    shipmentStatus: 'DELIVERED',
+    paymentMethod: 'PIX',
+    sellerIds: [productData.sellerId],
+    createdAt: Timestamp.fromMillis(created),
+    paymentConfirmedAt: Timestamp.fromMillis(created + 15 * 60_000),
+    deliveredAt: Timestamp.fromMillis(created + 4 * DAY_MS),
+    escrowInfo: { status: 'HOLDING', releaseDate: Timestamp.fromMillis(created + 7 * DAY_MS) },
+    customerData: { name: users.atelie.displayName, cpf: users.atelie.cpf, phone: users.atelie.phoneNumber, email: users.atelie.email },
+    addressData: { street: 'Rua das Rendeiras', number: '200', city: 'Florianópolis', state: 'SC', postalCode: '88062000', neighborhood: 'Lagoa da Conceição' },
+    shippingInfo: { serviceId: 1, serviceName: 'PAC', price: 24.9, deliveryTime: 6 }
+  });
+}
+
+const reviewPlan = [
+  {
+    user: users.atelie, product: 'fone', order: 'seed-r1', rating: 5, daysAgo: 4, match: 'yes', helpful: 3,
+    comment: 'Cancelamento de ruído funciona muito bem no ônibus. Bateria dura uns 3 dias usando 2h por dia. Veio lacrado e com nota.',
+    reply: 'Que bom que gostou, Marina! Qualquer dúvida sobre o pareamento é só chamar.'
+  },
+  {
+    user: users.atelie, product: 'panela', order: 'seed-r2', rating: 2, daysAgo: 9, match: 'partly', helpful: 1,
+    comment: 'As panelas são boas, mas a caixa chegou amassada e a tampa menor veio com um risco. Mandei mensagem e ainda não tive resposta.'
+  },
+  {
+    user: users.atelie, product: 'smartphone', order: 'seed-r3', rating: 4, daysAgo: 18, match: 'yes',
+    comment: 'Rápido e a câmera é ótima de dia. À noite as fotos ficam um pouco granuladas.'
+  },
+  {
+    user: users.comprador, product: 'camiseta', order: 'seed-11', rating: 4, daysAgo: 8, match: 'yes',
+    comment: 'Tecido grosso e não desbotou na primeira lavagem. Vale pedir um número acima, veste justo.'
+  },
+  {
+    user: users.comprador, product: 'colar-conchas', order: 'seed-14', rating: 5, daysAgo: 16, match: 'yes', helpful: 2,
+    comment: 'Lindo, igualzinho às fotos. Veio numa embalagem de presente caprichada.',
+    reply: 'Obrigada pelo carinho! Cada peça é montada à mão aqui no ateliê.'
+  },
+];
+for (const r of reviewPlan) {
+  const at = Timestamp.fromMillis(now - r.daysAgo * DAY_MS);
+  const product = productDocs[r.product];
+  const [first, ...rest] = r.user.displayName.split(' ');
+  await db.doc(`products/${r.product}/reviews/${r.user.uid}`).set({
+    userId: r.user.uid,
+    userName: rest.length ? `${first} ${rest[rest.length - 1][0]}.` : first,
+    rating: r.rating,
+    comment: r.comment,
+    orderId: r.order,
+    photos: [],
+    matchesListing: r.match,
+    createdAt: at,
+    updatedAt: at,
+    verifiedPurchase: true,
+    sellerId: product.sellerId,
+    productName: product.name,
+    productPhoto: product.photoURL[0],
+    helpfulCount: r.helpful ?? 0,
+    ...(r.reply ? { sellerReply: { text: r.reply, createdAt: at, updatedAt: at } } : {}),
+  });
 }
 
 // -------------------------------------------------------------- atendimentos
@@ -543,6 +624,7 @@ console.log(`Seed concluído em ${PROJECT_ID}:`);
 console.log(`  ${Object.keys(users).length} contas (admin, vendedor, atelie, comprador), senha "${PASSWORD}"`);
 console.log(`  ${categories.length} categorias, ${products.length + 1} produtos, ${orderPlan.length} pedidos`);
 console.log(`  ${catalog.length} produtos no catálogo (1 rascunho)`);
+console.log(`  ${reviewPlan.length} avaliações (Marina avalia a Loja de Teste; o comprador avaliou 2 e tem o resto em "Para avaliar")`);
 console.log(`  ${coupons.length} cupons (${coupons.map(c => c.code).join(', ')})`);
 console.log(`  ${ticketPlan.length} atendimentos (um por situação: novo, aguardando cliente, resolvido, encerrado e um atrasado)`);
 console.log('  Entre pelo app com ?testUser=admin | vendedor | atelie | comprador');

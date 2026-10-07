@@ -1,5 +1,5 @@
 /**
- * Denúncia de anúncio ou de vendedor feita por quem usa o app.
+ * Denúncia de anúncio, de vendedor ou de avaliação feita por quem usa o app.
  *
  * Coleção `contentReports`, separada de `reports` (denúncias de conversa, que
  * a aba Conversas do admin lista inteira). Id do documento =
@@ -7,11 +7,15 @@
  * e as regras do Firestore conferem esse formato.
  */
 
-export type ReportTargetType = 'product' | 'seller';
+/**
+ * `review`: `targetId` = `<produto>~<uid do autor>` e `sellerId` = o autor da
+ * avaliação (é a conta que o admin suspenderia).
+ */
+export type ReportTargetType = 'product' | 'seller' | 'review';
 
 export type ReportStatus = 'open' | 'resolved';
 
-export type ReportResolution = 'dismissed' | 'product_removed' | 'account_suspended';
+export type ReportResolution = 'dismissed' | 'product_removed' | 'account_suspended' | 'review_removed';
 
 export type ReportReason =
   | 'prohibited'
@@ -22,6 +26,9 @@ export type ReportReason =
   | 'no_delivery'
   | 'abusive'
   | 'fake_profile'
+  | 'spam'
+  | 'off_topic'
+  | 'personal_data'
   | 'other';
 
 export interface ContentReport {
@@ -64,6 +71,14 @@ export const REPORT_REASONS: Record<ReportTargetType, { id: ReportReason; label:
     { id: 'prohibited', label: 'Vende produtos proibidos', hint: '' },
     { id: 'other', label: 'Outro motivo', hint: '' },
   ],
+  review: [
+    { id: 'offensive', label: 'Ofensiva ou preconceituosa', hint: 'Xingamentos, discriminação, ameaças' },
+    { id: 'off_topic', label: 'Não fala do produto', hint: 'Sobre outro produto, política, assunto aleatório' },
+    { id: 'spam', label: 'Propaganda ou spam', hint: 'Divulga outra loja, link ou contato para venda' },
+    { id: 'personal_data', label: 'Expõe dados pessoais', hint: 'Telefone, endereço, documento de alguém' },
+    { id: 'misleading', label: 'Parece falsa', hint: 'Avaliação combinada, não parece de quem comprou' },
+    { id: 'other', label: 'Outro motivo', hint: '' },
+  ],
 };
 
 export function reportReasonLabel(reason: ReportReason): string {
@@ -78,4 +93,5 @@ export const REPORT_RESOLUTION_LABEL: Record<ReportResolution, string> = {
   dismissed: 'Descartada',
   product_removed: 'Anúncio tirado do ar',
   account_suspended: 'Conta suspensa',
+  review_removed: 'Avaliação removida',
 };

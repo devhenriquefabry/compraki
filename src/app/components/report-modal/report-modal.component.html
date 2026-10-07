@@ -18,7 +18,7 @@
         <span class="rm-target-icon"><ion-icon name="flag-outline" aria-hidden="true"></ion-icon></span>
       }
       <div>
-        <small>{{ targetType === 'product' ? 'Anúncio' : 'Vendedor' }}</small>
+        <small>{{ targetType === 'product' ? 'Anúncio' : targetType === 'review' ? 'Avaliação' : 'Vendedor' }}</small>
         <strong>{{ targetName }}</strong>
       </div>
     </div>

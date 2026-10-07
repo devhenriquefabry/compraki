@@ -139,9 +139,32 @@ export class ManageReportsPage {
     }, 'Anúncio fora do ar.');
   }
 
+  async removeReview(group: ReportGroup) {
+    const note = await this.ask(
+      'Remover avaliação',
+      'A avaliação sai do anúncio e da nota do produto, com as fotos. Não dá para desfazer. Motivo (fica registrado):',
+      'Remover',
+      true
+    );
+    if (note === null) return;
+    await this.act(group, async () => {
+      await this.moderation.removeReview(group.targetId);
+      await this.moderation.resolveReports(ids(group), 'review_removed', note);
+    }, 'Avaliação removida.');
+  }
+
+  /** Avaliação denunciada: `targetId` = `<produto>~<autor>`. */
+  productOf(group: ReportGroup): string {
+    return group.targetType === 'review' ? group.targetId.split('~')[0] : group.targetId;
+  }
+
+  typeLabel(type: ReportTargetType): string {
+    return type === 'product' ? 'Anúncio' : type === 'review' ? 'Avaliação' : 'Vendedor';
+  }
+
   async suspend(group: ReportGroup) {
     const note = await this.ask(
-      'Suspender conta do vendedor',
+      group.targetType === 'review' ? 'Suspender conta de quem avaliou' : 'Suspender conta do vendedor',
       'A pessoa é desconectada, não consegue mais entrar e todos os anúncios dela saem do ar. Dá para reativar depois. Motivo:',
       'Suspender conta',
       true

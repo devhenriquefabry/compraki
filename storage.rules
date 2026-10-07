@@ -109,6 +109,21 @@ service firebase.storage {
         && isImage();
     }
 
+    // ------------------------------------------------------------ avaliacoes
+
+    // Fotos das avaliacoes: review-photos/{uid}/{productId}/{arquivo}.
+    // Leitura publica, como a avaliacao. So a propria pessoa sobe (ate 5 MB,
+    // imagem; o app ja reduz para ~1600 px antes). Nome unico por envio, por
+    // isso nao ha sobrescrita. Apagar: a pessoa, o admin ou a funcao
+    // `onProductReviewWritten` quando a foto sai da avaliacao.
+    match /review-photos/{uid}/{productId}/{fileName} {
+      allow read: if true;
+      allow create: if isUser(uid)
+        && request.resource.size < 5 * 1024 * 1024
+        && isImage();
+      allow delete: if isUser(uid) || isAdmin();
+    }
+
     // ------------------------------------------ nota fiscal / declaracao
 
     // Anexada pela loja na tela da venda (SalesService.attachFiscalDocument).

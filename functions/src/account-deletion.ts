@@ -289,6 +289,7 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
       bucket.deleteFiles({ prefix: `profile-photos/${uid}/` }),
       bucket.deleteFiles({ prefix: `showcase-banners/${uid}/` }),
       bucket.deleteFiles({ prefix: `support/${uid}/` }),
+      bucket.deleteFiles({ prefix: `review-photos/${uid}/` }),
       ...[...storagePaths].map(path => bucket.file(path).delete({ ignoreNotFound: true })),
     ]).catch(error => logger.warn('Exclusão de conta: arquivo não apagado', { uid, error }));
 

@@ -85,7 +85,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'sellers', title: 'Vendedores', icon: 'storefront-outline', iconActive: 'storefront', hint: 'Vendas por loja, taxa da Vineon e nota fiscal do mês' },
       { id: 'products', title: 'Produtos', icon: 'cube-outline', iconActive: 'cube', hint: 'Inventário de todos os vendedores' },
       { id: 'refunds', title: 'Devoluções', icon: 'swap-horizontal-outline', iconActive: 'swap-horizontal', hint: 'Valores retidos e pedidos de devolução' },
-      { id: 'reports', title: 'Denúncias', icon: 'flag-outline', iconActive: 'flag', hint: 'Anúncios e vendedores denunciados' },
+      { id: 'reports', title: 'Denúncias', icon: 'flag-outline', iconActive: 'flag', hint: 'Anúncios, vendedores e avaliações denunciados' },
     ],
   },
   {

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
-  Firestore, collection, deleteField, doc, getDoc, getFirestore, limit, onSnapshot, orderBy, query,
+  Firestore, collection, deleteDoc, deleteField, doc, getDoc, getFirestore, limit, onSnapshot, orderBy, query,
   serverTimestamp, setDoc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
@@ -113,6 +113,17 @@ export class ModerationService {
       });
     }
     await batch.commit();
+  }
+
+  /**
+   * Apaga a avaliação denunciada (`targetId` = `<produto>~<autor>`). A função
+   * `onProductReviewWritten` recalcula a nota e apaga as fotos. Não tem volta:
+   * o autor pode avaliar de novo, dentro das regras.
+   */
+  async removeReview(targetId: string): Promise<void> {
+    const [productId, reviewerId] = targetId.split('~');
+    if (!productId || !reviewerId) throw new Error('Avaliação inválida.');
+    await deleteDoc(doc(this.db, 'products', productId, 'reviews', reviewerId));
   }
 
   async takeDownProduct(productId: string, note = ''): Promise<void> {

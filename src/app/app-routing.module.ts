@@ -172,6 +172,13 @@ const routes: Routes = [
     canActivate: [storefrontGuard]
   },
   {
+    // Minhas avaliações: o que falta avaliar, o que a pessoa já avaliou e,
+    // para quem vende, as avaliações da loja para responder.
+    path: 'my-reviews',
+    loadComponent: () => import('./pages/my-reviews/my-reviews.page').then(m => m.MyReviewsPage),
+    canActivate: [authGuard]
+  },
+  {
     // "Cupons da loja": a loja cria e acompanha os cupons dela.
     path: 'my-coupons',
     loadComponent: () => import('./pages/my-coupons/my-coupons.page').then(m => m.MyCouponsPage),

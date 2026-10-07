@@ -316,7 +316,8 @@ export const onOrderWrittenNotify = onDocumentWritten(
           kind: 'order', icon: 'check',
           title: 'Pedido entregue',
           body: `${what} foi entregue. Conta pra gente o que achou: sua avaliação ajuda outros compradores.`,
-          link: '/my-orders?aba=done', image: photo, tag: `order-${orderId}`,
+          // Abre "Minhas avaliações" já com este pedido na frente.
+          link: `/my-reviews?pedido=${orderId}`, image: photo, tag: `order-${orderId}`,
         }));
       }
 
@@ -427,7 +428,8 @@ export const onProductReviewNotify = onDocumentCreated(
       kind: 'review', icon: 'star',
       title: `Nova avaliação: ${rating} de 5 estrelas`,
       body: comment ? `${product?.['name'] || 'Seu produto'}: “${comment}”` : `${product?.['name'] || 'Seu produto'} recebeu uma avaliação.`,
-      link: `/product-details/${productId}`,
+      // A aba da loja em "Minhas avaliações" é onde ela responde.
+      link: '/my-reviews?aba=loja',
       image: typeof photo === 'string' ? photo : null,
     });
   }

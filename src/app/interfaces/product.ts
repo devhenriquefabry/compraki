@@ -65,6 +65,10 @@ export interface Product {
     rating?: number;
     reviewCount?: number;
     ratingBreakdown?: Record<string, number>;
+    /** Quantas avaliações têm foto (função `onProductReviewWritten`). */
+    reviewPhotoCount?: number;
+    /** Respostas a "o produto é como no anúncio?" (função `onProductReviewWritten`). */
+    listingMatch?: { yes?: number; partly?: number; no?: number };
     location?: string;
     sellerId?: string;
 

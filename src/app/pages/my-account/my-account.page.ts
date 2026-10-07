@@ -23,6 +23,8 @@ import { SalesService } from 'src/app/services/sales.service';
 import { SupportService } from 'src/app/services/support.service';
 import { StorefrontDataService } from 'src/app/services/storefront-data.service';
 import { NotificationCenterService } from 'src/app/services/notification-center.service';
+import { ProductReviewsService } from 'src/app/services/product-reviews.service';
+import { ProductReview } from 'src/app/interfaces/review';
 
 /** Uma parada da rota de pedidos (compras ou vendas). */
 interface RouteStop {
@@ -84,6 +86,7 @@ export class MyAccountPage {
   private readonly ordersService = inject(OrdersService);
   private readonly salesService = inject(SalesService);
   private readonly support = inject(SupportService);
+  private readonly reviewsService = inject(ProductReviewsService);
   private readonly addressService = inject(AddressService);
   private readonly storefront = inject(StorefrontDataService);
   private readonly toastCtrl = inject(ToastController);
@@ -199,6 +202,18 @@ export class MyAccountPage {
     };
   });
 
+  /** Avaliações da pessoa: só para saber o que ainda falta avaliar. */
+  readonly myReviews = signal<ProductReview[] | null>(null);
+
+  /** Produtos entregues ainda sem avaliação (selo na linha "Minhas avaliações"). */
+  readonly pendingReviews = computed(() => {
+    const orders = this.orders();
+    const mine = this.myReviews();
+    const uid = this.user()?.uid;
+    if (!orders || !mine || !uid) return 0;
+    return this.reviewsService.pendingFrom(orders, mine, uid).length;
+  });
+
   /** Quantos pedidos estão andando (pagar, preparar, a caminho). */
   readonly activeOrders = computed(() => {
     const counts = this.countStages(this.orders());
@@ -261,7 +276,12 @@ export class MyAccountPage {
       icon: 'returns', label: 'Devoluções e reembolsos', hint: 'Acompanhe pedidos devolvidos',
       link: '/my-orders', query: { aba: 'refund' }, badge: this.refundCount(),
     },
-    { icon: 'star', label: 'Minhas avaliações', hint: 'Notas que você deu aos produtos' },
+    {
+      icon: 'star', label: 'Minhas avaliações', link: '/my-reviews', badge: this.pendingReviews(),
+      hint: this.pendingReviews()
+        ? `${this.plural(this.pendingReviews(), 'compra espera', 'compras esperam')} sua opinião`
+        : 'Notas que você deu aos produtos',
+    },
     { icon: 'question', label: 'Perguntas aos vendedores', hint: 'Dúvidas que você enviou' },
     { icon: 'ticket', label: 'Cupons', hint: 'Descontos disponíveis para você', link: '/coupons' },
   ]);
@@ -272,6 +292,7 @@ export class MyAccountPage {
       hint: this.productCount() === null ? undefined : this.plural(this.productCount()!, 'anúncio', 'anúncios'),
     },
     { icon: 'chart', label: 'Vendas', hint: 'Pedidos, etiquetas e envios', link: '/my-sales' },
+    { icon: 'star', label: 'Avaliações da loja', hint: 'Veja e responda o que os clientes dizem', link: '/my-reviews', query: { aba: 'loja' } },
     { icon: 'ticket', label: 'Cupons da loja', hint: 'Desconto nos seus produtos', link: '/my-coupons' },
     { icon: 'receipt', label: 'Notas fiscais', hint: 'Notas mensais da Vineon', link: '/my-invoices', badge: this.unseenInvoices() },
     { icon: 'store', label: 'Perfil de vendedor', hint: 'Nome da loja, foto e descrição', link: '/seller-profile' },
@@ -348,6 +369,7 @@ export class MyAccountPage {
     this.unbindData();
     this.appUser.set(null);
     this.supportUnread.set(0);
+    this.myReviews.set(null);
     this.orders.set(null);
     this.sales.set(null);
     this.productCount.set(null);
@@ -378,6 +400,11 @@ export class MyAccountPage {
       this.fbProducts.getBySeller(user.uid, true).subscribe({
         next: products => this.productCount.set(products.length),
         error: () => this.productCount.set(0),
+      }),
+      // Só o selo de "falta avaliar": falha aqui some o selo, não a tela.
+      this.reviewsService.watchMine(user.uid).subscribe({
+        next: list => this.myReviews.set(list),
+        error: () => this.myReviews.set(null),
       }),
       // Só o selo de "resposta nova": falha aqui some o selo, não a tela.
       this.support.watchMyTickets(user.uid, 30).subscribe({

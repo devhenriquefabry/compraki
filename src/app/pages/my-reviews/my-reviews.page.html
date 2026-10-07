@@ -1,0 +1,344 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Minhas avaliações</h1>
+  </div>
+  <nav class="pg-tabs" role="tablist" aria-label="Avaliações">
+    <button type="button" role="tab" class="pg-tab" [class.is-active]="tab() === 'pendentes'"
+            [attr.aria-selected]="tab() === 'pendentes'" (click)="selectTab('pendentes')">
+      Para avaliar
+      @if (pending()?.length) { <span class="pg-tab-count">{{ pending()!.length }}</span> }
+    </button>
+    <button type="button" role="tab" class="pg-tab" [class.is-active]="tab() === 'feitas'"
+            [attr.aria-selected]="tab() === 'feitas'" (click)="selectTab('feitas')">
+      Avaliadas
+    </button>
+    @if (isSeller()) {
+      <button type="button" role="tab" class="pg-tab" [class.is-active]="tab() === 'loja'"
+              [attr.aria-selected]="tab() === 'loja'" (click)="selectTab('loja')">
+        Da sua loja
+        @if (storeSummary().unanswered) { <span class="pg-tab-count">{{ storeSummary().unanswered }}</span> }
+      </button>
+    }
+  </nav>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (failed()) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon></span>
+        <h2>Sem conexão com as avaliações</h2>
+        <p>Não deu para carregar suas compras e avaliações agora. Confira a internet e abra de novo.</p>
+      </div>
+    } @else if (loading()) {
+      @for (i of [1, 2, 3]; track i) {
+        <div class="mr-sk" aria-hidden="true">
+          <div class="sk sk-thumb"></div>
+          <div class="sk-col">
+            <div class="sk sk-line sk-w80"></div>
+            <div class="sk sk-line sk-w40"></div>
+            <div class="sk sk-line sk-w30"></div>
+          </div>
+        </div>
+      }
+    } @else {
+      @switch (tab()) {
+
+        <!-- ======================================================= PARA AVALIAR -->
+        @case ('pendentes') {
+          @if (pending()!.length) {
+            <p class="mr-lead">
+              Conte como foi o que você recebeu. A avaliação aparece no anúncio com o selo
+              <strong>Compra verificada</strong> e ajuda quem ainda vai comprar.
+            </p>
+            <ul class="mr-list">
+              @for (item of pending(); track item.key) {
+                <li class="mr-pending" [class.is-new]="item.orderId === highlightOrder()" [attr.aria-busy]="busy() === item.key">
+                  <a class="mr-thumb-link" [routerLink]="['/product-details', item.productId]" [attr.aria-label]="'Ver ' + item.name">
+                    @if (item.photo) {
+                      <img class="mr-thumb" [src]="item.photo" alt="" loading="lazy" />
+                    } @else {
+                      <span class="mr-thumb mr-thumb--empty"><vn-icon name="box" /></span>
+                    }
+                  </a>
+                  <div class="mr-pending-body">
+                    @if (item.orderId === highlightOrder()) {
+                      <span class="mr-flag">Acabou de chegar</span>
+                    }
+                    <strong class="mr-name">{{ item.name }}</strong>
+                    <small class="mr-meta">
+                      @if (item.deliveredAt) { Entregue em {{ day(item.deliveredAt) }} }
+                      @if (item.variant) { · {{ item.variant }} }
+                    </small>
+                    <div class="mr-rate" (mouseleave)="hover.set(null)">
+                      <div class="mr-rate-stars" role="group" [attr.aria-label]="'Dar nota para ' + item.name">
+                        @for (star of stars; track star) {
+                          <button type="button" class="mr-rate-star" [class.is-on]="starOn(item, star)"
+                                  [disabled]="!!busy()"
+                                  [attr.aria-label]="star + (star === 1 ? ' estrela' : ' estrelas') + ' — ' + starLabels[star]"
+                                  (mouseenter)="hover.set({ key: item.key, star })"
+                                  (focus)="hover.set({ key: item.key, star })" (blur)="hover.set(null)"
+                                  (click)="rate(item, star)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M12 2.9l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.9l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
+                            </svg>
+                          </button>
+                        }
+                      </div>
+                      <span class="mr-rate-hint" aria-hidden="true">
+                        {{ hover()?.key === item.key ? starLabels[hover()!.star] : 'Toque para avaliar' }}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="pg-empty">
+              <span class="pg-empty-mark"><vn-icon name="star" /></span>
+              <h2>{{ mine()!.length ? 'Tudo avaliado' : 'Nada para avaliar ainda' }}</h2>
+              <p>
+                @if (mine()!.length) {
+                  Você já contou como foram todas as suas compras entregues. Obrigado!
+                } @else {
+                  Quando um pedido for entregue, o produto aparece aqui para você contar como foi.
+                }
+              </p>
+              <a class="btn btn--outline" routerLink="/my-orders">Ver minhas compras</a>
+            </div>
+          }
+        }
+
+        <!-- ========================================================== AVALIADAS -->
+        @case ('feitas') {
+          @if (mine()!.length) {
+            <ul class="mr-list">
+              @for (r of mine(); track r.productId) {
+                <li class="mr-card" [attr.aria-busy]="busy() === r.productId">
+                  <a class="mr-product" [routerLink]="['/product-details', r.productId]">
+                    @if (r.productPhoto) {
+                      <img class="mr-thumb mr-thumb--sm" [src]="r.productPhoto" alt="" loading="lazy" />
+                    } @else {
+                      <span class="mr-thumb mr-thumb--sm mr-thumb--empty"><vn-icon name="box" /></span>
+                    }
+                    <span class="mr-name">{{ r.productName || 'Produto' }}</span>
+                    <vn-icon name="chevron" class="mr-chevron" />
+                  </a>
+
+                  <div class="mr-rating-row">
+                    <app-review-stars [value]="r.rating" [size]="17" />
+                    <span class="mr-rating-word">{{ starLabels[r.rating] }}</span>
+                    <span class="mr-dot" aria-hidden="true"></span>
+                    <time class="mr-meta">{{ day(r.createdAt) }}{{ edited(r) ? ' · editada' : '' }}</time>
+                  </div>
+
+                  @if (r.matchesListing) {
+                    <span class="mr-match" [attr.data-kind]="r.matchesListing">
+                      Como no anúncio: {{ r.matchesListing === 'yes' ? 'sim' : r.matchesListing === 'partly' ? 'em parte' : 'não' }}
+                    </span>
+                  }
+
+                  @if (r.comment) {
+                    <p class="mr-comment">{{ r.comment }}</p>
+                  } @else {
+                    <p class="mr-comment mr-comment--empty">Sem comentário. Escrever algumas linhas ajuda mais quem vai comprar.</p>
+                  }
+
+                  @if (photosOf(r).length) {
+                    <ul class="mr-photos">
+                      @for (path of photosOf(r); track path; let i = $index) {
+                        <li>
+                          <button type="button" (click)="openPhotos(r, i)" [attr.aria-label]="'Ampliar foto ' + (i + 1)">
+                            <img [src]="photoUrl(path)" alt="" loading="lazy" />
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  <div class="mr-signals">
+                    @if (r.verifiedPurchase) {
+                      <span class="mr-signal"><vn-icon name="shield" /> Compra verificada</span>
+                    } @else {
+                      <span class="mr-signal mr-signal--wait"><vn-icon name="clock" /> Conferindo a compra</span>
+                    }
+                    @if (r.helpfulCount) {
+                      <span class="mr-signal"><vn-icon name="checks" /> {{ plural(r.helpfulCount, 'pessoa achou útil', 'pessoas acharam útil') }}</span>
+                    }
+                  </div>
+
+                  @if (r.sellerReply?.text) {
+                    <div class="mr-reply">
+                      <span class="mr-reply-head"><vn-icon name="store" /> Resposta da loja · {{ day(r.sellerReply!.updatedAt) }}</span>
+                      <p>{{ r.sellerReply!.text }}</p>
+                    </div>
+                  }
+
+                  <div class="mr-actions">
+                    <button type="button" class="btn btn--outline" (click)="edit(r)" [disabled]="!!busy()">
+                      <vn-icon name="pencil" /> Editar
+                    </button>
+                    <button type="button" class="btn btn--ghost mr-delete" (click)="remove(r)" [disabled]="!!busy()">
+                      Excluir
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="pg-empty">
+              <span class="pg-empty-mark"><vn-icon name="star" /></span>
+              <h2>Você ainda não avaliou nada</h2>
+              <p>Suas avaliações ficam aqui. Dá para editar ou excluir quando quiser.</p>
+              @if (pending()!.length) {
+                <button type="button" class="btn btn--primary" (click)="selectTab('pendentes')">
+                  Avaliar {{ plural(pending()!.length, 'compra', 'compras') }}
+                </button>
+              }
+            </div>
+          }
+        }
+
+        <!-- ============================================================== LOJA -->
+        @case ('loja') {
+          @let s = storeSummary();
+          @if (storeFailed()) {
+            <div class="pg-empty">
+              <span class="pg-empty-mark"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon></span>
+              <h2>Sem conexão com as avaliações da loja</h2>
+              <p>Tente abrir de novo em instantes.</p>
+            </div>
+          } @else if (s.count) {
+            <section class="ledger mr-ledger" aria-label="Nota da sua loja">
+              <div class="mr-ledger-top">
+                <div>
+                  <span class="ledger-label">Nota da sua loja</span>
+                  <span class="ledger-value">{{ formatAverage(s.average) }}</span>
+                  <app-review-stars class="mr-ledger-stars" [value]="s.average" [size]="16" />
+                  <small class="mr-ledger-count">{{ plural(s.count, 'avaliação', 'avaliações') }}</small>
+                </div>
+                <ul class="mr-ledger-bars" aria-label="Avaliações por nota">
+                  @for (bar of s.bars; track bar.stars) {
+                    <li>
+                      <span>{{ bar.stars }}</span>
+                      <span class="mr-ledger-track"><span [style.width.%]="bar.percent"></span></span>
+                      <span class="mr-ledger-n">{{ bar.count }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+              <dl class="ledger-split">
+                <div><dt>Sem resposta</dt><dd>{{ s.unanswered }}</dd></div>
+                <div><dt>Com foto</dt><dd>{{ s.withPhotos }}</dd></div>
+                @if (s.listingYes !== null) {
+                  <div><dt>Como no anúncio</dt><dd>{{ s.listingYes }}%</dd></div>
+                }
+              </dl>
+              <p class="ledger-note">
+                Responder em público mostra cuidado com o cliente, principalmente nas notas baixas.
+                Agradeça, explique e ofereça solução; não peça para mudar a nota.
+              </p>
+            </section>
+
+            <div class="mr-chips" role="tablist" aria-label="Filtrar avaliações">
+              <button type="button" class="mr-chip" [class.is-on]="storeFilter() === 'all'" (click)="storeFilter.set('all')">Todas</button>
+              <button type="button" class="mr-chip" [class.is-on]="storeFilter() === 'unanswered'" (click)="storeFilter.set('unanswered')">
+                Sem resposta <small>{{ s.unanswered }}</small>
+              </button>
+              <button type="button" class="mr-chip" [class.is-on]="storeFilter() === 'low'" (click)="storeFilter.set('low')">1 e 2 estrelas</button>
+              <button type="button" class="mr-chip" [class.is-on]="storeFilter() === 'photos'" (click)="storeFilter.set('photos')">Com foto</button>
+            </div>
+
+            <ul class="mr-list">
+              @for (r of storeList(); track replyKey(r)) {
+                <li class="mr-card" [attr.aria-busy]="busy() === replyKey(r)">
+                  <a class="mr-product" [routerLink]="['/product-details', r.productId]">
+                    @if (r.productPhoto) {
+                      <img class="mr-thumb mr-thumb--sm" [src]="r.productPhoto" alt="" loading="lazy" />
+                    }
+                    <span class="mr-name">{{ r.productName || 'Produto' }}</span>
+                    <vn-icon name="chevron" class="mr-chevron" />
+                  </a>
+
+                  <div class="mr-rating-row">
+                    <app-review-stars [value]="r.rating" [size]="17" />
+                    <span class="mr-rating-word">{{ r.userName }}</span>
+                    <span class="mr-dot" aria-hidden="true"></span>
+                    <time class="mr-meta">{{ day(r.createdAt) }}</time>
+                  </div>
+
+                  @if (r.matchesListing) {
+                    <span class="mr-match" [attr.data-kind]="r.matchesListing">
+                      Como no anúncio: {{ r.matchesListing === 'yes' ? 'sim' : r.matchesListing === 'partly' ? 'em parte' : 'não' }}
+                    </span>
+                  }
+
+                  @if (r.comment) {
+                    <p class="mr-comment">{{ r.comment }}</p>
+                  }
+
+                  @if (photosOf(r).length) {
+                    <ul class="mr-photos">
+                      @for (path of photosOf(r); track path; let i = $index) {
+                        <li>
+                          <button type="button" (click)="openPhotos(r, i)" [attr.aria-label]="'Ampliar foto ' + (i + 1)">
+                            <img [src]="photoUrl(path)" alt="" loading="lazy" />
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (replying() === replyKey(r)) {
+                    <div class="mr-reply-form">
+                      <label class="mr-reply-label" [for]="'reply-' + replyKey(r)">Sua resposta (pública)</label>
+                      <textarea [id]="'reply-' + replyKey(r)" rows="3" [maxlength]="replyMax" [(ngModel)]="replyDraft"
+                                placeholder="Ex.: Obrigado pela compra! Sentimos pelo atraso; já trocamos a transportadora."></textarea>
+                      <div class="mr-reply-actions">
+                        <small>{{ replyDraft.length }}/{{ replyMax }}</small>
+                        <button type="button" class="btn btn--ghost" (click)="cancelReply()">Cancelar</button>
+                        <button type="button" class="btn btn--primary" [disabled]="replyDraft.trim().length < 2 || !!busy()" (click)="sendReply(r)">
+                          {{ r.sellerReply?.text ? 'Salvar' : 'Publicar resposta' }}
+                        </button>
+                      </div>
+                    </div>
+                  } @else if (r.sellerReply?.text) {
+                    <div class="mr-reply">
+                      <span class="mr-reply-head"><vn-icon name="store" /> Sua resposta · {{ day(r.sellerReply!.updatedAt) }}</span>
+                      <p>{{ r.sellerReply!.text }}</p>
+                      <div class="mr-reply-links">
+                        <button type="button" (click)="startReply(r)">Editar</button>
+                        <button type="button" (click)="removeReply(r)">Apagar</button>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="mr-actions">
+                      <button type="button" class="btn btn--outline" (click)="startReply(r)">
+                        <vn-icon name="chat" /> Responder
+                      </button>
+                      @if (r.rating <= 2) {
+                        <span class="mr-hint">Nota baixa sem resposta</span>
+                      }
+                    </div>
+                  }
+                </li>
+              } @empty {
+                <li class="mr-filter-empty">Nenhuma avaliação neste filtro.</li>
+              }
+            </ul>
+          } @else {
+            <div class="pg-empty">
+              <span class="pg-empty-mark"><vn-icon name="store" /></span>
+              <h2>Sua loja ainda não tem avaliações</h2>
+              <p>Quando um cliente receber um pedido e avaliar, a opinião aparece aqui para você acompanhar e responder.</p>
+              <a class="btn btn--outline" routerLink="/my-sales">Ver minhas vendas</a>
+            </div>
+          }
+        }
+      }
+    }
+  </div>
+</ion-content>

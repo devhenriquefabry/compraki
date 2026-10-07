@@ -2,7 +2,7 @@
   <header class="adm-head">
     <div>
       <h2>Denúncias</h2>
-      <p>Anúncios e vendedores denunciados. Tire do ar, suspenda a conta ou descarte. <span class="adm-live">Ao vivo</span></p>
+      <p>Anúncios, vendedores e avaliações denunciados. Tire do ar, remova, suspenda a conta ou descarte. <span class="adm-live">Ao vivo</span></p>
     </div>
   </header>
 
@@ -21,6 +21,7 @@
       <button type="button" class="adm-chip" [class.is-active]="type() === 'all'" (click)="type.set('all')">Tudo</button>
       <button type="button" class="adm-chip" [class.is-active]="type() === 'product'" (click)="type.set('product')">Anúncios</button>
       <button type="button" class="adm-chip" [class.is-active]="type() === 'seller'" (click)="type.set('seller')">Vendedores</button>
+      <button type="button" class="adm-chip" [class.is-active]="type() === 'review'" (click)="type.set('review')">Avaliações</button>
     </div>
   </div>
 
@@ -40,11 +41,11 @@
           @if (g.targetPhoto) {
             <img class="mr-thumb" [src]="g.targetPhoto" alt="" loading="lazy" />
           } @else {
-            <span class="mr-thumb mr-thumb--icon"><ion-icon [name]="g.targetType === 'product' ? 'pricetag-outline' : 'person-outline'" aria-hidden="true"></ion-icon></span>
+            <span class="mr-thumb mr-thumb--icon"><ion-icon [name]="g.targetType === 'seller' ? 'person-outline' : 'pricetag-outline'" aria-hidden="true"></ion-icon></span>
           }
           <div class="mr-title">
-            <span class="adm-tag" [class.is-info]="g.targetType === 'product'" [class.is-warn]="g.targetType === 'seller'">
-              {{ g.targetType === 'product' ? 'Anúncio' : 'Vendedor' }}
+            <span class="adm-tag" [class.is-info]="g.targetType !== 'seller'" [class.is-warn]="g.targetType === 'seller'">
+              {{ typeLabel(g.targetType) }}
             </span>
             <strong>{{ g.targetName }}</strong>
             <small>Última denúncia: {{ g.latest }}</small>
@@ -80,10 +81,12 @@
         }
 
         <footer class="mr-actions">
-          @if (g.targetType === 'product') {
-            <a class="adm-btn" [routerLink]="['/product-details', g.targetId]" target="_blank">Ver anúncio</a>
+          @if (g.targetType !== 'seller') {
+            <a class="adm-btn" [routerLink]="['/product-details', productOf(g)]" [fragment]="g.targetType === 'review' ? 'opinioes' : undefined" target="_blank">Ver anúncio</a>
           }
-          <a class="adm-btn" [routerLink]="['/seller-profile', g.sellerId]" target="_blank">Ver loja</a>
+          @if (g.targetType !== 'review') {
+            <a class="adm-btn" [routerLink]="['/seller-profile', g.sellerId]" target="_blank">Ver loja</a>
+          }
           <a class="adm-btn" [routerLink]="['/admin/users']" [queryParams]="{ user: g.sellerId }">Cadastro</a>
 
           <span class="mr-spacer"></span>
@@ -93,8 +96,12 @@
             @if (g.targetType === 'product') {
               <button type="button" class="adm-btn adm-btn--primary" (click)="takeDown(g)" [disabled]="!!busyKey()">Tirar anúncio do ar</button>
             }
+            @if (g.targetType === 'review') {
+              <button type="button" class="adm-btn adm-btn--primary" (click)="removeReview(g)" [disabled]="!!busyKey()">Remover avaliação</button>
+            }
             <button type="button" class="adm-btn adm-btn--danger" (click)="suspend(g)" [disabled]="!!busyKey()">Suspender conta</button>
-          } @else {
+          } @else if (g.resolution !== 'review_removed') {
+            <!-- Avaliação removida não volta: a pessoa pode avaliar de novo. -->
             <button type="button" class="adm-btn" (click)="undo(g)" [disabled]="!!busyKey()">
               {{ g.resolution === 'account_suspended' ? 'Reativar conta' : g.resolution === 'product_removed' ? 'Recolocar no ar' : 'Reabrir' }}
             </button>

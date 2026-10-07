@@ -72,7 +72,7 @@ service cloud.firestore {
     // Nota e contagem de avaliacoes: so a Cloud Function `onProductReviewWritten`
     // escreve. Com isso liberado, o vendedor gravava `rating: 5` no proprio anuncio.
     function reviewAggregateFields() {
-      return ['rating', 'reviewCount', 'ratingBreakdown'];
+      return ['rating', 'reviewCount', 'ratingBreakdown', 'reviewPhotoCount', 'listingMatch'];
     }
 
     // Campos que o vendedor nao escreve: nota agregada (funcao de avaliacoes) e
@@ -108,41 +108,101 @@ service cloud.firestore {
       // Avaliacoes. Id do documento = uid de quem avalia (uma por pessoa).
       // Leitura publica: visitante sem conta tambem ve as opinioes.
       //
-      // Aqui a regra so garante que o pedido citado e da pessoa e esta pago.
-      // Se o produto esta mesmo dentro do pedido quem confere e a funcao
-      // `onProductReviewWritten` (a regra nao consegue varrer `items`); se nao
-      // estiver, ela apaga a avaliacao.
+      // A regra garante que o pedido citado e da pessoa e ja foi ENTREGUE
+      // (como no ML e na Shopee: so se avalia o que chegou). Se o produto esta
+      // mesmo dentro do pedido quem confere e a funcao `onProductReviewWritten`
+      // (a regra nao consegue varrer `items`); se nao estiver, ela apaga.
+      //
+      // Campos do autor: reviewClientFields(). Campos do servidor (selo de
+      // compra, loja, "util", resposta da loja): so a funcao ou a loja dona do
+      // produto (apenas `sellerReply`) escrevem.
       match /reviews/{reviewerId} {
         allow read: if true;
 
         allow create: if isUser(reviewerId)
+          && !isSuspended()
+          && request.resource.data.keys().hasOnly(reviewClientFields())
           && isValidReview()
-          && ownsPaidOrder(request.resource.data.orderId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && ownsDeliveredOrder(request.resource.data.orderId)
           && get(/databases/$(database)/documents/products/$(productId)).data.sellerId != request.auth.uid;
 
+        // Autor editando: so os campos dele; pedido e data de criacao fixos.
         allow update: if isUser(reviewerId)
+          && !isSuspended()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(reviewClientFields())
           && isValidReview()
           && request.resource.data.orderId == resource.data.orderId
-          && request.resource.data.createdAt == resource.data.createdAt;
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+
+        // Loja dona do produto respondendo (uma resposta, editavel/removivel).
+        allow update: if isSignedIn()
+          && !isSuspended()
+          && get(/databases/$(database)/documents/products/$(productId)).data.sellerId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sellerReply'])
+          && (!('sellerReply' in request.resource.data)
+              || isValidSellerReply(request.resource.data.sellerReply));
 
         allow delete: if isUser(reviewerId) || isAdmin();
       }
+
+      // "Esta avaliacao foi util": um documento por pessoa por produto com os
+      // ids (uid do autor) das avaliacoes que ela marcou. A contagem
+      // `helpfulCount` da avaliacao e escrita so pela funcao `onReviewVotesWritten`.
+      match /reviewVotes/{voterId} {
+        allow read, delete: if isUser(voterId);
+        allow create, update: if isUser(voterId)
+          && !isSuspended()
+          && request.resource.data.keys().hasOnly(['reviewIds', 'updatedAt'])
+          && request.resource.data.reviewIds is list
+          && request.resource.data.reviewIds.size() <= 200
+          && request.resource.data.updatedAt == request.time;
+      }
     }
 
+    // "Minhas avaliacoes" e "Avaliacoes da loja" consultam todas as avaliacoes
+    // de uma pessoa / de uma loja (collection group). Mesma leitura publica.
+    match /{path=**}/reviews/{reviewerId} {
+      allow read: if true;
+    }
+
+    function reviewClientFields() {
+      return ['userId', 'userName', 'rating', 'comment', 'orderId', 'createdAt', 'updatedAt',
+              'photos', 'matchesListing'];
+    }
+
+    // Valida o documento inteiro como fica depois da escrita. Campos do
+    // servidor podem existir (vieram da funcao), mas o autor nao os altera:
+    // isso e garantido pelo hasOnly() das regras de create/update.
     function isValidReview() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['userId', 'userName', 'rating', 'comment', 'orderId', 'createdAt', 'updatedAt'])
-        && d.userId == request.auth.uid
+      return d.userId == request.auth.uid
         && d.rating is int && d.rating >= 1 && d.rating <= 5
         && d.comment is string && d.comment.size() <= 2000
         && d.userName is string && d.userName.size() <= 60
-        && d.orderId is string;
+        && d.orderId is string
+        && (!('photos' in d) || (d.photos is list && d.photos.size() <= 5))
+        && (!('matchesListing' in d) || d.matchesListing == null
+            || d.matchesListing in ['yes', 'partly', 'no']);
     }
 
-    function ownsPaidOrder(orderId) {
+    function isValidSellerReply(r) {
+      return r is map
+        && r.keys().hasOnly(['text', 'createdAt', 'updatedAt'])
+        && r.text is string && r.text.size() >= 2 && r.text.size() <= 1000
+        && r.createdAt is timestamp
+        && r.updatedAt == request.time;
+    }
+
+    // Pedido da pessoa, pago e ja entregue (a loja marcou ou o comprador
+    // confirmou o recebimento). Mesma regra de `orderStage() == 'done'`.
+    function ownsDeliveredOrder(orderId) {
       let order = get(/databases/$(database)/documents/orders/$(orderId)).data;
       return order.userId == request.auth.uid
-        && order.status in ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
+        && order.status in ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW']
+        && (order.status == 'DELIVERED' || order.get('shipmentStatus', '') == 'DELIVERED');
     }
 
     // ------------------------------------------------------ catalogo editorial
@@ -486,12 +546,15 @@ service cloud.firestore {
                                'reason', 'details', 'reporterId', 'reporterName', 'status', 'createdAt'])
         && d.reporterId == request.auth.uid
         && d.sellerId != request.auth.uid
-        && d.targetType in ['product', 'seller']
+        // `review`: targetId = '<produto>~<uid do autor>' e sellerId = autor
+        // (quem o admin suspenderia). Ninguem denuncia a propria avaliacao.
+        && d.targetType in ['product', 'seller', 'review']
         && d.targetId is string && d.targetId.size() > 0 && d.targetId.size() <= 128
         && d.sellerId is string && d.sellerId.size() > 0
         && d.targetName is string && d.targetName.size() <= 200
         && d.reason in ['prohibited', 'fraud', 'counterfeit', 'misleading', 'offensive',
-                        'no_delivery', 'abusive', 'fake_profile', 'other']
+                        'no_delivery', 'abusive', 'fake_profile', 'other',
+                        'spam', 'off_topic', 'personal_data']
         && d.details is string && d.details.size() <= 1000
         && d.reporterName is string && d.reporterName.size() <= 80
         && d.status == 'open'

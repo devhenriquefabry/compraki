@@ -22,7 +22,7 @@ export { syncSellerProfile, backfillSellerProfiles } from './seller-profile';
 
 export { onProductSaved, onProductUnsaved, recomputeSavedCounts } from './counters';
 
-export { onProductReviewWritten } from './reviews';
+export { onProductReviewWritten, onReviewVotesWritten } from './reviews';
 
 export { moderateProductName, onStorefrontConfigWritten, setAccountSuspension } from './moderation';
 
