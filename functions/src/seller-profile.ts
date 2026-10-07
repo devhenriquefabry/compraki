@@ -73,7 +73,7 @@ function publicFieldsChanged(
  * Mantém `sellers/{uid}` em dia a cada escrita em `users/{uid}`.
  */
 export const syncSellerProfile = onDocumentWritten(
-  { document: 'users/{uid}', region, maxInstances: 10 },
+  { document: 'users/{uid}', region, maxInstances: 3 },
   async (event) => {
     const uid = event.params['uid'];
     const sellerRef = getFirestore().doc(`sellers/${uid}`);

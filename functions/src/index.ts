@@ -73,8 +73,16 @@ const region = 'us-central1';
  * Sem isto, uma rajada de requisições escala sem limite e o custo acompanha.
  * É a trava de dano financeiro mais barata do Functions v2 — vale inclusive
  * para os endpoints públicos (webhooks, recuperação de senha).
+ *
+ * 3, e não 10: a cota do Cloud Run em us-central1 é de 20 vCPU LIGADAS ao
+ * mesmo tempo, somando todas as functions (cada instância = 1 vCPU). Com 10,
+ * uma rajada numa function só levava metade da cota. Cada instância atende
+ * até 80 requisições simultâneas; 3 sobra para o tráfego da Vineon.
+ * Deploy: cada function sobe 1 instância de verificação que fica ociosa ~15
+ * min — publicar dezenas de uma vez esgota a cota e derruba as outras
+ * (aconteceu em 2026-10-07). Publique em lotes de até 10.
  */
-const MAX_INSTANCES = 10;
+const MAX_INSTANCES = 3;
 
 interface AuthenticatedRequest {
   uid: string;

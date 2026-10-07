@@ -23,7 +23,7 @@ import { region } from './shared/http';
 const PAID_STATUSES = ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
 
 export const onProductReviewWritten = onDocumentWritten(
-  { document: 'products/{productId}/reviews/{reviewerId}', region, maxInstances: 10 },
+  { document: 'products/{productId}/reviews/{reviewerId}', region, maxInstances: 3 },
   async (event) => {
     const { productId, reviewerId } = event.params;
     const after = event.data?.after;

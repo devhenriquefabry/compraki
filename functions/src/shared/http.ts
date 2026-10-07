@@ -39,7 +39,8 @@ export const defaultRuntime = {
   // CORS é tratado por `handleCors`, com allowlist de origem. O tratamento
   // embutido do Functions liberaria mais do que queremos.
   cors: false,
-  maxInstances: 10,
+  // Ver MAX_INSTANCES em index.ts: 10 por function estourava a cota de CPU.
+  maxInstances: 3,
   timeoutSeconds: 60
 } as const;
 

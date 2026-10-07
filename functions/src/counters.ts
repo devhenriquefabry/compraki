@@ -24,7 +24,7 @@ import { defaultRuntime, handleCors, methodNotAllowed, region, requireAdmin } fr
  * (N subdocumentos somados na leitura). Não vale a complexidade agora.
  */
 
-const counterRuntime = { region, maxInstances: 10 } as const;
+const counterRuntime = { region, maxInstances: 3 } as const;
 
 async function bumpSavedCount(productId: string, delta: number): Promise<void> {
   if (!productId) return;
