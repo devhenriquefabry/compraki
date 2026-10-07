@@ -31,6 +31,10 @@ import { FirebaseSavedService } from 'src/app/services/firebase-saved.service';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { FirebaseCategories } from 'src/app/services/firebase-categories';
 import { PublicSellerProfile } from 'src/app/interfaces/seller';
+import { Coupon } from 'src/app/interfaces/coupon';
+import { CouponService } from 'src/app/services/coupon.service';
+import { couponCoversProduct, isCouponLive } from 'src/app/core/coupons';
+import { StoreCouponsComponent } from 'src/app/components/store-coupons/store-coupons.component';
 
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
 import { ProductSelectorComponent } from 'src/app/components/product-selector/product-selector.component';
@@ -89,7 +93,7 @@ interface SellerStats {
   styleUrls: ['./product-details.page.scss'],
   standalone: true,
   imports: [
-    CommonModule, RouterLink,
+    CommonModule, RouterLink, StoreCouponsComponent,
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
     IonFooter, IonButton, IonIcon, IonModal, IonSpinner,
     MiniHeaderComponent, ProductSelectorComponent, ChatBoxComponent, ProductRailComponent,
@@ -105,6 +109,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   private readonly zone = inject(NgZone);
   private readonly appConfig = inject(AppConfigService);
   private readonly modalCtrl = inject(ModalController);
+  private readonly couponService = inject(CouponService);
 
   public product$: Observable<Product | null>;
   /** `undefined` enquanto carrega; `null` quando o produto não existe. */
@@ -113,6 +118,8 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   /** Fallback exibido só quando a rota vem sem id. */
   public allProducts$: Observable<Product[]>;
   public seller$: Observable<PublicSellerProfile | null>;
+  /** Cupons públicos da loja que valem para este produto. */
+  public storeCoupons$: Observable<Coupon[]>;
   public sellerProducts$: Observable<Product[]>;
   public moreFromSeller$: Observable<Product[]>;
   public sellerStats$: Observable<SellerStats>;
@@ -205,6 +212,15 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     // Perfil PUBLICO do vendedor (`sellers/{uid}`), nao o documento pessoal.
     this.seller$ = stableProduct$.pipe(
       switchMap(p => p?.sellerId ? from(this.fbUsers.getPublicSellerProfile(p.sellerId)).pipe(catchError(() => of(null))) : of(null)),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.storeCoupons$ = stableProduct$.pipe(
+      switchMap(p => p?.sellerId
+        ? from(this.couponService.listPublicOfSeller(p.sellerId)).pipe(
+            map(list => list.filter(c => isCouponLive(c) && couponCoversProduct(c, p.id, p.sellerId))),
+            catchError(() => of([] as Coupon[])))
+        : of([] as Coupon[])),
       shareReplay({ bufferSize: 1, refCount: true })
     );
 

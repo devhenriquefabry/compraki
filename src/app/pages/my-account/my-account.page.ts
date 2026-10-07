@@ -263,7 +263,7 @@ export class MyAccountPage {
     },
     { icon: 'star', label: 'Minhas avaliações', hint: 'Notas que você deu aos produtos' },
     { icon: 'question', label: 'Perguntas aos vendedores', hint: 'Dúvidas que você enviou' },
-    { icon: 'ticket', label: 'Cupons', hint: 'Descontos disponíveis para você' },
+    { icon: 'ticket', label: 'Cupons', hint: 'Descontos disponíveis para você', link: '/coupons' },
   ]);
 
   readonly storeRows = computed<AccountRow[]>(() => [
@@ -272,6 +272,7 @@ export class MyAccountPage {
       hint: this.productCount() === null ? undefined : this.plural(this.productCount()!, 'anúncio', 'anúncios'),
     },
     { icon: 'chart', label: 'Vendas', hint: 'Pedidos, etiquetas e envios', link: '/my-sales' },
+    { icon: 'ticket', label: 'Cupons da loja', hint: 'Desconto nos seus produtos', link: '/my-coupons' },
     { icon: 'receipt', label: 'Notas fiscais', hint: 'Notas mensais da Vineon', link: '/my-invoices', badge: this.unseenInvoices() },
     { icon: 'store', label: 'Perfil de vendedor', hint: 'Nome da loja, foto e descrição', link: '/seller-profile' },
   ]);

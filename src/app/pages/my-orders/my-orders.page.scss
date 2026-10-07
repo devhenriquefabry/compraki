@@ -456,3 +456,17 @@
 .oc-timeline {
   padding: 12px 2px 4px;
 }
+
+/* Cupom usado no pedido, logo acima do total. */
+.oc-coupon {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--vc-ink-2);
+
+  ion-icon { font-size: 16px; }
+  strong { color: var(--vc-ink); }
+}

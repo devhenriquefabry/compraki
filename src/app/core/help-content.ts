@@ -218,6 +218,36 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
         links: [{ label: 'Abrir favoritos', route: '/tabs/saved' }],
       },
+      {
+        id: 'comprar-cupom',
+        q: 'Como uso um cupom de desconto?',
+        keys: 'cupom codigo promocional desconto voucher frete gratis cupom da loja nao funciona',
+        popular: true,
+        a: [
+          {
+            t: 'ol',
+            items: [
+              'Copie o código em **Cupons** (Minha conta) ou no selo "Cupom da loja" do anúncio. Código recebido por mensagem ou nas redes também vale.',
+              'No checkout, na etapa **Entrega**, escolha o frete e digite o código em **Cupom de desconto**. Os cupons que servem para o seu carrinho também aparecem ali para tocar em "Aplicar".',
+              'O desconto aparece no resumo antes de você finalizar. O valor cobrado já vem com ele.',
+            ],
+          },
+          {
+            t: 'ul',
+            items: [
+              '**Um cupom por pedido.** Não dá para somar dois.',
+              '**Cupom da loja** vale só nos produtos daquela loja (às vezes só em alguns); **cupom Vineon** vale no carrinho todo ou no frete.',
+              'Cada cupom mostra as regras: compra mínima, desconto máximo, validade, quantos usos por pessoa e se é só para a primeira compra.',
+              'Se o pedido for **cancelado**, o uso do cupom volta para você, se ele ainda estiver valendo.',
+            ],
+          },
+          {
+            t: 'note',
+            text: 'O cupom não entrou? A tela diz o motivo: venceu, esgotou, falta valor para o mínimo ou não vale para esses produtos.',
+          },
+        ],
+        links: [{ label: 'Ver cupons', route: '/coupons' }],
+      },
     ],
   },
 
@@ -1064,6 +1094,32 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
         ],
         links: [{ label: 'Abrir mensagens', route: '/tabs/chats' }],
+      },
+      {
+        id: 'v-cupom',
+        q: 'Como crio um cupom de desconto para a minha loja?',
+        keys: 'cupom da loja codigo promocional desconto promocao campanha voucher',
+        a: [
+          {
+            t: 'p',
+            text: 'Em **Minha conta > Cupons da loja**, toque em **Criar cupom**. Escolha o código, o desconto (em % ou em reais), a compra mínima, até quando vale e quantos cupons existem.',
+          },
+          {
+            t: 'ul',
+            items: [
+              'O cupom vale **só nos seus produtos**: todos, ou só os que você escolher.',
+              '**Público** aparece nos seus anúncios, em Cupons e no checkout. **Só com o código** não aparece: serve para mandar a clientes ou postar nas redes.',
+              '**O desconto sai do valor da sua venda.** A taxa da Vineon é calculada sobre o valor já com o desconto.',
+              'Dá para pausar, editar e encerrar quando quiser. Quem já comprou com o cupom mantém o desconto.',
+              'Até 20 cupons ativos ao mesmo tempo. Cupom de frete grátis é só da Vineon.',
+            ],
+          },
+          {
+            t: 'note',
+            text: 'A Vineon pode pausar um cupom que engane o comprador (por exemplo, aumentar o preço para dar desconto). O que foi anunciado no cupom vale.',
+          },
+        ],
+        links: [{ label: 'Cupons da loja', route: '/my-coupons' }],
       },
     ],
   },

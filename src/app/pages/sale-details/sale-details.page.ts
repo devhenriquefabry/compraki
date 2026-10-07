@@ -14,7 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { waitForAuthUser } from 'src/app/core/auth-state';
 import {
   REFUND_LABEL, SALE_STAGE_LABEL, SALE_TRACK_STEPS, escrowReleaseDate, formatDay, isPaid, listUnitPrice,
-  orderStage, paidUnitPrice, productIdOf, sellerAmount, sellerItems, shipByDate, toDate, trackIndex, trackingUrl,
+  orderStage, paidUnitPrice, productIdOf, sellerAmount, sellerCouponDiscount, sellerItems, shipByDate, toDate, trackIndex, trackingUrl,
 } from 'src/app/core/order-stage';
 import { FISCAL_DOCUMENT_LABEL, FiscalDocumentType, Order } from 'src/app/interfaces/order';
 import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
@@ -68,6 +68,9 @@ export class SaleDetailsPage {
     const mine = sellerItems(order, seller);
     const onlySeller = (order.sellerIds || []).length <= 1;
     const amount = sellerAmount(order, seller);
+    // Cupom da loja sai da venda; o da Vineon só explica o total menor.
+    const storeCoupon = sellerCouponDiscount(order, seller);
+    const vineonCoupon = order.coupon?.scope === 'platform' && order.couponCheck !== 'invalid' ? order.coupon : null;
     const shipping = onlySeller ? order.shippingInfo?.price ?? 0 : 0;
     const shipBy = stage === 'preparing' ? shipByDate(order) : null;
     // Liberação: 7 dias depois que o comprador recebe (prazo de desistência do CDC).
@@ -94,6 +97,10 @@ export class SaleDetailsPage {
         listPrice: listUnitPrice(item),
       })),
       amount,
+      gross: Math.round((amount + storeCoupon) * 100) / 100,
+      storeCoupon,
+      couponCode: order.coupon?.code ?? '',
+      vineonCoupon,
       shipping,
       onlySeller,
       shipBy: shipBy ? { label: formatDay(shipBy), late: endOfDay(shipBy) < Date.now() } : null,

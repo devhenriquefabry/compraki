@@ -172,7 +172,7 @@ export const asaasWebhook = onRequest(defaultRuntime, async (req, res) => {
     }
 
     const orderDoc = ordersSnap.docs[0];
-    const order = orderDoc.data() as { status?: OrderStatus; total?: number };
+    const order = orderDoc.data() as { status?: OrderStatus; total?: number; coupon?: unknown; couponCheck?: string };
     const currentStatus = order.status || 'PENDING';
 
     if (!ALLOWED_TRANSITIONS[targetStatus].includes(currentStatus)) {
@@ -183,6 +183,18 @@ export const asaasWebhook = onRequest(defaultRuntime, async (req, res) => {
         event
       });
       res.status(200).json({ ok: true, skipped: currentStatus });
+      return;
+    }
+
+    // Cupom que não passou na conferência (`onOrderWrittenCoupon`): o
+    // desconto não vale, então o valor pago não quita o pedido.
+    if (targetStatus === 'RECEIVED' && order.coupon && order.couponCheck === 'invalid') {
+      logger.error('Pedido pago com cupom inválido', { orderId: orderDoc.id, paymentId: payment.id });
+      await orderDoc.ref.update({
+        paymentAlert: { reason: 'COUPON_INVALID', detectedAt: FieldValue.serverTimestamp() },
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      res.status(200).json({ ok: true, couponInvalid: true });
       return;
     }
 

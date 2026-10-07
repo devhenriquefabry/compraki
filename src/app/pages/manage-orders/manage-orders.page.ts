@@ -261,7 +261,11 @@ function formatStamp(value: unknown): string {
 
 function alertsOf(order: Order, stage: OrderStage): OrderRow['alerts'] {
   const alerts: OrderRow['alerts'] = [];
-  if (order.paymentAlert) alerts.push({ label: 'Valor pago divergente', tone: 'danger' });
+  if (order.paymentAlert) {
+    alerts.push({ label: order.paymentAlert.reason === 'COUPON_INVALID' ? 'Pago com cupom inválido' : 'Valor pago divergente', tone: 'danger' });
+  } else if (order.couponCheck === 'invalid') {
+    alerts.push({ label: 'Cupom inválido', tone: 'danger' });
+  }
   if (order.shipmentStatus === 'PROBLEM') alerts.push({ label: 'Problema na entrega', tone: 'danger' });
   if (order.refundInfo?.status === 'REQUESTED') alerts.push({ label: 'Devolução a analisar', tone: 'warn' });
   if (stage === 'preparing') {

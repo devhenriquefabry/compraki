@@ -1,0 +1,81 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Cupons</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    <p class="cw-intro">Copie o código e use no checkout, na etapa <strong>Entrega</strong>. Um cupom por pedido. Tem um código de uma loja ou das redes da Vineon? Ele funciona do mesmo jeito.</p>
+
+    @if (loading()) {
+      <div class="sk cw-sk" aria-hidden="true"></div>
+      <div class="sk cw-sk" aria-hidden="true"></div>
+    } @else if (error()) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon></span>
+        <h2>Sem conexão com os cupons</h2>
+        <p>{{ error() }}</p>
+        <button type="button" class="cw-retry" (click)="load()">Tentar de novo</button>
+      </div>
+    } @else if (!coupons().length) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><ion-icon name="ticket-outline" aria-hidden="true"></ion-icon></span>
+        <h2>Nenhum cupom no momento</h2>
+        <p>Quando a Vineon ou uma loja lançar um cupom, ele aparece aqui.</p>
+      </div>
+    } @else {
+      @if (vineon().length) {
+        <h2 class="cw-group">Da Vineon</h2>
+        <ul class="cw-list">
+          @for (c of vineon(); track c.code) {
+            <ng-container *ngTemplateOutlet="ticket; context: { $implicit: c }"></ng-container>
+          }
+        </ul>
+      }
+      @if (stores().length) {
+        <h2 class="cw-group">Das lojas</h2>
+        <ul class="cw-list">
+          @for (c of stores(); track c.code) {
+            <ng-container *ngTemplateOutlet="ticket; context: { $implicit: c }"></ng-container>
+          }
+        </ul>
+      }
+    }
+  </div>
+</ion-content>
+
+<ng-template #ticket let-c>
+  <li class="cw-ticket" [class.is-store]="c.scope === 'seller'">
+    <div class="cw-ticket__main">
+      <span class="cw-ticket__owner">
+        @if (c.scope === 'seller' && c.sellerId) {
+          <a [routerLink]="['/seller-profile', c.sellerId]">{{ owner(c) }}</a>
+        } @else {
+          {{ owner(c) }}
+        }
+      </span>
+      <strong class="cw-ticket__headline">{{ headline(c) }}</strong>
+      <span class="cw-ticket__until" [class.is-soon]="endsSoon(c)">{{ until(c) }}</span>
+    </div>
+    <div class="cw-ticket__side">
+      <button type="button" class="cw-code" (click)="copy(c)" [attr.aria-label]="'Copiar código ' + c.code">
+        <span>{{ c.code }}</span>
+        <small><ion-icon name="copy-outline" aria-hidden="true"></ion-icon> Copiar</small>
+      </button>
+    </div>
+    <button type="button" class="cw-ticket__more" (click)="toggle(c.code)" [attr.aria-expanded]="open() === c.code">
+      {{ open() === c.code ? 'Esconder regras' : 'Ver regras' }}
+      <ion-icon [name]="open() === c.code ? 'chevron-up' : 'chevron-down'" aria-hidden="true"></ion-icon>
+    </button>
+    @if (open() === c.code) {
+      <ul class="cw-ticket__rules">
+        @for (line of rules(c); track line) { <li>{{ line }}</li> }
+      </ul>
+    }
+  </li>
+</ng-template>

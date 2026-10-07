@@ -23,6 +23,13 @@
     </div>
     }
     
+    @if (coupon; as c) {
+    <div class="total-row">
+      <span>Cupom {{ c.code }}{{ c.quote.shippingDiscount > 0 && c.quote.itemsDiscount === 0 ? ' (frete)' : '' }}:</span>
+      <span class="value red-color">- {{ c.quote.discount | currency:'BRL':'R$ ':'1.2-2' }}</span>
+    </div>
+    }
+    
     <div class="total-separator"></div>
     
     <div class="total-row final">

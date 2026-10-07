@@ -1,0 +1,238 @@
+/*
+ * Cupons da loja
+ * ----------------------------------------------------------------------------
+ * Topo azul-noite com os números e o "Criar cupom"; embaixo, um cartão por
+ * cupom com a regra por extenso, os números e as ações.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(760px);
+@include vc.empty;
+@include vc.skeleton;
+@include vc.buttons;
+@include vc.desktop-header(760px);
+@include vc.reduced-motion;
+
+.mc-sk-hero { height: 230px; margin-bottom: 14px; border-radius: 18px; }
+.mc-sk-card { height: 200px; border-radius: 16px; }
+
+/* ------------------------------------------------------------------ topo */
+
+.mc-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  margin-bottom: 18px;
+  border-radius: 18px;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(216, 245, 31, 0.1), transparent 60%),
+    var(--vc-navy);
+  color: #fff;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    width: 56px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--vc-neon);
+    box-shadow: 0 0 14px rgba(216, 245, 31, 0.55);
+  }
+
+  h2 {
+    margin: 6px 0 0;
+    font-family: var(--vc-display);
+    font-size: 20px;
+    font-weight: 600;
+
+    span { color: var(--vc-neon); }
+  }
+
+  p {
+    margin: 14px 0 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: rgba(226, 232, 240, 0.74);
+  }
+}
+
+.mc-hero__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.mc-hero__figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+
+  div { padding: 10px 12px; border-radius: 12px; background: var(--vc-navy-2); }
+  small { display: block; font-size: 11.5px; color: rgba(226, 232, 240, 0.65); }
+  strong { display: block; margin-top: 2px; font-family: var(--vc-display); font-size: 17px; font-weight: 600; }
+}
+
+.mc-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 16px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vc-neon);
+  color: var(--vc-navy);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+
+  ion-icon { font-size: 18px; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.mc-hero__limit { display: block; margin-top: 8px; font-size: 12.5px; color: rgba(226, 232, 240, 0.74); }
+
+/* ---------------------------------------------------------------- cartões */
+
+.mc-empty { padding-top: 24px; }
+
+.mc-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.mc-card {
+  padding: 16px;
+  border: 1px solid var(--vc-line);
+  border-left: 4px solid var(--vc-neon);
+  border-radius: 16px;
+  background: #fff;
+  font-family: var(--vc-body);
+
+  &.is-off { border-left-color: #C7CED8; }
+  &[aria-busy='true'] { opacity: 0.6; pointer-events: none; }
+}
+
+.mc-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mc-card__headline {
+  font-family: var(--vc-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--vc-ink);
+}
+
+.mc-state {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--vc-ground);
+  color: var(--vc-ink-2);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+
+  &[data-state='live'] { background: var(--vc-neon); color: var(--vc-navy); }
+  &[data-state='scheduled'] { background: #dbeafe; color: #1d4ed8; }
+  &[data-state='paused'] { background: #FFF6E9; color: var(--vc-amber); }
+}
+
+.mc-card__code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mc-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1.5px dashed var(--vc-navy);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--vc-ink);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+
+  ion-icon { font-size: 15px; }
+}
+
+.mc-vis {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--vc-muted);
+}
+
+.mc-rules {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--vc-ink-2);
+}
+
+.mc-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--vc-ground);
+
+  dt { font-size: 11.5px; font-weight: 700; color: var(--vc-muted); }
+  dd { margin: 2px 0 0; font-size: 14px; font-weight: 800; color: var(--vc-ink); }
+}
+
+.mc-flag {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #FFF6E9;
+  color: var(--vc-amber);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+
+  .btn { min-height: 38px; font-size: 13.5px; }
+}
+
+.mc-end { margin-left: auto; color: var(--vc-rust); }
+
+@media (max-width: 420px) {
+  .mc-hero__figures, .mc-figures { grid-template-columns: 1fr 1fr; }
+}

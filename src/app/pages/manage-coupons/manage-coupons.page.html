@@ -1,0 +1,121 @@
+<div class="adm">
+  <header class="adm-head">
+    <div>
+      <h2>Cupons</h2>
+      <p>Cupons da Vineon (desconto e frete grátis) e das lojas. A Vineon paga os dela; o das lojas sai da venda da loja. <span class="adm-live">Ao vivo</span></p>
+    </div>
+    @if (!editing()) {
+      <button type="button" class="adm-btn adm-btn--accent" (click)="editing.set('new')">
+        <ion-icon name="add" aria-hidden="true"></ion-icon> Novo cupom Vineon
+      </button>
+    }
+  </header>
+
+  @if (editing()) {
+    <app-coupon-editor mode="admin" [coupon]="editingCoupon()" (saved)="onSaved($event)" (cancelled)="editing.set(null)"></app-coupon-editor>
+  } @else {
+    <div class="adm-stats">
+      <div class="adm-stat"><span>Valendo agora</span><strong>{{ stats().live }}</strong></div>
+      <div class="adm-stat"><span>Pedidos com cupom</span><strong>{{ stats().orders }}</strong></div>
+      <div class="adm-stat"><span>Desconto pago pela Vineon</span><strong>{{ brl(stats().platform) }}</strong></div>
+      <div class="adm-stat"><span>Desconto dado pelas lojas</span><strong>{{ brl(stats().seller) }}</strong></div>
+    </div>
+
+    <div class="adm-toolbar">
+      <div class="adm-chips" role="tablist" aria-label="Situação">
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="stateFilter() === 'live'" [attr.aria-selected]="stateFilter() === 'live'" (click)="stateFilter.set('live')">
+          Valendo <small>{{ counts().live }}</small>
+        </button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="stateFilter() === 'paused'" [attr.aria-selected]="stateFilter() === 'paused'" (click)="stateFilter.set('paused')">
+          Pausados <small>{{ counts().paused }}</small>
+        </button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="stateFilter() === 'over'" [attr.aria-selected]="stateFilter() === 'over'" (click)="stateFilter.set('over')">
+          Encerrados <small>{{ counts().over }}</small>
+        </button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="stateFilter() === 'all'" [attr.aria-selected]="stateFilter() === 'all'" (click)="stateFilter.set('all')">
+          Todos <small>{{ counts().all }}</small>
+        </button>
+      </div>
+      <div class="adm-chips" aria-label="De quem">
+        <button type="button" class="adm-chip" [class.is-active]="scope() === 'all'" (click)="scope.set('all')">Todos</button>
+        <button type="button" class="adm-chip" [class.is-active]="scope() === 'platform'" (click)="scope.set('platform')">Vineon</button>
+        <button type="button" class="adm-chip" [class.is-active]="scope() === 'seller'" (click)="scope.set('seller')">Lojas</button>
+      </div>
+      <label class="adm-search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <input type="search" placeholder="Código ou loja" [value]="search()" (input)="search.set($any($event.target).value)" aria-label="Buscar cupom por código ou loja" />
+      </label>
+    </div>
+
+    @if (loading()) {
+      <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
+    } @else if (error()) {
+      <p class="adm-error" role="alert">{{ error() }}</p>
+    } @else if (!visible().length) {
+      <div class="adm-empty">
+        <ion-icon name="ticket-outline" aria-hidden="true"></ion-icon>
+        <p>Nenhum cupom nesta lista.</p>
+      </div>
+    } @else {
+      @for (c of visible(); track c.code) {
+        <article class="adm-card mcp-card" [attr.aria-busy]="busy() === c.code">
+          <div class="mcp-main">
+            <button type="button" class="mcp-code" (click)="copy(c)" [attr.aria-label]="'Copiar código ' + c.code">{{ c.code }}</button>
+            <div class="mcp-what">
+              <strong>{{ headline(c) }}</strong>
+              <small>{{ owner(c) }} · {{ period(c) }}</small>
+            </div>
+            <div class="mcp-tags">
+              <span class="adm-tag" [class.is-ok]="state(c) === 'live'" [class.is-info]="state(c) === 'scheduled'"
+                    [class.is-warn]="state(c) === 'paused'" [class.is-danger]="state(c) === 'expired' || state(c) === 'soldout'">
+                {{ stateLabel[state(c)] }}
+              </span>
+              @if (c.pausedByAdmin) { <span class="adm-tag is-warn">Pausado pela Vineon</span> }
+              <span class="adm-tag">{{ c.visibility === 'public' ? 'Público' : 'Privado' }}</span>
+              @if (c.firstPurchaseOnly) { <span class="adm-tag is-info">1ª compra</span> }
+            </div>
+          </div>
+
+          <dl class="mcp-figures">
+            <div><dt>Usos</dt><dd>{{ usage(c) }}</dd></div>
+            <div><dt>Pedidos</dt><dd>{{ c.ordersCount }}</dd></div>
+            <div><dt>Desconto dado</dt><dd>{{ brl(c.discountTotal) }}</dd></div>
+          </dl>
+
+          <div class="mcp-actions">
+            <button type="button" class="adm-btn" (click)="open.set(open() === c.code ? null : c.code)" [attr.aria-expanded]="open() === c.code">
+              Regras
+            </button>
+            @if (c.status !== 'ended') {
+              @if (c.scope === 'platform') {
+                <button type="button" class="adm-btn" (click)="editing.set(c)" [disabled]="!!busy()">
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Editar
+                </button>
+              }
+              @if (c.status === 'active') {
+                <button type="button" class="adm-btn" (click)="setStatus(c, 'paused')" [disabled]="!!busy()">
+                  <ion-icon name="pause-outline" aria-hidden="true"></ion-icon> Pausar
+                </button>
+              } @else {
+                <button type="button" class="adm-btn" (click)="setStatus(c, 'active')" [disabled]="!!busy()">
+                  <ion-icon name="play-outline" aria-hidden="true"></ion-icon> Reativar
+                </button>
+              }
+              @if (c.scope === 'platform') {
+                <button type="button" class="adm-btn adm-btn--ghost-danger" (click)="end(c)" [disabled]="!!busy()">
+                  {{ c.redeemedCount === 0 && c.ordersCount === 0 ? 'Apagar' : 'Encerrar' }}
+                </button>
+              }
+            }
+          </div>
+
+          @if (open() === c.code) {
+            <ul class="mcp-rules">
+              @for (line of rules(c); track line) { <li>{{ line }}</li> }
+            </ul>
+          }
+        </article>
+      }
+    }
+  }
+</div>

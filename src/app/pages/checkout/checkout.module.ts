@@ -10,6 +10,7 @@ import { CheckoutAddressComponent } from 'src/app/components/checkout/checkout-a
 import { CheckoutPaymentComponent } from 'src/app/components/checkout/checkout-payment/checkout-payment.component';
 import { CheckoutTotalsComponent } from 'src/app/components/checkout/checkout-totals/checkout-totals.component';
 import { CheckoutShippingComponent } from 'src/app/components/checkout/checkout-shipping/checkout-shipping.component';
+import { CheckoutCouponComponent } from 'src/app/components/checkout/checkout-coupon/checkout-coupon.component';
 
 @NgModule({
   imports: [
@@ -22,7 +23,8 @@ import { CheckoutShippingComponent } from 'src/app/components/checkout/checkout-
     CheckoutAddressComponent,
     CheckoutPaymentComponent,
     CheckoutTotalsComponent,
-    CheckoutShippingComponent
+    CheckoutShippingComponent,
+    CheckoutCouponComponent
   ],
   declarations: [CheckoutPage]
 })

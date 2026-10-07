@@ -143,6 +143,8 @@
                 }
               </div>
 
+              <app-store-coupons [coupons]="(storeCoupons$ | async) ?? []"></app-store-coupons>
+
               <div class="pd-pay-inline">
                 @for (m of paymentMethods(p); track m.key) {
                   <span class="pd-pay-chip"><ion-icon [name]="m.icon" aria-hidden="true"></ion-icon>{{ m.label }}</span>

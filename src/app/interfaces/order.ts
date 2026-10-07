@@ -75,12 +75,21 @@ export interface Order {
    * NAO vira pago nesse caso — precisa de conferencia manual.
    */
   paymentAlert?: {
-    reason: 'VALUE_MISMATCH' | 'OWNER_MISMATCH';
+    reason: 'VALUE_MISMATCH' | 'OWNER_MISMATCH' | 'COUPON_INVALID';
     expectedValue?: number;
     paidValue?: number;
     detectedAt: any;
   };
 
+
+  /**
+   * Cupom usado, copiado da reserva feita por `couponQuote` (a regra do
+   * Firestore confere campo a campo). `total` já vem com o desconto.
+   */
+  coupon?: OrderCoupon;
+  /** Escrito só por `onOrderWrittenCoupon`: `invalid` impede a confirmação do pagamento. */
+  couponCheck?: 'ok' | 'invalid';
+  couponCheckReason?: string;
 
   // Dados de entrega/comprador salvos no momento da compra
   customerData: {
@@ -161,4 +170,17 @@ export interface FiscalDocument {
   number?: string | null;
   uploadedAt: any;
   uploadedBy: string;
+}
+
+export interface OrderCoupon {
+  redemptionId: string;
+  code: string;
+  /** `platform`: a Vineon banca. `seller`: sai da venda da loja `sellerId`. */
+  scope: 'platform' | 'seller';
+  sellerId: string | null;
+  type: 'percent' | 'fixed' | 'shipping';
+  /** itemsDiscount + shippingDiscount. */
+  discount: number;
+  itemsDiscount: number;
+  shippingDiscount: number;
 }

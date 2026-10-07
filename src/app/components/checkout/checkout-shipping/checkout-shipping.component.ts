@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { MelhorEnvioService } from 'src/app/services/melhor-envio.service';
 import { CheckoutStateService } from 'src/app/services/checkout-state.service';
 import { FirebaseCartService } from 'src/app/services/firebase-cart.service';
-import { ShippingQuote, MelhorEnvioConfig } from 'src/app/interfaces/shipping';
+import { ShippingQuote } from 'src/app/interfaces/shipping';
 import { CartItem } from 'src/app/interfaces/cart-item';
 import { AppConfigService } from 'src/app/services/app-config.service';
 import { hasFreeShipping } from 'src/app/core/product-pricing';
@@ -59,47 +59,40 @@ export class CheckoutShippingComponent implements OnInit {
           return;
         }
 
-        // Pega configuração do Melhor Envio
-        this.melhorEnvioService.getConfig().subscribe({
-          next: (config: MelhorEnvioConfig | null) => {
-            if (!config || !config.accessToken) {
-              this.error = 'Configuração do Melhor Envio não encontrada.';
-              this.isLoading = false;
-              return;
+        // A cotação é feita pela Cloud Function `calculateMelhorEnvioShipping`,
+        // que lê a configuração (token e CEP de origem) no servidor. O app não
+        // lê `settings/melhor_envio`: as regras fecham essa coleção desde a
+        // Fase 0 — ler daqui travava a tela em "carregando" para sempre.
+        const products = items.map(item => ({
+          id: item.productId,
+          width: item.productData.width || 10,
+          height: item.productData.height || 10,
+          length: item.productData.length || 15,
+          weight: item.productData.weight || 0.1,
+          price: item.productData.priceDiscounted || item.productData.price,
+          quantity: item.quantity
+        }));
+
+        this.melhorEnvioService.getQuotes(null, zipTo, products).subscribe({
+          next: (quotes) => {
+            this.quotes = quotes;
+            this.isLoading = false;
+            if (!quotes.length) this.error = 'Nenhuma forma de entrega disponível para este CEP.';
+
+            // Se já houver um selecionado, mantém
+            const previous = quotes.find(q => q.id === this.stateService.shippingData.serviceId);
+            if (previous) {
+              // Reaplica: a regra de frete grátis pode ter mudado desde a escolha.
+              this.selectQuote(previous);
+            } else if (quotes.length > 0) {
+              // Seleciona o primeiro por padrão (ou o mais barato)
+              this.selectQuote(quotes[0]);
             }
-
-            // Mapeia itens para o formato da API
-            const products = items.map(item => ({
-              id: item.productId,
-              width: item.productData.width || 10,
-              height: item.productData.height || 10,
-              length: item.productData.length || 15,
-              weight: item.productData.weight || 0.1,
-              price: item.productData.priceDiscounted || item.productData.price,
-              quantity: item.quantity
-            }));
-
-            this.melhorEnvioService.getQuotes(config, zipTo, products).subscribe({
-              next: (quotes) => {
-                this.quotes = quotes;
-                this.isLoading = false;
-                
-                // Se já houver um selecionado, mantém
-                const previous = quotes.find(q => q.id === this.stateService.shippingData.serviceId);
-                if (previous) {
-                  // Reaplica: a regra de frete grátis pode ter mudado desde a escolha.
-                  this.selectQuote(previous);
-                } else if (quotes.length > 0) {
-                  // Seleciona o primeiro por padrão (ou o mais barato)
-                  this.selectQuote(quotes[0]);
-                }
-              },
-              error: (err) => {
-                console.error('Erro ao buscar cotações:', err);
-                this.error = 'Falha ao consultar frete. Verifique sua conexão.';
-                this.isLoading = false;
-              }
-            });
+          },
+          error: (err) => {
+            console.error('Erro ao buscar cotações:', err);
+            this.error = 'Falha ao consultar frete. Verifique sua conexão.';
+            this.isLoading = false;
           }
         });
       }

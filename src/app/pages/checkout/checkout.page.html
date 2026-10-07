@@ -38,6 +38,7 @@
     <div *ngSwitchCase="2" class="step-content animate-fade">
       <app-checkout-address></app-checkout-address>
       <app-checkout-shipping></app-checkout-shipping>
+      <app-checkout-coupon [items]="cartItems"></app-checkout-coupon>
       <app-checkout-totals [items]="cartItems"></app-checkout-totals>
     </div>
 
@@ -60,6 +61,9 @@
         </div>
         <div class="review-section">
           <app-checkout-payment [readOnly]="true"></app-checkout-payment>
+        </div>
+        <div class="review-section">
+          <app-checkout-coupon [items]="cartItems"></app-checkout-coupon>
         </div>
       </div>
       <app-checkout-totals [items]="cartItems"></app-checkout-totals>

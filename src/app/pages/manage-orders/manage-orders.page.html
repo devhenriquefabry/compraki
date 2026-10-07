@@ -102,6 +102,13 @@
                 <h3>Pagamento e frete</h3>
                 <dl class="mo-kv">
                   <div><dt>Total</dt><dd>{{ row.total }}</dd></div>
+                  @if (o.coupon; as cp) {
+                    <div><dt>Cupom</dt><dd>
+                      {{ cp.code }} · -{{ formatBRL(cp.discount) }}
+                      ({{ cp.scope === 'seller' ? 'pago pela loja' : 'pago pela Vineon' }}{{ cp.shippingDiscount > 0 ? ', no frete' : '' }})
+                      @if (o.couponCheck === 'invalid') { · <strong class="mo-bad">não confirmado</strong> }
+                    </dd></div>
+                  }
                   <div><dt>Forma</dt><dd>{{ row.method }}{{ o.paymentProvider ? ' · ' + (o.paymentProvider === 'cora' ? 'Cora' : 'Asaas') : '' }}</dd></div>
                   @if (o.shippingInfo) {
                     <div><dt>Frete</dt><dd>

@@ -1,0 +1,187 @@
+<form class="ce" (submit)="$event.preventDefault(); save()" novalidate>
+  <div class="ce-form">
+    <h3 class="ce-title">{{ isEdit ? 'Editar cupom ' + coupon!.code : 'Novo cupom' }}</h3>
+
+    <!-- Código -->
+    <label class="ce-field">
+      <span class="ce-label">Código</span>
+      <input class="ce-input ce-input--code" type="text" autocomplete="off" spellcheck="false" autocapitalize="characters"
+             [attr.maxlength]="limits.codeMax" placeholder="Ex.: LOJA10" [disabled]="isEdit"
+             [value]="code()" (input)="code.set($any($event.target).value.toUpperCase().replace(' ', ''))" />
+      <small class="ce-hint">{{ limits.codeMin }} a {{ limits.codeMax }} letras ou números. É o que o comprador digita.</small>
+    </label>
+
+    <!-- Tipo -->
+    <fieldset class="ce-field">
+      <legend class="ce-label">Tipo de desconto</legend>
+      <div class="ce-seg" role="radiogroup">
+        <button type="button" role="radio" [attr.aria-checked]="type() === 'percent'" [class.is-on]="type() === 'percent'" (click)="setType('percent')">
+          <strong>%</strong> Porcentagem
+        </button>
+        <button type="button" role="radio" [attr.aria-checked]="type() === 'fixed'" [class.is-on]="type() === 'fixed'" (click)="setType('fixed')">
+          <strong>R$</strong> Valor fixo
+        </button>
+        @if (mode === 'admin') {
+          <button type="button" role="radio" [attr.aria-checked]="type() === 'shipping'" [class.is-on]="type() === 'shipping'" (click)="setType('shipping')">
+            <ion-icon name="cube-outline" aria-hidden="true"></ion-icon> Frete grátis
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <div class="ce-row">
+      @if (type() === 'percent') {
+        <label class="ce-field">
+          <span class="ce-label">Desconto (%)</span>
+          <input class="ce-input" type="number" inputmode="numeric" min="1" [attr.max]="limits.percentMax" step="1"
+                 [value]="value() ?? ''" (input)="value.set(num($event))" />
+        </label>
+        <label class="ce-field">
+          <span class="ce-label">Desconto máximo (R$) <em>opcional</em></span>
+          <input class="ce-input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Sem teto"
+                 [value]="maxDiscount() ?? ''" (input)="maxDiscount.set(num($event))" />
+        </label>
+      } @else if (type() === 'fixed') {
+        <label class="ce-field">
+          <span class="ce-label">Desconto (R$)</span>
+          <input class="ce-input" type="number" inputmode="decimal" min="1" step="0.01"
+                 [value]="value() ?? ''" (input)="value.set(num($event))" />
+        </label>
+      } @else {
+        <label class="ce-field">
+          <span class="ce-label">Paga o frete até (R$) <em>opcional</em></span>
+          <input class="ce-input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Frete inteiro"
+                 [value]="value() ?? ''" (input)="value.set(num($event))" />
+          <small class="ce-hint">Acima disso o comprador paga a diferença. Vazio = frete inteiro de graça.</small>
+        </label>
+      }
+      <label class="ce-field">
+        <span class="ce-label">Compra mínima (R$) <em>opcional</em></span>
+        <input class="ce-input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Sem mínimo"
+               [value]="minSubtotal() ?? ''" (input)="minSubtotal.set(num($event))" />
+      </label>
+    </div>
+
+    <!-- Produtos (loja) -->
+    @if (mode === 'seller') {
+      <fieldset class="ce-field">
+        <legend class="ce-label">Vale em quais produtos</legend>
+        <div class="ce-seg" role="radiogroup">
+          <button type="button" role="radio" [attr.aria-checked]="allProducts()" [class.is-on]="allProducts()" (click)="allProducts.set(true)">
+            Todos os produtos da loja
+          </button>
+          <button type="button" role="radio" [attr.aria-checked]="!allProducts()" [class.is-on]="!allProducts()" (click)="allProducts.set(false)">
+            Escolher produtos
+          </button>
+        </div>
+        @if (!allProducts()) {
+          <div class="ce-products">
+            <input class="ce-input" type="search" placeholder="Buscar nos seus anúncios" [value]="productFilter()"
+                   (input)="productFilter.set($any($event.target).value)" aria-label="Buscar nos seus anúncios" />
+            <ul>
+              @for (p of visibleProducts(); track p.id) {
+                <li>
+                  <label class="ce-product">
+                    <input type="checkbox" [checked]="productIds().includes(p.id!)" (change)="toggleProduct(p.id!)" />
+                    @if (photo(p); as src) { <img [src]="src" alt="" loading="lazy" /> } @else { <span class="ce-product__ph"></span> }
+                    <span>{{ p.name }}</span>
+                  </label>
+                </li>
+              } @empty {
+                <li class="ce-muted">Nenhum anúncio encontrado.</li>
+              }
+            </ul>
+            <small class="ce-hint">{{ productIds().length }} de até {{ limits.productIdsMax }} escolhidos.</small>
+          </div>
+        }
+      </fieldset>
+    }
+
+    <!-- Validade -->
+    <div class="ce-row">
+      <label class="ce-field">
+        <span class="ce-label">Começa em</span>
+        <input class="ce-input" type="date" [attr.min]="today()" [value]="startsAt()" (input)="startsAt.set($any($event.target).value)" />
+      </label>
+      <label class="ce-field">
+        <span class="ce-label">Termina em @if (mode === 'admin') { <em>opcional</em> }</span>
+        <input class="ce-input" type="date" [attr.min]="today()" [value]="endsAt()" (input)="endsAt.set($any($event.target).value)" />
+      </label>
+    </div>
+
+    <!-- Limites -->
+    <div class="ce-row">
+      <label class="ce-field">
+        <span class="ce-label">Quantidade de cupons <em>opcional</em></span>
+        <input class="ce-input" type="number" inputmode="numeric" min="1" step="1" placeholder="Sem limite"
+               [value]="usageLimit() ?? ''" (input)="usageLimit.set(num($event))" />
+      </label>
+      <label class="ce-field">
+        <span class="ce-label">Usos por pessoa</span>
+        <input class="ce-input" type="number" inputmode="numeric" min="1" [attr.max]="limits.perUserMax" step="1"
+               [value]="perUserLimit()" (input)="perUserLimit.set(num($event) ?? 1)" />
+      </label>
+    </div>
+
+    <!-- Quem vê -->
+    <fieldset class="ce-field">
+      <legend class="ce-label">Quem vê o cupom</legend>
+      <div class="ce-seg" role="radiogroup">
+        <button type="button" role="radio" [attr.aria-checked]="visibility() === 'public'" [class.is-on]="visibility() === 'public'" (click)="visibility.set('public')">
+          <ion-icon name="eye-outline" aria-hidden="true"></ion-icon> Público
+        </button>
+        <button type="button" role="radio" [attr.aria-checked]="visibility() === 'private'" [class.is-on]="visibility() === 'private'" (click)="visibility.set('private')">
+          <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon> Só com o código
+        </button>
+      </div>
+      <small class="ce-hint">
+        {{ visibility() === 'public'
+          ? (mode === 'seller' ? 'Aparece nos seus anúncios, em "Cupons" e no checkout.' : 'Aparece em "Cupons" e no checkout de todo mundo.')
+          : 'Não aparece no app. Funciona para quem receber o código (redes sociais, mensagem, embalagem).' }}
+      </small>
+    </fieldset>
+
+    @if (mode === 'admin') {
+      <label class="ce-check">
+        <input type="checkbox" [checked]="firstPurchaseOnly()" (change)="firstPurchaseOnly.set($any($event.target).checked)" />
+        <span>Só para a primeira compra na Vineon</span>
+      </label>
+    }
+
+    @if (mode === 'seller') {
+      <p class="ce-note">
+        <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+        O desconto do cupom sai do valor da sua venda. A taxa da Vineon é calculada sobre o valor com desconto.
+      </p>
+    } @else if (type() !== 'shipping') {
+      <p class="ce-note">
+        <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+        Cupom Vineon: a Vineon paga o desconto e a loja recebe o valor cheio do produto.
+      </p>
+    }
+
+    @if (error()) { <p class="ce-error" role="alert">{{ error() }}</p> }
+
+    <div class="ce-actions">
+      <button type="button" class="ce-btn ce-btn--ghost" (click)="cancelled.emit()" [disabled]="saving()">Cancelar</button>
+      <button type="submit" class="ce-btn ce-btn--primary" [disabled]="saving()">
+        @if (saving()) { <ion-spinner name="crescent"></ion-spinner> } @else { {{ isEdit ? 'Salvar alterações' : 'Criar cupom' }} }
+      </button>
+    </div>
+  </div>
+
+  <!-- Prévia -->
+  <aside class="ce-preview" aria-label="Prévia do cupom">
+    <span class="ce-preview__eyebrow">Assim o comprador vê</span>
+    <div class="ce-ticket">
+      <div class="ce-ticket__top">
+        <span class="ce-ticket__owner">{{ previewOwner() }}</span>
+        <strong class="ce-ticket__headline">{{ previewHeadline() }}</strong>
+      </div>
+      <div class="ce-ticket__code"><span>{{ preview().code }}</span></div>
+      <ul class="ce-ticket__rules">
+        @for (line of previewConditions(); track line) { <li>{{ line }}</li> }
+      </ul>
+    </div>
+  </aside>
+</form>

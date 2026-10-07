@@ -234,9 +234,21 @@ export function sellerItems(order: Order, sellerId: string): CartItem[] {
   return mine;
 }
 
-/** Quanto a loja vendeu neste pedido: só os itens dela, sem frete. */
+/**
+ * Desconto de cupom que sai do bolso desta loja: só cupom da própria loja.
+ * Cupom da Vineon (`platform`) quem banca é a Vineon; a loja recebe cheio.
+ */
+export function sellerCouponDiscount(order: Order, sellerId: string): number {
+  const c = order.coupon;
+  return c && c.scope === 'seller' && c.sellerId === sellerId && order.couponCheck !== 'invalid'
+    ? Number(c.itemsDiscount) || 0
+    : 0;
+}
+
+/** Quanto a loja vendeu neste pedido: só os itens dela, sem frete, menos o cupom dela. */
 export function sellerAmount(order: Order, sellerId: string): number {
-  return sellerItems(order, sellerId).reduce((sum, item) => sum + paidUnitPrice(item) * (item.quantity || 0), 0);
+  const gross = sellerItems(order, sellerId).reduce((sum, item) => sum + paidUnitPrice(item) * (item.quantity || 0), 0);
+  return Math.round((gross - sellerCouponDiscount(order, sellerId)) * 100) / 100;
 }
 
 /**

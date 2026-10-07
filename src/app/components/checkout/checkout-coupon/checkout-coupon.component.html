@@ -1,0 +1,70 @@
+<div class="section-title">Cupom de desconto</div>
+
+<ion-card class="checkout-card cp">
+  @if (applied(); as a) {
+    <div class="cp-applied">
+      <span class="cp-ticket" aria-hidden="true"><ion-icon name="ticket"></ion-icon></span>
+      <div class="cp-applied__text">
+        <strong>{{ a.code }}</strong>
+        <small>
+          @if (a.quote.shippingDiscount > 0 && a.quote.itemsDiscount === 0) {
+            Desconto no frete
+          } @else if (a.quote.scope === 'seller') {
+            Desconto nos produtos da loja
+          } @else {
+            Cupom Vineon
+          }
+        </small>
+      </div>
+      <span class="cp-applied__value">- {{ brl(a.quote.discount) }}</span>
+      @if (!readOnly) {
+        <button type="button" class="cp-link" (click)="remove()">Remover</button>
+      }
+    </div>
+  } @else if (!readOnly) {
+    <form class="cp-form" (submit)="$event.preventDefault(); apply()">
+      <label class="cp-sr" for="cp-code">Código do cupom</label>
+      <input id="cp-code" class="cp-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
+             spellcheck="false" maxlength="15" placeholder="Digite o código"
+             [value]="code()" (input)="code.set($any($event.target).value.toUpperCase()); error.set('')"
+             [attr.aria-invalid]="!!error()" aria-describedby="cp-error" />
+      <button type="submit" class="cp-btn" [disabled]="!!busy() || !code().trim()">
+        @if (busy() && busy() === code().trim().toUpperCase()) { <ion-spinner name="crescent"></ion-spinner> } @else { Aplicar }
+      </button>
+    </form>
+  } @else {
+    <p class="cp-none">Nenhum cupom neste pedido.</p>
+  }
+
+  @if (error()) {
+    <p class="cp-error" id="cp-error" role="alert">{{ error() }}</p>
+  }
+  @if (notice()) {
+    <p class="cp-notice" role="status">{{ notice() }}</p>
+  }
+
+  @if (!readOnly && !applied() && available().length) {
+    <div class="cp-list">
+      <span class="cp-list__title">Cupons para este carrinho</span>
+      @for (c of available(); track c.code) {
+        <div class="cp-item" [class.is-store]="c.scope === 'seller'">
+          <div class="cp-item__main">
+            <span class="cp-item__owner">{{ owner(c) }}</span>
+            <strong>{{ headline(c) }}</strong>
+            <button type="button" class="cp-item__rules" (click)="toggleRules(c.code)" [attr.aria-expanded]="showRules() === c.code">
+              {{ showRules() === c.code ? 'Esconder regras' : 'Ver regras' }}
+            </button>
+          </div>
+          <button type="button" class="cp-btn cp-btn--small" [disabled]="!!busy()" (click)="apply(c.code)">
+            @if (busy() === c.code) { <ion-spinner name="crescent"></ion-spinner> } @else { Aplicar }
+          </button>
+          @if (showRules() === c.code) {
+            <ul class="cp-item__conditions">
+              @for (line of conditions(c); track line) { <li>{{ line }}</li> }
+            </ul>
+          }
+        </div>
+      }
+    </div>
+  }
+</ion-card>

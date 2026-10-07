@@ -10,7 +10,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { describeRates, formatRate, rateAt, roundCents } from '../core/commission';
-import { isPaid, paidUnitPrice, productIdOf, sellerItems, toDate } from '../core/order-stage';
+import { isPaid, paidUnitPrice, productIdOf, sellerCouponDiscount, sellerItems, toDate } from '../core/order-stage';
 import { AppUser } from '../interfaces/app-user';
 import { Order } from '../interfaces/order';
 import { SellerInvoice, SellerInvoiceSummary, invoiceId } from '../interfaces/seller-invoice';
@@ -170,6 +170,13 @@ export class SellerInvoicesService {
           row.itemCount += quantity;
           row.grossRevenue += revenue;
           row.platformFee += revenue * rate;
+        }
+
+        // Cupom da própria loja sai da venda (e a taxa é sobre o que sobrou).
+        const couponOff = sellerCouponDiscount(order, sellerId);
+        if (couponOff > 0) {
+          row.grossRevenue -= couponOff;
+          row.platformFee -= couponOff * rate;
         }
       }
     }

@@ -232,7 +232,13 @@
           <section class="sheet" aria-labelledby="sd-money">
             <h2 class="sheet-title" id="sd-money">Resumo</h2>
             <dl class="kv">
-              <div><dt>Seus produtos</dt><dd>{{ v.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              <div><dt>Seus produtos</dt><dd>{{ v.gross | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              @if (v.storeCoupon > 0) {
+                <div><dt>Cupom da loja {{ v.couponCode }}</dt><dd>-{{ v.storeCoupon | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              }
+              @if (v.onlySeller && v.vineonCoupon; as vc) {
+                <div><dt>Cupom Vineon {{ vc.code }} (pago pela Vineon)</dt><dd>-{{ vc.discount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              }
               @if (v.onlySeller && v.shipping) {
                 <div><dt>Frete pago pelo comprador</dt><dd>{{ v.shipping | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
               }

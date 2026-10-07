@@ -105,7 +105,9 @@ export function buildTimeline(order: Order): TimelineStep[] {
     steps.push({
       key: 'paid',
       label: 'Pagamento em conferência',
-      detail: 'O valor pago não bateu com o total do pedido. A equipe Vineon está verificando.',
+      detail: order.paymentAlert.reason === 'COUPON_INVALID'
+        ? 'O cupom deste pedido não pôde ser confirmado. A equipe Vineon está verificando e fala com você.'
+        : 'O valor pago não bateu com o total do pedido. A equipe Vineon está verificando.',
       at: stamp(order.paymentAlert.detectedAt),
       state: 'alert',
     });

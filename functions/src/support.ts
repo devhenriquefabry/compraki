@@ -5,7 +5,7 @@ import { logger } from 'firebase-functions';
 import { onRequest } from 'firebase-functions/v2/https';
 
 import {
-  describeItems, itemsOf, notifyUser, photoOf, sellerAmountOf, sellerItemsOf, stageOf,
+  describeItems, itemsOf, notifyUser, photoOf, sellerAmountOf, sellerCouponOf, sellerItemsOf, stageOf,
 } from './notifications';
 import { defaultRuntime, handleCors, isBootstrapAdminEmail, methodNotAllowed, requireAuthenticated } from './shared/http';
 import { appUrl, escapeHtml, mailParagraph, mailQuote, mailShell, sendMail } from './shared/mail';
@@ -297,7 +297,7 @@ export const createSupportTicket = onRequest({ ...defaultRuntime, maxInstances: 
         items: describeItems(items),
         photo: photoOf(items),
         // O vendedor não vê o total do comprador: só o que é da loja.
-        total: isBuyer ? Number(order['total']) || 0 : sellerAmountOf(items),
+        total: isBuyer ? Number(order['total']) || 0 : sellerAmountOf(items) - sellerCouponOf(order, uid),
         asRole: role,
       };
     }

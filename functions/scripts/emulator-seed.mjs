@@ -513,10 +513,37 @@ for (const [index, t] of ticketPlan.entries()) {
 
 await db.doc(`supportCounters/${year}`).set({ seq: ticketPlan.length, updatedAt: FieldValue.serverTimestamp() });
 
+// ------------------------------------------------------------------- cupons
+
+// Um de cada tipo (ver docs/cupons.md). O id é o código. Contadores zerados:
+// quem mexe neles é o servidor (couponQuote / onOrderWrittenCoupon).
+const DAY = 86_400_000;
+const couponBase = {
+  maxDiscount: null, minSubtotal: 0, productIds: [], startsAt: Timestamp.fromMillis(now - DAY), endsAt: Timestamp.fromMillis(now + 30 * DAY),
+  usageLimit: null, perUserLimit: 1, firstPurchaseOnly: false, visibility: 'public', status: 'active',
+  sellerId: null, sellerName: null, scope: 'platform',
+  redeemedCount: 0, ordersCount: 0, discountTotal: 0, createdBy: users.admin.uid,
+  createdAt: Timestamp.fromMillis(now - DAY), updatedAt: Timestamp.fromMillis(now - DAY), updatedBy: users.admin.uid,
+};
+const coupons = [
+  { code: 'VINEON10', type: 'percent', value: 10, maxDiscount: 50, minSubtotal: 100 },
+  { code: 'FRETEGRATIS', type: 'shipping', value: 30, minSubtotal: 50 },
+  { code: 'BEMVINDO20', type: 'fixed', value: 20, minSubtotal: 80, firstPurchaseOnly: true, endsAt: null },
+  { code: 'ULTIMO1', type: 'fixed', value: 5, usageLimit: 1, visibility: 'private' },
+  { code: 'VENCIDO', type: 'percent', value: 50, startsAt: Timestamp.fromMillis(now - 10 * DAY), endsAt: Timestamp.fromMillis(now - DAY) },
+  { code: 'LOJA15', scope: 'seller', sellerId: users.vendedor.uid, sellerName: users.vendedor.doc.shopName, type: 'percent', value: 15, maxDiscount: 100, createdBy: users.vendedor.uid },
+  { code: 'MARE20', scope: 'seller', sellerId: users.atelie.uid, sellerName: users.atelie.doc.shopName, type: 'fixed', value: 20, minSubtotal: 100, productIds: ['bolsa-palha', 'vaso-ceramica'], visibility: 'private', createdBy: users.atelie.uid },
+  { code: 'PAUSADO', scope: 'seller', sellerId: users.vendedor.uid, sellerName: users.vendedor.doc.shopName, type: 'fixed', value: 10, status: 'paused', createdBy: users.vendedor.uid },
+];
+for (const coupon of coupons) {
+  await db.doc(`coupons/${coupon.code}`).set({ ...couponBase, ...coupon });
+}
+
 console.log(`Seed concluído em ${PROJECT_ID}:`);
 console.log(`  ${Object.keys(users).length} contas (admin, vendedor, atelie, comprador), senha "${PASSWORD}"`);
 console.log(`  ${categories.length} categorias, ${products.length + 1} produtos, ${orderPlan.length} pedidos`);
 console.log(`  ${catalog.length} produtos no catálogo (1 rascunho)`);
+console.log(`  ${coupons.length} cupons (${coupons.map(c => c.code).join(', ')})`);
 console.log(`  ${ticketPlan.length} atendimentos (um por situação: novo, aguardando cliente, resolvido, encerrado e um atrasado)`);
 console.log('  Entre pelo app com ?testUser=admin | vendedor | atelie | comprador');
 

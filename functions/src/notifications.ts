@@ -240,6 +240,14 @@ export function sellerItemsOf(order: any, sellerId: string): any[] {
   return mine;
 }
 
+/** Cupom da própria loja sai da venda dela; o da Vineon, não. */
+export function sellerCouponOf(order: any, sellerId: string): number {
+  const c = order?.coupon;
+  return c && c.scope === 'seller' && c.sellerId === sellerId && order.couponCheck !== 'invalid'
+    ? Number(c.itemsDiscount) || 0
+    : 0;
+}
+
 export function sellerAmountOf(items: any[]): number {
   return items.reduce((sum, item) => {
     const { price, priceDiscounted } = item?.productData || {};
@@ -286,7 +294,7 @@ export const onOrderWrittenNotify = onDocumentWritten(
           const mine = sellerItemsOf(after, sellerId);
           jobs.push(notifyUser(sellerId, `sale-${orderId}`, {
             kind: 'sale', icon: 'bag',
-            title: `Nova venda: ${brl(sellerAmountOf(mine))}`,
+            title: `Nova venda: ${brl(sellerAmountOf(mine) - sellerCouponOf(after, sellerId))}`,
             body: `Você vendeu ${describeItems(mine)}. Embale e envie em até 2 dias úteis.`,
             link: `/sale-details/${orderId}`, image: photoOf(mine), tag: `sale-${orderId}`,
           }));

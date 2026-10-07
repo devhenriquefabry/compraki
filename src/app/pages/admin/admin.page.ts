@@ -27,6 +27,7 @@ import { AdminSettingsPage } from '../admin-settings/admin-settings.page';
 import { ManageSellersPage } from '../manage-sellers/manage-sellers.page';
 import { ManageCatalogPage } from '../manage-catalog/manage-catalog.page';
 import { ManageSupportPage } from '../manage-support/manage-support.page';
+import { ManageCouponsPage } from '../manage-coupons/manage-coupons.page';
 
 type AdminTab =
   | 'metrics'
@@ -43,7 +44,8 @@ type AdminTab =
   | 'settings'
   | 'sellers'
   | 'catalog'
-  | 'support';
+  | 'support'
+  | 'coupons';
 
 interface NavItem {
   id: AdminTab;
@@ -98,6 +100,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Loja e integrações',
     items: [
+      { id: 'coupons', title: 'Cupons', icon: 'ticket-outline', iconActive: 'ticket', hint: 'Desconto e frete grátis da Vineon; cupons das lojas' },
       { id: 'catalog', title: 'Catálogo', icon: 'library-outline', iconActive: 'library', hint: 'Fichas prontas para o vendedor anunciar produto novo' },
       { id: 'banners', title: 'Banners', icon: 'images-outline', iconActive: 'images', hint: 'Destaques da home e da exploração' },
       { id: 'melhor-envio', title: 'Melhor Envio', icon: 'paper-plane-outline', iconActive: 'paper-plane', hint: 'Fretes, etiquetas e simulador' },
@@ -146,6 +149,7 @@ const BADGE_CAP = 100;
     AdminSettingsPage,
     ManageSellersPage,
     ManageCatalogPage,
+    ManageCouponsPage,
   ],
 })
 export class AdminPage implements OnInit {

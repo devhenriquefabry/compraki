@@ -37,8 +37,13 @@ export class CheckoutTotalsComponent implements OnInit {
     return this.stateService.shippingData?.price || 0;
   }
   
+  /** Cupom aplicado (o servidor calculou; ver `app-checkout-coupon`). */
+  get coupon() {
+    return this.stateService.coupon();
+  }
+
   get total() { 
-    return this.subtotal - this.discount + this.shipping;
+    return Math.round((this.subtotal - this.discount + this.shipping - this.stateService.couponDiscount()) * 100) / 100;
   }
 
   constructor() { }

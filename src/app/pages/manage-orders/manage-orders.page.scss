@@ -121,3 +121,5 @@
 @media (prefers-reduced-motion: reduce) {
   .mo-chevron { transition: none; }
 }
+
+.mo-bad { color: var(--adm-danger); }

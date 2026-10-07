@@ -1,0 +1,211 @@
+/*
+ * Cupom no checkout: mesmo cartão branco dos outros blocos (endereço, frete,
+ * totais). Aplicado vira um "ingresso" com o código e o desconto; lima só como
+ * preenchimento, com texto azul-noite em cima.
+ */
+
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 20px 0 10px 0;
+}
+
+.checkout-card {
+  margin: 0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+}
+
+.cp {
+  padding: 14px;
+  font-family: var(--vn-font-body, 'Nunito', system-ui, sans-serif);
+  color: #0B1623;
+}
+
+.cp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.cp-form {
+  display: flex;
+  gap: 8px;
+}
+
+.cp-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid #C7CED8;
+  border-radius: 10px;
+  background: #fff;
+  color: #0B1623;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  &::placeholder { font-weight: 600; letter-spacing: 0; text-transform: none; color: #8A94A3; }
+  &:focus { outline: none; border-color: #0B1623; box-shadow: 0 0 0 3px rgba(216, 245, 31, 0.45); }
+  &[aria-invalid='true'] { border-color: #b91c1c; }
+}
+
+.cp-btn {
+  display: inline-grid;
+  place-items: center;
+  min-width: 92px;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #0B1623;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.45; cursor: default; }
+  ion-spinner { width: 18px; height: 18px; color: #D8F51F; }
+
+  &--small { min-width: 78px; height: 36px; font-size: 13px; }
+}
+
+.cp-error,
+.cp-notice,
+.cp-none {
+  margin: 10px 2px 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cp-error { color: #b91c1c; font-weight: 700; }
+.cp-notice { padding: 8px 10px; border-radius: 8px; background: #FFF6E9; color: #A04A07; font-weight: 600; }
+.cp-none { margin-top: 0; color: #5B6573; }
+
+/* ------------------------------------------------------------- aplicado */
+
+.cp-applied {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1.5px dashed #0B1623;
+  border-radius: 12px;
+  background: rgba(216, 245, 31, 0.22);
+}
+
+.cp-ticket {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #D8F51F;
+  color: #0B1623;
+  font-size: 18px;
+}
+
+.cp-applied__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+
+  strong { font-size: 15px; font-weight: 800; letter-spacing: 0.06em; }
+  small { font-size: 12.5px; color: #3A4452; }
+}
+
+.cp-applied__value {
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-link {
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: #0B1623;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------- disponíveis */
+
+.cp-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.cp-list__title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5B6573;
+}
+
+.cp-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #DDE2E8;
+  border-left: 4px solid #0B1623;
+  border-radius: 10px;
+
+  &.is-store { border-left-color: #D8F51F; }
+}
+
+.cp-item__main {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+
+  strong { font-size: 15px; font-weight: 800; }
+}
+
+.cp-item__owner {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5B6573;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-item__rules {
+  justify-self: start;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: #3A4452;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cp-item__conditions {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0 0 0 18px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #3A4452;
+}

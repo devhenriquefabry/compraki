@@ -34,6 +34,8 @@ export { onSellerInvoiceWritten } from './seller-invoices';
 
 export { createSupportTicket, replySupportTicket } from './support';
 
+export { couponQuote, saveCoupon, onOrderWrittenCoupon } from './coupons';
+
 export {
   onOrderWrittenNotify,
   onChatMessageNotify,

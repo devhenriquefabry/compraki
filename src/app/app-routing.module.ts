@@ -166,6 +166,18 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Cupons públicos (Vineon e lojas). Aberto como a vitrine.
+    path: 'coupons',
+    loadComponent: () => import('./pages/coupons/coupons.page').then(m => m.CouponsPage),
+    canActivate: [storefrontGuard]
+  },
+  {
+    // "Cupons da loja": a loja cria e acompanha os cupons dela.
+    path: 'my-coupons',
+    loadComponent: () => import('./pages/my-coupons/my-coupons.page').then(m => m.MyCouponsPage),
+    canActivate: [authGuard]
+  },
+  {
     path: 'my-invoices',
     loadComponent: () => import('./pages/my-invoices/my-invoices.page').then(m => m.MyInvoicesPage),
     canActivate: [authGuard]

@@ -163,7 +163,9 @@ export async function applyCoraInvoiceToOrder(invoiceId: string, source: string)
 
   return db.runTransaction(async tx => {
     const snap = await tx.get(orderRef);
-    const order = snap.data() as { status?: OrderStatus; total?: number; userId?: string };
+    const order = snap.data() as {
+      status?: OrderStatus; total?: number; userId?: string; coupon?: unknown; couponCheck?: string;
+    };
     const current = order.status || 'PENDING';
     const base: ApplyResult = { invoiceStatus: invoice.status, orderId: orderRef.id, orderStatus: current, changed: false };
 
@@ -178,6 +180,17 @@ export async function applyCoraInvoiceToOrder(invoiceId: string, source: string)
         updatedAt: FieldValue.serverTimestamp()
       });
       return { ...base, reason: 'OWNER_MISMATCH' };
+    }
+
+    // Cupom que não passou na conferência (`onOrderWrittenCoupon`): o
+    // desconto não vale, então o valor pago não quita o pedido.
+    if (target === 'RECEIVED' && order.coupon && order.couponCheck === 'invalid') {
+      logger.error('Pedido pago com cupom inválido', { orderId: orderRef.id, invoiceId });
+      tx.update(orderRef, {
+        paymentAlert: { reason: 'COUPON_INVALID', detectedAt: FieldValue.serverTimestamp() },
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      return { ...base, reason: 'COUPON_INVALID' };
     }
 
     // O valor cobrado ainda vem do navegador. Aqui a conta é conferida:

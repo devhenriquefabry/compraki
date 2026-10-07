@@ -12,6 +12,7 @@ import { getAuth } from 'firebase/auth';
 import { Router } from '@angular/router';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
+import { CouponReservation, CouponService } from 'src/app/services/coupon.service';
 
 @Component({
   selector: 'app-checkout',
@@ -39,6 +40,7 @@ export class CheckoutPage implements OnInit {
   private router = inject(Router);
   private usersService = inject(FirebaseUsersService);
   private firebaseProducts = inject(FirebaseProducts);
+  private couponService = inject(CouponService);
 
   constructor() { }
 
@@ -80,7 +82,8 @@ export class CheckoutPage implements OnInit {
     }
   }
 
-  get cartTotal(): number {
+  /** Produtos + frete, sem cupom. */
+  get grossTotal(): number {
     const productsTotal = this.cartItems.reduce((acc, item) => {
       const p = item.productData.priceDiscounted 
         ? Math.min(item.productData.price, item.productData.priceDiscounted) 
@@ -92,11 +95,21 @@ export class CheckoutPage implements OnInit {
     return productsTotal + shippingTotal;
   }
 
+  /** O que a pessoa paga: com o desconto do cupom aplicado. */
+  get cartTotal(): number {
+    return Math.round((this.grossTotal - this.stateService.couponDiscount()) * 100) / 100;
+  }
+
   async finishOrder() {
     const loading = await this.loadingCtrl.create({
       message: 'Processando pagamento...',
     });
     await loading.present();
+
+    // Cupom: reservado no servidor ANTES de cobrar. Se algo falhar depois
+    // disso, a reserva é devolvida no `catch`.
+    let reservation: CouponReservation | null = null;
+    let orderSaved = false;
 
     try {
       const data = this.stateService.paymentData;
@@ -108,7 +121,18 @@ export class CheckoutPage implements OnInit {
       
       const buyerEmail = this.appUser?.email || undefined;
 
-      const total = this.cartTotal;
+      const applied = this.stateService.coupon();
+      if (applied) {
+        reservation = await this.couponService.reserve(applied.code, this.cartItems, this.stateService.shippingData?.price || 0);
+        // O preço de algum produto mudou desde o cálculo: mostra o novo desconto
+        // antes de cobrar, em vez de cobrar um total que a pessoa não viu.
+        if (Math.abs(reservation.quote.discount - applied.quote.discount) > 0.009) {
+          this.stateService.coupon.set({ ...applied, quote: reservation.quote });
+          throw new Error(`O desconto do cupom ${applied.code} mudou para ${reservation.quote.discount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} porque o preço de um produto mudou. Confira o total e finalize de novo.`);
+        }
+      }
+
+      const total = Math.round((this.grossTotal - (reservation?.quote.discount ?? 0)) * 100) / 100;
       if (total <= 0) throw new Error("Carrinho vazio ou valor inválido.");
 
       const dueDate = new Date();
@@ -202,6 +226,22 @@ export class CheckoutPage implements OnInit {
           }
         : { paymentProvider: 'asaas', asaasPaymentId: paymentResult!.id };
 
+      // Cópia exata da reserva: a regra do Firestore confere campo a campo.
+      const couponRef: Partial<Order> = reservation
+        ? {
+            coupon: {
+              redemptionId: reservation.redemptionId,
+              code: reservation.quote.code,
+              scope: reservation.quote.scope,
+              sellerId: reservation.quote.sellerId,
+              type: reservation.quote.type,
+              discount: reservation.quote.discount,
+              itemsDiscount: reservation.quote.itemsDiscount,
+              shippingDiscount: reservation.quote.shippingDiscount
+            }
+          }
+        : {};
+
       const orderId = await this.ordersService.createOrder({
         userId: user?.uid || 'guest',
         items: [...this.cartItems],
@@ -209,6 +249,7 @@ export class CheckoutPage implements OnInit {
         status: 'PENDING',
         paymentMethod: data.method as any,
         ...paymentRef,
+        ...couponRef,
         sellerIds: sellerIds,
         escrowInfo: {
           status: 'HOLDING',
@@ -238,6 +279,8 @@ export class CheckoutPage implements OnInit {
           deliveryTime: this.stateService.shippingData.deliveryTime
         }
       });
+      orderSaved = true;
+      this.stateService.coupon.set(null);
 
       // 5. Navegar conforme o método
       if (data.method === 'PIX') {
@@ -267,6 +310,7 @@ export class CheckoutPage implements OnInit {
 
     } catch (e: any) {
       await loading.dismiss();
+      if (reservation && !orderSaved) void this.couponService.release(reservation.redemptionId);
       const erroMsg = e.message || 'Falha ao processar pagamento.';
       console.error(e);
       const toast = await this.toastCtrl.create({

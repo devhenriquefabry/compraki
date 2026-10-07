@@ -362,6 +362,26 @@ service cloud.firestore {
           && after.requestedAt == request.time;
       }
 
+      // Cupom no pedido: tem que ser copia exata da reserva que `couponQuote`
+      // gravou para esta pessoa, ainda aberta e dentro do prazo. O desconto e
+      // calculado no servidor; o navegador so repete o que recebeu.
+      function couponMatchesReservation() {
+        let c = request.resource.data.coupon;
+        let r = get(/databases/$(database)/documents/couponRedemptions/$(c.redemptionId)).data;
+        return c.keys().hasOnly(['redemptionId', 'code', 'scope', 'sellerId', 'type',
+                                 'discount', 'itemsDiscount', 'shippingDiscount'])
+          && r.uid == request.auth.uid
+          && r.status == 'reserved'
+          && r.expiresAt > request.time
+          && c.code == r.code
+          && c.scope == r.scope
+          && c.sellerId == r.sellerId
+          && c.type == r.type
+          && c.discount == r.discount
+          && c.itemsDiscount == r.itemsDiscount
+          && c.shippingDiscount == r.shippingDiscount;
+      }
+
       // `get` com padrao: na consulta "minhas vendas" (sellerIds contem eu) o
       // motor nao conhece `userId`, e ler o campo direto dava erro e negava a
       // lista inteira.
@@ -381,8 +401,9 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny([
              'refundInfo', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy',
              'shipmentStatus', 'shippedAt', 'deliveredAt', 'deliveryConfirmedAt',
-             'shipmentProblemAt', 'fiscalDocuments'
-           ]);
+             'shipmentProblemAt', 'fiscalDocuments', 'couponCheck', 'couponCheckReason'
+           ])
+        && (!request.resource.data.keys().hasAny(['coupon']) || couponMatchesReservation());
 
       // Comprador e vendedor mexem em entrega e observacao, nunca no dinheiro
       // nem no `status`.
@@ -401,7 +422,7 @@ service cloud.firestore {
              'total', 'userId', 'sellerIds', 'items', 'asaasPaymentId',
              'coraInvoiceId', 'paymentProvider',
              'status', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy',
-             'escrowInfo'
+             'escrowInfo', 'coupon', 'couponCheck', 'couponCheckReason'
            ])
         && (!changedKeys().hasAny(['refundInfo']) || isRefundRequest())
         // Nota fiscal / declaracao de conteudo: so a loja anexa.
@@ -638,6 +659,28 @@ service cloud.firestore {
     match /whatsappWebhookEvents/{eventId} {
       allow read: if isAdmin();
       allow write: if false;
+    }
+
+    // Cupons: o id e o codigo. Qualquer pessoa (ate sem conta) le os publicos
+    // e ativos - aparecem na ficha do produto e em "Cupons"; a loja le os dela
+    // e o admin todos. Criar, editar e usar e so pelas Cloud Functions
+    // `saveCoupon` e `couponQuote` (functions/src/coupons.ts).
+    match /coupons/{code} {
+      allow read: if isAdmin()
+        || (resource.data.visibility == 'public' && resource.data.status == 'active')
+        || (isSignedIn() && resource.data.get('sellerId', null) == request.auth.uid);
+      allow write: if false;
+    }
+
+    // Reservas e usos de cupom. A pessoa ve os dela; so o servidor escreve.
+    match /couponRedemptions/{redemptionId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
+    // Trava de tentativa e erro de codigo. Interno.
+    match /couponAttempts/{uid} {
+      allow read, write: if false;
     }
 
     // Credenciais e tokens de integracao (Melhor Envio, etc). Nunca ao cliente.

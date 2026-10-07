@@ -39,7 +39,8 @@ export class MelhorEnvioService {
   }
 
 
-  getQuotes(config: MelhorEnvioConfig, zipTo: string, products: any[]): Observable<ShippingQuote[]> {
+  /** O `config` não é usado: a function lê a configuração no servidor. */
+  getQuotes(_config: MelhorEnvioConfig | null, zipTo: string, products: any[]): Observable<ShippingQuote[]> {
     const payload = {
       zipTo: zipTo,
       products: products.map(p => ({

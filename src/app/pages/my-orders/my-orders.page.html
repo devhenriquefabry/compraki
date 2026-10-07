@@ -142,6 +142,12 @@
             </button>
           }
 
+          @if (v.order.coupon; as cp) {
+            <p class="oc-coupon">
+              <ion-icon name="ticket-outline" aria-hidden="true"></ion-icon>
+              Cupom {{ cp.code }}: <strong>-{{ cp.discount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+            </p>
+          }
           <p class="oc-total">
             Total de {{ v.count }} {{ v.count === 1 ? 'item' : 'itens' }}:
             <strong>{{ v.order.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
@@ -155,7 +161,9 @@
                 <div class="oc-panel-body">
                   @if (v.order.paymentAlert) {
                     <p class="oc-panel-title">Pagamento em conferência</p>
-                    <p>O valor pago não bateu com o total do pedido. Estamos verificando e avisamos por aqui.</p>
+                    <p>{{ v.order.paymentAlert.reason === 'COUPON_INVALID'
+                      ? 'O cupom deste pedido não pôde ser confirmado. Estamos verificando e avisamos por aqui.'
+                      : 'O valor pago não bateu com o total do pedido. Estamos verificando e avisamos por aqui.' }}</p>
                   } @else if (v.order.paymentMethod === 'CREDIT_CARD') {
                     <p class="oc-panel-title">Pagamento em processamento</p>
                     <p>A operadora do cartão ainda está analisando. Costuma levar poucos minutos.</p>

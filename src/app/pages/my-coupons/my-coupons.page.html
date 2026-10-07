@@ -1,0 +1,102 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Cupons da loja</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (editing(); as e) {
+      <app-coupon-editor mode="seller" [coupon]="editingCoupon()" [products]="products()" [sellerName]="shopName()"
+                         (saved)="onSaved($event)" (cancelled)="editing.set(null)"></app-coupon-editor>
+    } @else if (loading()) {
+      <div class="sk mc-sk-hero" aria-hidden="true"></div>
+      <div class="sk mc-sk-card" aria-hidden="true"></div>
+    } @else if (error()) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon></span>
+        <h2>Sem conexão com os cupons</h2>
+        <p>{{ error() }}</p>
+      </div>
+    } @else {
+      <section class="mc-hero">
+        <span class="mc-hero__eyebrow">Cupons da sua loja</span>
+        <h2>Dê desconto <span>só nos seus produtos</span></h2>
+        <div class="mc-hero__figures">
+          <div><small>Ativos</small><strong>{{ activeCount() }}</strong></div>
+          <div><small>Pedidos com cupom</small><strong>{{ ordersTotal() }}</strong></div>
+          <div><small>Desconto dado</small><strong>{{ brl(discountTotal()) }}</strong></div>
+        </div>
+        <p>O desconto sai do valor da sua venda. Cupom público aparece nos seus anúncios e no checkout; o privado só funciona para quem recebe o código.</p>
+        <button type="button" class="mc-new" (click)="create()" [disabled]="!canCreate()">
+          <ion-icon name="add" aria-hidden="true"></ion-icon> Criar cupom
+        </button>
+        @if (!canCreate()) {
+          <small class="mc-hero__limit">Você já tem {{ limits.sellerActiveMax }} cupons ativos. Encerre um para criar outro.</small>
+        }
+      </section>
+
+      @if (!coupons().length) {
+        <div class="pg-empty mc-empty">
+          <span class="pg-empty-mark"><ion-icon name="ticket-outline" aria-hidden="true"></ion-icon></span>
+          <h2>Nenhum cupom ainda</h2>
+          <p>Crie um cupom de porcentagem ou de valor fixo para atrair clientes. Você decide o mínimo, o limite e até quando vale.</p>
+        </div>
+      }
+
+      <ul class="mc-list">
+        @for (c of coupons(); track c.code) {
+          <li class="mc-card" [class.is-off]="state(c) !== 'live' && state(c) !== 'scheduled'" [attr.aria-busy]="busy() === c.code">
+            <div class="mc-card__top">
+              <span class="mc-card__headline">{{ headline(c) }}</span>
+              <span class="mc-state" [attr.data-state]="state(c)">{{ stateLabel[state(c)] }}</span>
+            </div>
+            <div class="mc-card__code">
+              <button type="button" class="mc-code" (click)="copy(c)" [attr.aria-label]="'Copiar código ' + c.code">
+                {{ c.code }} <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+              </button>
+              <span class="mc-vis">
+                <ion-icon [name]="c.visibility === 'public' ? 'eye-outline' : 'lock-closed-outline'" aria-hidden="true"></ion-icon>
+                {{ c.visibility === 'public' ? 'Público' : 'Só com o código' }}
+              </span>
+            </div>
+            <ul class="mc-rules">
+              @for (line of rules(c); track line) { <li>{{ line }}</li> }
+            </ul>
+            <dl class="mc-figures">
+              <div><dt>Pedidos</dt><dd>{{ c.ordersCount }}</dd></div>
+              <div><dt>Desconto dado</dt><dd>{{ brl(c.discountTotal) }}</dd></div>
+              <div><dt>Período</dt><dd>{{ period(c) }}</dd></div>
+            </dl>
+            @if (c.pausedByAdmin) {
+              <p class="mc-flag">A Vineon pausou este cupom. Fale com a gente pelo atendimento para entender o motivo.</p>
+            }
+            @if (c.status !== 'ended') {
+              <div class="mc-actions">
+                <button type="button" class="btn btn--outline" (click)="edit(c)" [disabled]="!!busy()">
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Editar
+                </button>
+                @if (c.status === 'active') {
+                  <button type="button" class="btn btn--outline" (click)="setStatus(c, 'paused')" [disabled]="!!busy()">
+                    <ion-icon name="pause-outline" aria-hidden="true"></ion-icon> Pausar
+                  </button>
+                } @else if (!c.pausedByAdmin) {
+                  <button type="button" class="btn btn--outline" (click)="setStatus(c, 'active')" [disabled]="!!busy()">
+                    <ion-icon name="play-outline" aria-hidden="true"></ion-icon> Reativar
+                  </button>
+                }
+                <button type="button" class="btn btn--ghost mc-end" (click)="end(c)" [disabled]="!!busy()">
+                  {{ c.redeemedCount === 0 && c.ordersCount === 0 ? 'Apagar' : 'Encerrar' }}
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</ion-content>

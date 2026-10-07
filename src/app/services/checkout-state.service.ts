@@ -1,4 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
+import { CouponQuote } from '../interfaces/coupon';
+
+/** Cupom aplicado no checkout: o código e o último cálculo do servidor. */
+export interface AppliedCoupon {
+  code: string;
+  quote: CouponQuote;
+  /** Frete usado no cálculo; mudou o frete, calcula de novo. */
+  shippingPrice: number;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -35,6 +44,14 @@ export class CheckoutStateService {
     freeShipping: false,
     deliveryTime: 0
   };
+
+  /** Um cupom por pedido. `null` = sem cupom. */
+  readonly coupon = signal<AppliedCoupon | null>(null);
+
+  /** Desconto do cupom em vigor (0 sem cupom). */
+  couponDiscount(): number {
+    return this.coupon()?.quote.discount ?? 0;
+  }
 
   constructor() {}
 }
