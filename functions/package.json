@@ -4,7 +4,7 @@
   "private": true,
   "main": "lib/index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "build": "tsc",
@@ -19,7 +19,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@types/node": "^20.19.26",
+    "@types/node": "^22.20.5",
     "@types/nodemailer": "^8.0.0",
     "@types/web-push": "^3.6.4",
     "typescript": "^5.9.3"
