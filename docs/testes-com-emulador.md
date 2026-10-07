@@ -62,3 +62,29 @@ Um selo laranja "EMULADOR · <conta>" fica no canto da tela o tempo todo.
   proposital.
 - Funções agendadas (`aggregateDailyMetrics`) não disparam sozinhas no emulador.
 - Fotos dos produtos do seed vêm de `picsum.photos` (precisa de internet).
+
+## Melhor Envio e WhatsApp falsos (integrações)
+
+Para testar frete, etiqueta da loja, a aba Melhor Envio e o WhatsApp do admin
+sem tocar nos serviços reais:
+
+1. Crie `functions/.env.local` (só o emulador lê; está no `.gitignore`):
+
+   ```
+   MELHOR_ENVIO_API_URL=http://127.0.0.1:2626
+   EVOLUTION_API_URL=http://127.0.0.1:2727
+   EVOLUTION_API_KEY=chave-falsa-local
+   MELHOR_ENVIO_WEBHOOK_SECRET=segredo-falso-local
+   ```
+
+2. `node functions/scripts/fake-integrations.mjs` — sobe os dois falsos. O do
+   Melhor Envio valida o pedido de etiqueta com as regras da documentação oficial
+   (CNPJ em `company_document`, `state_abbr`, um volume só para Correios).
+3. `npm run emulators` e `node functions/scripts/integrations.test.mjs`
+   (84 verificações).
+
+Apague o `.env.local` depois: com ele, o emulador nunca fala com o WhatsApp real.
+
+Baterias por API (todas zeram o seed antes): `coupons`, `support`, `reviews`,
+`integrations` e `password-reset` (esta precisa de um SMTP falso — ver o
+cabeçalho do arquivo).

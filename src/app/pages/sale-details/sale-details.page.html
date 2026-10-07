@@ -132,8 +132,8 @@
               </dl>
 
               <div class="ship-actions">
-                @if (v.order.shippingInfo) {
-                  @if (!v.order.shippingInfo.shipmentId) {
+                @if (v.order.shippingInfo && v.paid) {
+                  @if (!v.order.shippingInfo.shipmentId || (v.order.shippingInfo.labelStatus && v.order.shippingInfo.labelStatus !== 'generated')) {
                     <button type="button" class="btn btn--outline" (click)="generateShippingLabel()">
                       <ion-icon name="barcode-outline" aria-hidden="true"></ion-icon> Gerar etiqueta
                     </button>

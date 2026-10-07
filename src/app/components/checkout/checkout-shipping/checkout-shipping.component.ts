@@ -30,6 +30,8 @@ export class CheckoutShippingComponent implements OnInit {
   public isLoading: boolean = true;
   public error: string | null = null;
   public selectedServiceId: number | null = null;
+  /** Logo da transportadora que não carregou: mostra um ícone no lugar. */
+  public brokenLogos: Record<number, boolean> = {};
   private items: CartItem[] = [];
 
   constructor() { }

@@ -10,7 +10,7 @@ import {
   analyticsOutline, barChartOutline
 } from 'ionicons/icons';
 import { MelhorEnvioService } from '../../services/melhor-envio.service';
-import { MelhorEnvioConfig, ShippingAnalysis, ShippingQuote } from '../../interfaces/shipping';
+import { MelhorEnvioConfig, MelhorEnvioSettings, ShippingAnalysis, ShippingQuote } from '../../interfaces/shipping';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
 import { AdminMetricCardComponent } from '../../components/admin-metric-card/admin-metric-card.component';
 
@@ -53,6 +53,9 @@ export class MelhorEnvioPage implements OnInit {
   public calcWeight: number = 0.5;
   public quotes: ShippingQuote[] = [];
   public hasConfig: boolean = false;
+  /** Há token salvo no servidor (ele nunca vem para o navegador). */
+  public hasToken = false;
+  public tokenEnd: string | null = null;
 
   constructor(
     private melhorEnvioService: MelhorEnvioService,
@@ -74,17 +77,34 @@ export class MelhorEnvioPage implements OnInit {
 
 
   async loadConfig() {
-    this.melhorEnvioService.getConfig().subscribe(config => {
-      if (config) {
-        this.config = config;
-        this.hasConfig = true;
-        this.refreshData();
+    this.melhorEnvioService.getSettings().subscribe({
+      next: settings => {
+        this.applySettings(settings);
+        if (this.hasToken) this.refreshData();
+      },
+      error: err => {
+        console.error('Configuração do Melhor Envio', err);
+        this.showToast(err?.message || 'Não foi possível carregar a configuração.', 'danger');
       }
     });
   }
 
+  /** O formulário recebe tudo menos o token; o campo do token fica vazio (= manter). */
+  private applySettings(settings: MelhorEnvioSettings) {
+    const c = settings.config || ({} as MelhorEnvioSettings['config']);
+    this.config = {
+      ...this.config,
+      ...c,
+      address: { ...this.config.address, ...(c.address || {}) },
+      accessToken: '',
+    };
+    this.hasToken = settings.hasToken;
+    this.tokenEnd = settings.tokenEnd;
+    this.hasConfig = settings.hasToken || !!c.senderName;
+  }
+
   async refreshData() {
-    if (!this.config.accessToken) return;
+    if (!this.hasToken) return;
 
     const loading = await this.loadingCtrl.create({
       message: 'Sincronizando com Melhor Envio...',
@@ -114,15 +134,15 @@ export class MelhorEnvioPage implements OnInit {
     const loading = await this.loadingCtrl.create({ message: 'Salvando...', mode: 'ios' });
     await loading.present();
 
-    this.melhorEnvioService.saveConfig(this.config).subscribe({
-      next: () => {
-        this.hasConfig = true;
-        this.showToast('Configurações salvas e persistidas no Firestore!');
+    this.melhorEnvioService.saveSettings(this.config).subscribe({
+      next: settings => {
+        this.applySettings(settings);
+        this.showToast('Configurações salvas.');
         loading.dismiss();
         this.refreshData();
       },
-      error: () => {
-        this.showToast('Erro ao salvar no Firestore.', 'danger');
+      error: err => {
+        this.showToast(err?.message || 'Erro ao salvar a configuração.', 'danger');
         loading.dismiss();
       }
     });
@@ -134,7 +154,10 @@ export class MelhorEnvioPage implements OnInit {
         console.log('Dados do usuário Melhor Envio:', user);
         this.showToast(`Conectado como: ${user.firstname || 'Usuário'}`);
       },
-      error: (err) => console.error('Erro ao verificar conta:', err)
+      error: (err) => {
+        console.error('Erro ao verificar conta:', err);
+        this.showToast(`Não conectou ao Melhor Envio: ${err?.message || 'confira o token e o ambiente (Sandbox/Produção).'}`, 'danger');
+      }
     });
   }
 

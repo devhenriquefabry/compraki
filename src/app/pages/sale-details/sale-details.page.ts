@@ -215,7 +215,11 @@ export class SaleDetailsPage {
     if (code) window.open(trackingUrl(code), '_blank', 'noopener');
   }
 
-  /** Compra e gera a etiqueta no Melhor Envio (mesmo fluxo de antes, só reorganizado). */
+  /**
+   * Compra e gera a etiqueta no Melhor Envio. O servidor monta o envio a partir
+   * do pedido, confere que esta conta é a loja e grava o envio no pedido (o
+   * botão vira "Imprimir etiqueta" sozinho, pelo listener do pedido).
+   */
   async generateShippingLabel() {
     const order = this.sale();
     if (!order?.id) return;
@@ -223,40 +227,31 @@ export class SaleDetailsPage {
     const loading = await this.loadingCtrl.create({ message: 'Gerando etiqueta no Melhor Envio...' });
     await loading.present();
     try {
-      const config = await firstValueFrom(this.melhorEnvioService.getConfig());
-      if (!config) throw new Error('Melhor Envio não configurado.');
-
-      const cartRes = await firstValueFrom(this.melhorEnvioService.addToCart(config, order));
-      const shipmentId = cartRes.id;
-      await firstValueFrom(this.melhorEnvioService.checkout(config, [shipmentId]));
-      await firstValueFrom(this.melhorEnvioService.generateLabel(config, [shipmentId]));
-      await this.salesService.updateSaleData(order.id, { 'shippingInfo.shipmentId': shipmentId });
-
+      await firstValueFrom(this.melhorEnvioService.createLabel(order.id));
       this.toast('Etiqueta gerada. Imprima e cole na embalagem.', 'success');
     } catch (err: any) {
       console.error('Erro Melhor Envio:', err);
-      this.toast('Não foi possível gerar a etiqueta: ' + (err?.error?.message || err?.message || 'erro desconhecido'), 'danger');
+      this.toast('Não foi possível gerar a etiqueta: ' + (err?.message || 'erro desconhecido'), 'danger');
     } finally {
       loading.dismiss();
     }
   }
 
   async printLabel() {
-    const shipmentId = this.sale()?.shippingInfo?.shipmentId;
-    if (!shipmentId) return;
+    const orderId = this.sale()?.id;
+    if (!orderId) return;
 
+    // Abre a aba já no clique: navegador bloqueia janela aberta depois de um await.
     const tab = window.open('', '_blank');
     try {
-      const config = await firstValueFrom(this.melhorEnvioService.getConfig());
-      if (!config) throw new Error('Melhor Envio não configurado.');
-      const res = await firstValueFrom(this.melhorEnvioService.getLabelUrl(config, [shipmentId]));
-      if (!res?.url) throw new Error('sem url');
+      const res = await firstValueFrom(this.melhorEnvioService.getLabelUrl(orderId));
+      if (!res?.url) throw new Error('O Melhor Envio não devolveu o link da etiqueta.');
       if (tab) tab.location.href = res.url;
       else window.location.href = res.url;
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       tab?.close();
-      this.toast('Não foi possível abrir a etiqueta.', 'danger');
+      this.toast('Não foi possível abrir a etiqueta: ' + (err?.message || 'erro desconhecido'), 'danger');
     }
   }
 

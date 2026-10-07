@@ -2609,13 +2609,24 @@ async function getMelhorEnvioConfig() {
   return snap.exists ? snap.data() as any : null;
 }
 
+/**
+ * Endereço da API do Melhor Envio. `MELHOR_ENVIO_API_URL` só existe para teste
+ * (emulador apontando para um Melhor Envio falso local, via functions/.env.local);
+ * em produção vem do `isSandbox` da configuração.
+ */
+function melhorEnvioBaseUrl(isSandbox: boolean): string {
+  const override = (process.env.MELHOR_ENVIO_API_URL || '').trim().replace(/\/$/, '');
+  if (override) return override;
+  return isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+}
+
 async function refreshMelhorEnvioToken() {
   const config = await getMelhorEnvioConfig();
   if (!config || !config.refreshToken) throw new Error('Refresh token not found');
 
   const clientId = process.env.MELHOR_ENVIO_CLIENT_ID;
   const clientSecret = process.env.MELHOR_ENVIO_CLIENT_SECRET;
-  const baseUrl = config.isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+  const baseUrl = melhorEnvioBaseUrl(config.isSandbox === true);
 
   const response = await fetch(`${baseUrl}/oauth/token`, {
     method: 'POST',
@@ -2651,7 +2662,7 @@ async function requestMelhorEnvio(path: string, options: { method?: string; body
   let config = await getMelhorEnvioConfig();
   if (!config) throw new Error('Melhor Envio not configured');
 
-  const baseUrl = config.isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+  const baseUrl = melhorEnvioBaseUrl(config.isSandbox === true);
   
   let response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
     method: options.method || 'GET',
@@ -2719,7 +2730,7 @@ export const meAuthorizer = onRequest({ region, cors: false, maxInstances: MAX_I
     const db = getFirestore();
     const config = await getMelhorEnvioConfig();
     const isSandbox = config?.isSandbox ?? true;
-    const baseUrl = isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+    const baseUrl = melhorEnvioBaseUrl(isSandbox);
     
     const clientId = process.env.MELHOR_ENVIO_CLIENT_ID;
     const clientSecret = process.env.MELHOR_ENVIO_CLIENT_SECRET;
@@ -2816,31 +2827,264 @@ export const calculateMelhorEnvioShipping = onRequest({ region, cors: false, max
   }
 });
 
-export const createMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
+/**
+ * ETIQUETA DE ENVIO DE UM PEDIDO
+ * ----------------------------------------------------------------------------
+ * Quem paga a etiqueta é o saldo do Melhor Envio da Vineon (o frete foi pago
+ * pelo comprador no checkout). Por isso o app nunca monta o pedido de etiqueta:
+ * manda só o `orderId`, e o servidor confere que quem pede é a loja do pedido
+ * (ou admin), que o pedido está pago e monta tudo a partir do pedido e da
+ * configuração (`settings/melhor_envio`, que o cliente não lê).
+ *
+ * São três chamadas ao Melhor Envio (carrinho → compra → geração). O pedido
+ * guarda em que passo parou (`shippingInfo.labelStatus`): repetir retoma de
+ * onde parou e nunca compra duas vezes. Uma trava em `shippingLabelLocks`
+ * segura dois cliques ao mesmo tempo.
+ */
+const LABEL_PAID_STATUSES = ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
+const LABEL_LOCK_MS = 2 * 60 * 1000;
+
+class ShippingLabelError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+type OrderRole = 'admin' | 'seller' | 'buyer';
+
+/** Lê o pedido e diz o papel de quem chama (ou recusa). */
+async function loadOrderFor(
+  orderId: unknown,
+  user: AuthenticatedRequest,
+  allowed: OrderRole[]
+): Promise<{ ref: FirebaseFirestore.DocumentReference; order: any; role: OrderRole }> {
+  const id = typeof orderId === 'string' ? orderId.trim() : '';
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new ShippingLabelError(400, 'Pedido inválido.');
+  const ref = getFirestore().doc(`orders/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists) throw new ShippingLabelError(404, 'Pedido não encontrado.');
+  const order = snap.data() || {};
+  const isAdmin = user.isTokenAdmin === true || isAdminEmail(user.email);
+  const role: OrderRole | null = isAdmin
+    ? 'admin'
+    : Array.isArray(order['sellerIds']) && order['sellerIds'].includes(user.uid)
+      ? 'seller'
+      : order['userId'] === user.uid ? 'buyer' : null;
+  // 404 e não 403: não confirma que o pedido existe para quem não participa.
+  if (!role || !allowed.includes(role)) throw new ShippingLabelError(404, 'Pedido não encontrado.');
+  return { ref, order, role };
+}
+
+function onlyDigits(value: unknown): string {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
+function paidUnit(item: any): number {
+  const price = Number(item?.productData?.price) || 0;
+  const promo = Number(item?.productData?.priceDiscounted) || 0;
+  return promo > 0 && price > 0 && promo < price ? promo : price;
+}
+
+/** CPF vai em `document`, CNPJ em `company_document` (doc do `POST /api/v2/me/cart`). */
+function melhorEnvioDocument(value: unknown): { document?: string; company_document?: string } {
+  const digits = onlyDigits(value);
+  return digits.length === 14 ? { company_document: digits } : { document: digits };
+}
+
+/**
+ * Pedido de etiqueta no formato do Melhor Envio (`POST /api/v2/me/cart`,
+ * docs.melhorenvio.com.br/reference/inserir-fretes-no-carrinho):
+ * - UF em `state_abbr` + `country_id: 'BR'`;
+ * - Correios, J&T e Loggi aceitam UM volume por etiqueta: os itens viram uma
+ *   caixa só (maior largura e comprimento, alturas empilhadas, pesos somados),
+ *   com o mínimo que a cotação usa (11 x 2 x 16 cm);
+ * - envio não comercial: sem `invoice` e sem inscrição estadual.
+ */
+function buildMelhorEnvioCart(config: any, order: any) {
+  const sender = config || {};
+  const address = sender.address || {};
+  const missing = [
+    ['nome do remetente', sender.senderName],
+    ['telefone do remetente', sender.senderPhone],
+    ['CPF/CNPJ do remetente', sender.senderCpfCnpj],
+    ['CEP de origem', address.zipCode],
+    ['rua de origem', address.street],
+    ['número de origem', address.number],
+    ['bairro de origem', address.district],
+    ['cidade de origem', address.city],
+    ['UF de origem', address.state],
+  ].filter(([, value]) => !String(value || '').trim()).map(([label]) => label);
+  if (missing.length) {
+    throw new ShippingLabelError(503, `Configuração do Melhor Envio incompleta (${missing.join(', ')}). Avise a Vineon.`);
+  }
+
+  const items: any[] = Array.isArray(order.items) ? order.items : [];
+  const customer = order.customerData || {};
+  const to = order.addressData || {};
+  const itemsValue = Math.round(items.reduce((sum, item) => sum + paidUnit(item) * (Number(item.quantity) || 0), 0) * 100) / 100;
+
+  // Uma caixa para o pedido todo.
+  let width = 11;
+  let length = 16;
+  let height = 0;
+  let weight = 0;
+  for (const item of items) {
+    const qty = Math.max(1, Number(item.quantity) || 1);
+    const d = item.productData || {};
+    width = Math.max(width, Number(d.width) || 10);
+    length = Math.max(length, Number(d.length) || 15);
+    height += (Number(d.height) || 10) * qty;
+    weight += (Number(d.weight) || 0.1) * qty;
+  }
+  const volume = {
+    height: Math.max(2, Math.ceil(height)),
+    width: Math.ceil(width),
+    length: Math.ceil(length),
+    weight: Math.max(0.1, Math.round(weight * 1000) / 1000),
+  };
+
+  return {
+    service: order.shippingInfo?.serviceId,
+    from: {
+      name: sender.senderName,
+      phone: onlyDigits(sender.senderPhone),
+      email: sender.senderEmail || undefined,
+      ...melhorEnvioDocument(sender.senderCpfCnpj),
+      address: address.street,
+      number: address.number,
+      complement: address.complement || '',
+      district: address.district,
+      city: address.city,
+      state_abbr: String(address.state || '').toUpperCase(),
+      country_id: 'BR',
+      postal_code: onlyDigits(address.zipCode),
+    },
+    to: {
+      name: customer.name,
+      phone: onlyDigits(customer.phone),
+      email: customer.email,
+      ...melhorEnvioDocument(customer.cpf),
+      address: to.street,
+      number: to.number,
+      complement: to.complement || '',
+      district: to.neighborhood || 'Bairro',
+      city: to.city,
+      state_abbr: String(to.state || '').toUpperCase(),
+      country_id: 'BR',
+      postal_code: onlyDigits(to.postalCode),
+    },
+    products: items.map(item => ({
+      name: String(item.productData?.name || 'Produto').slice(0, 100),
+      quantity: String(Number(item.quantity) || 1),
+      unitary_value: paidUnit(item).toFixed(2),
+    })),
+    volumes: [volume],
+    options: {
+      insurance_value: itemsValue,
+      receipt: false,
+      own_hand: false,
+      reverse: false,
+      non_commercial: true,
+    },
+  };
+}
+
+function sendShippingError(res: HttpResponse, error: unknown, context: string) {
+  if (error instanceof ShippingLabelError) {
+    res.status(error.status).json({ error: error.message });
+    return;
+  }
+  const message = error instanceof Error ? error.message : 'Erro no Melhor Envio.';
+  logger.error(context, { error: message });
+  const status = /not configured/i.test(message) ? 503 : 502;
+  res.status(status).json({
+    error: status === 503 ? 'Melhor Envio não configurado. Avise a Vineon.' : `Melhor Envio recusou: ${message}`,
+  });
+}
+
+/**
+ * `POST createMelhorEnvioShipment` — `{ orderId }`. Loja do pedido ou admin.
+ * Compra e gera a etiqueta; devolve `{ shipmentId, labelStatus }`.
+ */
+export const createMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES, timeoutSeconds: 120 }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
   const user = await requireAuthenticated(req, res);
   if (!user) return;
 
+  const db = getFirestore();
+  let lockRef: FirebaseFirestore.DocumentReference | null = null;
   try {
-    const payload = req.body;
-    const data = await requestMelhorEnvio('/api/v2/me/cart', {
-      method: 'POST',
-      body: payload
+    const { ref, order } = await loadOrderFor(req.body?.orderId, user, ['seller', 'admin']);
+    const info = order.shippingInfo || {};
+
+    if (!LABEL_PAID_STATUSES.includes(order.status)) {
+      throw new ShippingLabelError(409, 'A etiqueta só pode ser gerada depois que o pagamento for confirmado.');
+    }
+    if (order.refundInfo?.status && order.refundInfo.status !== 'REJECTED') {
+      throw new ShippingLabelError(409, 'Este pedido tem devolução em andamento.');
+    }
+    if (!info.serviceId) throw new ShippingLabelError(409, 'Este pedido não tem forma de entrega do Melhor Envio.');
+    // Pedido antigo: shipmentId sem `labelStatus` = etiqueta já gerada pelo fluxo antigo.
+    if (info.shipmentId && (!info.labelStatus || info.labelStatus === 'generated')) {
+      res.status(200).json({ shipmentId: info.shipmentId, labelStatus: 'generated', existing: true });
+      return;
+    }
+
+    // Trava contra dois cliques/abas ao mesmo tempo.
+    const lock = db.doc(`shippingLabelLocks/${ref.id}`);
+    await db.runTransaction(async tx => {
+      const current = await tx.get(lock);
+      const since = Number(current.get('at')) || 0;
+      if (current.exists && Date.now() - since < LABEL_LOCK_MS) {
+        throw new ShippingLabelError(409, 'A etiqueta deste pedido já está sendo gerada. Aguarde um instante.');
+      }
+      tx.set(lock, { at: Date.now(), by: user.uid });
+    });
+    lockRef = lock;
+
+    let shipmentId: string = info.shipmentId || '';
+    let stage: string = info.labelStatus || 'none';
+    const save = (patch: Record<string, unknown>) => ref.update({
+      ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`shippingInfo.${k}`, v])),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
-    res.status(200).json(data);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    if (!shipmentId) {
+      const config = await getMelhorEnvioConfig();
+      const cart = await requestMelhorEnvio('/api/v2/me/cart', { method: 'POST', body: buildMelhorEnvioCart(config, order) });
+      shipmentId = String(cart?.id || '');
+      if (!shipmentId) throw new Error('o Melhor Envio não devolveu o id do envio');
+      stage = 'cart';
+      await save({ shipmentId, labelStatus: stage, labelRequestedBy: user.uid });
+    }
+    if (stage === 'cart') {
+      await requestMelhorEnvio('/api/v2/me/shipment/checkout', { method: 'POST', body: { orders: [shipmentId] } });
+      stage = 'paid';
+      await save({ labelStatus: stage });
+    }
+    if (stage === 'paid') {
+      await requestMelhorEnvio('/api/v2/me/shipment/generate', { method: 'POST', body: { orders: [shipmentId] } });
+      stage = 'generated';
+      await save({ labelStatus: stage, labelGeneratedAt: FieldValue.serverTimestamp() });
+    }
+
+    logger.info('Etiqueta gerada', { orderId: ref.id, shipmentId, by: user.uid });
+    res.status(200).json({ shipmentId, labelStatus: stage });
+  } catch (error) {
+    sendShippingError(res, error, 'createMelhorEnvioShipment failed');
+  } finally {
+    if (lockRef) await lockRef.delete().catch(() => undefined);
   }
 });
 
+/** Compra de envios avulsos no Melhor Envio. Só admin (a loja usa `createMelhorEnvioShipment`). */
 export const checkoutMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
-  const user = await requireAuthenticated(req, res);
+  const user = await requireAdmin(req, res);
   if (!user) return;
 
   try {
@@ -2849,7 +3093,6 @@ export const checkoutMelhorEnvioShipment = onRequest({ region, cors: false, maxI
       method: 'POST',
       body: { orders: shipmentIds }
     });
-
     res.status(200).json(data);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -2876,45 +3119,121 @@ export const generateMelhorEnvioLabel = onRequest({ region, cors: false, maxInst
   }
 });
 
+/**
+ * `POST printMelhorEnvioLabel` — `{ orderId }` (loja do pedido ou admin) ou,
+ * só para admin, `{ shipmentIds }`. Devolve `{ url }` do PDF da etiqueta.
+ */
 export const printMelhorEnvioLabel = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-
-  try {
-    const { shipmentIds } = req.body;
-    const data = await requestMelhorEnvio('/api/v2/me/shipment/print', {
-      method: 'POST',
-      body: { orders: shipmentIds }
-    });
-
-    res.status(200).json(data);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-export const trackMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
-  if (handleCors(req, res)) return;
-  if (req.method !== 'POST') return methodNotAllowed(res);
-
-  // Rastreio expõe dado de entrega (endereço, destinatário, status). Não pode
-  // ficar consultável por qualquer um que adivinhe um código.
   const user = await requireAuthenticated(req, res);
   if (!user) return;
 
   try {
-    const { shipmentIds } = req.body;
-    const data = await requestMelhorEnvio('/api/v2/me/shipment/tracking', {
+    let shipmentIds: string[];
+    if (req.body?.orderId) {
+      const { order } = await loadOrderFor(req.body.orderId, user, ['seller', 'admin']);
+      const info = order.shippingInfo || {};
+      if (!info.shipmentId || (info.labelStatus && info.labelStatus !== 'generated')) {
+        throw new ShippingLabelError(409, 'A etiqueta deste pedido ainda não foi gerada.');
+      }
+      shipmentIds = [info.shipmentId];
+    } else {
+      if (user.isTokenAdmin !== true && !isAdminEmail(user.email)) {
+        throw new ShippingLabelError(403, 'Admin access required');
+      }
+      shipmentIds = Array.isArray(req.body?.shipmentIds) ? req.body.shipmentIds.map(String) : [];
+      if (!shipmentIds.length) throw new ShippingLabelError(400, 'Informe o pedido.');
+    }
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/print', {
       method: 'POST',
       body: { orders: shipmentIds }
     });
-
     res.status(200).json(data);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    sendShippingError(res, error, 'printMelhorEnvioLabel failed');
+  }
+});
+
+/**
+ * `POST trackMelhorEnvioShipment` — `{ orderId }`: comprador, loja ou admin.
+ * Rastreio expõe dado de entrega (endereço, destinatário, status): só para
+ * quem participa do pedido.
+ */
+export const trackMelhorEnvioShipment = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAuthenticated(req, res);
+  if (!user) return;
+
+  try {
+    const { order } = await loadOrderFor(req.body?.orderId, user, ['buyer', 'seller', 'admin']);
+    const shipmentId = order.shippingInfo?.shipmentId;
+    if (!shipmentId) throw new ShippingLabelError(409, 'Este pedido ainda não tem etiqueta.');
+    const data = await requestMelhorEnvio('/api/v2/me/shipment/tracking', {
+      method: 'POST',
+      body: { orders: [shipmentId] }
+    });
+    res.status(200).json(data);
+  } catch (error) {
+    sendShippingError(res, error, 'trackMelhorEnvioShipment failed');
+  }
+});
+
+/**
+ * `melhorEnvioSettings` — configuração do Melhor Envio para a aba do admin.
+ * GET devolve tudo MENOS os tokens (só `hasToken` e o final dele); POST salva.
+ * Token vazio no POST mantém o atual. `settings/` segue fechado no Firestore.
+ */
+export const melhorEnvioSettings = onRequest({ region, cors: false, maxInstances: 2 }, async (req, res) => {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'GET' && req.method !== 'POST') return methodNotAllowed(res);
+
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const ref = getFirestore().doc('settings/melhor_envio');
+  const text = (value: unknown, max = 120) => String(value ?? '').trim().slice(0, max);
+  try {
+    if (req.method === 'POST') {
+      const body = (req.body || {}) as Record<string, any>;
+      const address = (body.address || {}) as Record<string, unknown>;
+      const patch: Record<string, unknown> = {
+        isSandbox: body.isSandbox === true,
+        senderName: text(body.senderName),
+        senderPhone: text(body.senderPhone, 30),
+        senderEmail: text(body.senderEmail),
+        senderCpfCnpj: text(body.senderCpfCnpj, 30),
+        address: {
+          street: text(address['street']),
+          number: text(address['number'], 20),
+          complement: text(address['complement']),
+          district: text(address['district']),
+          city: text(address['city']),
+          state: text(address['state'], 2).toUpperCase(),
+          zipCode: text(address['zipCode'], 9),
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: user.uid,
+      };
+      const token = text(body.accessToken, 4000);
+      if (token) patch['accessToken'] = token;
+      await ref.set(patch, { merge: true });
+    }
+
+    const config = (await ref.get()).data() || {};
+    const { accessToken, refreshToken, updatedAt, ...safe } = config as Record<string, any>;
+    res.status(200).json({
+      config: safe,
+      hasToken: !!accessToken,
+      tokenEnd: accessToken ? String(accessToken).slice(-4) : null,
+      hasRefreshToken: !!refreshToken,
+    });
+  } catch (error) {
+    logger.error('melhorEnvioSettings failed', error);
+    res.status(500).json({ error: 'Não foi possível ler/salvar a configuração do Melhor Envio.' });
   }
 });
 

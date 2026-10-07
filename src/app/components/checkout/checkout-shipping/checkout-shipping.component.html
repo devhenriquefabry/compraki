@@ -40,7 +40,11 @@
         (click)="selectQuote(quote)"
       >
         <div class="carrier-logo">
-          <img [src]="quote.company.picture" [alt]="quote.company.name">
+          @if (quote.company.picture && !brokenLogos[quote.id]) {
+            <img [src]="quote.company.picture" [alt]="quote.company.name" (error)="brokenLogos[quote.id] = true">
+          } @else {
+            <ion-icon name="cube-outline" [attr.aria-label]="quote.company.name"></ion-icon>
+          }
         </div>
         
         <div class="quote-info">
@@ -71,7 +75,11 @@
       <div *ngFor="let quote of quotes">
         <div class="quote-card selected readonly-card" *ngIf="selectedServiceId === quote.id">
           <div class="carrier-logo">
-            <img [src]="quote.company.picture" [alt]="quote.company.name">
+            @if (quote.company.picture && !brokenLogos[quote.id]) {
+            <img [src]="quote.company.picture" [alt]="quote.company.name" (error)="brokenLogos[quote.id] = true">
+          } @else {
+            <ion-icon name="cube-outline" [attr.aria-label]="quote.company.name"></ion-icon>
+          }
           </div>
           
           <div class="quote-info">

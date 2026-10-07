@@ -119,6 +119,12 @@ export interface Order {
     quotedPrice?: number;
     deliveryTime: number;
     shipmentId?: string;
+    /**
+     * Em que passo parou a etiqueta (servidor): `cart` → `paid` → `generated`.
+     * Sem o campo e com `shipmentId` = etiqueta do fluxo antigo, já gerada.
+     */
+    labelStatus?: 'cart' | 'paid' | 'generated';
+    labelGeneratedAt?: any;
     trackingCode?: string;
     labelUrl?: string;
   };

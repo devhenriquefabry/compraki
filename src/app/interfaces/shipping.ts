@@ -1,4 +1,5 @@
 export interface MelhorEnvioConfig {
+  /** Só para ENVIAR um token novo; o servidor nunca devolve o token salvo. */
   accessToken: string;
   refreshToken?: string;
   isSandbox: boolean;
@@ -15,6 +16,15 @@ export interface MelhorEnvioConfig {
     state: string;
     zipCode: string;
   };
+}
+
+/** Resposta de `melhorEnvioSettings`: configuração sem os tokens. */
+export interface MelhorEnvioSettings {
+  config: Omit<MelhorEnvioConfig, 'accessToken' | 'refreshToken'>;
+  hasToken: boolean;
+  /** Últimos 4 caracteres do token salvo, para o admin reconhecer qual é. */
+  tokenEnd: string | null;
+  hasRefreshToken: boolean;
 }
 
 export interface ShippingAnalysis {

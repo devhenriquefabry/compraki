@@ -1,9 +1,8 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, from, map, of } from 'rxjs';
-import { MelhorEnvioConfig, ShippingAnalysis, ShippingQuote } from '../interfaces/shipping';
+import { MelhorEnvioConfig, MelhorEnvioSettings, ShippingAnalysis, ShippingQuote } from '../interfaces/shipping';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { environment } from '../../environments/environment';
 
@@ -11,27 +10,27 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class MelhorEnvioService {
-  private db: Firestore;
   private auth: Auth;
   private functionsBaseUrl = environment.functionsBaseUrl;
 
   constructor(private http: HttpClient) {
     const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
-    this.db = getFirestore(app);
     this.auth = getAuth(app);
   }
 
 
-  getConfig(): Observable<MelhorEnvioConfig | null> {
-    const configRef = doc(this.db, 'settings', 'melhor_envio');
-    return from(getDoc(configRef)).pipe(
-      map(snap => snap.exists() ? snap.data() as MelhorEnvioConfig : null)
-    );
+  /**
+   * Configuração do Melhor Envio (aba do admin). Vem da Cloud Function
+   * `melhorEnvioSettings`: `settings/` é fechado no Firestore e o token nunca
+   * volta para o navegador (só `hasToken` e os 4 últimos caracteres).
+   */
+  getSettings(): Observable<MelhorEnvioSettings> {
+    return from(this.callFunction<MelhorEnvioSettings>('melhorEnvioSettings'));
   }
 
-  saveConfig(config: MelhorEnvioConfig): Observable<boolean> {
-    const configRef = doc(this.db, 'settings', 'melhor_envio');
-    return from(setDoc(configRef, config)).pipe(map(() => true));
+  /** Salva a configuração. `accessToken` vazio mantém o token atual. */
+  saveSettings(config: MelhorEnvioConfig): Observable<MelhorEnvioSettings> {
+    return from(this.callFunction<MelhorEnvioSettings>('melhorEnvioSettings', { method: 'POST', body: config }));
   }
 
   getUserInfo(config: MelhorEnvioConfig): Observable<any> {
@@ -74,86 +73,30 @@ export class MelhorEnvioService {
     );
   }
 
-  addToCart(config: MelhorEnvioConfig, order: any): Observable<any> {
-    const payload = {
-      service: order.shippingInfo?.serviceId,
-      agency: 1, 
-      from: {
-        name: config.senderName,
-        phone: config.senderPhone.replace(/\D/g, ''),
-        email: config.senderEmail,
-        document: config.senderCpfCnpj.replace(/\D/g, ''),
-        address: config.address.street,
-        number: config.address.number,
-        district: config.address.district,
-        city: config.address.city,
-        state: config.address.state,
-        postal_code: config.address.zipCode.replace(/\D/g, '')
-      },
-      to: {
-        name: order.customerData.name,
-        phone: order.customerData.phone.replace(/\D/g, ''),
-        email: order.customerData.email,
-        document: order.customerData.cpf.replace(/\D/g, ''),
-        address: order.addressData.street,
-        number: order.addressData.number,
-        complement: order.addressData.complement || '',
-        district: order.addressData.neighborhood || 'Bairro',
-        city: order.addressData.city,
-        state: order.addressData.state,
-        postal_code: order.addressData.postalCode.replace(/\D/g, '')
-      },
-      products: order.items.map((item: any) => ({
-        name: item.productData.name,
-        quantity: item.quantity,
-        unitary_value: item.productData.priceDiscounted || item.productData.price
-      })),
-      volumes: order.items.map((item: any) => ({
-        height: item.productData.height || 10,
-        width: item.productData.width || 10,
-        length: item.productData.length || 15,
-        weight: item.productData.weight || 0.1
-      })),
-      options: {
-        insurance_value: order.total - (order.shippingInfo?.price || 0),
-        receipt: false,
-        own_hand: false,
-        reverse: false,
-        non_commercial: true 
-      }
-    };
-
-    return from(this.callFunction<any>('createMelhorEnvioShipment', {
+  /**
+   * Compra e gera a etiqueta de um pedido pago. Quem monta o envio (remetente,
+   * destinatário, volumes) e confere se a pessoa é a loja do pedido é o servidor.
+   */
+  createLabel(orderId: string): Observable<{ shipmentId: string; labelStatus: string }> {
+    return from(this.callFunction<{ shipmentId: string; labelStatus: string }>('createMelhorEnvioShipment', {
       method: 'POST',
-      body: payload
+      body: { orderId }
     }));
   }
 
-  checkout(config: MelhorEnvioConfig, shipmentIds: string[]): Observable<any> {
-    return from(this.callFunction<any>('checkoutMelhorEnvioShipment', {
+  /** Link do PDF da etiqueta do pedido. */
+  getLabelUrl(orderId: string): Observable<{ url?: string }> {
+    return from(this.callFunction<{ url?: string }>('printMelhorEnvioLabel', {
       method: 'POST',
-      body: { shipmentIds }
+      body: { orderId }
     }));
   }
 
-  generateLabel(config: MelhorEnvioConfig, shipmentIds: string[]): Observable<any> {
-    return from(this.callFunction<any>('generateMelhorEnvioLabel', {
-      method: 'POST',
-      body: { shipmentIds }
-    }));
-  }
-
-  getLabelUrl(config: MelhorEnvioConfig, shipmentIds: string[]): Observable<any> {
-    return from(this.callFunction<any>('printMelhorEnvioLabel', {
-      method: 'POST',
-      body: { shipmentIds }
-    }));
-  }
-
-  getTracking(config: MelhorEnvioConfig, shipmentId: string): Observable<any> {
+  /** Rastreio do envio do pedido (comprador, loja ou admin). */
+  getTracking(orderId: string): Observable<any> {
     return from(this.callFunction<any>('trackMelhorEnvioShipment', {
       method: 'POST',
-      body: { shipmentIds: [shipmentId] }
+      body: { orderId }
     }));
   }
 
