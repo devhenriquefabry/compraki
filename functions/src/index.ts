@@ -3098,7 +3098,7 @@ export const requestPasswordResetCode = onRequest({ region, cors: false, maxInst
               method: 'POST',
               body: {
                 number: normalizedPhone,
-                text: `Compraki: Seu código de recuperação de senha é *${code}*. Válido por 15 minutos.`
+                text: `Vineon: seu código de recuperação de senha é *${code}*. Vale por 15 minutos. Se não foi você, ignore esta mensagem.`
               }
             });
             whatsappSent = true;
@@ -3138,19 +3138,21 @@ export const requestPasswordResetCode = onRequest({ region, cors: false, maxInst
           logger.info('Iniciando envio de e-mail...', { to: email });
           const transporter = nodemailer.createTransport(smtpConfig);
           await transporter.sendMail({
-            from: `"Compraki" <${smtpConfig.auth.user}>`,
+            from: `"Vineon" <${smtpConfig.auth.user}>`,
             to: email,
-            subject: 'Seu código de recuperação de senha - Compraki',
-            text: `Seu código de recuperação é: ${code}`,
+            subject: 'Seu código para recuperar a senha - Vineon',
+            text: `Seu código para recuperar a senha da Vineon é: ${code}
+
+Ele vale por 15 minutos. Se você não pediu, ignore este e-mail: sua senha continua a mesma.`,
             html: `
-              <div style="font-family: sans-serif; padding: 20px; color: #182E3C;">
-                <h2 style="color: #2ECC71;">Recuperação de Senha</h2>
+              <div style="font-family: sans-serif; padding: 20px; color: #0B1623;">
+                <h2 style="color: #0B1623;">Recuperação de senha</h2>
                 <p>Olá,</p>
-                <p>Recebemos uma solicitação de redefinição de senha para sua conta na <b>Compraki</b>.</p>
-                <p style="font-size: 1.2rem; margin: 20px 0;">Seu código de segurança é: <b style="letter-spacing: 2px; color: #2ECC71; font-size: 1.5rem;">${code}</b></p>
-                <p>Este código é válido por 15 minutos.</p>
+                <p>Recebemos um pedido para trocar a senha da sua conta na <b>Vineon</b>.</p>
+                <p style="font-size: 1.2rem; margin: 20px 0;">Seu código de segurança é: <b style="display: inline-block; padding: 4px 10px; border-radius: 6px; background: #D8F51F; color: #0B1623; letter-spacing: 3px; font-size: 1.5rem;">${code}</b></p>
+                <p>Este código vale por 15 minutos.</p>
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 0.8rem; color: #999;">Se você não solicitou esta alteração, ignore este e-mail.</p>
+                <p style="font-size: 0.8rem; color: #5B6573;">Se você não pediu, ignore este e-mail: sua senha continua a mesma.</p>
               </div>
             `
           });

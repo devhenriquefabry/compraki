@@ -10,6 +10,14 @@ import { VineonLogoComponent } from 'src/app/components/vineon-logo/vineon-logo.
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
+/**
+ * Iguais aos do servidor (`RESET_CODE_LENGTH` e o mínimo de `completePasswordReset`
+ * em functions/src/index.ts). Mudou lá, mude aqui — a tela aceitava 6 dígitos e o
+ * servidor manda 8 desde a Fase 0, e a recuperação ficou impossível.
+ */
+export const RESET_CODE_LENGTH = 8;
+export const RESET_MIN_PASSWORD = 8;
+
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 @Component({
@@ -31,6 +39,8 @@ export class ForgotPasswordFormComponent implements OnInit, OnDestroy {
   public currentStep: Step = 1;
   public selectedMethod: 'email' | 'whatsapp' | null = null;
   public showPassword = false;
+  public readonly codeLength = RESET_CODE_LENGTH;
+  public readonly minPassword = RESET_MIN_PASSWORD;
 
   /** Erro do campo principal da etapa (e-mail, código ou nova senha). */
   public fieldError = '';
@@ -94,8 +104,8 @@ export class ForgotPasswordFormComponent implements OnInit, OnDestroy {
   async verifyCode() {
     if (this.isLoading) return;
     const code = this.codeControl.value.replace(/\D/g, '');
-    if (code.length !== 6) {
-      this.fieldError = 'O código tem 6 números';
+    if (code.length !== RESET_CODE_LENGTH) {
+      this.fieldError = `O código tem ${RESET_CODE_LENGTH} números`;
       return;
     }
 
@@ -114,7 +124,7 @@ export class ForgotPasswordFormComponent implements OnInit, OnDestroy {
   async updatePassword() {
     if (this.isLoading) return;
     const password = this.passwordControl.value;
-    this.fieldError = password.length >= 6 ? '' : 'A senha precisa de pelo menos 6 caracteres';
+    this.fieldError = password.length >= RESET_MIN_PASSWORD ? '' : `A senha precisa de pelo menos ${RESET_MIN_PASSWORD} caracteres`;
     this.confirmError = !this.confirmPasswordControl.value
       ? 'Repita a senha'
       : this.confirmPasswordControl.value !== password ? 'As senhas não são iguais' : '';
