@@ -1,6 +1,7 @@
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { AlertController, IonContent, ModalController, NavController, ToastController } from '@ionic/angular';
-import { Subscription } from 'rxjs';
+import { Subscription, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { waitForAuthUser } from 'src/app/core/auth-state';
 import {
@@ -11,9 +12,11 @@ import { AppUser } from 'src/app/interfaces/app-user';
 import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
+import { ProductReviewsService } from 'src/app/services/product-reviews.service';
+import { toDate } from 'src/app/core/order-stage';
 import { environment } from 'src/environments/environment';
 import { FramedImage, ImageFramerComponent } from './image-framer.component';
-import { SHOWCASE_ICONS } from './showcase-icons';
+import { STORE_ICONS } from '../../core/store-icons';
 
 interface ShowcaseForm {
   shopName: string;
@@ -59,7 +62,7 @@ const INSTAGRAM_HANDLE = /^[a-z0-9._]{1,30}$/i;
 export class MyShowcasePage implements OnInit, OnDestroy {
   @ViewChild(IonContent) private content?: IonContent;
 
-  readonly ic = SHOWCASE_ICONS;
+  readonly ic = STORE_ICONS;
   readonly media = SHOP_MEDIA;
   readonly mobileSafe = BANNER_MOBILE_SAFE;
   readonly limits = SHOWCASE_LIMITS;
@@ -77,6 +80,10 @@ export class MyShowcasePage implements OnInit, OnDestroy {
   showGuides = false;
   products: Product[] = [];
   productCount = 0;
+  soldCount = 0;
+  followerCount = 0;
+  /** Mesma conta da página pública: média das avaliações verificadas da loja. */
+  storeRating: { average: string; count: number } | null = null;
 
   uploading: Record<ShopMediaKind, boolean> = { banner: false, photo: false };
   /** Imagem recém-enquadrada, mostrada já enquanto sobe (e depois, sem piscar). */
@@ -86,7 +93,7 @@ export class MyShowcasePage implements OnInit, OnDestroy {
   whatsAppError = '';
   linkCopied = false;
 
-  private productsSub?: Subscription;
+  private subs: Subscription[] = [];
   private resizeObserver?: ResizeObserver;
   private viewportEl?: HTMLElement;
   private pageEl?: HTMLElement;
@@ -94,6 +101,7 @@ export class MyShowcasePage implements OnInit, OnDestroy {
 
   private readonly productsService = inject(FirebaseProducts);
   private readonly usersService = inject(FirebaseUsersService);
+  private readonly reviewsService = inject(ProductReviewsService);
   private readonly navCtrl = inject(NavController);
   private readonly toastCtrl = inject(ToastController);
   private readonly alertCtrl = inject(AlertController);
@@ -120,10 +128,24 @@ export class MyShowcasePage implements OnInit, OnDestroy {
       this.form = this.formFrom(this.user);
       this.savedSnapshot = this.snapshot();
 
-      this.productsSub = this.productsService.getBySeller(authUser.uid).subscribe(products => {
-        this.productCount = products.length;
-        this.products = products.slice(0, 8);
-      });
+      this.subs.push(
+        this.productsService.getBySeller(authUser.uid).subscribe(products => {
+          this.productCount = products.length;
+          this.soldCount = products.reduce((total, p) => total + (p.soldCount || 0), 0);
+          this.products = products.slice(0, 8);
+        }),
+        this.reviewsService.watchStore(authUser.uid).pipe(catchError(() => of([]))).subscribe(list => {
+          const rated = list.filter(r => typeof r.rating === 'number');
+          this.storeRating = rated.length
+            ? {
+                average: (rated.reduce((sum, r) => sum + r.rating, 0) / rated.length)
+                  .toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+                count: rated.length,
+              }
+            : null;
+        }),
+        this.usersService.getSellerFollowerCount(authUser.uid).pipe(catchError(() => of(0))).subscribe(n => (this.followerCount = n)),
+      );
     } catch (error) {
       console.error('Falha ao carregar a vitrine:', error);
       this.loadFailed = true;
@@ -133,7 +155,7 @@ export class MyShowcasePage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.productsSub?.unsubscribe();
+    this.subs.forEach(s => s.unsubscribe());
     this.resizeObserver?.disconnect();
     clearTimeout(this.copiedTimer);
     Object.values(this.localPreview).forEach(url => url && URL.revokeObjectURL(url));
@@ -225,10 +247,16 @@ export class MyShowcasePage implements OnInit, OnDestroy {
     return formatPhone((this.user?.phoneNumber || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, ''));
   }
 
-  /** Quatro cartões nos dois aparelhos (2 × 2 no celular, uma fileira no computador). */
+  get memberSince(): string {
+    const date = toDate(this.user?.createdAt);
+    return date ? date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
+  }
+
+  /** 2 × 2 no celular; duas fileiras de três no computador (coluna "Sobre" ao lado). */
   get previewProducts(): (Product | null)[] {
-    const list: (Product | null)[] = this.products.slice(0, 4);
-    while (list.length < 4) list.push(null);
+    const count = this.device === 'desktop' ? 6 : 4;
+    const list: (Product | null)[] = this.products.slice(0, count);
+    while (list.length < count) list.push(null);
     return list;
   }
 

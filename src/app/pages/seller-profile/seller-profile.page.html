@@ -2,229 +2,349 @@
   <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
 </ion-header>
 
-<ion-content class="seller-profile-content">
-  <ng-container *ngIf="seller$ | async as seller; else loadingState">
-    <ng-container *ngIf="products$ | async as products">
-      <ng-container *ngIf="stats$ | async as stats">
-        <section class="profile-hero" [style.--seller-primary]="seller.shopPrimaryColor || '#D8F51F'" [style.--seller-on-primary]="textOn(seller.shopPrimaryColor)">
-          <div
-            class="seller-cover"
-            [class.empty-cover]="!seller.shopBanner"
-            [style.background-image]="seller.shopBanner ? 'url(' + seller.shopBanner + ')' : null">
+<ion-content class="sp-content">
+  @if (seller() === undefined) {
+    <!-- Esqueleto com a mesma geometria do topo: nada pula quando a loja chega. -->
+    <div class="sp" aria-busy="true" aria-label="Carregando a loja">
+      <section class="sp-hero">
+        <div class="sp-cover sk"></div>
+        <div class="sp-id">
+          <div class="sp-avatar sk"></div>
+          <div class="sp-id-main">
+            <div class="sk sk-line" style="width: 55%; height: 22px"></div>
+            <div class="sk sk-line" style="width: 35%; margin-top: 8px"></div>
+          </div>
+        </div>
+        <div class="sk" style="height: 58px; margin: 18px 16px 0; border-radius: 12px"></div>
+      </section>
+    </div>
+  } @else if (seller() === null) {
+    <div class="sp-empty">
+      <span class="sp-empty-mark"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.store" /></svg></span>
+      <h1>Loja não encontrada</h1>
+      <p>O link pode estar errado ou a loja saiu da Vineon.</p>
+      <a class="sp-btn sp-btn--navy" routerLink="/tabs/tab2">Ver produtos na Vineon</a>
+    </div>
+  } @else {
+    @let s = seller()!;
+    <div class="sp" [style.--shop]="color()" [style.--on-shop]="onColor()">
+
+      <!-- ===================================================== topo da loja -->
+      <section class="sp-hero" aria-labelledby="sp-name">
+        <div class="sp-cover" [class.is-empty]="!s.shopBanner"
+             [style.background-image]="s.shopBanner ? 'url(' + s.shopBanner + ')' : null"
+             role="img" [attr.aria-label]="'Capa de ' + name()"></div>
+
+        <div class="sp-id">
+          <div class="sp-avatar">
+            @if (s.photoURL) {
+              <img [src]="s.photoURL" alt="" referrerpolicy="no-referrer">
+            } @else {
+              <span>{{ initials() }}</span>
+            }
+            @if (s.status === 'online') { <i class="sp-online" title="Online agora"></i> }
           </div>
 
-          <div class="seller-summary">
-            <div class="avatar-ring">
-              @if (seller.photoURL) {
-                <img [src]="seller.photoURL" [alt]="getDisplayName(seller)" referrerpolicy="no-referrer">
-              } @else {
-                <span>{{ getInitials(seller) }}</span>
-              }
-            </div>
-
-            <div class="seller-heading">
-              <div>
-                <h1>{{ getDisplayName(seller) }}</h1>
-                @if (seller.username) {
-                  <p class="seller-handle">@{{ seller.username }}</p>
-                }
-                @if (seller.isSeller) {
-                  <span class="verified-line">
-                    <ion-icon name="checkmark-circle"></ion-icon>
-                    Vendedor verificado
-                  </span>
-                }
-              </div>
-
-              <button
-                type="button"
-                class="follow-button"
-                *ngIf="!isOwnProfile(seller)"
-                [class.following]="isFollowing$ | async"
-                [disabled]="isFollowActionBusy"
-                (click)="toggleFollow(seller)">
-                @if (isFollowActionBusy) {
-                  <ion-spinner name="crescent"></ion-spinner>
-                } @else {
-                  <ion-icon [name]="(isFollowing$ | async) ? 'heart' : 'heart-outline'"></ion-icon>
-                }
-                {{ (isFollowing$ | async) ? 'Seguindo' : 'Seguir' }}
-              </button>
-
-              <button
-                type="button"
-                class="follow-button"
-                *ngIf="isOwnProfile(seller)"
-                (click)="editSellerProfile()">
-                <ion-icon name="create-outline"></ion-icon>
-                Editar
-              </button>
-            </div>
-
-            <p class="seller-bio" *ngIf="seller.shopDescription; else noBio">
-              {{ seller.shopDescription }}
+          <div class="sp-id-main">
+            <h1 class="sp-name" id="sp-name">{{ name() }}</h1>
+            <p class="sp-meta">
+              @if (s.username) { <span>&#64;{{ s.username }}</span> }
+              @if (memberSince()) { <span>Na Vineon desde {{ memberSince() }}</span> }
+              @if (s.status === 'online') { <span class="is-online">Online agora</span> }
             </p>
-            <ng-template #noBio>
-              <p class="seller-bio muted">Este vendedor ainda não cadastrou uma descrição pública.</p>
-            </ng-template>
+          </div>
 
-            <div class="hero-actions">
-              <button type="button" class="social-proof" disabled>
-                <ion-icon name="heart"></ion-icon>
-                {{ formatCompactCount((followerCount$ | async) || 0) }} seguidores
+          <div class="sp-cta">
+            @if (isOwn()) {
+              <button type="button" class="sp-btn sp-btn--shop" (click)="editShowcase()">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.pencil" /></svg>
+                Editar vitrine
               </button>
-              <button type="button" class="primary-action" (click)="startChat(seller)" [disabled]="isOwnProfile(seller)">
-                <ion-icon name="chatbubbles-outline"></ion-icon>
+            } @else {
+              <button type="button" class="sp-btn" [class.sp-btn--shop]="!isFollowing()" [class.sp-btn--following]="isFollowing()"
+                      [attr.aria-pressed]="isFollowing()" [disabled]="followBusy" (click)="toggleFollow()">
+                @if (followBusy) { <ion-spinner name="crescent"></ion-spinner> }
+                @else { <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="isFollowing() ? ic.check : ic.plus" /></svg> }
+                {{ isFollowing() ? 'Seguindo' : 'Seguir loja' }}
+              </button>
+              <button type="button" class="sp-btn sp-btn--outline" (click)="startChat()" [disabled]="s.suspended">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.chat" /></svg>
                 Conversar
               </button>
-              <button type="button" *ngIf="seller.shopWhatsApp" (click)="openWhatsApp(seller.shopWhatsApp)">
-                <ion-icon name="logo-whatsapp"></ion-icon>
-                WhatsApp
-              </button>
-              <button type="button" *ngIf="seller.shopInstagram" (click)="openInstagram(seller.shopInstagram)">
-                <ion-icon name="logo-instagram"></ion-icon>
-                Instagram
-              </button>
-            </div>
-
-            <p class="suspended-note" *ngIf="seller.suspended" role="status">
-              <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-              Esta conta está suspensa por violar os termos de uso do Vineon. Os anúncios estão fora do ar.
-            </p>
-
-            <button type="button" class="report-link" *ngIf="!isOwnProfile(seller) && !seller.suspended" (click)="reportSeller(seller)">
-              <ion-icon name="flag-outline" aria-hidden="true"></ion-icon>
-              Denunciar loja
+            }
+            <button type="button" class="sp-icon-btn" (click)="share()" aria-label="Compartilhar a loja" title="Compartilhar">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.share" /></svg>
             </button>
           </div>
-        </section>
+        </div>
 
-        <main class="profile-shell" [style.--seller-primary]="seller.shopPrimaryColor || '#D8F51F'">
-          <section class="products-section featured-products">
-            <div class="section-title">
-              <h2>{{ seller.shopFeaturedTitle || 'Produtos do vendedor' }}</h2>
-              <span>{{ formatCount(products.length) }} itens</span>
-            </div>
-
-            @if (products.length) {
-              <div class="products-grid">
-                <button type="button" class="product-card" *ngFor="let product of products" (click)="goToProduct(product)">
-                  <div class="product-image">
-                    <img [src]="getProductImage(product)" [alt]="product.name">
-                    @if (product.stock <= 0) {
-                      <span class="stock-badge">Esgotado</span>
-                    }
-                  </div>
-                  <div class="product-info">
-                    <strong>{{ product.name }}</strong>
-                    <span>{{ formatPrice(product.price) }}</span>
-                    <small>
-                      <ion-icon name="star"></ion-icon>
-                      {{ product.rating ? formatRating(product.rating) : 'Sem avaliações' }}
-                    </small>
-                  </div>
+        <!-- Números que dá para conferir: nada de selo que não verifica nada. -->
+        <dl class="sp-facts">
+          <div class="sp-fact">
+            <dt>Avaliação</dt>
+            @if (rating(); as r) {
+              <dd>
+                <button type="button" class="sp-fact-btn" (click)="openReviews()" [attr.aria-label]="'Nota ' + ratingLabel(r.average) + ' de 5 em ' + r.count + ' avaliações. Ver avaliações'">
+                  <svg class="ic sp-star" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.star" /></svg>{{ ratingLabel(r.average) }}<small>({{ r.count }})</small>
                 </button>
-              </div>
+              </dd>
             } @else {
-              <div class="empty-products compact-empty">
-                <ion-icon name="images-outline"></ion-icon>
-                <strong>Nenhum produto publicado</strong>
-                <span>Quando este vendedor publicar anúncios, eles aparecerão aqui.</span>
-              </div>
+              <dd class="is-quiet">Sem notas</dd>
             }
-          </section>
+          </div>
+          <div class="sp-fact"><dt>Vendas</dt><dd>{{ compact(soldCount()) }}</dd></div>
+          <div class="sp-fact"><dt>Seguidores</dt><dd>{{ compact(followers()) }}</dd></div>
+          <div class="sp-fact"><dt>Anúncios</dt><dd>{{ compact(products().length) }}</dd></div>
+        </dl>
 
-          <section class="stats-card">
-            <div class="stat-item follower-stat">
-              <strong>{{ formatCompactCount((followerCount$ | async) || 0) }}</strong>
-              <span>Seguidores</span>
-            </div>
-            <div class="stat-item">
-              <strong>{{ formatCount(stats.productCount) }}</strong>
-              <span>Produtos</span>
-            </div>
-            <div class="stat-item">
-              <strong>{{ formatCount(stats.soldCount) }}</strong>
-              <span>Vendas</span>
-            </div>
-            <div class="stat-item">
-              <strong>{{ formatRating(stats.averageRating) }}</strong>
-              <span>Avaliação</span>
-            </div>
-            <div class="stat-item">
-              <strong>{{ formatCount(stats.activeProductCount) }}</strong>
-              <span>Em estoque</span>
-            </div>
-          </section>
+        @if (s.shopDescription) {
+          <div class="sp-bio-wrap">
+            <p class="sp-bio" [class.is-open]="bioOpen()">{{ s.shopDescription }}</p>
+            @if (s.shopDescription.length > 140) {
+              <button type="button" class="sp-link" (click)="bioOpen.set(!bioOpen())" [attr.aria-expanded]="bioOpen()">
+                {{ bioOpen() ? 'Ver menos' : 'Ver mais' }}
+              </button>
+            }
+          </div>
+        }
 
-          <section class="trust-card">
-            <div class="trust-row" *ngIf="seller.isSeller">
-              <span><ion-icon name="shield-checkmark-outline"></ion-icon></span>
-              <div>
-                <strong>Perfil verificado</strong>
-                <small>Conta de vendedor ativa na Compraki.</small>
+        @if (s.suspended) {
+          <p class="sp-suspended" role="status">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.alert" /></svg>
+            Esta loja está suspensa por violar os termos de uso da Vineon. Os anúncios estão fora do ar.
+          </p>
+        }
+
+        @if (coupons().length && !s.suspended) {
+          <div class="sp-coupons" aria-label="Cupons da loja">
+            @for (c of coupons(); track c.code) {
+              <button type="button" class="sp-coupon" (click)="copyCoupon(c)" [attr.aria-label]="'Copiar cupom ' + c.code + ': ' + couponTitle(c)">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.ticket" /></svg>
+                <span class="sp-coupon-text">
+                  <strong>{{ couponTitle(c) }}</strong>
+                  @if (couponRule(c)) { <small>{{ couponRule(c) }}</small> }
+                </span>
+                <span class="sp-coupon-code">{{ c.code }}</span>
+              </button>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- ============================================================ abas -->
+      <nav class="sp-tabs" id="sp-tabs" role="tablist" aria-label="Seções da loja">
+        <div class="sp-tabs-in">
+          <button type="button" role="tab" class="sp-tab" [class.is-active]="tab() === 'produtos'" [attr.aria-selected]="tab() === 'produtos'" (click)="selectTab('produtos')">
+            Produtos <span class="sp-tab-n">{{ products().length }}</span>
+          </button>
+          <button type="button" role="tab" class="sp-tab" [class.is-active]="tab() === 'avaliacoes'" [attr.aria-selected]="tab() === 'avaliacoes'" (click)="selectTab('avaliacoes')">
+            Avaliações <span class="sp-tab-n">{{ reviews().length }}</span>
+          </button>
+          @if (!isDesktop()) {
+            <button type="button" role="tab" class="sp-tab" [class.is-active]="tab() === 'sobre'" [attr.aria-selected]="tab() === 'sobre'" (click)="selectTab('sobre')">
+              Sobre
+            </button>
+          }
+        </div>
+      </nav>
+
+      <div class="sp-body">
+        <div class="sp-main" role="tabpanel">
+          @switch (tab()) {
+            <!-- --------------------------------------------------- produtos -->
+            @case ('produtos') {
+              @if (products().length > 4 || search()) {
+                <div class="sp-toolbar">
+                  <label class="sp-search">
+                    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.search" /></svg>
+                    <input type="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Buscar nesta loja" aria-label="Buscar nesta loja" enterkeyhint="search">
+                  </label>
+                  <label class="sp-sort">
+                    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.sort" /></svg>
+                    <span class="vn-sr-only">Ordenar por</span>
+                    <select [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+                      @for (key of sortKeys; track key) { <option [value]="key">{{ sortLabels[key] }}</option> }
+                    </select>
+                  </label>
+                </div>
+              }
+
+              <div class="sp-section-head">
+                <h2>{{ search() ? 'Resultados para “' + search() + '”' : (s.shopFeaturedTitle || 'Produtos da loja') }}</h2>
+                <span>{{ shownProducts().length }} {{ shownProducts().length === 1 ? 'produto' : 'produtos' }}</span>
               </div>
-            </div>
 
-            <div class="trust-row" *ngIf="getMemberSinceLabel(seller)">
-              <span><ion-icon name="calendar-outline"></ion-icon></span>
-              <div>
-                <strong>Membro desde {{ getMemberSinceLabel(seller) }}</strong>
-                <small>Histórico público do cadastro do vendedor.</small>
-              </div>
-            </div>
+              @if (!productsLoaded()) {
+                <ul class="sp-grid" aria-hidden="true">
+                  @for (i of [1, 2, 3, 4]; track i) { <li><div class="sk sp-sk-card"></div></li> }
+                </ul>
+              } @else if (shownProducts().length) {
+                <ul class="sp-grid">
+                  @for (p of shownProducts(); track p.id) {
+                    <li [class.is-out]="p.stock <= 0">
+                      <app-storefront-card [product]="p"></app-storefront-card>
+                      @if (p.stock <= 0) { <span class="sp-out">Esgotado</span> }
+                    </li>
+                  }
+                </ul>
+              } @else if (search()) {
+                <div class="sp-empty sp-empty--inline">
+                  <p>Nada com “{{ search() }}” nesta loja.</p>
+                  <button type="button" class="sp-btn sp-btn--outline" (click)="clearSearch()">Ver todos os produtos</button>
+                </div>
+              } @else {
+                <div class="sp-empty sp-empty--inline">
+                  <span class="sp-empty-mark"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.box" /></svg></span>
+                  @if (isOwn()) {
+                    <h2>Sua loja ainda não tem anúncios</h2>
+                    <p>Quando você publicar, eles aparecem aqui para quem visitar a loja.</p>
+                    <a class="sp-btn sp-btn--navy" routerLink="/upload-product">Anunciar um produto</a>
+                  } @else {
+                    <h2>Nenhum produto à venda agora</h2>
+                    <p>Siga a loja para saber quando chegar novidade.</p>
+                  }
+                </div>
+              }
+            }
 
-            <div class="trust-row" *ngIf="getLatestProductLabel(products)">
-              <span><ion-icon name="time-outline"></ion-icon></span>
-              <div>
-                <strong>Último produto em {{ getLatestProductLabel(products) }}</strong>
-                <small>Informação calculada a partir dos anúncios publicados.</small>
-              </div>
-            </div>
-          </section>
+            <!-- ------------------------------------------------- avaliações -->
+            @case ('avaliacoes') {
+              @if (rating(); as r) {
+                <section class="sp-card sp-score" aria-label="Resumo das avaliações">
+                  <div class="sp-score-main">
+                    <strong>{{ ratingLabel(r.average) }}</strong>
+                    <app-review-stars [value]="r.average" [size]="18"></app-review-stars>
+                    <span>{{ r.count }} {{ r.count === 1 ? 'avaliação' : 'avaliações' }}</span>
+                  </div>
+                  <ul class="sp-bars">
+                    @for (b of r.bars; track b.stars) {
+                      <li>
+                        <span class="sp-bars-label">{{ b.stars }}</span>
+                        <svg class="ic sp-star-sm" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.star" /></svg>
+                        <span class="sp-bar"><i [style.width.%]="b.percent"></i></span>
+                        <span class="sp-bars-n">{{ b.count }}</span>
+                      </li>
+                    }
+                  </ul>
+                  <p class="sp-score-note">
+                    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.shield" /></svg>
+                    Só avalia quem comprou e recebeu um produto desta loja.
+                  </p>
+                </section>
 
-          <section class="operation-card">
-            <div class="section-title">
-              <h2>Operação da loja</h2>
-            </div>
+                <ol class="sp-reviews">
+                  @for (rv of visibleReviews(); track (rv.productId ?? "") + "/" + (rv.id ?? $index)) {
+                    <li class="sp-card sp-review">
+                      <header class="sp-review-head">
+                        <app-review-stars [value]="rv.rating" [size]="14"></app-review-stars>
+                        <span class="sp-review-who">{{ rv.userName }}</span>
+                        <span class="sp-review-date">{{ reviewDate(rv) }}</span>
+                      </header>
+                      @if (rv.comment) { <p class="sp-review-text">{{ rv.comment }}</p> }
+                      @if (rv.photos?.length) {
+                        <div class="sp-review-photos">
+                          @for (ph of rv.photos; track ph) { <img [src]="photoUrl(ph)" alt="Foto enviada por quem comprou" loading="lazy"> }
+                        </div>
+                      }
+                      @if (rv.productId) {
+                        <a class="sp-review-product" [routerLink]="['/product-details', rv.productId]">
+                          @if (rv.productPhoto) { <img [src]="rv.productPhoto" alt="" loading="lazy"> }
+                          <span>{{ rv.productName || 'Ver produto' }}</span>
+                          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.chevron" /></svg>
+                        </a>
+                      }
+                      @if (rv.sellerReply?.text) {
+                        <div class="sp-review-reply">
+                          <strong>Resposta da loja</strong>
+                          <p>{{ rv.sellerReply?.text }}</p>
+                        </div>
+                      }
+                    </li>
+                  }
+                </ol>
+                @if (reviews().length > visibleReviews().length) {
+                  <button type="button" class="sp-btn sp-btn--outline sp-more" (click)="showMoreReviews()">
+                    Ver mais avaliações ({{ reviews().length - visibleReviews().length }})
+                  </button>
+                }
+              } @else {
+                <div class="sp-empty sp-empty--inline">
+                  <span class="sp-empty-mark"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.star" /></svg></span>
+                  <h2>Ainda sem avaliações</h2>
+                  <p>As notas aparecem aqui quando alguém compra e recebe um produto desta loja.</p>
+                </div>
+              }
+            }
 
-            <div class="operation-grid">
-              <div class="operation-item">
-                <ion-icon name="card-outline"></ion-icon>
-                <span>Pagamentos</span>
-                <strong>{{ stats.paymentMethods.length ? stats.paymentMethods.join(', ') : 'Não informado' }}</strong>
-              </div>
-              <div class="operation-item">
-                <ion-icon name="bicycle-outline"></ion-icon>
-                <span>Entrega</span>
-                <strong>{{ stats.shippingMethods.length ? stats.shippingMethods.join(', ') : 'Não informado' }}</strong>
-              </div>
-              <div class="operation-item">
-                <ion-icon name="pricetag-outline"></ion-icon>
-                <span>Ofertas</span>
-                <strong>{{ formatCount(products.length) }} anúncios publicados</strong>
-              </div>
-            </div>
-          </section>
+            @case ('sobre') {
+              <ng-container [ngTemplateOutlet]="about" [ngTemplateOutletContext]="{ $implicit: s }"></ng-container>
+            }
+          }
+        </div>
 
-        </main>
-      </ng-container>
-    </ng-container>
-  </ng-container>
-
-  <ng-template #loadingState>
-    <div class="loading-state">
-      <ion-spinner name="crescent"></ion-spinner>
-      <span>Carregando perfil do vendedor...</span>
+        @if (isDesktop()) {
+          <aside class="sp-rail">
+            <ng-container [ngTemplateOutlet]="about" [ngTemplateOutletContext]="{ $implicit: s }"></ng-container>
+          </aside>
+        }
+      </div>
     </div>
-  </ng-template>
+
+    <!-- "Sobre": aba no celular, coluna da direita no computador. -->
+    <ng-template #about let-s>
+      <section class="sp-card sp-about" aria-labelledby="sp-about-title">
+        <h2 id="sp-about-title">Sobre a loja</h2>
+        <dl class="sp-kv">
+          @if (memberSince()) {
+            <div><dt><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.clock" /></svg>Na Vineon desde</dt><dd>{{ memberSince() }}</dd></div>
+          }
+          <div><dt><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.box" /></svg>Em estoque</dt><dd>{{ inStockCount() }} de {{ products().length }} anúncios</dd></div>
+          @if (paymentLabel()) {
+            <div><dt><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.card" /></svg>Pagamento</dt><dd>{{ paymentLabel() }}</dd></div>
+          }
+          @if (shippingLabel()) {
+            <div><dt><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.truck" /></svg>Entrega</dt><dd>{{ shippingLabel() }}</dd></div>
+          }
+        </dl>
+
+        <div class="sp-guarantee">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.shield" /></svg>
+          <p><strong>Compra garantida pela Vineon.</strong> O pagamento fica retido até 7 dias depois da entrega. Se o pedido não chegar ou a devolução for aprovada, o dinheiro volta para você. <a routerLink="/help">Como funciona</a></p>
+        </div>
+
+        @if (whatsAppUrl() || instagramUrl()) {
+          <h3>Contato</h3>
+          <div class="sp-contacts">
+            @if (whatsAppUrl(); as url) {
+              <a class="sp-contact" [href]="url" target="_blank" rel="noopener">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.whatsapp" /></svg>WhatsApp
+              </a>
+            }
+            @if (instagramUrl(); as url) {
+              <a class="sp-contact" [href]="url" target="_blank" rel="noopener">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.instagram" /></svg>{{ instagramHandle() }}
+              </a>
+            }
+          </div>
+          <p class="sp-fine">Combine e pague sempre pela Vineon: fora dela a compra não tem garantia.</p>
+        }
+
+        @if (!isOwn() && !s.suspended) {
+          <button type="button" class="sp-report" (click)="reportSeller()">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.flag" /></svg>
+            Denunciar loja
+          </button>
+        }
+      </section>
+    </ng-template>
+  }
 </ion-content>
 
 <ion-modal [isOpen]="isChatOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="closeChat()" class="seller-chat-modal">
   <ng-template>
     <ion-header class="ion-no-border">
       <ion-toolbar>
-        <ion-title>Conversa com vendedor</ion-title>
+        <ion-title>Conversa com a loja</ion-title>
         <ion-buttons slot="end">
           <ion-button (click)="closeChat()">Fechar</ion-button>
         </ion-buttons>

@@ -6,7 +6,7 @@ import { ModalController } from '@ionic/angular';
 import {
   BANNER_MOBILE_SAFE, SHOP_MEDIA, ShopMediaKind, ShopMediaSpec, loadImage, renderCrop,
 } from '../../core/shop-media';
-import { SHOWCASE_ICONS } from './showcase-icons';
+import { STORE_ICONS } from '../../core/store-icons';
 
 export interface FramedImage {
   blob: Blob;
@@ -43,7 +43,7 @@ export class ImageFramerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private readonly modalCtrl = inject(ModalController);
 
-  readonly ic = SHOWCASE_ICONS;
+  readonly ic = STORE_ICONS;
   readonly mobileSafe = BANNER_MOBILE_SAFE;
   spec: ShopMediaSpec = SHOP_MEDIA.banner;
 

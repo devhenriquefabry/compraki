@@ -56,7 +56,7 @@
             <div class="st-viewport" #previewViewport>
               <!-- Réplica da página pública (seller-profile), na largura real. -->
               <div class="pp" #previewPage [class.pp--wide]="device === 'desktop'" [style.width.px]="previewWidth()"
-                   [style.--pp-primary]="primaryColor" [style.--pp-on]="onPrimaryColor" aria-hidden="true">
+                   [style.--shop]="primaryColor" [style.--on-shop]="onPrimaryColor" aria-hidden="true">
                 <div class="pp-site">
                   @if (device === 'phone') {
                     <span class="pp-site-back"></span><span class="pp-site-search"></span>
@@ -73,51 +73,51 @@
                     @if (uploading.banner) { <span class="pp-busy"><ion-spinner name="crescent"></ion-spinner></span> }
                   </div>
 
-                  <div class="pp-summary">
+                  <div class="pp-id">
                     <div class="pp-avatar">
                       @if (photoSrc) { <img [src]="photoSrc" alt="" referrerpolicy="no-referrer"> } @else { <span>{{ initials }}</span> }
                     </div>
-                    <div class="pp-heading">
-                      <div>
-                        <h2>{{ displayName }}</h2>
-                        @if (user?.username) { <p class="pp-handle">&#64;{{ user?.username }}</p> }
-                        <span class="pp-verified">
-                          <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.check" /></svg>
-                          Vendedor verificado
-                        </span>
-                      </div>
-                      <span class="pp-follow">
-                        <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.heart" /></svg>
-                        Seguir
-                      </span>
+                    <div class="pp-id-main">
+                      <h2>{{ displayName }}</h2>
+                      <p class="pp-meta">
+                        @if (user?.username) { <span>&#64;{{ user?.username }}</span> }
+                        @if (memberSince) { <span>Na Vineon desde {{ memberSince }}</span> }
+                      </p>
                     </div>
-                    <p class="pp-bio" [class.is-muted]="!form.shopDescription.trim()">
-                      {{ form.shopDescription.trim() || 'Este vendedor ainda não cadastrou uma descrição pública.' }}
-                    </p>
-                    <div class="pp-actions">
-                      <span class="pp-chip pp-chip--proof">
-                        <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.heart" /></svg>
-                        Seguidores
-                      </span>
-                      <span class="pp-chip pp-chip--primary">
-                        <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.chat" /></svg>
-                        Conversar
-                      </span>
-                      @if (whatsAppDigits.length >= 10) {
-                        <span class="pp-chip"><svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.whatsapp" /></svg>WhatsApp</span>
-                      }
-                      @if (instagramHandle) {
-                        <span class="pp-chip"><svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.instagram" /></svg>Instagram</span>
-                      }
+                    <div class="pp-cta">
+                      <span class="pp-btn pp-btn--shop"><svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.plus" /></svg>Seguir loja</span>
+                      <span class="pp-btn pp-btn--outline"><svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.chat" /></svg>Conversar</span>
+                      <span class="pp-icon-btn"><svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.share" /></svg></span>
                     </div>
+                  </div>
+
+                  <div class="pp-facts">
+                    <div><small>Avaliação</small>
+                      @if (storeRating) { <b>★ {{ storeRating.average }}<em>({{ storeRating.count }})</em></b> } @else { <b class="is-quiet">Sem notas</b> }
+                    </div>
+                    <div><small>Vendas</small><b>{{ soldCount }}</b></div>
+                    <div><small>Seguidores</small><b>{{ followerCount }}</b></div>
+                    <div><small>Anúncios</small><b>{{ productCount }}</b></div>
+                  </div>
+
+                  @if (form.shopDescription.trim()) {
+                    <p class="pp-bio">{{ form.shopDescription.trim() }}</p>
+                  }
+                </div>
+
+                <div class="pp-tabs">
+                  <div class="pp-tabs-in">
+                    <span class="pp-tab is-active">Produtos <i>{{ productCount }}</i></span>
+                    <span class="pp-tab">Avaliações <i>{{ storeRating?.count || 0 }}</i></span>
+                    @if (device === 'phone') { <span class="pp-tab">Sobre</span> }
                   </div>
                 </div>
 
-                <div class="pp-shell">
-                  <section class="pp-products">
-                    <div class="pp-title">
-                      <h3>{{ form.shopFeaturedTitle.trim() || 'Produtos do vendedor' }}</h3>
-                      <span>{{ productCount }} {{ productCount === 1 ? 'item' : 'itens' }}</span>
+                <div class="pp-body">
+                  <div class="pp-main">
+                    <div class="pp-head">
+                      <h3>{{ form.shopFeaturedTitle.trim() || 'Produtos da loja' }}</h3>
+                      <span>{{ productCount }} {{ productCount === 1 ? 'produto' : 'produtos' }}</span>
                     </div>
                     <div class="pp-grid">
                       @for (product of previewProducts; track $index) {
@@ -136,7 +136,14 @@
                         </div>
                       }
                     </div>
-                  </section>
+                  </div>
+                  @if (device === 'desktop') {
+                    <div class="pp-rail">
+                      <h3>Sobre a loja</h3>
+                      <i></i><i></i><i></i>
+                      <div class="pp-rail-guarantee"></div>
+                    </div>
+                  }
                 </div>
               </div>
             </div>
