@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { IonTabs, IonTabBar, IonTabButton } from '@ionic/angular/standalone';
@@ -15,6 +15,14 @@ import { VN_ICONS } from '../core/vn-icons';
  * Barra inferior do celular, no molde da Amazon: Início, Conta, Carrinho e
  * Menu. "Menu" não é uma aba — abre um painel por cima da página atual com o
  * que antes ficava espalhado em abas (Salvos, Vender) e na sidebar.
+ *
+ * NÃO usar `ChangeDetectionStrategy.OnPush` aqui. Este componente é o ancestral
+ * de todas as telas das abas (Início, Conta, Carrinho...): com OnPush o Angular
+ * pula a árvore inteira abaixo dele enquanto ele não for marcado como sujo, e
+ * dado do Firestore que chega depois da primeira renderização (rede lenta de
+ * celular) não marca nada — a home ficava para sempre no esqueleto de
+ * carregamento, até um toque na tela. O template daqui é todo de signals e
+ * custa o mesmo no modo padrão.
  */
 @Component({
   selector: 'app-tabs',
@@ -22,7 +30,6 @@ import { VN_ICONS } from '../core/vn-icons';
   styleUrls: ['tabs.page.scss'],
   standalone: true,
   imports: [IonTabs, IonTabBar, IonTabButton, RouterLink],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.menu-open]': 'menuOpen()' },
 })
 export class TabsPage {
