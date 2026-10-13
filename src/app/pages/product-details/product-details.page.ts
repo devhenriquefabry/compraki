@@ -6,19 +6,11 @@ import { Observable, Subject, combineLatest, firstValueFrom, from, of } from 'rx
 import { catchError, distinctUntilChanged, map, shareReplay, startWith, switchMap, takeUntil, take } from 'rxjs/operators';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
-  IonFooter, IonButton, IonIcon, IonModal, IonSpinner, ToastController
+  IonFooter, IonButton, IonModal, IonSpinner, ToastController
 } from '@ionic/angular/standalone';
 // O controller standalone não é provido neste app (IonicModule.forRoot); o do
 // pacote principal é.
 import { ModalController } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import {
-  heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, starOutline, checkmarkCircle,
-  closeCircle, cart, chevronForwardOutline, chevronBackOutline, chevronDown, chatbubbleEllipsesOutline, chatboxEllipsesOutline,
-  shieldCheckmarkOutline, returnDownBackOutline, cubeOutline, locationOutline, shareSocialOutline, removeOutline, addOutline,
-  flashOutline, giftOutline, cardOutline, cashOutline, qrCodeOutline, storefrontOutline, ribbonOutline, closeOutline,
-  createOutline, informationCircleOutline, timeOutline, pricetagOutline, flagOutline
-} from 'ionicons/icons';
 
 import { Product, ProductSpec } from 'src/app/interfaces/product';
 import { findSku, generalPhotos, variantAttributeNames, variantLabel } from 'src/app/core/product-variants';
@@ -52,6 +44,11 @@ import { ReportTargetType } from 'src/app/interfaces/content-report';
 import { LayoutService } from 'src/app/core/layout.service';
 import { requireAccount } from 'src/app/core/auth-redirect';
 import { onAuthUserChanged } from 'src/app/core/auth-state';
+import { STORE_ICONS, StoreIcon } from 'src/app/core/store-icons';
+import { SHOP_COLOR_DEFAULT, normalizeHex, textOnShopColor } from 'src/app/core/shop-color';
+import { toDate } from 'src/app/core/order-stage';
+import { ReviewStarsComponent } from 'src/app/components/review-stars/review-stars.component';
+import { ProductReviewsService } from 'src/app/services/product-reviews.service';
 
 /** Rótulos de condição como o comprador lê. */
 const CONDITION_LABELS: Record<Product['condition'], string> = {
@@ -61,10 +58,10 @@ const CONDITION_LABELS: Record<Product['condition'], string> = {
   'usado-aceitavel': 'Usado · aceitável',
 };
 
-const PAYMENT_META: Record<string, { label: string; icon: string }> = {
-  'PIX': { label: 'Pix', icon: 'qr-code-outline' },
-  'CARTÃO': { label: 'Cartão de crédito', icon: 'card-outline' },
-  'DINHEIRO': { label: 'Dinheiro', icon: 'cash-outline' },
+const PAYMENT_META: Record<string, { label: string; icon: StoreIcon }> = {
+  'PIX': { label: 'Pix', icon: 'qr' },
+  'CARTÃO': { label: 'Cartão de crédito', icon: 'card' },
+  'DINHEIRO': { label: 'Dinheiro', icon: 'cash' },
 };
 
 interface SellerStats {
@@ -96,9 +93,9 @@ interface SellerStats {
   imports: [
     CommonModule, RouterLink, StoreCouponsComponent,
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
-    IonFooter, IonButton, IonIcon, IonModal, IonSpinner,
+    IonFooter, IonButton, IonModal, IonSpinner,
     MiniHeaderComponent, ProductSelectorComponent, ChatBoxComponent, ProductRailComponent,
-    ProductGalleryComponent, ProductReviewsComponent, ProductQuestionsComponent
+    ProductGalleryComponent, ProductReviewsComponent, ProductQuestionsComponent, ReviewStarsComponent
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
@@ -111,6 +108,10 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   private readonly appConfig = inject(AppConfigService);
   private readonly modalCtrl = inject(ModalController);
   private readonly couponService = inject(CouponService);
+  private readonly reviewsService = inject(ProductReviewsService);
+
+  /** Ícones próprios (mesmo traço da vitrine e da página da loja). */
+  public readonly ic = STORE_ICONS;
 
   public product$: Observable<Product | null>;
   /** `undefined` enquanto carrega; `null` quando o produto não existe. */
@@ -125,6 +126,8 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   public moreFromSeller$: Observable<Product[]>;
   public sellerStats$: Observable<SellerStats>;
   public sellerFollowerCount$: Observable<number>;
+  /** Nota da loja: média das avaliações de compra verificada (igual à página da loja). */
+  public storeRating$: Observable<{ average: number; count: number } | null>;
   public isFollowingSeller$: Observable<boolean>;
   public cartQuantity$: Observable<number>;
   public breadcrumb$: Observable<{ category: Category | null; subcategoryName: string | null }>;
@@ -164,13 +167,6 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     private fbUsers: FirebaseUsersService,
     public route: ActivatedRoute
   ) {
-    addIcons({
-      heart, heartOutline, bagAddOutline, addCircleOutline, chatbubblesOutline, star, starOutline, checkmarkCircle,
-      closeCircle, cart, chevronForwardOutline, chevronBackOutline, chevronDown, chatbubbleEllipsesOutline, chatboxEllipsesOutline,
-      shieldCheckmarkOutline, returnDownBackOutline, cubeOutline, locationOutline, shareSocialOutline, removeOutline, addOutline,
-      flashOutline, giftOutline, cardOutline, cashOutline, qrCodeOutline, storefrontOutline, ribbonOutline, closeOutline,
-      createOutline, informationCircleOutline, timeOutline, pricetagOutline, flagOutline
-    });
     this.currentUserId = this.fbProducts.getUser()?.uid || '';
 
     const productId$ = this.route.params.pipe(map(params => params['id'] as string | undefined), distinctUntilChanged());
@@ -252,6 +248,16 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
 
     this.sellerFollowerCount$ = stableProduct$.pipe(
       switchMap(p => p?.sellerId ? this.fbUsers.getSellerFollowerCount(p.sellerId).pipe(catchError(() => of(0))) : of(0)),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.storeRating$ = stableProduct$.pipe(
+      switchMap(p => p?.sellerId ? this.reviewsService.watchStore(p.sellerId).pipe(catchError(() => of([]))) : of([])),
+      map(list => {
+        const rated = list.filter(r => typeof r.rating === 'number');
+        if (!rated.length) return null;
+        return { average: rated.reduce((sum, r) => sum + r.rating, 0) / rated.length, count: rated.length };
+      }),
       shareReplay({ bufferSize: 1, refCount: true })
     );
 
@@ -509,7 +515,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   public paymentMethods(product: Product) {
-    return (product.paymentMethods || []).map(m => ({ key: m, ...(PAYMENT_META[m] || { label: m, icon: 'cash-outline' }) }));
+    return (product.paymentMethods || []).map(m => ({ key: m, ...(PAYMENT_META[m] || { label: m, icon: 'cash' as StoreIcon }) }));
   }
 
   public canBuy(product: Product): boolean {
@@ -635,19 +641,19 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     await modal.present();
   }
 
-  public shippingInfo(product: Product): { title: string; detail: string; icon: string; highlight: boolean } {
+  public shippingInfo(product: Product): { title: string; detail: string; icon: StoreIcon; highlight: boolean } {
     const rule = this.appConfig.freeShippingRule();
     if (hasStoreFreeShipping(product, rule)) {
       const min = rule!.minValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      return { title: 'Frete grátis', detail: `Produtos a partir de ${min} têm frete grátis no Vineon.`, icon: 'gift-outline', highlight: true };
+      return { title: 'Frete grátis', detail: `Produtos a partir de ${min} têm frete grátis no Vineon.`, icon: 'gift', highlight: true };
     }
     switch (product.shipping) {
       case 'Frete Grátis':
-        return { title: 'Frete grátis', detail: 'O vendedor paga o envio para todo o Brasil.', icon: 'gift-outline', highlight: true };
+        return { title: 'Frete grátis', detail: 'O vendedor paga o envio para todo o Brasil.', icon: 'gift', highlight: true };
       case 'Entrega Expressa':
-        return { title: 'Entrega expressa', detail: 'Envio prioritário. Prazo e valor calculados no pagamento.', icon: 'flash-outline', highlight: true };
+        return { title: 'Entrega expressa', detail: 'Envio prioritário. Prazo e valor calculados no pagamento.', icon: 'bolt', highlight: true };
       default:
-        return { title: 'Frete calculado no pagamento', detail: 'Informe o CEP no checkout para ver prazos e valores.', icon: 'cube-outline', highlight: false };
+        return { title: 'Frete calculado no pagamento', detail: 'Informe o CEP no checkout para ver prazos e valores.', icon: 'truck', highlight: false };
     }
   }
 
@@ -694,7 +700,28 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
 
   public getSellerInitials(seller: PublicSellerProfile | null): string {
     const source = seller?.shopName || seller?.displayName || seller?.username || 'VN';
-    return source.split(' ').filter(Boolean).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase() || 'VN';
+    const words = source.split(/\s+/).filter(w => w && !/^(d[aeo]s?|e|&)$/i.test(w));
+    return words.slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'VN';
+  }
+
+  /** Desenho do ícone pelo nome (para nomes que vêm de dados, como o da entrega). */
+  public iconPath(name: string): string {
+    return (STORE_ICONS as Record<string, string>)[name] ?? '';
+  }
+
+  /** Cor da loja (Minha vitrine) e o texto legível sobre ela. */
+  public shopColor(seller: PublicSellerProfile | null): string {
+    return normalizeHex(seller?.shopPrimaryColor) || SHOP_COLOR_DEFAULT;
+  }
+
+  public onShopColor(seller: PublicSellerProfile | null): string {
+    return textOnShopColor(seller?.shopPrimaryColor);
+  }
+
+  /** "outubro de 2025" — o mesmo texto da página da loja. */
+  public memberSince(seller: PublicSellerProfile | null): string {
+    const date = toDate(seller?.createdAt);
+    return date ? date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
   }
 
   public sellerName(seller: PublicSellerProfile | null): string {
