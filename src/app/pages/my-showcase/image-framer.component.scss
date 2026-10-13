@@ -1,0 +1,247 @@
+/*
+ * Enquadramento: palco azul-noite (a imagem é o que importa), guias em lima —
+ * lima só sobre escuro, como no resto do app.
+ *
+ * Posição dos círculos da foto: medida na página pública (`seller-profile`).
+ *  - Celular (390 px): capa 5:2 = 156 px de altura; foto de 98 px com o centro a
+ *    68 px da borda, na linha de baixo da capa → 29,6 % da arte, 63 % da altura.
+ *  - Computador: capa 1104 × 276; centro a 113 px → 10,2 %, 35,5 % da altura.
+ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0B1623;
+  color: #fff;
+  font-family: var(--vn-font-body, 'Nunito', system-ui, sans-serif);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  &:disabled { cursor: default; }
+}
+
+svg {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fr {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.fr-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: var(--ion-safe-area-top, 0) 10px 0 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fr-title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--vn-font-display, 'Sora', sans-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.fr-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 22px;
+  transition: background-color 0.15s;
+  &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+  &:disabled { opacity: 0.35; }
+}
+
+.fr-done {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: #D8F51F;
+  color: #0B1623;
+  font-weight: 800;
+  font-size: 14.5px;
+  &:disabled { opacity: 0.45; }
+}
+
+:is(button, .fr-frame, input):focus-visible {
+  outline: 2px solid #D8F51F;
+  outline-offset: 2px;
+}
+
+.fr-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(216, 245, 31, 0.06), transparent 60%),
+    #0B1623;
+}
+
+.fr-frame {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #13233A;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 18px 48px rgba(0, 0, 0, 0.45);
+
+  &:active { cursor: grabbing; }
+
+  &.is-circle {
+    width: min(100%, 360px);
+    border-radius: 8px;
+  }
+}
+
+.fr-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  &.is-ready { opacity: 1; }
+}
+
+/* Laterais que o celular corta ficam veladas; o miolo, tracejado. */
+.fr-safe {
+  position: absolute;
+  inset: 0 18.75%;
+  border-left: 1.5px dashed #D8F51F;
+  border-right: 1.5px dashed #D8F51F;
+  box-shadow: 0 0 0 100vmax rgba(11, 22, 35, 0.5);
+  pointer-events: none;
+}
+
+.fr-tag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(11, 22, 35, 0.78);
+  color: #D8F51F;
+  font: 700 10.5px/1.4 ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.fr-avatar {
+  position: absolute;
+  top: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 255, 255, 0.9);
+  background: rgba(11, 22, 35, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+
+  &--phone { left: 29.6%; height: 63%; }
+  &--desk { left: 10.2%; height: 35.5%; border-color: rgba(255, 255, 255, 0.55); }
+}
+
+/* Foto: o que fica fora do círculo é cortado na loja. */
+.fr-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 100vmax rgba(11, 22, 35, 0.72);
+  outline: 1.5px dashed #D8F51F;
+  pointer-events: none;
+}
+
+.fr-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+
+  svg { font-size: 26px; color: #D8F51F; }
+  p { margin: 0; max-width: 300px; }
+}
+
+.fr-controls {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px calc(16px + var(--ion-safe-area-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #13233A;
+}
+
+.fr-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto;
+
+  input {
+    flex: 1;
+    accent-color: #D8F51F;
+    height: 28px;
+  }
+}
+
+.fr-quality {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+
+  svg { font-size: 16px; margin-top: 1px; color: #D8F51F; }
+  &[data-q='low'] { color: #FFD6C2; svg { color: #FF9F7A; } }
+}
+
+.fr-hint {
+  margin: 0 auto;
+  max-width: 520px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fr-img, .fr-icon { transition: none; }
+}

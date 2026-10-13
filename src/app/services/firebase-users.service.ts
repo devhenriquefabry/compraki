@@ -80,9 +80,13 @@ export class FirebaseUsersService {
    * `getPublicSellerProfile()`.
    */
   async getUserById(uid: string): Promise<AppUser | null> {
-    const { getDoc } = await import('firebase/firestore');
+    const { getDoc, getDocFromServer } = await import('firebase/firestore');
     const userRef = doc(this.db, 'users', uid);
-    const snap = await getDoc(userRef);
+    // Do servidor: logo ao abrir o app, `ensureAppUserDocument` e a presença
+    // online gravam neste documento, e o `getDoc` às vezes devolvia só esses
+    // campos pendentes (sem shopName, shopBanner...). Quem salvava o formulário
+    // em seguida apagava a vitrine. Sem rede, cai no cache.
+    const snap = await getDocFromServer(userRef).catch(() => getDoc(userRef));
     if (snap.exists()) {
       return snap.data() as AppUser;
     }

@@ -941,7 +941,11 @@ export const HELP_TOPICS: HelpTopic[] = [
         a: [
           {
             t: 'p',
-            text: 'Em **Minha conta › Perfil de vendedor** você define o nome da loja, a foto e a descrição. A vitrine com todos os seus anúncios é a página que o cliente vê ao abrir a sua loja.',
+            text: 'Em **Minha vitrine** você define a capa, a foto, o nome, a descrição, a cor e o contato da loja, e vê na hora como a página fica no celular e no computador. A loja só muda para os clientes quando você salva.',
+          },
+          {
+            t: 'p',
+            text: '**Medidas:** capa de **1920 × 480 px** (proporção 4:1) e foto/logo quadrada de **800 × 800 px**. No celular a capa mostra só os 1200 px do meio — deixe logo e textos ali. Antes de enviar você enquadra a imagem, e o Vineon grava no tamanho certo.',
           },
         ],
         links: [

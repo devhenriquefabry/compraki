@@ -8,26 +8,34 @@
 
 .profile-hero {
   --seller-primary: var(--seller-primary-default);
+  --seller-on-primary: #0B1623;
   background: #fff;
   border-bottom: 1px solid #edf1f6;
 }
 
+/*
+ * Capa: proporções fixas (core/shop-media.ts) para a orientação de "Minha
+ * vitrine" valer — arte de 1920 x 480 (4:1). No celular ocupa a largura em 5:2
+ * e mostra só o meio da arte; a partir de 768 px aparece inteira, numa faixa de
+ * até 1104 px. A prévia da vitrine (.pp-cover) repete estas medidas.
+ */
 .seller-cover {
-  height: 180px;
+  aspect-ratio: 5 / 2;
   background-size: cover;
   background-position: center;
   position: relative;
+  overflow: hidden;
 
   &::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(11, 22, 35, 0.08), rgba(11, 22, 35, 0.52));
+    background: linear-gradient(180deg, rgba(11, 22, 35, 0) 55%, rgba(11, 22, 35, 0.28));
   }
 
   &.empty-cover {
     background:
-      radial-gradient(circle at 18% 20%, rgba(216, 245, 31, 0.28), transparent 30%),
+      radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--seller-primary) 40%, transparent), transparent 34%),
       linear-gradient(135deg, #0B1623 0%, #13233A 100%);
   }
 }
@@ -43,8 +51,8 @@
   height: 88px;
   border-radius: 50%;
   border: 5px solid #fff;
-  background: rgba(216, 245, 31, 0.22);
-  color: var(--seller-primary);
+  background: #EEF6C2;
+  color: #0B1623;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,7 +125,6 @@
   gap: 6px;
 
   ion-icon {
-    color: var(--seller-primary);
     font-size: 17px;
   }
 
@@ -129,10 +136,10 @@
   &.following {
     background: var(--seller-primary);
     border-color: var(--seller-primary);
-    color: #fff;
+    color: var(--seller-on-primary);
 
     ion-icon {
-      color: #fff;
+      color: var(--seller-on-primary);
     }
   }
 }
@@ -168,13 +175,13 @@
     gap: 7px;
     white-space: nowrap;
 
-    &:first-child {
-      background: var(--seller-primary);
-      color: #fff;
-    }
-
     &:disabled {
       opacity: 0.55;
+    }
+
+    &.primary-action {
+      background: var(--seller-primary);
+      color: var(--seller-on-primary);
     }
 
     &.social-proof {
@@ -309,6 +316,20 @@
     color: #0B1623;
     font-size: 1.08rem;
     font-weight: 950;
+  }
+
+  .featured-products & h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 18px;
+      border-radius: 2px;
+      background: var(--seller-primary);
+    }
   }
 
   span {
@@ -478,7 +499,10 @@
 
 @media (min-width: 768px) {
   .seller-cover {
-    height: 240px;
+    aspect-ratio: 4 / 1;
+    width: min(1104px, calc(100% - 48px));
+    margin: 16px auto 0;
+    border-radius: 18px;
   }
 
   .seller-summary {

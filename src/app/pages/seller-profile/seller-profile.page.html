@@ -6,7 +6,7 @@
   <ng-container *ngIf="seller$ | async as seller; else loadingState">
     <ng-container *ngIf="products$ | async as products">
       <ng-container *ngIf="stats$ | async as stats">
-        <section class="profile-hero" [style.--seller-primary]="seller.shopPrimaryColor || '#D8F51F'">
+        <section class="profile-hero" [style.--seller-primary]="seller.shopPrimaryColor || '#D8F51F'" [style.--seller-on-primary]="textOn(seller.shopPrimaryColor)">
           <div
             class="seller-cover"
             [class.empty-cover]="!seller.shopBanner"
@@ -73,7 +73,7 @@
                 <ion-icon name="heart"></ion-icon>
                 {{ formatCompactCount((followerCount$ | async) || 0) }} seguidores
               </button>
-              <button type="button" (click)="startChat(seller)" [disabled]="isOwnProfile(seller)">
+              <button type="button" class="primary-action" (click)="startChat(seller)" [disabled]="isOwnProfile(seller)">
                 <ion-icon name="chatbubbles-outline"></ion-icon>
                 Conversar
               </button>
@@ -99,7 +99,7 @@
           </div>
         </section>
 
-        <main class="profile-shell">
+        <main class="profile-shell" [style.--seller-primary]="seller.shopPrimaryColor || '#D8F51F'">
           <section class="products-section featured-products">
             <div class="section-title">
               <h2>{{ seller.shopFeaturedTitle || 'Produtos do vendedor' }}</h2>

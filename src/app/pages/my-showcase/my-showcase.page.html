@@ -1,165 +1,366 @@
-<ion-header class="ion-no-border">
-  <div class="header-content">
-    <button type="button" class="back-button" (click)="goBack()">
-      <ion-icon name="arrow-back-outline"></ion-icon>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.arrowLeft" /></svg>
     </button>
-    <h1>Perfil de vendedor</h1>
-    <button type="button" class="save-pill" (click)="saveShowcase()" [disabled]="isSaving">
-      @if (isSaving) {
-        <ion-spinner name="crescent"></ion-spinner>
-      } @else {
-        <ion-icon name="cloud-upload-outline"></ion-icon>
-        Salvar
-      }
-    </button>
+    <h1 class="pg-title">Minha vitrine</h1>
+    @if (publicPath) {
+      <a class="pg-text-btn sv-open" [routerLink]="publicPath">
+        Ver loja
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.external" /></svg>
+      </a>
+    }
   </div>
 </ion-header>
 
-<ion-content class="showcase-content">
-  <div class="setup-container">
-    <!-- Live Preview Section -->
-    <section class="preview-section">
-      <div class="section-header">
-        <ion-icon name="eye-outline"></ion-icon>
-        <span>Prévia do perfil de vendedor</span>
-      </div>
-      
-      <div class="mockup-phone">
-        <div class="shop-preview" [style.--primary-color]="showcaseForm.shopPrimaryColor">
-          <div class="preview-banner" [style.background-image]="showcaseForm.shopBanner ? 'url(' + showcaseForm.shopBanner + ')' : 'linear-gradient(135deg, #13233A, #0B1623)'">
-            <div class="banner-overlay"></div>
-            @if (isUploadingBanner) {
-              <div class="banner-loader">
-                <ion-spinner name="lines-sharp"></ion-spinner>
-              </div>
-            }
-          </div>
-          
-          <div class="preview-info">
-            <div class="preview-avatar">
-              <img [src]="usuario?.photoURL || 'assets/imagens/default-avatar.png'" alt="Avatar">
-            </div>
-            <div class="preview-text">
-              <h3>{{ showcaseForm.shopName || 'Nome da sua Loja' }}</h3>
-              <p>{{ showcaseForm.shopDescription || 'Uma breve descrição sobre o que você vende e sua paixão por produtos incríveis.' }}</p>
-            </div>
-            
-            <div class="preview-actions">
-              <button class="preview-btn-main">Seguir Loja</button>
-              <button class="preview-btn-outline">Mensagem</button>
-            </div>
-          </div>
-
-          <div class="preview-tabs">
-            <span class="active">Produtos</span>
-            <span>Avaliações</span>
-            <span>Sobre</span>
-          </div>
+<ion-content class="pg-content">
+  <div class="sv-wrap">
+    @if (loading) {
+      <div class="sv-grid" aria-hidden="true">
+        <div class="sv-stage sv-stage--sk"><div class="sk sv-sk-preview"></div></div>
+        <div class="sv-form">
+          <div class="sheet"><div class="sk sv-sk-banner"></div><div class="sk sk-line sk-w80"></div><div class="sk sk-line sk-w40"></div></div>
+          <div class="sheet"><div class="sk sk-panel"></div><div class="sk sk-panel"></div></div>
         </div>
       </div>
-    </section>
+    } @else if (loadFailed) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.store" /></svg></span>
+        <h2>Não deu para abrir sua vitrine</h2>
+        <p>Confira a internet e abra a página de novo. Se continuar, entre na sua conta outra vez.</p>
+      </div>
+    } @else {
+      <p class="sv-lead">O que você muda aqui aparece na prévia na hora. Quem visita a sua loja só vê depois que você salvar.</p>
 
-    <!-- Customization Form -->
-    <section class="config-section">
-      <div class="config-card">
-        <div class="field-group">
-          <div class="field-header">
-            <ion-icon name="image-outline"></ion-icon>
-            <h3>Aparência Visual</h3>
+      <div class="sv-grid">
+        <!-- ========================================================== prévia -->
+        <aside class="sv-stage" aria-label="Prévia da sua loja">
+          <div class="st-bar">
+            <div class="st-seg" role="radiogroup" aria-label="Ver a prévia como">
+              <button type="button" role="radio" [attr.aria-checked]="device === 'phone'" [class.is-on]="device === 'phone'" (click)="setDevice('phone')">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.smartphone" /></svg>
+                Celular
+              </button>
+              <button type="button" role="radio" [attr.aria-checked]="device === 'desktop'" [class.is-on]="device === 'desktop'" (click)="setDevice('desktop')">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.monitor" /></svg>
+                Computador
+              </button>
+            </div>
+            <button type="button" class="st-guides" [class.is-on]="showGuides" [attr.aria-pressed]="showGuides" (click)="showGuides = !showGuides">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.crop" /></svg>
+              Cortes
+            </button>
           </div>
-          
-          <div class="banner-upload-box" (click)="bannerInput.click()">
-            @if (showcaseForm.shopBanner) {
-              <img [src]="showcaseForm.shopBanner" alt="Banner Preview">
-              <div class="upload-overlay">
-                <ion-icon name="camera-outline"></ion-icon>
-                <span>Alterar Banner</span>
+
+          <div class="st-device" [class.is-phone]="device === 'phone'" [class.is-desktop]="device === 'desktop'">
+            <div class="st-viewport" #previewViewport>
+              <!-- Réplica da página pública (seller-profile), na largura real. -->
+              <div class="pp" #previewPage [class.pp--wide]="device === 'desktop'" [style.width.px]="previewWidth()"
+                   [style.--pp-primary]="primaryColor" [style.--pp-on]="onPrimaryColor" aria-hidden="true">
+                <div class="pp-site">
+                  @if (device === 'phone') {
+                    <span class="pp-site-back"></span><span class="pp-site-search"></span>
+                  } @else {
+                    <span class="pp-site-logo">vineon</span><span class="pp-site-search"></span><span class="pp-site-links"></span>
+                  }
+                </div>
+
+                <div class="pp-hero">
+                  <div class="pp-cover" [class.is-empty]="!bannerSrc" [style.background-image]="bannerSrc ? 'url(' + bannerSrc + ')' : null">
+                    @if (showGuides && device === 'desktop') {
+                      <span class="pp-guide"><span>celular</span></span>
+                    }
+                    @if (uploading.banner) { <span class="pp-busy"><ion-spinner name="crescent"></ion-spinner></span> }
+                  </div>
+
+                  <div class="pp-summary">
+                    <div class="pp-avatar">
+                      @if (photoSrc) { <img [src]="photoSrc" alt="" referrerpolicy="no-referrer"> } @else { <span>{{ initials }}</span> }
+                    </div>
+                    <div class="pp-heading">
+                      <div>
+                        <h2>{{ displayName }}</h2>
+                        @if (user?.username) { <p class="pp-handle">&#64;{{ user?.username }}</p> }
+                        <span class="pp-verified">
+                          <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.check" /></svg>
+                          Vendedor verificado
+                        </span>
+                      </div>
+                      <span class="pp-follow">
+                        <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.heart" /></svg>
+                        Seguir
+                      </span>
+                    </div>
+                    <p class="pp-bio" [class.is-muted]="!form.shopDescription.trim()">
+                      {{ form.shopDescription.trim() || 'Este vendedor ainda não cadastrou uma descrição pública.' }}
+                    </p>
+                    <div class="pp-actions">
+                      <span class="pp-chip pp-chip--proof">
+                        <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.heart" /></svg>
+                        Seguidores
+                      </span>
+                      <span class="pp-chip pp-chip--primary">
+                        <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.chat" /></svg>
+                        Conversar
+                      </span>
+                      @if (whatsAppDigits.length >= 10) {
+                        <span class="pp-chip"><svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.whatsapp" /></svg>WhatsApp</span>
+                      }
+                      @if (instagramHandle) {
+                        <span class="pp-chip"><svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.instagram" /></svg>Instagram</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pp-shell">
+                  <section class="pp-products">
+                    <div class="pp-title">
+                      <h3>{{ form.shopFeaturedTitle.trim() || 'Produtos do vendedor' }}</h3>
+                      <span>{{ productCount }} {{ productCount === 1 ? 'item' : 'itens' }}</span>
+                    </div>
+                    <div class="pp-grid">
+                      @for (product of previewProducts; track $index) {
+                        <div class="pp-card" [class.is-ghost]="!product">
+                          <div class="pp-card-img">
+                            @if (product) { <img [src]="productImage(product)" alt="" loading="lazy"> }
+                          </div>
+                          <div class="pp-card-info">
+                            @if (product) {
+                              <strong>{{ product.name }}</strong>
+                              <span>{{ formatPrice(product.price) }}</span>
+                            } @else {
+                              <i></i><i></i>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </section>
+                </div>
               </div>
+            </div>
+          </div>
+
+          <p class="st-note">
+            @if (device === 'phone') {
+              No celular a capa mostra só o centro da imagem.
             } @else {
-              <div class="upload-placeholder">
-                <ion-icon name="add-circle-outline"></ion-icon>
-                <span>Adicionar Banner de Capa</span>
-                <small>Recomendado: 1200 x 400 pixels</small>
-              </div>
+              No computador a capa aparece inteira.{{ showGuides ? ' O tracejado é o que o celular mostra.' : '' }}
             }
-            <input #bannerInput type="file" accept="image/*" hidden (change)="onBannerSelected($event)">
-          </div>
+          </p>
 
-          <div class="color-pickers">
-            <label class="color-field">
-              <span>Cor Principal</span>
-              <div class="color-input-wrap">
-                <input type="color" [(ngModel)]="showcaseForm.shopPrimaryColor">
-                <code>{{ showcaseForm.shopPrimaryColor }}</code>
+          @if (missing.length) {
+            <p class="st-missing">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.plus" /></svg>
+              Loja completa vende mais. Falta: {{ missing.join(', ') }}.
+            </p>
+          }
+
+          <div class="st-link">
+            <span class="st-link-url" [title]="publicUrl">{{ publicUrlLabel }}</span>
+            <button type="button" class="st-link-btn" (click)="copyLink()">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="linkCopied ? ic.check : ic.copy" /></svg>
+              <span aria-live="polite">{{ linkCopied ? 'Copiado' : 'Copiar link' }}</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- ====================================================== formulário -->
+        <div class="sv-form">
+          <!-- Capa e foto -->
+          <section class="sheet" aria-labelledby="sv-images">
+            <h2 class="sheet-title" id="sv-images">
+              <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.image" /></svg>Capa e foto</span>
+            </h2>
+
+            <div class="md-banner" [class.is-empty]="!bannerSrc">
+              @if (bannerSrc) {
+                <img [src]="bannerSrc" alt="Capa atual da loja">
+              } @else {
+                <label class="md-banner-empty" for="sv-banner-file">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.camera" /></svg>
+                  <strong>Adicionar capa</strong>
+                  <small>Uma foto dos seus produtos ou a arte da sua marca</small>
+                </label>
+              }
+              <span class="md-safe" aria-hidden="true"></span>
+              @if (uploading.banner) { <span class="md-busy"><ion-spinner name="crescent"></ion-spinner>Enviando…</span> }
+            </div>
+
+            <dl class="spec" aria-label="Medidas da capa">
+              <div><dt>Tamanho ideal</dt><dd>{{ media.banner.width }} × {{ media.banner.height }} px</dd></div>
+              <div><dt>Proporção</dt><dd>{{ media.banner.ratioLabel }} (larga)</dd></div>
+              <div><dt>No celular</dt><dd>só os {{ mobileSafe }} px do meio</dd></div>
+              <div><dt>Arquivo</dt><dd>JPG, PNG ou WEBP · até 15 MB</dd></div>
+            </dl>
+            <p class="hint">Deixe logo e textos dentro da faixa tracejada e longe do canto de baixo à esquerda, onde fica a sua foto. Imagem maior ou de outra proporção? Você enquadra antes de enviar.</p>
+
+            <div class="row-actions">
+              <label class="btn btn--outline" for="sv-banner-file">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.camera" /></svg>
+                {{ bannerSrc ? 'Trocar capa' : 'Escolher imagem' }}
+              </label>
+              @if (bannerSrc) {
+                <button type="button" class="btn btn--ghost" (click)="removeBanner()" [disabled]="uploading.banner">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.trash" /></svg>
+                  Remover
+                </button>
+              }
+              <input id="sv-banner-file" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp"
+                     (change)="onImagePicked('banner', $event)" [disabled]="uploading.banner">
+            </div>
+
+            <div class="md-photo">
+              <div class="md-photo-ring">
+                @if (photoSrc) { <img [src]="photoSrc" alt="Foto atual da loja" referrerpolicy="no-referrer"> } @else { <span>{{ initials }}</span> }
+                @if (uploading.photo) { <span class="md-busy md-busy--round"><ion-spinner name="crescent"></ion-spinner></span> }
               </div>
-            </label>
-            <label class="color-field">
-              <span>Cor de Acento</span>
-              <div class="color-input-wrap">
-                <input type="color" [(ngModel)]="showcaseForm.shopSecondaryColor">
-                <code>{{ showcaseForm.shopSecondaryColor }}</code>
+              <div class="md-photo-body">
+                <strong>Foto ou logo da loja</strong>
+                <p class="spec-inline"><span>{{ media.photo.width }} × {{ media.photo.height }} px</span> · quadrada · aparece em círculo</p>
+                <p class="hint">Mínimo de {{ media.photo.minWidth }} px. Deixe a logo com folga nas bordas. É também a foto da sua conta e das conversas.</p>
+                <label class="btn btn--outline btn--sm" for="sv-photo-file">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.camera" /></svg>
+                  {{ photoSrc ? 'Trocar foto' : 'Escolher foto' }}
+                </label>
+                <input id="sv-photo-file" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp"
+                       (change)="onImagePicked('photo', $event)" [disabled]="uploading.photo">
               </div>
-            </label>
-          </div>
-        </div>
+            </div>
+          </section>
 
-        <div class="field-group">
-          <div class="field-header">
-            <ion-icon name="create-outline"></ion-icon>
-            <h3>Informações da Loja</h3>
-          </div>
+          <!-- Apresentação -->
+          <section class="sheet" aria-labelledby="sv-about">
+            <h2 class="sheet-title" id="sv-about">
+              <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.text" /></svg>Apresentação</span>
+            </h2>
 
-          <label class="input-block">
-            <span>Nome público do vendedor</span>
-            <input type="text" [(ngModel)]="showcaseForm.shopName" placeholder="Ex: Boutique do Henrique">
-          </label>
-
-          <label class="input-block">
-            <span>Bio / Descrição</span>
-            <textarea rows="3" [(ngModel)]="showcaseForm.shopDescription" placeholder="Conte um pouco sobre sua loja e o que você oferece..."></textarea>
-          </label>
-
-          <label class="input-block">
-            <span>Título dos Destaques</span>
-            <input type="text" [(ngModel)]="showcaseForm.shopFeaturedTitle" placeholder="Ex: Ofertas da Semana">
-          </label>
-        </div>
-
-        <div class="field-group">
-          <div class="field-header">
-            <ion-icon name="share-social-outline"></ion-icon>
-            <h3>Redes e Contato</h3>
-          </div>
-
-          <div class="social-grid">
-            <label class="input-block">
-              <span>Instagram</span>
-              <div class="input-with-icon">
-                <ion-icon name="logo-instagram"></ion-icon>
-                <input type="text" [(ngModel)]="showcaseForm.shopInstagram" placeholder="@usuario">
+            <div class="field">
+              <div class="field-top">
+                <label for="sv-name">Nome da loja</label>
+                <span class="count" [class.is-near]="form.shopName.length > limits.name - 6">{{ form.shopName.length }}/{{ limits.name }}</span>
               </div>
-            </label>
+              <input id="sv-name" type="text" [(ngModel)]="form.shopName" [maxlength]="limits.name"
+                     [placeholder]="user?.displayName || 'Ex.: Casa Fabry Eletrônicos'" autocomplete="organization">
+            </div>
 
-            <label class="input-block">
-              <span>WhatsApp de Vendas</span>
-              <div class="input-with-icon">
-                <ion-icon name="logo-whatsapp"></ion-icon>
-                <input type="tel" [(ngModel)]="showcaseForm.shopWhatsApp" placeholder="(00) 00000-0000">
+            <div class="field">
+              <div class="field-top">
+                <label for="sv-desc">Descrição</label>
+                <span class="count" [class.is-near]="form.shopDescription.length > limits.description - 30">{{ form.shopDescription.length }}/{{ limits.description }}</span>
               </div>
-            </label>
-          </div>
+              <textarea id="sv-desc" rows="4" [(ngModel)]="form.shopDescription" [maxlength]="limits.description"
+                        placeholder="Ex.: Eletrônicos novos com nota fiscal, enviados de Curitiba em até 24 h. Garantia de 90 dias em tudo." aria-describedby="sv-desc-hint"></textarea>
+              <p class="hint" id="sv-desc-hint">Conte o que você vende, de onde envia e por que comprar com você.</p>
+            </div>
+
+            <div class="field">
+              <div class="field-top">
+                <label for="sv-featured">Título da lista de produtos</label>
+                <span class="count" [class.is-near]="form.shopFeaturedTitle.length > limits.featured - 6">{{ form.shopFeaturedTitle.length }}/{{ limits.featured }}</span>
+              </div>
+              <input id="sv-featured" type="text" [(ngModel)]="form.shopFeaturedTitle" [maxlength]="limits.featured"
+                     placeholder="Produtos do vendedor" aria-describedby="sv-featured-hint">
+              <p class="hint" id="sv-featured-hint">Aparece acima dos seus anúncios. Ex.: “Lançamentos da semana”.</p>
+            </div>
+          </section>
+
+          <!-- Cor -->
+          <section class="sheet" aria-labelledby="sv-color">
+            <h2 class="sheet-title" id="sv-color">
+              <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.palette" /></svg>Cor da loja</span>
+              <span class="color-sample" [style.background]="primaryColor" [style.color]="onPrimaryColor">Conversar</span>
+            </h2>
+            <p class="hint hint--top">Vai no botão principal e nos destaques da sua página. O texto em cima troca sozinho entre claro e escuro para continuar legível.</p>
+
+            <div class="swatches" role="radiogroup" aria-label="Cor da loja">
+              @for (sw of swatches; track sw.hex) {
+                <button type="button" class="swatch" role="radio" [attr.aria-checked]="primaryColor === sw.hex"
+                        [class.is-on]="primaryColor === sw.hex" [style.background]="sw.hex" [attr.aria-label]="sw.name" [title]="sw.name"
+                        (click)="pickColor(sw.hex)">
+                  @if (primaryColor === sw.hex) {
+                    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" [style.color]="onPrimaryColor"><path [attr.d]="ic.check" /></svg>
+                  }
+                </button>
+              }
+              <label class="swatch swatch--custom" [class.is-on]="isCustomColor" [style.background]="isCustomColor ? primaryColor : null" title="Outra cor">
+                <input type="color" [value]="primaryColor" (input)="onCustomColor($event)" aria-label="Escolher outra cor">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" [style.color]="isCustomColor ? onPrimaryColor : null"><path [attr.d]="isCustomColor ? ic.check : ic.plus" /></svg>
+              </label>
+            </div>
+
+            <div class="field field--hex">
+              <label for="sv-hex">Código da cor</label>
+              <input id="sv-hex" type="text" inputmode="text" spellcheck="false" maxlength="7"
+                     [ngModel]="primaryColor" (ngModelChange)="onHexTyped($event)" [ngModelOptions]="{ updateOn: 'blur' }">
+            </div>
+          </section>
+
+          <!-- Contato -->
+          <section class="sheet" aria-labelledby="sv-contact">
+            <h2 class="sheet-title" id="sv-contact">
+              <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.chat" /></svg>Contato na loja</span>
+            </h2>
+            <p class="hint hint--top">Viram botões públicos na sua página. Deixe em branco para não mostrar. As conversas pelo Vineon continuam valendo de qualquer jeito.</p>
+
+            <div class="field">
+              <label for="sv-ig">Instagram</label>
+              <div class="affix" [class.is-invalid]="instagramError">
+                <span class="affix-pre"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.instagram" /></svg>instagram.com/</span>
+                <input id="sv-ig" type="text" autocapitalize="off" autocomplete="off" spellcheck="false"
+                       [ngModel]="instagramHandle" (ngModelChange)="form.shopInstagram = $event" (blur)="normalizeInstagram()"
+                       placeholder="sualoja" [attr.aria-invalid]="!!instagramError" aria-describedby="sv-ig-msg">
+              </div>
+              @if (instagramError) { <p class="error" id="sv-ig-msg" role="alert">{{ instagramError }}</p> }
+              @else { <p class="hint" id="sv-ig-msg">Pode colar o link do perfil.</p> }
+            </div>
+
+            <div class="field">
+              <label for="sv-wa">WhatsApp de vendas</label>
+              <div class="affix" [class.is-invalid]="whatsAppError">
+                <span class="affix-pre"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.whatsapp" /></svg>+55</span>
+                <input id="sv-wa" type="tel" inputmode="numeric" autocomplete="tel-national"
+                       [ngModel]="form.shopWhatsApp" (ngModelChange)="onWhatsAppInput($event)" (blur)="validateWhatsApp()"
+                       placeholder="(11) 98765-4321" [attr.aria-invalid]="!!whatsAppError" aria-describedby="sv-wa-msg">
+              </div>
+              @if (whatsAppError) {
+                <p class="error" id="sv-wa-msg" role="alert">{{ whatsAppError }}</p>
+              } @else if (!form.shopWhatsApp && accountPhone) {
+                <p class="hint" id="sv-wa-msg">
+                  <button type="button" class="link-btn" (click)="useAccountPhone()">Usar o número da conta: {{ accountPhone }}</button>
+                </p>
+              } @else {
+                <p class="hint" id="sv-wa-msg">Fica visível para qualquer visitante da loja.</p>
+              }
+            </div>
+          </section>
         </div>
       </div>
-
-      <button class="save-button-full" (click)="saveShowcase()" [disabled]="isSaving">
-        @if (isSaving) {
-          <ion-spinner name="crescent"></ion-spinner>
-          Salvando...
-        } @else {
-          <ion-icon name="save-outline"></ion-icon>
-          Atualizar perfil de vendedor
-        }
-      </button>
-    </section>
+    }
   </div>
 </ion-content>
+
+@if (!loading && !loadFailed) {
+  <ion-footer class="ion-no-border sv-footer">
+    <div class="sv-footer-in">
+      <button type="button" class="pg-icon-btn sv-footer-preview" (click)="scrollToPreview()" aria-label="Ver a prévia da loja" title="Ver a prévia">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.smartphone" /></svg>
+      </button>
+      <p class="sv-state" [class.is-dirty]="isDirty" aria-live="polite">
+        @if (busyUploading) { Enviando imagem… }
+        @else if (hasErrors) { Corrija o contato para salvar }
+        @else if (isDirty) { Alterações não salvas }
+        @else { Tudo salvo }
+      </p>
+      <button type="button" class="btn btn--primary" (click)="save()" [disabled]="!canSave">
+        @if (saving) {
+          <ion-spinner name="crescent"></ion-spinner> Salvando…
+        } @else {
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.check" /></svg>
+          Salvar alterações
+        }
+      </button>
+    </div>
+  </ion-footer>
+}

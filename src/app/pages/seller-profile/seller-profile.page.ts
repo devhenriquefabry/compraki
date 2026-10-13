@@ -40,6 +40,7 @@ import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { requireAccount } from 'src/app/core/auth-redirect';
+import { textOnShopColor } from 'src/app/core/shop-color';
 import { ReportModalComponent } from 'src/app/components/report-modal/report-modal.component';
 
 interface SellerStats {
@@ -156,6 +157,11 @@ export class SellerProfilePage implements OnInit, OnDestroy {
 
   public isOwnProfile(seller: PublicSellerProfile): boolean {
     return !!seller.uid && seller.uid === this.currentUserId;
+  }
+
+  /** Texto legível sobre a cor da loja (azul-noite ou branco). */
+  public textOn(color?: string | null): string {
+    return textOnShopColor(color);
   }
 
   public getDisplayName(seller: PublicSellerProfile): string {

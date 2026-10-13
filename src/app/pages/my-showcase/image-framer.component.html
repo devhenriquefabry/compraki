@@ -1,0 +1,91 @@
+<div class="fr">
+  <header class="fr-head">
+    <button type="button" class="fr-icon" (click)="cancel()" aria-label="Cancelar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.close" /></svg>
+    </button>
+    <h2 class="fr-title">{{ kind === 'banner' ? 'Enquadrar capa' : 'Enquadrar foto' }}</h2>
+    <button type="button" class="fr-done" (click)="confirm()" [disabled]="!ready() || busy() || failed()">
+      {{ busy() ? 'Preparando…' : 'Usar imagem' }}
+    </button>
+  </header>
+
+  <div class="fr-stage">
+    <div
+      #frame
+      class="fr-frame"
+      [class.is-circle]="spec.shape === 'circle'"
+      [style.aspect-ratio]="spec.width + ' / ' + spec.height"
+      tabindex="0"
+      role="group"
+      aria-roledescription="área de enquadramento"
+      [attr.aria-label]="'Arraste ou use as setas para posicionar. + e − aproximam.'"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+      (wheel)="onWheel($event)"
+      (keydown)="onKeydown($event)">
+      @if (src() && !failed()) {
+        <img class="fr-img" [src]="src()" alt="" draggable="false" [style]="imageStyle()" [class.is-ready]="ready()">
+      }
+
+      @if (kind === 'banner') {
+        <!-- Faixa que o celular mostra e onde a foto da loja cobre a capa. -->
+        <div class="fr-safe" aria-hidden="true">
+          <span class="fr-tag">Visível no celular · {{ mobileSafe }} px</span>
+        </div>
+        <span class="fr-avatar fr-avatar--phone" aria-hidden="true"></span>
+        <span class="fr-avatar fr-avatar--desk" aria-hidden="true"></span>
+      } @else {
+        <span class="fr-ring" aria-hidden="true"></span>
+      }
+
+      @if (failed()) {
+        <div class="fr-error" role="alert">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.alert" /></svg>
+          <p>Não deu para abrir esta imagem aqui. Salve como JPG ou PNG e escolha de novo.</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="fr-controls">
+    <div class="fr-zoom">
+      <button type="button" class="fr-icon fr-icon--light" (click)="setZoom(zoom() - 0.2)" [disabled]="zoom() <= 1" aria-label="Afastar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.minus" /></svg>
+      </button>
+      <input type="range" min="1" max="3" step="0.01" [value]="zoom()" (input)="onZoomInput($event)" aria-label="Zoom" [disabled]="!ready()">
+      <button type="button" class="fr-icon fr-icon--light" (click)="setZoom(zoom() + 0.2)" [disabled]="zoom() >= 3" aria-label="Aproximar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.plus" /></svg>
+      </button>
+    </div>
+
+    @if (ready()) {
+      <p class="fr-quality" [attr.data-q]="quality()" aria-live="polite">
+        @switch (quality()) {
+          @case ('good') {
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.check" /></svg>
+            Boa resolução. A imagem vai ficar com {{ outputSize().w }} × {{ outputSize().h }} px.
+          }
+          @case ('ok') {
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.check" /></svg>
+            Serve: {{ outputSize().w }} × {{ outputSize().h }} px. Com {{ spec.width }} × {{ spec.height }} px fica mais nítida.
+          }
+          @case ('low') {
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.alert" /></svg>
+            Resolução baixa ({{ outputSize().w }} × {{ outputSize().h }} px): pode ficar borrada.
+            {{ zoom() > 1 ? 'Afaste o zoom ou use' : 'Use' }} uma imagem de pelo menos {{ spec.minWidth }} px de largura.
+          }
+        }
+      </p>
+    }
+
+    <p class="fr-hint">
+      @if (kind === 'banner') {
+        Arraste para posicionar. No computador a capa aparece inteira; no celular, só a faixa tracejada. Os círculos mostram onde fica a foto da loja.
+      } @else {
+        Arraste para centralizar. A foto aparece em círculo — deixe a logo com folga nas bordas.
+      }
+    </p>
+  </div>
+</div>
