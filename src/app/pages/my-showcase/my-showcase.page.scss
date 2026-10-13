@@ -533,6 +533,54 @@ $mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   overflow-wrap: anywhere;
 }
 
+/* Cupons: mesmo bilhete tracejado de .sp-coupon (seller-profile). */
+.pp-coupons {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0 16px 2px;
+  overflow: hidden;
+}
+
+.pp-coupon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  max-width: 300px;
+  padding: 8px 10px;
+  border: 1.5px dashed $navy;
+  border-radius: 10px;
+  background: rgba(216, 245, 31, 0.22);
+
+  > .ic { font-size: 20px; }
+}
+
+.pp-coupon-text {
+  display: grid;
+  min-width: 0;
+
+  strong { font-size: 13.5px; font-weight: 800; }
+  small { overflow: hidden; font-size: 12px; color: #3A4452; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+.pp-coupon-code {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: $lime;
+  font: 800 12px $mono;
+  letter-spacing: 0.04em;
+}
+
+.pp--wide .pp-coupons {
+  box-sizing: border-box;
+  width: var(--wrap);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 32px 2px;
+}
+
 .pp-tabs {
   background: #fff;
   box-shadow: 0 1px 0 #DDE2E8;

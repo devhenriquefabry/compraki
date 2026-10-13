@@ -13,6 +13,9 @@ import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { ProductReviewsService } from 'src/app/services/product-reviews.service';
+import { CouponService } from 'src/app/services/coupon.service';
+import { couponHeadline, couponShortRule, isCouponLive } from 'src/app/core/coupons';
+import { Coupon } from 'src/app/interfaces/coupon';
 import { toDate } from 'src/app/core/order-stage';
 import { environment } from 'src/environments/environment';
 import { FramedImage, ImageFramerComponent } from './image-framer.component';
@@ -84,6 +87,8 @@ export class MyShowcasePage implements OnInit, OnDestroy {
   followerCount = 0;
   /** Mesma conta da página pública: média das avaliações verificadas da loja. */
   storeRating: { average: string; count: number } | null = null;
+  /** Cupons públicos ativos: os mesmos que a página da loja mostra no topo. */
+  coupons: Coupon[] = [];
 
   uploading: Record<ShopMediaKind, boolean> = { banner: false, photo: false };
   /** Imagem recém-enquadrada, mostrada já enquanto sobe (e depois, sem piscar). */
@@ -102,6 +107,7 @@ export class MyShowcasePage implements OnInit, OnDestroy {
   private readonly productsService = inject(FirebaseProducts);
   private readonly usersService = inject(FirebaseUsersService);
   private readonly reviewsService = inject(ProductReviewsService);
+  private readonly couponService = inject(CouponService);
   private readonly navCtrl = inject(NavController);
   private readonly toastCtrl = inject(ToastController);
   private readonly alertCtrl = inject(AlertController);
@@ -146,6 +152,10 @@ export class MyShowcasePage implements OnInit, OnDestroy {
         }),
         this.usersService.getSellerFollowerCount(authUser.uid).pipe(catchError(() => of(0))).subscribe(n => (this.followerCount = n)),
       );
+
+      this.couponService.listPublicOfSeller(authUser.uid)
+        .then(list => (this.coupons = list.filter(c => isCouponLive(c))))
+        .catch(() => undefined);
     } catch (error) {
       console.error('Falha ao carregar a vitrine:', error);
       this.loadFailed = true;
@@ -430,7 +440,7 @@ export class MyShowcasePage implements OnInit, OnDestroy {
 
     this.saving = true;
     const f = this.form;
-    const payload: Partial<AppUser> = {
+    const next: Partial<AppUser> = {
       shopName: f.shopName.trim(),
       shopDescription: f.shopDescription.trim(),
       shopFeaturedTitle: f.shopFeaturedTitle.trim(),
@@ -439,12 +449,20 @@ export class MyShowcasePage implements OnInit, OnDestroy {
       shopInstagram: f.shopInstagram,
       shopWhatsApp: f.shopWhatsApp,
     };
-    if (f.photoURL && f.photoURL !== (this.user.photoURL || '')) payload.photoURL = f.photoURL;
+    // Só o que a pessoa mudou desde que abriu a tela: se a leitura do perfil
+    // um dia vier incompleta, salvar não apaga o resto da vitrine.
+    const saved = JSON.parse(this.savedSnapshot) as ShowcaseForm;
+    const payload: Partial<AppUser> = {};
+    for (const [key, value] of Object.entries(next) as [keyof ShowcaseForm & keyof AppUser, string][]) {
+      const before = key === 'shopPrimaryColor' ? normalizeHex(saved.shopPrimaryColor) : (saved[key] || '').trim();
+      if (value !== before) (payload as Record<string, string>)[key] = value;
+    }
+    if (f.photoURL && f.photoURL !== saved.photoURL) payload.photoURL = f.photoURL;
 
     try {
-      await this.usersService.updateCurrentUserProfile(payload);
+      if (Object.keys(payload).length) await this.usersService.updateCurrentUserProfile(payload);
       this.user = { ...this.user, ...payload };
-      this.form = { ...f, ...payload, photoURL: f.photoURL } as ShowcaseForm;
+      this.form = { ...f, ...next, photoURL: f.photoURL } as ShowcaseForm;
       this.savedSnapshot = this.snapshot();
       await this.showToast('Vitrine salva. Em instantes ela aparece assim na sua loja.', 'success');
     } catch (error) {
@@ -475,6 +493,15 @@ export class MyShowcasePage implements OnInit, OnDestroy {
 
   formatPrice(price: number): string {
     return (price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  couponTitle(c: Coupon): string {
+    return couponHeadline(c);
+  }
+
+  /** Só as condições (o desconto já está no título), como na página da loja. */
+  couponRule(c: Coupon): string {
+    return couponShortRule(c).split(' · ').slice(1).join(' · ');
   }
 
   productImage(product: Product): string {

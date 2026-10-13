@@ -103,6 +103,21 @@
                   @if (form.shopDescription.trim()) {
                     <p class="pp-bio">{{ form.shopDescription.trim() }}</p>
                   }
+
+                  @if (coupons.length) {
+                    <div class="pp-coupons">
+                      @for (c of coupons; track c.code) {
+                        <div class="pp-coupon">
+                          <svg class="ic" viewBox="0 0 24 24"><path [attr.d]="ic.ticket" /></svg>
+                          <span class="pp-coupon-text">
+                            <strong>{{ couponTitle(c) }}</strong>
+                            @if (couponRule(c)) { <small>{{ couponRule(c) }}</small> }
+                          </span>
+                          <span class="pp-coupon-code">{{ c.code }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
 
                 <div class="pp-tabs">
