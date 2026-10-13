@@ -1,0 +1,180 @@
+<div class="pq">
+  <div class="pq-intro">
+    <p>Tire suas dúvidas com a loja antes de comprar. As respostas ficam públicas e ajudam quem vem depois.</p>
+    @if (pace(); as pace) {
+      <span class="pq-pace"><vn-icon name="clock" /> A loja costuma responder em {{ pace }}</span>
+    }
+  </div>
+
+  <!-- ------------------------------------------------------- quem está olhando -->
+  @if (isStore()) {
+    <div class="pq-note">
+      <vn-icon name="store" />
+      <p>
+        Este anúncio é seu.
+        @if (storePending()) {
+          <strong>{{ storePending() === 1 ? '1 pergunta espera' : storePending() + ' perguntas esperam' }} resposta.</strong>
+        } @else {
+          Nenhuma pergunta espera resposta.
+        }
+        <a routerLink="/my-questions" [queryParams]="{ aba: 'loja' }">
+          {{ storePending() ? 'Responder agora' : 'Abrir perguntas da loja' }}
+        </a>
+      </p>
+    </div>
+  } @else if (!viewerId()) {
+    <div class="pq-guest">
+      <div>
+        <strong>Ficou com alguma dúvida?</strong>
+        <p>Entre na sua conta para perguntar à loja. Você recebe um aviso quando ela responder.</p>
+      </div>
+      <button type="button" class="pq-btn pq-btn--primary" (click)="goToLogin()">Entrar para perguntar</button>
+    </div>
+  } @else {
+    <form class="pq-form" (ngSubmit)="send()" novalidate>
+      <label class="pq-label" for="pq-text">Pergunte à loja</label>
+
+      @if (slotsLeft() === 0) {
+        <p class="pq-full">
+          Você já tem {{ limits.openPerProduct }} perguntas esperando resposta neste anúncio. Quando a loja responder, dá para
+          perguntar mais.
+        </p>
+      } @else {
+        <textarea
+          id="pq-text"
+          name="question"
+          rows="3"
+          [maxlength]="limits.questionMax"
+          [ngModel]="draft"
+          (ngModelChange)="onType($event)"
+          [attr.aria-invalid]="contact() ? 'true' : null"
+          aria-describedby="pq-help"
+          placeholder="Escreva sua dúvida sobre este produto"></textarea>
+
+        @if (!typed()) {
+          <ul class="pq-prompts" aria-label="Sugestões de pergunta">
+            @for (p of prompts; track p) {
+              <li><button type="button" class="pq-chip" (click)="usePrompt(p)">{{ p }}</button></li>
+            }
+          </ul>
+        }
+
+        @if (contact(); as warning) {
+          <p class="pq-warn" role="alert"><vn-icon name="shield" /> {{ warning }}</p>
+        }
+
+        @if (similar().length) {
+          <div class="pq-similar" aria-live="polite">
+            <strong>Já responderam algo parecido</strong>
+            <ul>
+              @for (q of similar(); track q.id) {
+                <li>
+                  <span class="pq-similar-q">{{ q.text }}</span>
+                  <span class="pq-similar-a">{{ q.answer?.text }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (error()) {
+          <p class="pq-warn" role="alert"><vn-icon name="shield" /> {{ error() }}</p>
+        }
+
+        <div class="pq-form-foot">
+          <p id="pq-help" class="pq-help">Compra e pagamento só pelo Vineon. Não envie telefone, e-mail nem links.</p>
+          <span class="pq-count" [class.is-near]="typed().length > limits.questionMax - 40">{{ typed().length }}/{{ limits.questionMax }}</span>
+          <button type="submit" class="pq-btn pq-btn--primary" [disabled]="!canSend()">
+            @if (sending()) { Enviando… } @else { <vn-icon name="send" /> Perguntar }
+          </button>
+        </div>
+      }
+    </form>
+
+    @if (waiting().length) {
+      <section class="pq-waiting" aria-label="Suas perguntas aguardando resposta">
+        <h3 class="pq-h3">Aguardando resposta</h3>
+        <ul class="pq-list">
+          @for (q of waiting(); track q.id) {
+            <li class="pq-item pq-item--waiting">
+              <div class="pq-q">
+                <span class="pq-q-mark" aria-hidden="true"><vn-icon name="question" /></span>
+                <div>
+                  <p class="pq-q-text">{{ q.text }}</p>
+                  <span class="pq-meta">Enviada {{ ago(q.createdAt) }} · a loja ainda não respondeu</span>
+                </div>
+              </div>
+              <button type="button" class="pq-link" (click)="removeMine(q)">Apagar</button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+
+  <!-- --------------------------------------------------------------- respondidas -->
+  <section class="pq-answered" aria-label="Perguntas respondidas">
+    @if (answered() === null) {
+      <div class="pq-skel" aria-hidden="true">
+        <span class="pq-sk pq-sk--w70"></span>
+        <span class="pq-sk pq-sk--w90"></span>
+        <span class="pq-sk pq-sk--w50"></span>
+      </div>
+    } @else if (!answered()!.length) {
+      <div class="pq-empty">
+        <vn-icon name="chat" />
+        <div>
+          <strong>Ainda não há perguntas respondidas</strong>
+          <p>Seja a primeira pessoa a perguntar. A resposta da loja aparece aqui para todo mundo.</p>
+        </div>
+      </div>
+    } @else {
+      <div class="pq-list-head">
+        <h3 class="pq-h3">
+          Perguntas respondidas <span class="pq-n">{{ answered()!.length }}</span>
+        </h3>
+        @if (answered()!.length >= 6) {
+          <label class="pq-search">
+            <ion-icon name="search" aria-hidden="true"></ion-icon>
+            <input type="search" placeholder="Buscar nas perguntas" aria-label="Buscar nas perguntas"
+                   [ngModel]="search()" (ngModelChange)="search.set($event)" name="pq-search" />
+          </label>
+        }
+      </div>
+
+      <ul class="pq-list">
+        @for (q of visible(); track q.id) {
+          <li class="pq-item">
+            <div class="pq-q">
+              <span class="pq-q-mark" aria-hidden="true"><vn-icon name="question" /></span>
+              <div>
+                <p class="pq-q-text">{{ q.text }}</p>
+                <span class="pq-meta">
+                  {{ q.userName }} · {{ day(q.createdAt) }}
+                  @if (isMine(q)) { <b class="pq-mine">Sua pergunta</b> }
+                </span>
+              </div>
+            </div>
+            <div class="pq-a">
+              <span class="pq-a-head"><vn-icon name="store" /> Resposta da loja · {{ day(q.answer?.updatedAt ?? q.answeredAt) }}</span>
+              <p>{{ q.answer?.text }}</p>
+            </div>
+            @if (isMine(q)) {
+              <button type="button" class="pq-link" (click)="removeMine(q)">Apagar minha pergunta</button>
+            } @else {
+              <button type="button" class="pq-link pq-link--quiet" (click)="report(q)">Denunciar</button>
+            }
+          </li>
+        } @empty {
+          <li class="pq-none">Nenhuma pergunta com “{{ search() }}”. Faça a sua acima.</li>
+        }
+      </ul>
+
+      @if (!expanded() && !search().trim() && filtered().length > visible().length) {
+        <button type="button" class="pq-btn pq-btn--more" (click)="expanded.set(true)">
+          Ver mais {{ filtered().length - visible().length }} {{ filtered().length - visible().length === 1 ? 'pergunta' : 'perguntas' }}
+        </button>
+      }
+    }
+  </section>
+</div>

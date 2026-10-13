@@ -42,6 +42,7 @@ import { ChatBoxComponent } from 'src/app/components/chat-box/chat-box.component
 import { ProductRailComponent } from 'src/app/components/product-rail/product-rail.component';
 import { ProductGalleryComponent } from 'src/app/components/product-gallery/product-gallery.component';
 import { ProductReviewsComponent } from 'src/app/components/product-reviews/product-reviews.component';
+import { ProductQuestionsComponent } from 'src/app/components/product-questions/product-questions.component';
 import { rememberViewedProduct } from 'src/app/core/recently-viewed';
 import { discountPercent, hasDiscount, hasStoreFreeShipping, priceMain } from 'src/app/core/product-pricing';
 import { AppConfigService } from 'src/app/services/app-config.service';
@@ -97,7 +98,7 @@ interface SellerStats {
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
     IonFooter, IonButton, IonIcon, IonModal, IonSpinner,
     MiniHeaderComponent, ProductSelectorComponent, ChatBoxComponent, ProductRailComponent,
-    ProductGalleryComponent, ProductReviewsComponent
+    ProductGalleryComponent, ProductReviewsComponent, ProductQuestionsComponent
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
@@ -464,6 +465,11 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
     this.fbProducts.getById(productId).pipe(take(1), takeUntil(this.destroy$)).subscribe(selected => {
       if (selected) this.selectionService.setSelectedProduct(selected);
     });
+  }
+
+  public scrollToSection(content: IonContent, id: string) {
+    const target = document.getElementById(id);
+    if (target) content.scrollToPoint(0, target.offsetTop - 16, 400);
   }
 
   public scrollToReviews(content: IonContent) {

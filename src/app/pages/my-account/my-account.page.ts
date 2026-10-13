@@ -24,7 +24,9 @@ import { SupportService } from 'src/app/services/support.service';
 import { StorefrontDataService } from 'src/app/services/storefront-data.service';
 import { NotificationCenterService } from 'src/app/services/notification-center.service';
 import { ProductReviewsService } from 'src/app/services/product-reviews.service';
+import { ProductQuestionsService } from 'src/app/services/product-questions.service';
 import { ProductReview } from 'src/app/interfaces/review';
+import { ProductQuestion } from 'src/app/interfaces/question';
 
 /** Uma parada da rota de pedidos (compras ou vendas). */
 interface RouteStop {
@@ -87,6 +89,7 @@ export class MyAccountPage {
   private readonly salesService = inject(SalesService);
   private readonly support = inject(SupportService);
   private readonly reviewsService = inject(ProductReviewsService);
+  private readonly questionsService = inject(ProductQuestionsService);
   private readonly addressService = inject(AddressService);
   private readonly storefront = inject(StorefrontDataService);
   private readonly toastCtrl = inject(ToastController);
@@ -214,6 +217,13 @@ export class MyAccountPage {
     return this.reviewsService.pendingFrom(orders, mine, uid).length;
   });
 
+  /** Perguntas que a pessoa fez: só para os selos da linha "Perguntas aos vendedores". */
+  readonly myQuestions = signal<ProductQuestion[]>([]);
+  readonly questionsAnswered = computed(() => this.myQuestions().filter(q => q.askerUnread).length);
+  readonly questionsWaiting = computed(() => this.myQuestions().filter(q => q.status === 'open').length);
+  /** Perguntas dos clientes esperando a loja responder. */
+  readonly storeQuestionsPending = signal(0);
+
   /** Quantos pedidos estão andando (pagar, preparar, a caminho). */
   readonly activeOrders = computed(() => {
     const counts = this.countStages(this.orders());
@@ -282,7 +292,14 @@ export class MyAccountPage {
         ? `${this.plural(this.pendingReviews(), 'compra espera', 'compras esperam')} sua opinião`
         : 'Notas que você deu aos produtos',
     },
-    { icon: 'question', label: 'Perguntas aos vendedores', hint: 'Dúvidas que você enviou' },
+    {
+      icon: 'question', label: 'Perguntas aos vendedores', link: '/my-questions', badge: this.questionsAnswered(),
+      hint: this.questionsAnswered()
+        ? this.plural(this.questionsAnswered(), 'resposta nova', 'respostas novas')
+        : this.questionsWaiting()
+          ? `${this.plural(this.questionsWaiting(), 'pergunta aguarda', 'perguntas aguardam')} resposta`
+          : 'Dúvidas que você enviou às lojas',
+    },
     { icon: 'ticket', label: 'Cupons', hint: 'Descontos disponíveis para você', link: '/coupons' },
   ]);
 
@@ -293,6 +310,13 @@ export class MyAccountPage {
     },
     { icon: 'chart', label: 'Vendas', hint: 'Pedidos, etiquetas e envios', link: '/my-sales' },
     { icon: 'star', label: 'Avaliações da loja', hint: 'Veja e responda o que os clientes dizem', link: '/my-reviews', query: { aba: 'loja' } },
+    {
+      icon: 'question', label: 'Perguntas dos clientes', link: '/my-questions', query: { aba: 'loja' },
+      badge: this.storeQuestionsPending(),
+      hint: this.storeQuestionsPending()
+        ? `${this.plural(this.storeQuestionsPending(), 'pergunta espera', 'perguntas esperam')} resposta`
+        : 'Responda as dúvidas sobre seus anúncios',
+    },
     { icon: 'ticket', label: 'Cupons da loja', hint: 'Desconto nos seus produtos', link: '/my-coupons' },
     { icon: 'receipt', label: 'Notas fiscais', hint: 'Notas mensais da Vineon', link: '/my-invoices', badge: this.unseenInvoices() },
     { icon: 'store', label: 'Perfil de vendedor', hint: 'Nome da loja, foto e descrição', link: '/seller-profile' },
@@ -370,6 +394,8 @@ export class MyAccountPage {
     this.appUser.set(null);
     this.supportUnread.set(0);
     this.myReviews.set(null);
+    this.myQuestions.set([]);
+    this.storeQuestionsPending.set(0);
     this.orders.set(null);
     this.sales.set(null);
     this.productCount.set(null);
@@ -405,6 +431,15 @@ export class MyAccountPage {
       this.reviewsService.watchMine(user.uid).subscribe({
         next: list => this.myReviews.set(list),
         error: () => this.myReviews.set(null),
+      }),
+      // Selos de perguntas (resposta nova / esperando a loja): falha aqui some o selo, não a tela.
+      this.questionsService.watchMine(user.uid).subscribe({
+        next: list => this.myQuestions.set(list),
+        error: () => this.myQuestions.set([]),
+      }),
+      this.questionsService.watchStore(user.uid).subscribe({
+        next: list => this.storeQuestionsPending.set(list.filter(q => q.status === 'open').length),
+        error: () => this.storeQuestionsPending.set(0),
       }),
       // Só o selo de "resposta nova": falha aqui some o selo, não a tela.
       this.support.watchMyTickets(user.uid, 30).subscribe({

@@ -26,6 +26,8 @@ export interface DeletionSummary {
   chats: number;
   tickets: number;
   reviews: number;
+  /** Ausente enquanto a function antiga estiver no ar. */
+  questions?: number;
   ordersKept: number;
   salesKept: number;
 }

@@ -10,12 +10,14 @@
 /**
  * `review`: `targetId` = `<produto>~<uid do autor>` e `sellerId` = o autor da
  * avaliação (é a conta que o admin suspenderia).
+ * `question`: `targetId` = id da pergunta (`productQuestions`) e `sellerId` =
+ * quem perguntou.
  */
-export type ReportTargetType = 'product' | 'seller' | 'review';
+export type ReportTargetType = 'product' | 'seller' | 'review' | 'question';
 
 export type ReportStatus = 'open' | 'resolved';
 
-export type ReportResolution = 'dismissed' | 'product_removed' | 'account_suspended' | 'review_removed';
+export type ReportResolution = 'dismissed' | 'product_removed' | 'account_suspended' | 'review_removed' | 'question_removed';
 
 export type ReportReason =
   | 'prohibited'
@@ -71,6 +73,13 @@ export const REPORT_REASONS: Record<ReportTargetType, { id: ReportReason; label:
     { id: 'prohibited', label: 'Vende produtos proibidos', hint: '' },
     { id: 'other', label: 'Outro motivo', hint: '' },
   ],
+  question: [
+    { id: 'offensive', label: 'Ofensiva ou preconceituosa', hint: 'Xingamentos, discriminação, ameaças' },
+    { id: 'spam', label: 'Propaganda ou contato por fora', hint: 'Telefone, WhatsApp, link ou venda fora do Vineon' },
+    { id: 'off_topic', label: 'Não tem relação com o produto', hint: 'Assunto aleatório ou repetida de propósito' },
+    { id: 'personal_data', label: 'Expõe dados pessoais', hint: 'Telefone, endereço, documento de alguém' },
+    { id: 'other', label: 'Outro motivo', hint: '' },
+  ],
   review: [
     { id: 'offensive', label: 'Ofensiva ou preconceituosa', hint: 'Xingamentos, discriminação, ameaças' },
     { id: 'off_topic', label: 'Não fala do produto', hint: 'Sobre outro produto, política, assunto aleatório' },
@@ -94,4 +103,5 @@ export const REPORT_RESOLUTION_LABEL: Record<ReportResolution, string> = {
   product_removed: 'Anúncio tirado do ar',
   account_suspended: 'Conta suspensa',
   review_removed: 'Avaliação removida',
+  question_removed: 'Pergunta removida',
 };

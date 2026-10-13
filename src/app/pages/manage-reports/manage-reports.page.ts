@@ -9,7 +9,7 @@ import { formatDay, toDate } from '../../core/order-stage';
 import {
   ContentReport, REPORT_RESOLUTION_LABEL, ReportResolution, ReportTargetType, reportReasonLabel,
 } from '../../interfaces/content-report';
-import { ModerationService } from '../../services/moderation.service';
+import { ModerationService, QuestionPreview } from '../../services/moderation.service';
 
 type StatusFilter = 'open' | 'resolved';
 type TypeFilter = 'all' | ReportTargetType;
@@ -53,6 +53,10 @@ export class ManageReportsPage {
   readonly status = signal<StatusFilter>('open');
   readonly type = signal<TypeFilter>('all');
   readonly busyKey = signal<string | null>(null);
+
+  /** Texto das perguntas denunciadas (`null` = a pergunta já foi apagada). */
+  readonly questions = signal<Record<string, QuestionPreview | null>>({});
+  private readonly asked = new Set<string>();
 
   readonly groups = computed<ReportGroup[]>(() => {
     const map = new Map<string, ContentReport[]>();
@@ -107,6 +111,7 @@ export class ManageReportsPage {
       next: reports => {
         this.reports.set(reports);
         this.loading.set(false);
+        this.loadQuestionPreviews(reports);
       },
       error: err => {
         console.error('Falha ao carregar denúncias', err);
@@ -139,6 +144,34 @@ export class ManageReportsPage {
     }, 'Anúncio fora do ar.');
   }
 
+  async removeQuestion(group: ReportGroup) {
+    const note = await this.ask(
+      'Remover pergunta',
+      'A pergunta (e a resposta, se houver) sai do anúncio e da fila da loja. Não dá para desfazer. Motivo (fica registrado):',
+      'Remover',
+      true
+    );
+    if (note === null) return;
+    await this.act(group, async () => {
+      await this.moderation.removeQuestion(group.targetId);
+      await this.moderation.resolveReports(ids(group), 'question_removed', note);
+    }, 'Pergunta removida.');
+  }
+
+  private loadQuestionPreviews(reports: ContentReport[]) {
+    for (const report of reports) {
+      if (report.targetType !== 'question' || this.asked.has(report.targetId)) continue;
+      this.asked.add(report.targetId);
+      void this.moderation.getQuestionPreview(report.targetId).then(preview =>
+        this.questions.update(current => ({ ...current, [report.targetId]: preview })));
+    }
+  }
+
+  /** Avaliação denunciada: `targetId` = `<produto>~<autor>`. */
+  private legacyProductOf(group: ReportGroup): string {
+    return group.targetId.split('~')[0];
+  }
+
   async removeReview(group: ReportGroup) {
     const note = await this.ask(
       'Remover avaliação',
@@ -155,16 +188,18 @@ export class ManageReportsPage {
 
   /** Avaliação denunciada: `targetId` = `<produto>~<autor>`. */
   productOf(group: ReportGroup): string {
-    return group.targetType === 'review' ? group.targetId.split('~')[0] : group.targetId;
+    if (group.targetType === 'question') return this.questions()[group.targetId]?.productId ?? '';
+    return group.targetType === 'review' ? this.legacyProductOf(group) : group.targetId;
   }
 
   typeLabel(type: ReportTargetType): string {
-    return type === 'product' ? 'Anúncio' : type === 'review' ? 'Avaliação' : 'Vendedor';
+    return type === 'product' ? 'Anúncio' : type === 'review' ? 'Avaliação' : type === 'question' ? 'Pergunta' : 'Vendedor';
   }
 
   async suspend(group: ReportGroup) {
     const note = await this.ask(
-      group.targetType === 'review' ? 'Suspender conta de quem avaliou' : 'Suspender conta do vendedor',
+      group.targetType === 'review' ? 'Suspender conta de quem avaliou'
+        : group.targetType === 'question' ? 'Suspender conta de quem perguntou' : 'Suspender conta do vendedor',
       'A pessoa é desconectada, não consegue mais entrar e todos os anúncios dela saem do ar. Dá para reativar depois. Motivo:',
       'Suspender conta',
       true

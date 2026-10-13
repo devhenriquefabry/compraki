@@ -179,6 +179,13 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Perguntas aos vendedores: o que a pessoa perguntou e, para quem vende,
+    // a fila de perguntas dos clientes para responder.
+    path: 'my-questions',
+    loadComponent: () => import('./pages/my-questions/my-questions.page').then(m => m.MyQuestionsPage),
+    canActivate: [authGuard]
+  },
+  {
     // "Cupons da loja": a loja cria e acompanha os cupons dela.
     path: 'my-coupons',
     loadComponent: () => import('./pages/my-coupons/my-coupons.page').then(m => m.MyCouponsPage),

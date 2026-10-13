@@ -184,7 +184,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         a: [
           {
             t: 'p',
-            text: 'No anúncio ou no pedido, toque em **Falar com a loja**. As conversas ficam em **Mensagens**. Use o chat para tirar dúvidas e combinar detalhes do pedido.',
+            text: 'No anúncio ou no pedido, toque em **Conversar com o vendedor**. As conversas ficam em **Mensagens**. Use o chat para combinar detalhes do pedido. Para uma dúvida sobre o produto que outras pessoas também têm, prefira **Perguntas e respostas** no anúncio.',
           },
           {
             t: 'note',
@@ -193,6 +193,31 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
         ],
         links: [{ label: 'Abrir mensagens', route: '/tabs/chats' }],
+      },
+      {
+        id: 'comprar-perguntar',
+        q: 'Como pergunto algo ao vendedor antes de comprar?',
+        keys: 'pergunta perguntas respostas duvida vendedor anuncio perguntar loja responder tempo',
+        a: [
+          {
+            t: 'ol',
+            items: [
+              'Abra o anúncio e role até **Perguntas e respostas**. Antes de escrever, veja se a dúvida já foi respondida: a busca mostra perguntas parecidas.',
+              'Escreva a pergunta (até 500 caracteres) e toque em **Perguntar**. Dá para ter até 3 perguntas esperando resposta no mesmo anúncio.',
+              'Você recebe um aviso quando a loja responder. Suas perguntas ficam em **Minha conta > Perguntas aos vendedores**, com o tempo de espera.',
+            ],
+          },
+          {
+            t: 'p',
+            text: 'A pergunta só aparece no anúncio depois de respondida, com seu primeiro nome e a inicial do sobrenome. Você pode apagá-la quando quiser. A loja costuma responder rápido; se estiver demorando, use **Conversar com o vendedor** no anúncio.',
+          },
+          {
+            t: 'note',
+            text: 'Telefone, e-mail, WhatsApp, links e combinar pagamento por fora não são aceitos nas perguntas nem nas respostas. A compra só tem proteção dentro do Vineon.',
+            alert: true,
+          },
+        ],
+        links: [{ label: 'Minhas perguntas', route: '/my-questions' }, { label: 'Pagar por fora é golpe', article: 'pag-por-fora' }],
       },
       {
         id: 'comprar-avaliar',
@@ -1094,6 +1119,32 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
         ],
         links: [{ label: 'Abrir mensagens', route: '/tabs/chats' }],
+      },
+      {
+        id: 's-perguntas',
+        q: 'Como respondo as perguntas dos clientes?',
+        keys: 'pergunta perguntas respostas duvida cliente anuncio responder resposta rapida tempo de resposta',
+        a: [
+          {
+            t: 'p',
+            text: 'Cada pergunta feita nos seus anúncios chega como aviso e entra na fila em **Minha conta > Perguntas dos clientes**, com a que espera há mais tempo no topo. Toque em **Responder**, escreva ou use uma **resposta rápida** (dá para salvar as suas) e publique.',
+          },
+          {
+            t: 'ul',
+            items: [
+              'A resposta fica **pública no anúncio** e ajuda quem ainda vai comprar. Por isso, responda com clareza e sem exagero.',
+              'Responder em até 1 hora é a meta. Depois de 24 horas a pergunta aparece como **atrasada**.',
+              'Dá para **editar** ou **retirar** a resposta, **excluir** pergunta repetida ou sem sentido e **denunciar** pergunta ofensiva.',
+              'O painel mostra seu tempo médio e a taxa de resposta.',
+            ],
+          },
+          {
+            t: 'note',
+            text: 'Não passe telefone, e-mail, WhatsApp nem links, e não combine pagamento por fora: o texto é barrado e, se insistir, a conta pode ser suspensa.',
+            alert: true,
+          },
+        ],
+        links: [{ label: 'Perguntas dos clientes', route: '/my-questions', query: { aba: 'loja' } }],
       },
       {
         id: 'v-cupom',

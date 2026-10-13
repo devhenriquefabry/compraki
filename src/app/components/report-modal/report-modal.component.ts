@@ -51,6 +51,7 @@ export class ReportModalComponent implements OnInit {
 
   get title(): string {
     if (this.targetType === 'review') return 'Denunciar avaliação';
+    if (this.targetType === 'question') return 'Denunciar pergunta';
     return this.targetType === 'product' ? 'Denunciar anúncio' : 'Denunciar vendedor';
   }
 

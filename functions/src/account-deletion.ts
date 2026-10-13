@@ -24,6 +24,8 @@ import { defaultRuntime, handleCors, isBootstrapAdminEmail, methodNotAllowed } f
  * O que acontece:
  *  - apaga: login (Auth), `users/{uid}` e subcoleções, `sellers/{uid}`,
  *    anúncios (com as avaliações deles), avaliações que a pessoa fez,
+ *    perguntas que ela fez aos vendedores e as feitas nos anúncios dela,
+ *    respostas rápidas da loja,
  *    favoritos de outros que apontavam para os anúncios dela, vínculos de
  *    seguir/seguidores, foto de perfil e banner da loja, presença,
  *    código de recuperação de senha;
@@ -56,6 +58,7 @@ interface Summary {
   chats: number;
   tickets: number;
   reviews: number;
+  questions: number;
   ordersKept: number;
   salesKept: number;
 }
@@ -159,7 +162,7 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
 
   // 2. O que impede e o que vai ser apagado.
   const now = new Date();
-  const [purchases, sales, products, addresses, saved, chats, tickets] = await Promise.all([
+  const [purchases, sales, products, addresses, saved, chats, tickets, askedQuestions, storeQuestions] = await Promise.all([
     db.collection('orders').where('userId', '==', uid).get(),
     db.collection('orders').where('sellerIds', 'array-contains', uid).get(),
     db.collection('products').where('sellerId', '==', uid).get(),
@@ -167,7 +170,11 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     userRef.collection('savedProducts').get(),
     db.collection('chats').where('participantIds', 'array-contains', uid).get(),
     db.collection('supportTickets').where('userId', '==', uid).get(),
+    db.collection('productQuestions').where('userId', '==', uid).get(),
+    db.collection('productQuestions').where('sellerId', '==', uid).get(),
   ]);
+  // Perguntas que a pessoa fez + perguntas feitas nos anúncios dela (sem repetir).
+  const questionRefs = [...new Map([...askedQuestions.docs, ...storeQuestions.docs].map(d => [d.id, d.ref])).values()];
 
   const blockers: Blocker[] = [];
   for (const doc of purchases.docs) {
@@ -202,6 +209,7 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     chats: chats.size,
     tickets: tickets.size,
     reviews: reviewRefs.length,
+    questions: askedQuestions.size,
     ordersKept: purchases.size,
     salesKept: sales.size,
   };
@@ -238,6 +246,7 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     }
 
     await deleteRefs(reviewRefs);
+    await deleteRefs([...questionRefs, db.doc(`sellerQuickReplies/${uid}`)]);
 
     // Seguir e seguidores: os dois lados do vínculo.
     const [followers, following] = await Promise.all([

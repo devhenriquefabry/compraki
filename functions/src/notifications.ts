@@ -25,7 +25,7 @@ import { defaultRuntime, handleCors, methodNotAllowed, region, requireAuthentica
  * (404/410) é apagado aqui.
  */
 
-export type NotificationKind = 'order' | 'sale' | 'message' | 'review' | 'system' | 'support';
+export type NotificationKind = 'order' | 'sale' | 'message' | 'review' | 'question' | 'system' | 'support';
 
 /** Categorias que a pessoa pode silenciar no push (o aviso no app continua). */
 type PrefKey = 'orders' | 'sales' | 'messages' | 'reviews';
@@ -35,6 +35,8 @@ const PREF_OF: Record<NotificationKind, PrefKey | null> = {
   sale: 'sales',
   message: 'messages',
   review: 'reviews',
+  // Pergunta e resposta de anúncio andam junto com as mensagens.
+  question: 'messages',
   system: null,
   // Resposta de atendimento é aviso de serviço: não dá para silenciar.
   support: null,

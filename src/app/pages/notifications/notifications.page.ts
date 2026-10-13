@@ -30,7 +30,7 @@ const FILTERS: { id: Filter; label: string; kinds: NotificationKind[] | null }[]
   { id: 'all', label: 'Tudo', kinds: null },
   { id: 'orders', label: 'Compras', kinds: ['order'] },
   { id: 'sales', label: 'Vendas', kinds: ['sale', 'review'] },
-  { id: 'messages', label: 'Mensagens', kinds: ['message'] },
+  { id: 'messages', label: 'Mensagens', kinds: ['message', 'question'] },
   { id: 'support', label: 'Atendimento', kinds: ['support'] },
 ];
 

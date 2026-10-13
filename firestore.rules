@@ -168,6 +168,44 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // ------------------------------------------------ perguntas aos vendedores
+
+    // "Perguntas e respostas" do anuncio. O APP SO LE: perguntar, responder e
+    // apagar passam pelas functions askProductQuestion, answerProductQuestion e
+    // deleteProductQuestion (conferem quem e a loja, barram contato por fora e
+    // limitam abuso). Direto pelo app so da para a pessoa que perguntou marcar
+    // a resposta como vista (`askerUnread`) — e admin apagar (moderacao).
+    //
+    // Leitura: pergunta RESPONDIDA e publica (aparece no anuncio); a nao
+    // respondida so o autor e a loja veem. Por isso a consulta publica precisa
+    // trazer `status == 'answered'`.
+    match /productQuestions/{questionId} {
+      allow read: if resource.data.get('status', '') == 'answered'
+        || isAdmin()
+        || (isSignedIn() && (resource.data.get('userId', null) == request.auth.uid
+                             || resource.data.get('sellerId', null) == request.auth.uid));
+
+      allow create: if false;
+
+      allow update: if isSignedIn()
+        && resource.data.get('userId', null) == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['askerUnread'])
+        && request.resource.data.askerUnread == false;
+
+      allow delete: if isAdmin();
+    }
+
+    // Respostas rapidas da loja (ate 10 textos). So o dono le e escreve.
+    match /sellerQuickReplies/{uid} {
+      allow read, delete: if isUser(uid);
+      allow create, update: if isUser(uid)
+        && !isSuspended()
+        && request.resource.data.keys().hasOnly(['items', 'updatedAt'])
+        && request.resource.data.items is list
+        && request.resource.data.items.size() <= 10
+        && request.resource.data.updatedAt == request.time;
+    }
+
     function reviewClientFields() {
       return ['userId', 'userName', 'rating', 'comment', 'orderId', 'createdAt', 'updatedAt',
               'photos', 'matchesListing'];
@@ -548,7 +586,15 @@ service cloud.firestore {
         && d.sellerId != request.auth.uid
         // `review`: targetId = '<produto>~<uid do autor>' e sellerId = autor
         // (quem o admin suspenderia). Ninguem denuncia a propria avaliacao.
-        && d.targetType in ['product', 'seller', 'review']
+        && d.targetType in ['product', 'seller', 'review', 'question']
+        // `question`: targetId = id da pergunta e sellerId = quem perguntou (a conta
+        // que o admin suspenderia). A loja denuncia qualquer pergunta do anuncio
+        // dela; os demais so as respondidas, que sao publicas.
+        && (d.targetType != 'question' || (
+              exists(/databases/$(database)/documents/productQuestions/$(d.targetId))
+              && get(/databases/$(database)/documents/productQuestions/$(d.targetId)).data.userId == d.sellerId
+              && (get(/databases/$(database)/documents/productQuestions/$(d.targetId)).data.sellerId == request.auth.uid
+                  || get(/databases/$(database)/documents/productQuestions/$(d.targetId)).data.status == 'answered')))
         && d.targetId is string && d.targetId.size() > 0 && d.targetId.size() <= 128
         && d.sellerId is string && d.sellerId.size() > 0
         && d.targetName is string && d.targetName.size() <= 200

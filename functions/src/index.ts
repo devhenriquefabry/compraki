@@ -34,6 +34,8 @@ export { onSellerInvoiceWritten } from './seller-invoices';
 
 export { createSupportTicket, replySupportTicket } from './support';
 
+export { askProductQuestion, answerProductQuestion, deleteProductQuestion, onProductDeletedQuestions } from './questions';
+
 export { couponQuote, saveCoupon, onOrderWrittenCoupon } from './coupons';
 
 export {

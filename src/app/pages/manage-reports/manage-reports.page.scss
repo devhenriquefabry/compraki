@@ -92,3 +92,16 @@
   .mr-spacer { display: none; }
   .mr-actions .adm-btn { flex: 1 1 auto; }
 }
+
+/* Pergunta denunciada: o texto que o admin precisa ler para decidir. */
+.mr-quote {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--adm-bg);
+  border-left: 3px solid var(--adm-ink-2);
+
+  strong { font-size: 0.82rem; color: var(--adm-ink-2); }
+  p { margin: 4px 0 0; font-size: 0.95rem; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-line; }
+  small { display: block; margin-top: 6px; color: var(--adm-muted); line-height: 1.4; overflow-wrap: anywhere; }
+}

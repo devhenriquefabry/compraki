@@ -255,6 +255,12 @@
                 }
               </section>
 
+              <!-- Perguntas e respostas -->
+              <section class="pd-sheet pd-sheet--pad" id="perguntas" aria-labelledby="pd-questions-title">
+                <h2 class="pd-h2" id="pd-questions-title">Perguntas e respostas</h2>
+                <app-product-questions [product]="p"></app-product-questions>
+              </section>
+
               <!-- Opiniões -->
               <section class="pd-sheet pd-sheet--pad" id="opinioes" aria-labelledby="pd-reviews-title">
                 <h2 class="pd-h2" id="pd-reviews-title">Opiniões do produto</h2>
@@ -321,9 +327,12 @@
                     @if (!isOwnSeller(seller)) {
                       <button type="button" class="pd-btn pd-btn--block" (click)="startChat(p, seller)">
                         <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon>
-                        {{ p.acceptOffers ? 'Perguntar ou fazer proposta' : 'Perguntar ao vendedor' }}
+                        {{ p.acceptOffers ? 'Conversar ou fazer proposta' : 'Conversar com o vendedor' }}
                       </button>
                     }
+                    <button type="button" class="pd-link pd-link--center" (click)="scrollToSection(content, 'perguntas')">
+                      Ver perguntas e respostas <ion-icon name="chevron-down" aria-hidden="true"></ion-icon>
+                    </button>
                     <button type="button" class="pd-link pd-link--center" (click)="goToSellerProfile(seller.uid)">
                       Ver loja completa <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
                     </button>

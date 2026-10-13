@@ -47,7 +47,7 @@ export async function buildMyDataExport(user: User): Promise<Record<string, unkn
   const uid = user.uid;
   const sub = (name: string) => settle(getDocs(collection(db(), 'users', uid, name)).then(rows));
 
-  const [profile, addresses, cart, saved, following, notifications, orders, chats, tickets] = await Promise.all([
+  const [profile, addresses, cart, saved, following, notifications, orders, chats, tickets, questions] = await Promise.all([
     settle(getDoc(doc(db(), 'users', uid)).then(snap => (snap.exists() ? plain(snap.data()) : null))),
     sub('addresses'),
     sub('cart'),
@@ -70,9 +70,11 @@ export async function buildMyDataExport(user: User): Promise<Record<string, unkn
         mensagens: await getDocs(collection(db(), 'supportTickets', ticket.id, 'replies')).then(rows),
       }))),
     )),
+    // Perguntas que a pessoa fez aos vendedores, com a resposta da loja.
+    settle(getDocs(query(collection(db(), 'productQuestions'), where('userId', '==', uid))).then(rows)),
   ]);
 
-  if ([profile, addresses, cart, saved, following, notifications, orders, chats, tickets].every(part => isFailure(part))) {
+  if ([profile, addresses, cart, saved, following, notifications, orders, chats, tickets, questions].every(part => isFailure(part))) {
     throw new Error('Nenhuma parte dos dados pôde ser lida.');
   }
 
@@ -95,6 +97,7 @@ export async function buildMyDataExport(user: User): Promise<Record<string, unkn
     lojasQueSegue: following,
     conversas: chats,
     atendimentos: tickets,
+    perguntasAosVendedores: questions,
     avisos: notifications,
   };
 }

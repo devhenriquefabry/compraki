@@ -488,6 +488,62 @@ for (const r of reviewPlan) {
   });
 }
 
+// ---------------------------------------------------------------- perguntas
+
+// "Perguntas aos vendedores": respondidas (públicas no anúncio), esperando
+// resposta, uma atrasada (mais de 24 h) e uma resposta que o comprador ainda
+// não viu. `minutes` = quanto a loja levou para responder.
+const MINUTE_MS = 60_000;
+const questionPlan = [
+  { id: 'seedquestion00000001', user: users.atelie, product: 'fone', agoMin: 4320, minutes: 40,
+    text: 'O cancelamento de ruído funciona também nas ligações?',
+    answer: 'Funciona nas ligações também: o microfone filtra o barulho de fundo. Na rua com vento forte ainda dá para ouvir um pouco.' },
+  { id: 'seedquestion00000002', user: users.atelie, product: 'fone', agoMin: 2900, minutes: 180,
+    text: 'Vem carregador na caixa?',
+    answer: 'Vem só o cabo USB-C. A fonte você usa a do seu celular, qualquer uma de 5 V serve.' },
+  { id: 'seedquestion00000003', user: users.atelie, product: 'smartphone', agoMin: 1500, minutes: 25,
+    text: 'Aceita dois chips ao mesmo tempo?',
+    answer: 'Aceita sim: dois chips físicos ou um chip e um eSIM.' },
+  { id: 'seedquestion00000004', user: users.comprador, product: 'smartphone', agoMin: 600, minutes: 55, unread: true,
+    text: 'Tem nota fiscal e garantia do fabricante?',
+    answer: 'Todo pedido sai com nota fiscal, e o aparelho tem 12 meses de garantia do fabricante.' },
+  { id: 'seedquestion00000005', user: users.comprador, product: 'vaso-ceramica', agoMin: 2000, minutes: 90,
+    text: 'Dá para usar com planta de verdade, com furo embaixo?',
+    answer: 'O vaso tem furo de drenagem e vem com um pratinho de cerâmica.' },
+  { id: 'seedquestion00000006', user: users.comprador, product: 'fone', agoMin: 300,
+    text: 'Qual o prazo de entrega para Belo Horizonte?' },
+  { id: 'seedquestion00000007', user: users.comprador, product: 'panela', agoMin: 1800,
+    text: 'A panela é compatível com fogão de indução?' },
+  { id: 'seedquestion00000008', user: users.comprador, product: 'bolsa-palha', agoMin: 60,
+    text: 'A alça é regulável? Tenho 1,80 m e quero usar a tiracolo.' },
+];
+for (const q of questionPlan) {
+  const product = productDocs[q.product];
+  const [first, ...rest] = q.user.displayName.split(' ');
+  const created = Timestamp.fromMillis(now - q.agoMin * MINUTE_MS);
+  const answeredAt = q.answer ? Timestamp.fromMillis(created.toMillis() + q.minutes * MINUTE_MS) : null;
+  await db.doc(`productQuestions/${q.id}`).set({
+    productId: q.product,
+    productName: product.name,
+    productPhoto: product.photoURL[0],
+    sellerId: product.sellerId,
+    userId: q.user.uid,
+    userName: rest.length ? `${first} ${rest[rest.length - 1][0]}.` : first,
+    text: q.text,
+    status: q.answer ? 'answered' : 'open',
+    answer: q.answer ? { text: q.answer, createdAt: answeredAt, updatedAt: answeredAt } : null,
+    askerUnread: q.unread === true,
+    createdAt: created,
+    updatedAt: answeredAt ?? created,
+    answeredAt,
+    responseMs: q.answer ? q.minutes * MINUTE_MS : null,
+  });
+}
+await db.doc(`sellerQuickReplies/${users.vendedor.uid}`).set({
+  items: ['Olá! Enviamos em até 1 dia útil, com código de rastreio por mensagem.'],
+  updatedAt: FieldValue.serverTimestamp(),
+});
+
 // -------------------------------------------------------------- atendimentos
 
 // "Fale com a Vineon": um de cada situação, para a fila do painel e a lista da

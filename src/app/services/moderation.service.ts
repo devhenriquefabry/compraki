@@ -20,6 +20,13 @@ export interface NewReport {
   details: string;
 }
 
+export interface QuestionPreview {
+  text: string;
+  answer: string | null;
+  productId: string;
+  userName: string;
+}
+
 /**
  * Denúncias (`contentReports`), anúncio fora do ar e suspensão de conta.
  *
@@ -124,6 +131,31 @@ export class ModerationService {
     const [productId, reviewerId] = targetId.split('~');
     if (!productId || !reviewerId) throw new Error('Avaliação inválida.');
     await deleteDoc(doc(this.db, 'products', productId, 'reviews', reviewerId));
+  }
+
+  /**
+   * Apaga a pergunta denunciada (e a resposta, se houver). Só admin escreve
+   * aqui (regra `allow delete: if isAdmin()`); a pessoa pode perguntar de novo.
+   */
+  async removeQuestion(questionId: string): Promise<void> {
+    if (!questionId) throw new Error('Pergunta inválida.');
+    await deleteDoc(doc(this.db, 'productQuestions', questionId));
+  }
+
+  /** O texto da pergunta denunciada, para o admin decidir sem sair da aba. */
+  async getQuestionPreview(questionId: string): Promise<QuestionPreview | null> {
+    try {
+      const snap = await getDoc(doc(this.db, 'productQuestions', questionId));
+      if (!snap.exists()) return null;
+      return {
+        text: String(snap.get('text') ?? ''),
+        answer: typeof snap.get('answer.text') === 'string' ? String(snap.get('answer.text')) : null,
+        productId: String(snap.get('productId') ?? ''),
+        userName: String(snap.get('userName') ?? ''),
+      };
+    } catch {
+      return null;
+    }
   }
 
   async takeDownProduct(productId: string, note = ''): Promise<void> {

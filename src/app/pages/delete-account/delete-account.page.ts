@@ -65,6 +65,7 @@ export class DeleteAccountPage {
     if (s.products) lines.push({ icon: 'tag', text: `${plural(s.products, 'anúncio', 'anúncios')} e a sua loja na vitrine` });
     if (s.savedProducts) lines.push({ icon: 'heart', text: plural(s.savedProducts, 'favorito', 'favoritos') });
     if (s.reviews) lines.push({ icon: 'star', text: plural(s.reviews, 'avaliação que você fez', 'avaliações que você fez') });
+    if (s.questions) lines.push({ icon: 'question', text: plural(s.questions, 'pergunta que você fez aos vendedores', 'perguntas que você fez aos vendedores') });
     lines.push({ icon: 'bell', text: 'Carrinho, avisos, lojas que você segue e seus seguidores' });
     return lines;
   });
