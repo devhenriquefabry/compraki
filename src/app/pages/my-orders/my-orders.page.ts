@@ -450,6 +450,39 @@ export class MyOrdersPage {
     }
   }
 
+  /** Pedido em uso no botão "Cancelar pedido" (evita dois toques). */
+  readonly cancelling = signal<string | null>(null);
+
+  /**
+   * Cancela um pedido que ainda não foi pago: o servidor cancela a cobrança
+   * (Pix/boleto não pode mais ser pago) e o pedido vai para "Cancelados". Se o
+   * pagamento já tiver caído, ele recusa e o pedido segue normal.
+   */
+  async cancelUnpaid(view: OrderView) {
+    const alert = await this.alertCtrl.create({
+      header: 'Cancelar este pedido?',
+      message: 'O código Pix e o boleto deixam de valer. Se você já pagou, não cancele: a confirmação pode levar alguns minutos.',
+      buttons: [
+        { text: 'Manter pedido', role: 'cancel' },
+        { text: 'Cancelar pedido', role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    if (role !== 'confirm') return;
+
+    this.cancelling.set(view.id);
+    try {
+      await this.ordersService.cancelOrder(view.id);
+      this.showToast('Pedido cancelado.', 'success');
+    } catch (err) {
+      console.error('Falha ao cancelar pedido', err);
+      this.showToast(err instanceof Error ? err.message : 'Não foi possível cancelar agora. Tente de novo.', 'danger');
+    } finally {
+      this.cancelling.set(null);
+    }
+  }
+
   async confirmReceipt(view: OrderView) {
     const alert = await this.alertCtrl.create({
       header: 'Recebeu o pedido?',

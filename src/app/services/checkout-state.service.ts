@@ -26,9 +26,11 @@ export class CheckoutStateService {
     }
   };
 
+  // Vazio até a pessoa ter um endereço salvo (`app-checkout-address`). Antes
+  // vinha um CEP/numero de exemplo e o frete era cotado para São Paulo.
   addressData: any = {
-    postalCode: '01001-000',
-    addressNumber: '123',
+    postalCode: '',
+    addressNumber: '',
     street: '',
     city: '',
     state: '',

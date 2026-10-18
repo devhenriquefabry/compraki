@@ -11,6 +11,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   Firestore,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -162,6 +163,38 @@ export class FirebaseCartService {
     const cartCol = this.getCartCollectionForUser(user.uid);
     const itemRef = doc(cartCol, cartItemId);
     await deleteDoc(itemRef);
+  }
+
+  /**
+   * Atualiza preço e estoque guardados no carrinho com os do anúncio AGORA.
+   * O carrinho guarda um retrato de quando o item entrou; o pedido é cobrado
+   * pelo preço atual (`placeOrder`, no servidor). Rodar ao abrir o checkout
+   * faz o total da tela bater com o que vai ser cobrado.
+   */
+  async refreshPrices(): Promise<void> {
+    const user = await this.waitForUser();
+    const snapshot = await getDocs(this.getCartCollectionForUser(user.uid));
+    await Promise.all(snapshot.docs.map(async item => {
+      const data = item.data() as CartItem;
+      const productId = data.productId || data.productData?.id;
+      if (!productId) return;
+      const productSnap = await getDoc(doc(this.db, 'products', productId)).catch(() => null);
+      if (!productSnap?.exists()) return;
+      const p = productSnap.data() as Product;
+      const promoOk = !!p.priceDiscounted && p.priceDiscounted > 0 && p.priceDiscounted < p.price;
+      const main = promoOk ? (p.priceDiscounted as number) : p.price;
+      const sku = data.skuId ? p.skus?.[data.skuId] : null;
+      const next = sku
+        ? { price: typeof sku.price === 'number' && sku.price > 0 ? sku.price : main, priceDiscounted: null, stock: sku.stock ?? 0 }
+        : { price: p.price || 0, priceDiscounted: promoOk ? p.priceDiscounted : null, stock: p.stock ?? 0 };
+      const current = data.productData || ({} as Product);
+      if (current.price === next.price && (current.priceDiscounted ?? null) === next.priceDiscounted && current.stock === next.stock) return;
+      await updateDoc(item.ref, {
+        'productData.price': next.price,
+        'productData.priceDiscounted': next.priceDiscounted,
+        'productData.stock': next.stock,
+      }).catch(() => undefined);
+    }));
   }
 
   async clearCart(): Promise<void> {

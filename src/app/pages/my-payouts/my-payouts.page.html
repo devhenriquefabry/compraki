@@ -1,0 +1,166 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Recebimentos</h1>
+    <span class="pg-icon-btn" aria-hidden="true"></span>
+  </div>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (loadingKey() || loadingSales()) {
+      <div class="sk pay-sk-hero" aria-hidden="true"></div>
+      <div class="sk pay-sk-card" aria-hidden="true"></div>
+      <div class="sk pay-sk-row" aria-hidden="true"></div>
+      <div class="sk pay-sk-row" aria-hidden="true"></div>
+    } @else {
+      @if (error()) {
+        <div class="panel panel--refund pay-error" role="alert">
+          <ion-icon class="panel-icon" name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+          <div class="panel-body"><p>{{ error() }}</p></div>
+        </div>
+      }
+
+      <!-- Quanto a loja tem a receber -->
+      <section class="ledger" aria-labelledby="pay-total">
+        <span class="ledger-label" id="pay-total">a receber da Vineon</span>
+        <strong class="ledger-value">{{ brl(totals().toReceive) }}</strong>
+        <div class="pay-split">
+          <div>
+            <small>Pronto para liberar</small>
+            <span>{{ brl(totals().ready) }}</span>
+          </div>
+          <div>
+            <small>Já liberado</small>
+            <span>{{ brl(totals().released) }}</span>
+          </div>
+          @if (totals().inRefund > 0) {
+            <div>
+              <small>Em devolução</small>
+              <span>{{ brl(totals().inRefund) }}</span>
+            </div>
+          }
+        </div>
+        <p class="pay-note">Valores já sem a taxa da Vineon. O frete não entra: ele paga a etiqueta.</p>
+      </section>
+
+      <!-- Para onde vai o dinheiro -->
+      <section class="pay-card" aria-labelledby="pay-key-title">
+        <div class="pay-card__head">
+          <span class="pay-card__mark" aria-hidden="true"><ion-icon name="wallet-outline"></ion-icon></span>
+          <div>
+            <h2 id="pay-key-title">Chave Pix para receber</h2>
+            <p>É para ela que a Vineon envia o valor das suas vendas.</p>
+          </div>
+        </div>
+
+        @if (!editing() && payout(); as p) {
+          <dl class="pay-key">
+            <div><dt>Chave ({{ keyLabel(p.pixKeyType) }})</dt><dd>{{ maskedKey() }}</dd></div>
+            <div><dt>Titular</dt><dd>{{ p.holderName }}</dd></div>
+            <div><dt>CPF/CNPJ do titular</dt><dd>{{ documentMasked(p.holderDocument) }}</dd></div>
+          </dl>
+          <div class="pay-actions">
+            <button type="button" class="btn btn--primary" (click)="startEditing()">
+              <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Trocar chave
+            </button>
+            <button type="button" class="btn btn--ghost" (click)="removeKey()">Remover</button>
+          </div>
+        } @else {
+          @if (!payout()) {
+            <div class="panel panel--pay">
+              <ion-icon class="panel-icon" name="alert-circle-outline" aria-hidden="true"></ion-icon>
+              <div class="panel-body">
+                <p class="panel-title">Cadastre para receber</p>
+                <p>Sem chave Pix, a Vineon não tem para onde mandar o seu repasse.</p>
+              </div>
+            </div>
+          }
+
+          <form class="pay-form" (ngSubmit)="saveKey()" novalidate>
+            <fieldset>
+              <legend>Tipo de chave</legend>
+              <div class="pay-types" role="radiogroup" aria-label="Tipo de chave">
+                @for (t of keyTypes; track t.id) {
+                  <button type="button" role="radio" class="pay-type" [class.is-on]="form.type === t.id"
+                          [attr.aria-checked]="form.type === t.id" (click)="setType(t.id)">{{ t.label }}</button>
+                }
+              </div>
+            </fieldset>
+
+            <label class="pay-field">
+              <span>Chave</span>
+              <input name="pixKey" [(ngModel)]="form.key" [placeholder]="placeholder()" [attr.inputmode]="inputMode()"
+                     autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="80" />
+            </label>
+            <label class="pay-field">
+              <span>Nome do titular da conta</span>
+              <input name="holderName" [(ngModel)]="form.holderName" placeholder="Como está no banco" autocomplete="name" maxlength="120" />
+            </label>
+            <label class="pay-field">
+              <span>CPF ou CNPJ do titular</span>
+              <input name="holderDocument" [(ngModel)]="form.holderDocument" placeholder="Só números" inputmode="numeric" maxlength="18" />
+            </label>
+
+            <p class="pay-hint">Use uma chave no seu nome ou no da sua empresa. A Vineon não faz repasse para conta de outra pessoa.</p>
+            @if (formError) { <p class="pay-error-text" role="alert">{{ formError }}</p> }
+
+            <div class="pay-actions">
+              <button type="submit" class="btn btn--primary" [disabled]="saving()">
+                {{ saving() ? 'Salvando…' : 'Salvar chave' }}
+              </button>
+              @if (payout()) {
+                <button type="button" class="btn btn--ghost" (click)="cancelEditing()">Cancelar</button>
+              }
+            </div>
+          </form>
+        }
+      </section>
+
+      <!-- Como funciona -->
+      <section class="pay-how" aria-label="Como funciona o repasse">
+        <ol>
+          <li><strong>Venda paga</strong><span>O valor fica guardado com a Vineon.</span></li>
+          <li><strong>Entregue + 7 dias</strong><span>Prazo para o comprador desistir (Código de Defesa do Consumidor).</span></li>
+          <li><strong>Repasse por Pix</strong><span>A Vineon envia o valor dos produtos menos a taxa.</span></li>
+        </ol>
+        <a routerLink="/help" [queryParams]="{ perfil: 'vender', assunto: 'repasse' }">Dúvidas sobre taxa e repasse</a>
+      </section>
+
+      <!-- Venda por venda -->
+      <h3 class="pay-list-title">Por venda</h3>
+      @if (!lines().length) {
+        <div class="pg-empty pay-empty">
+          <span class="pg-empty-mark"><ion-icon name="cash-outline" aria-hidden="true"></ion-icon></span>
+          <h2>Nenhuma venda paga ainda</h2>
+          <p>Quando um pedido da sua loja for pago, o valor aparece aqui com a data em que libera.</p>
+        </div>
+      } @else {
+        <ul class="pay-list">
+          @for (line of lines(); track line.id) {
+            <li class="pay-row" [attr.data-state]="line.state">
+              <a class="pay-row__link" [routerLink]="['/sale-details', line.id]">
+                @if (line.photo) {
+                  <img class="pay-row__thumb" [src]="line.photo" alt="" loading="lazy" width="48" height="48" />
+                } @else {
+                  <span class="pay-row__thumb pay-row__thumb--empty" aria-hidden="true"><ion-icon name="cube-outline"></ion-icon></span>
+                }
+                <span class="pay-row__main">
+                  <strong>{{ line.title }}</strong>
+                  <small>#{{ line.shortId }} · paga em {{ line.paidOn }}</small>
+                  <span class="pay-chip">{{ line.label }}</span>
+                </span>
+                <span class="pay-row__money">
+                  <strong>{{ brl(line.net) }}</strong>
+                  <small>{{ brl(line.gross) }} − {{ line.rateLabel }}</small>
+                </span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+</ion-content>

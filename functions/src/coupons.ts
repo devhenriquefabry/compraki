@@ -3,7 +3,7 @@ import { logger } from 'firebase-functions';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onRequest } from 'firebase-functions/v2/https';
 
-import { defaultRuntime, handleCors, isBootstrapAdminEmail, methodNotAllowed, region, requireAuthenticated } from './shared/http';
+import { defaultRuntime, handleCors, isAdminUser, methodNotAllowed, region, requireAuthenticated } from './shared/http';
 
 /**
  * Cupons de desconto.
@@ -584,7 +584,7 @@ export const saveCoupon = onRequest(couponRuntime, async (req, res) => {
 
   const body = (req.body || {}) as Record<string, unknown>;
   const action = String(body['action'] ?? '');
-  const isAdmin = auth.isTokenAdmin === true || isBootstrapAdminEmail(auth.email);
+  const isAdmin = isAdminUser(auth);
   const db = getFirestore();
 
   try {

@@ -54,9 +54,10 @@ Um selo laranja "EMULADOR · <conta>" fica no canto da tela o tempo todo.
 
 ## Limites
 
-- Webhooks de pagamento (Asaas, Cora, Melhor Envio) não chegam ao localhost:
-  a cobrança é criada no sandbox, mas a confirmação de pagamento não volta
-  sozinha. Para testar pós-pagamento, marque o pedido pela UI do emulador
+- Webhooks de pagamento (Asaas, Melhor Envio) não chegam ao localhost. O Cora
+  no emulador é falso (`CORA_FAKE=1` em `functions/.env.demo-vineon`): a fatura
+  fica em `_fakeCoraInvoices` e "simular pagamento" na tela do Pix confirma o
+  pedido como no fluxo real. Para testar pós-pagamento, marque o pedido pela UI do emulador
   (http://localhost:4000/firestore) ou chame o webhook local à mão.
 - Telas de bots/WhatsApp respondem "Evolution API não configurada" — é
   proposital.
@@ -85,6 +86,6 @@ sem tocar nos serviços reais:
 
 Apague o `.env.local` depois: com ele, o emulador nunca fala com o WhatsApp real.
 
-Baterias por API (todas zeram o seed antes): `coupons`, `support`, `reviews`,
+Baterias por API (todas zeram o seed antes): `orders` (checkout no servidor e regras endurecidas em 2026-10-18; precisa do Melhor Envio falso), `coupons` (idem), `support`, `reviews`,
 `integrations` e `password-reset` (esta precisa de um SMTP falso — ver o
 cabeçalho do arquivo).

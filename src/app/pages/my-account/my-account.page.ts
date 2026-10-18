@@ -15,6 +15,7 @@ import {
 import { VnIconName } from 'src/app/core/vn-icons';
 import { AppUser } from 'src/app/interfaces/app-user';
 import { Order } from 'src/app/interfaces/order';
+import { SellerPayoutService } from 'src/app/services/seller-payout.service';
 import { AddressService } from 'src/app/services/address.service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
@@ -91,6 +92,7 @@ export class MyAccountPage {
   private readonly reviewsService = inject(ProductReviewsService);
   private readonly questionsService = inject(ProductQuestionsService);
   private readonly addressService = inject(AddressService);
+  private readonly payoutService = inject(SellerPayoutService);
   private readonly storefront = inject(StorefrontDataService);
   private readonly toastCtrl = inject(ToastController);
   private readonly router = inject(Router);
@@ -106,6 +108,10 @@ export class MyAccountPage {
   readonly sales = signal<Order[] | null>(null);
   readonly productCount = signal<number | null>(null);
   readonly unseenInvoices = signal(0);
+  private readonly hasPayoutKey = signal<boolean | null>(null);
+  /** Loja com venda paga e sem chave Pix: o repasse não tem para onde ir. */
+  readonly payoutMissing = computed(() =>
+    this.hasPayoutKey() === false && (this.sales() ?? []).some(order => isPaid(order)));
   readonly unreadNotifications = inject(NotificationCenterService).unread;
   /** Leitura de pedidos/vendas falhou: a tela diz isso em vez de mostrar zeros. */
   readonly ordersFailed = signal(false);
@@ -318,6 +324,11 @@ export class MyAccountPage {
         : 'Responda as dúvidas sobre seus anúncios',
     },
     { icon: 'ticket', label: 'Cupons da loja', hint: 'Desconto nos seus produtos', link: '/my-coupons' },
+    {
+      icon: 'wallet', label: 'Recebimentos', link: '/my-payouts',
+      hint: this.payoutMissing() ? 'Cadastre a chave Pix para receber' : 'Chave Pix e valores a receber',
+      alert: this.payoutMissing(),
+    },
     { icon: 'receipt', label: 'Notas fiscais', hint: 'Notas mensais da Vineon', link: '/my-invoices', badge: this.unseenInvoices() },
     { icon: 'store', label: 'Perfil de vendedor', hint: 'Nome da loja, foto e descrição', link: '/seller-profile' },
   ]);
@@ -440,6 +451,11 @@ export class MyAccountPage {
       this.questionsService.watchStore(user.uid).subscribe({
         next: list => this.storeQuestionsPending.set(list.filter(q => q.status === 'open').length),
         error: () => this.storeQuestionsPending.set(0),
+      }),
+      // Aviso "cadastre a chave Pix": falha aqui some o aviso, não a tela.
+      this.payoutService.watch(user.uid).subscribe({
+        next: payout => this.hasPayoutKey.set(!!payout),
+        error: () => this.hasPayoutKey.set(null),
       }),
       // Só o selo de "resposta nova": falha aqui some o selo, não a tela.
       this.support.watchMyTickets(user.uid, 30).subscribe({
@@ -585,8 +601,8 @@ export class MyAccountPage {
       await this.toast('Preencha a senha atual, a nova senha e a confirmação.', 'warning');
       return;
     }
-    if (newPassword.length < 6) {
-      await this.toast('A nova senha precisa ter pelo menos 6 caracteres.', 'warning');
+    if (newPassword.length < 8) {
+      await this.toast('A nova senha precisa ter pelo menos 8 caracteres.', 'warning');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -611,7 +627,7 @@ export class MyAccountPage {
   private passwordError(error: unknown): string {
     const text = JSON.stringify(error);
     if (text.includes('auth/wrong-password') || text.includes('auth/invalid-credential')) return 'A senha atual está incorreta.';
-    if (text.includes('auth/weak-password')) return 'A nova senha é fraca. Use pelo menos 6 caracteres.';
+    if (text.includes('auth/weak-password')) return 'A nova senha é fraca. Use pelo menos 8 caracteres, com letras e números.';
     if (text.includes('auth/requires-recent-login')) return 'Por segurança, saia e entre de novo antes de trocar a senha.';
     if (text.includes('auth/operation-not-allowed')) return 'Esta conta não usa senha. Entre pelo Google.';
     return 'Não foi possível trocar a senha.';

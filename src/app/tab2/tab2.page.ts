@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { IonModal } from '@ionic/angular';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Product } from '../interfaces/product';
 import { ProductSelectionService } from '../services/product-selection-service';
 import { FirebaseProducts } from '../services/firebase-products';
@@ -63,6 +63,7 @@ export class Tab2Page implements OnInit, OnDestroy {
   private bannerService = inject(BannerService);
   private selectionService = inject(ProductSelectionService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private appConfig = inject(AppConfigService);
   /** No navegador em tela larga a Tab2 vira a home de site (`app-desktop-home`). */
   public layout = inject(LayoutService);
@@ -70,6 +71,11 @@ export class Tab2Page implements OnInit, OnDestroy {
   constructor() {}
 
   ngOnInit() {
+    // Busca vinda de link (`/tabs/tab2?q=...`, ex.: página não encontrada):
+    // no celular abre já com o termo, como a home do computador faz.
+    const linkedTerm = (this.route.snapshot.queryParamMap.get('q') || '').trim();
+    if (linkedTerm) this.searchTerm = linkedTerm.slice(0, 80);
+
     this.productSub = this.fbProducts.getAll().subscribe(products => {
       this.allProducts = products;
       this.productsLoaded = true;

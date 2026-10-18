@@ -228,10 +228,26 @@ check('admin lê os gatilhos', r.status === 200 && Array.isArray(r.json.triggers
 r = await fn('saveWhatsappTrigger', admin, { body: { eventType: 'product_sold', enabled: true, instanceName: 'vineon-teste', phoneNumber: '11977776666', message: 'Venda {{pedido}} de {{nome}}: {{valor}}' } });
 check('admin liga o gatilho de venda', r.status === 200, r.text);
 check('loja NÃO mexe em gatilho', (await fn('saveWhatsappTrigger', seller, { body: { eventType: 'product_sold', enabled: true } })).status === 403);
-t0 = Date.now();
+// "Venda" não sai mais do navegador (qualquer conta mandava o que quisesse
+// para o WhatsApp da equipe): o servidor avisa quando o pagamento é confirmado.
 r = await fn('dispatchWhatsappTrigger', buyer, { body: { eventType: 'product_sold', data: { pedido: 'ABC123', nome: 'Comprador', valor: 'R$ 10,00' } } });
-const trig = callsSince(t0, 'evolution', '/message/sendText/')[0];
-check('compra dispara o aviso no WhatsApp da equipe', r.status === 200 && r.json.sent === true && trig?.body?.text === 'Venda ABC123 de Comprador: R$ 10,00', `${r.text} | ${JSON.stringify(trig?.body)}`);
+check('aviso de venda pelo app é recusado', r.status === 403, r.text);
+const saleRef = db.doc('orders/venda-whatsapp');
+await saleRef.set({
+  userId: 'test-comprador', status: 'PENDING', total: 10, items: [{ productId: 'fone', quantity: 1, productData: { name: 'Fone', price: 10 } }],
+  sellerIds: ['test-vendedor'], customerData: { name: 'Comprador', email: 'comprador@vineon.test', phone: '11990000003' },
+});
+await new Promise(res => setTimeout(res, 1500));
+t0 = Date.now();
+await saleRef.update({ status: 'RECEIVED' });
+let trig;
+for (let i = 0; i < 40 && !trig; i++) {
+  await new Promise(res => setTimeout(res, 300));
+  // Outros pedidos do teste também viram "pagos" (aviso deles pode chegar agora).
+  trig = callsSince(t0, 'evolution', '/message/sendText/').find(c => String(c.body?.text || '').includes('venda-whatsapp'));
+}
+// O valor vem do Intl (espaço não separável entre "R$" e o número).
+check('pagamento confirmado dispara o aviso no WhatsApp da equipe (servidor)', String(trig?.body?.text || '').replace(/\s/g, ' ') === 'Venda venda-whatsapp de Comprador: R$ 10,00', JSON.stringify(trig?.body));
 check('evento desconhecido: 400', (await fn('dispatchWhatsappTrigger', buyer, { body: { eventType: 'qualquer' } })).status === 400);
 
 console.log('\nRecuperação de senha por WhatsApp');

@@ -1,0 +1,369 @@
+/*
+ * Recebimentos da loja
+ * ----------------------------------------------------------------------------
+ * Topo azul-noite com o total a receber (mesmo "ledger" das vendas), cartão
+ * branco da chave Pix e a lista venda por venda com o valor líquido. Lima só
+ * como preenchimento (tipo de chave escolhido, selo de "pronto para liberar").
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(720px);
+@include vc.empty;
+@include vc.skeleton;
+@include vc.buttons;
+@include vc.panel;
+@include vc.ledger;
+@include vc.desktop-header(720px);
+@include vc.reduced-motion;
+
+.pay-sk-hero { height: 176px; margin-bottom: 12px; border-radius: 16px; }
+.pay-sk-card { height: 220px; margin-bottom: 12px; border-radius: 16px; }
+.pay-sk-row { height: 76px; margin-bottom: 8px; border-radius: 14px; }
+
+.pay-error { margin: 0 0 12px; }
+
+/* ----------------------------------------------------------------- total */
+
+.pay-split {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+
+  div {
+    flex: 1 1 120px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--vc-navy-2);
+  }
+
+  small { display: block; font-size: 11.5px; color: rgba(226, 232, 240, 0.68); }
+
+  span {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--vc-display);
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.pay-note {
+  position: relative;
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+/* ------------------------------------------------------------- chave Pix */
+
+.pay-card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--vc-line);
+  border-radius: 16px;
+  background: #fff;
+  font-family: var(--vc-body);
+
+  .panel { margin: 14px 0 0; }
+}
+
+.pay-card__head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+
+  h2 {
+    margin: 0;
+    font-family: var(--vc-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--vc-ink);
+  }
+
+  p { margin: 2px 0 0; font-size: 13px; color: var(--vc-muted); }
+}
+
+.pay-card__mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--vc-navy);
+  color: var(--vc-neon);
+  font-size: 19px;
+}
+
+.pay-key {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--vc-ground);
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    font-size: 13.5px;
+  }
+
+  dt { color: var(--vc-ink-2); }
+  dd { margin: 0; color: var(--vc-ink); font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+}
+
+.pay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pay-form {
+  margin-top: 14px;
+
+  fieldset { margin: 0; padding: 0; border: 0; }
+
+  legend {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--vc-ink-2);
+  }
+}
+
+.pay-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pay-type {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #C7CED8;
+  color: var(--vc-ink);
+  font-size: 13.5px;
+  font-weight: 700;
+
+  &.is-on {
+    background: var(--vc-neon);
+    box-shadow: none;
+    color: var(--vc-navy);
+  }
+}
+
+.pay-field {
+  display: block;
+  margin-top: 12px;
+
+  span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--vc-ink-2);
+  }
+
+  input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1.5px solid #C7CED8;
+    border-radius: 12px;
+    background: #fff;
+    color: var(--vc-ink);
+    font: inherit;
+    font-size: 15px;
+
+    &:focus { outline: none; border-color: var(--vc-navy); box-shadow: 0 0 0 3px rgba(11, 22, 35, 0.12); }
+  }
+}
+
+.pay-hint {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--vc-muted);
+}
+
+.pay-error-text {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--vc-rust);
+}
+
+/* ---------------------------------------------------------- como funciona */
+
+.pay-how {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--vc-line);
+  font-size: 13px;
+
+  ol {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    column-gap: 10px;
+    counter-increment: step;
+
+    &::before {
+      content: counter(step);
+      grid-row: span 2;
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--vc-navy);
+      color: var(--vc-neon);
+      font-size: 12px;
+      font-weight: 800;
+    }
+  }
+
+  strong { color: var(--vc-ink); font-size: 13.5px; }
+  span { color: var(--vc-muted); }
+
+  a {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--vc-ink);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+/* ---------------------------------------------------------------- lista */
+
+.pay-list-title {
+  margin: 4px 4px 10px;
+  font-family: var(--vc-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--vc-muted);
+}
+
+.pay-empty { padding-top: 20px; }
+
+.pay-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.pay-row {
+  border: 1px solid var(--vc-line);
+  border-radius: 14px;
+  background: #fff;
+  font-family: var(--vc-body);
+
+  &[data-state='release'] { border-color: var(--vc-navy); }
+  &[data-state='refunded'] .pay-row__money strong { color: var(--vc-muted); text-decoration: line-through; }
+}
+
+.pay-row__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pay-row__thumb {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--vc-ground);
+}
+
+.pay-row__thumb--empty {
+  display: grid;
+  place-items: center;
+  color: var(--vc-muted);
+  font-size: 20px;
+}
+
+.pay-row__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    overflow: hidden;
+    font-size: 14px;
+    color: var(--vc-ink);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small { font-size: 12px; color: var(--vc-muted); }
+}
+
+.pay-chip {
+  align-self: flex-start;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--vc-ground);
+  color: var(--vc-ink-2);
+  font-size: 11.5px;
+  font-weight: 800;
+
+  [data-state='release'] & { background: var(--vc-neon); color: var(--vc-navy); }
+  [data-state='released'] & { background: var(--vc-navy); color: #fff; }
+  [data-state='refund'] & { background: #FDF1EB; color: var(--vc-rust); }
+}
+
+.pay-row__money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+
+  strong {
+    font-family: var(--vc-display);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--vc-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  small { font-size: 11.5px; color: var(--vc-muted); white-space: nowrap; }
+}
+
+:host-context(html.vn-desktop-shell) {
+  .pg-wrap { padding: 14px 0 48px; }
+}

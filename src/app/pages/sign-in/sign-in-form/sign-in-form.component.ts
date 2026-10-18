@@ -9,8 +9,22 @@ import { VineonLogoComponent } from 'src/app/components/vineon-logo/vineon-logo.
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { AddressService } from 'src/app/services/address.service';
 import { AppAddress } from 'src/app/interfaces/app-user';
+import { isValidCpf } from 'src/app/core/br-documents';
+import { environment } from 'src/environments/environment';
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
+
+/** CPF de teste com dígitos verificadores certos (só para o atalho de dev). */
+function validRandomCpf(base9: string): string {
+  const dv = (digits: string) => {
+    let sum = 0;
+    for (let i = 0; i < digits.length; i++) sum += Number(digits[i]) * (digits.length + 1 - i);
+    const r = (sum * 10) % 11;
+    return String(r === 10 ? 0 : r);
+  };
+  const d10 = base9 + dv(base9);
+  return d10 + dv(d10);
+}
 
 type FieldName =
   | 'name' | 'email' | 'cpf' | 'phone' | 'password' | 'repeatPassword'
@@ -88,11 +102,15 @@ export class SignInFormComponent implements OnInit, OnDestroy {
       });
     }
 
-    const devAutofillShortcutListener = (event: KeyboardEvent) => this.handleDevAutofillShortcut(event);
-    document.addEventListener('keydown', devAutofillShortcutListener, true);
-    this.removeDevAutofillShortcutListener = () => {
-      document.removeEventListener('keydown', devAutofillShortcutListener, true);
-    };
+    // Atalho de preenchimento de teste: só fora da produção (criava contas
+    // falsas @compraki.dev no site no ar).
+    if (!environment.production) {
+      const devAutofillShortcutListener = (event: KeyboardEvent) => this.handleDevAutofillShortcut(event);
+      document.addEventListener('keydown', devAutofillShortcutListener, true);
+      this.removeDevAutofillShortcutListener = () => {
+        document.removeEventListener('keydown', devAutofillShortcutListener, true);
+      };
+    }
 
     // Restaurando observador de CEP
     this.signInForm.get('cep')?.valueChanges.subscribe(cep => {
@@ -147,7 +165,7 @@ export class SignInFormComponent implements OnInit, OnDestroy {
     this.signInForm.patchValue({
       name: `${firstName} ${lastName}`,
       email: `teste.${firstName.toLowerCase()}.${uniqueId}@compraki.dev`,
-      cpf: randomDigits(11),
+      cpf: validRandomCpf(randomDigits(9)),
       phone: `339${randomDigits(8)}`,
       password,
       repeatPassword: password,
@@ -177,10 +195,12 @@ export class SignInFormComponent implements OnInit, OnDestroy {
         if (v.name.trim().length < 3) e.name = 'Digite seu nome completo';
         if (!EMAIL_RE.test(v.email.trim())) e.email = 'Digite um e-mail válido';
         if (digits(v.cpf).length !== 11) e.cpf = 'O CPF precisa ter 11 números';
+        else if (!isValidCpf(v.cpf)) e.cpf = 'CPF inválido. Confira os números';
         if (digits(v.phone).length < 10) e.phone = 'Digite o celular com DDD';
         break;
       case 2:
-        if (v.password.length < 6) e.password = 'A senha precisa de pelo menos 6 caracteres';
+        if (v.password.length < 8) e.password = 'A senha precisa de pelo menos 8 caracteres';
+        else if (!/[A-Za-z]/.test(v.password) || !/\d/.test(v.password)) e.password = 'Use letras e números na senha';
         if (!v.repeatPassword) e.repeatPassword = 'Repita a senha';
         else if (v.repeatPassword !== v.password) e.repeatPassword = 'As senhas não são iguais';
         break;

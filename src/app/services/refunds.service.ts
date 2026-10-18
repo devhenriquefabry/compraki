@@ -66,11 +66,12 @@ export class RefundsService {
   }
 
   // Libera o dinheiro para o vendedor manualmente (Admin)
-  async releaseEscrowManually(orderId: string): Promise<void> {
+  async releaseEscrowManually(orderId: string, payouts?: Record<string, unknown>): Promise<void> {
     const orderDoc = doc(this.db, 'orders', orderId);
     await updateDoc(orderDoc, {
       'escrowInfo.status': 'RELEASED',
-      'escrowInfo.releasedAt': serverTimestamp()
+      'escrowInfo.releasedAt': serverTimestamp(),
+      ...(payouts ? { 'escrowInfo.payouts': payouts } : {})
     });
   }
 

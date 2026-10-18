@@ -1,17 +1,50 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { 
-  getFirestore, collection, addDoc, updateDoc, doc, 
-  query, where, orderBy, onSnapshot, serverTimestamp, 
-  Firestore, getDocs, increment, limit
+import {
+  getFirestore, collection, doc,
+  query, where, orderBy, onSnapshot,
+  Firestore, getDocs, limit
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { Observable } from 'rxjs';
 import { Order } from '../interfaces/order';
-import { WhatsappInstancesService } from './whatsapp-instances.service';
 
 import { environment } from '../../environments/environment';
 const firebaseConfig = environment.firebase;
+
+/** O que o app manda para `placeOrder`: o que comprar, para onde e como pagar. */
+export interface PlaceOrderInput {
+  items: { productId: string; skuId: string | null; quantity: number }[];
+  shippingServiceId: number;
+  address: {
+    street: string; number: string; complement?: string; neighborhood?: string;
+    city: string; state: string; postalCode: string;
+  };
+  buyer: { name: string; cpf: string; phone: string };
+  method: 'PIX' | 'BOLETO' | 'CREDIT_CARD';
+  couponRedemptionId?: string | null;
+  card?: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string };
+  /** Total que a pessoa viu na tela: se o servidor chegar a outro, a compra para. */
+  expectedTotal: number;
+}
+
+export interface PlaceOrderResult {
+  orderId: string;
+  total: number;
+  method: 'PIX' | 'BOLETO' | 'CREDIT_CARD';
+  charge: {
+    id: string; status: string; pixCode: string | null; bankSlipUrl: string | null;
+    digitableLine: string | null; sandbox: boolean;
+  } | null;
+  cardStatus: string | null;
+}
+
+/** Erro do servidor com o código HTTP e, quando houver, o motivo e o total novo. */
+export class OrderRequestError extends Error {
+  constructor(message: string, readonly status: number, readonly reason: string | null = null, readonly total: number | null = null) {
+    super(message);
+  }
+}
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +53,7 @@ export class OrdersService {
   private db: Firestore;
   private auth;
 
-  constructor(private whatsappService: WhatsappInstancesService) {
+  constructor() {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     this.db = getFirestore(app);
     this.auth = getAuth(app);
@@ -30,46 +63,44 @@ export class OrdersService {
     return collection(this.db, 'orders');
   }
 
-  async createOrder(orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> {
-    const docRef = await addDoc(this.getOrdersCollection(), {
-      ...orderData,
-      createdAt: serverTimestamp()
-    });
-
-    // ATUALIZAÇÃO DO DASHBOARD FINANCEIRO E INVENTÁRIO (soldCount)
-    try {
-      if (orderData.items && orderData.items.length > 0) {
-        for (const item of orderData.items) {
-          if (item.productData && item.productData.id) {
-            const productRef = doc(this.db, 'products', item.productData.id);
-            const updates: Record<string, any> = {
-              soldCount: increment(item.quantity),
-              stock: increment(-item.quantity)
-            };
-            // Produto com variações: desconta também da combinação específica
-            // comprada (mapa, não lista — dá pra usar increment() num campo aninhado).
-            if (item.skuId) {
-              updates[`skus.${item.skuId}.stock`] = increment(-item.quantity);
-            }
-            await updateDoc(productRef, updates);
-          }
-        }
-      }
-    } catch (metricError) {
-      console.warn("Aviso: Falha ao atualizar as métricas financeiras do produto", metricError);
-    }
-
-    void this.dispatchProductSoldTrigger(docRef.id, orderData);
-
-    return docRef.id;
+  /**
+   * Fecha o pedido no servidor (`placeOrder`): ele lê o preço atual dos
+   * produtos, recota o frete, confere o cupom, emite a cobrança e grava o
+   * pedido. O app só diz o que quer comprar — nunca quanto custa.
+   */
+  async placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+    return this.callFunction<PlaceOrderResult>('placeOrder', input);
   }
 
-  async updateOrderStatus(orderId: string, status: Order['status']): Promise<void> {
-    const orderDoc = doc(this.db, 'orders', orderId);
-    await updateDoc(orderDoc, { 
-      status: status,
-      updatedAt: serverTimestamp()
-    });
+  /** Cancela um pedido que ainda espera pagamento (a cobrança é cancelada junto). */
+  async cancelOrder(orderId: string): Promise<void> {
+    await this.callFunction('cancelOrder', { orderId });
+  }
+
+  private async callFunction<T>(name: string, body: unknown): Promise<T> {
+    const user = this.auth.currentUser;
+    if (!user) throw new OrderRequestError('Entre na sua conta para continuar.', 401);
+    const token = await user.getIdToken();
+    let response: Response;
+    try {
+      response = await fetch(`${environment.functionsBaseUrl}/${name}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      throw new OrderRequestError('Sem conexão com a Vineon. Confira a internet e tente de novo.', 0);
+    }
+    const data = (await response.json().catch(() => ({}))) as Record<string, any>;
+    if (!response.ok) {
+      throw new OrderRequestError(
+        typeof data['error'] === 'string' ? data['error'] : 'Não foi possível concluir agora. Tente de novo.',
+        response.status,
+        data['reason'] ?? null,
+        typeof data['total'] === 'number' ? data['total'] : null,
+      );
+    }
+    return data as T;
   }
 
   getUserOrders(userId: string): Observable<Order[]> {
@@ -128,35 +159,5 @@ export class OrdersService {
       return { ...snap.docs[0].data(), id: snap.docs[0].id } as Order;
     }
     return null;
-  }
-
-  private async dispatchProductSoldTrigger(orderId: string, orderData: Omit<Order, 'id' | 'createdAt'>): Promise<void> {
-    try {
-      const productNames = orderData.items
-        .map(item => item.productData?.name)
-        .filter(Boolean)
-        .join(', ');
-
-      await this.whatsappService.dispatchTrigger({
-        eventType: 'product_sold',
-        data: {
-          pedido: orderId,
-          nome: orderData.customerData?.name || 'Cliente',
-          email: orderData.customerData?.email || '',
-          telefone: orderData.customerData?.phone || '',
-          produto: productNames,
-          valor: this.formatCurrency(orderData.total)
-        }
-      });
-    } catch (error) {
-      console.warn('Falha ao disparar gatilho de venda de produto:', error);
-    }
-  }
-
-  private formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value || 0);
   }
 }

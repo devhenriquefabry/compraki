@@ -75,7 +75,7 @@ function getAsaasConfig(): { baseUrl: string; apiKey: string } {
   return { baseUrl, apiKey };
 }
 
-async function requestAsaas(
+export async function requestAsaas(
   path: string,
   options: { method?: string; body?: unknown; query?: Record<string, string> } = {}
 ): Promise<unknown> {
@@ -126,6 +126,31 @@ function respondError(res: Parameters<typeof handleCors>[1], error: unknown, fal
   }
 
   res.status(400).json({ error: message });
+}
+
+/**
+ * Cliente Asaas da pessoa (cria ou reaproveita pelo CPF) e grava o vínculo em
+ * `users/{uid}.asaasCustomerId` — campo que a regra do Firestore não deixa o
+ * dono mudar. Usado pelo fechamento do pedido (`placeOrder`).
+ */
+export async function ensureAsaasCustomer(
+  uid: string,
+  data: { name: string; cpfCnpj: string; email?: string; phone?: string }
+): Promise<string> {
+  const db = getFirestore();
+  const userRef = db.doc(`users/${uid}`);
+  const existingId = (await userRef.get()).data()?.['asaasCustomerId'];
+  if (existingId) return String(existingId);
+
+  const digits = String(data.cpfCnpj).replace(/\D/g, '');
+  const search = await requestAsaas('/customers', { query: { cpfCnpj: digits } }) as { data?: Array<{ id: string }> };
+  const customer = search?.data?.[0] ?? await requestAsaas('/customers', {
+    method: 'POST',
+    body: { name: data.name, cpfCnpj: digits, email: data.email, phone: data.phone }
+  }) as { id: string };
+
+  await userRef.set({ asaasCustomerId: customer.id }, { merge: true });
+  return customer.id;
 }
 
 /**
@@ -198,7 +223,10 @@ export const createAsaasPayment = onRequest(defaultRuntime, async (req, res) => 
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
-  const user = await requireAuthenticated(req, res);
+  // O checkout cobra pelo `placeOrder` (functions/src/orders.ts), que calcula o
+  // valor no servidor. Esta rota recebia o valor do navegador; fica só para a
+  // equipe (cobrança avulsa/teste).
+  const user = await requireAdmin(req, res);
   if (!user) return;
 
   const body = (req.body || {}) as CreatePaymentPayload;

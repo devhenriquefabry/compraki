@@ -176,6 +176,8 @@ export async function requestCora<T = any>(
   path: string,
   body?: unknown
 ): Promise<T> {
+  if (isFakeCora()) return fakeCora(method, path, body) as Promise<T>;
+
   const config = getCoraConfig();
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -223,4 +225,68 @@ export interface CoraInvoice {
 
 export function getCoraInvoice(invoiceId: string): Promise<CoraInvoice> {
   return requestCora<CoraInvoice>('GET', `/v2/invoices/${encodeURIComponent(invoiceId)}`);
+}
+
+/** Cancela uma fatura em aberto (pedido cancelado antes de pagar). */
+export function cancelCoraInvoice(invoiceId: string): Promise<unknown> {
+  return requestCora('DELETE', `/v2/invoices/${encodeURIComponent(invoiceId)}`);
+}
+
+// ------------------------------------------------- Cora falso (só emulador)
+
+/**
+ * Cora de mentira para os testes no emulador: guarda as faturas no próprio
+ * Firestore do emulador (`_fakeCoraInvoices`). Três travas juntas, para nunca
+ * valer fora da máquina de teste: rodando no emulador, projeto `demo-*` e
+ * `CORA_FAKE=1` (functions/.env.demo-vineon).
+ */
+function isFakeCora(): boolean {
+  return process.env.FUNCTIONS_EMULATOR === 'true'
+    && /^demo-/.test(process.env.GCLOUD_PROJECT || '')
+    && process.env.CORA_FAKE === '1';
+}
+
+async function fakeCora(method: string, path: string, body: any): Promise<unknown> {
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const col = getFirestore().collection('_fakeCoraInvoices');
+  const idFrom = (p: string) => decodeURIComponent(p.split('/').pop() || '');
+
+  if (method === 'POST' && path === '/v2/invoices') {
+    const amount = Number(body?.services?.[0]?.amount) || 0;
+    if (amount < 500) throw new Error('services[0].amount must be >= 500');
+    const id = `inv_fake_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+    const invoice: CoraInvoice = {
+      id,
+      status: 'OPEN',
+      total_amount: amount,
+      total_paid: 0,
+      pix: { emv: `00020101021226860014br.gov.bcb.pix2564fake.cora/${id}5204000053039865802BR6304FAKE` },
+      payment_options: { bank_slip: { url: `https://example.invalid/${id}.pdf`, digitable: '00190000090000000000000000000000000000000000000' } }
+    };
+    await col.doc(id).set({ ...invoice, request: body });
+    return invoice;
+  }
+  if (method === 'GET' && path.startsWith('/v2/invoices/')) {
+    const snap = await col.doc(idFrom(path)).get();
+    if (!snap.exists) throw new Error('Invoice not found');
+    const { request: _r, ...invoice } = snap.data() as any;
+    return invoice;
+  }
+  if (method === 'POST' && path === '/v2/invoices/pay') {
+    const ref = col.doc(String(body?.id || ''));
+    const snap = await ref.get();
+    if (!snap.exists) throw new Error('Invoice not found');
+    if (snap.get('status') === 'CANCELLED') throw new Error('Invoice cancelled');
+    await ref.update({ status: 'PAID', total_paid: snap.get('total_amount') });
+    return { ok: true };
+  }
+  if (method === 'DELETE' && path.startsWith('/v2/invoices/')) {
+    const ref = col.doc(idFrom(path));
+    const snap = await ref.get();
+    if (!snap.exists) throw new Error('Invoice not found');
+    if (snap.get('status') === 'PAID') throw new Error('Invoice already paid');
+    await ref.update({ status: 'CANCELLED' });
+    return { ok: true };
+  }
+  throw new Error(`Cora falso: rota não simulada (${method} ${path})`);
 }

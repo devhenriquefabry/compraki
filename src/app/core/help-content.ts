@@ -339,7 +339,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         a: [
           {
             t: 'p',
-            text: 'O código vale por **3 dias**. Sem pagamento nesse prazo, o pedido não segue e **nada é cobrado**. É só fazer a compra de novo pelo anúncio.',
+            text: 'O código vale por **3 dias**. Sem pagamento nesse prazo, o pedido é cancelado sozinho e **nada é cobrado**. É só fazer a compra de novo pelo anúncio.',
           },
         ],
       },
@@ -617,7 +617,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           {
             t: 'ul',
             items: [
-              '**Ainda não pagou:** não precisa fazer nada. Sem o pagamento em até 3 dias, o pedido não segue e nada é cobrado.',
+              '**Ainda não pagou:** toque em **Cancelar pedido** em Minhas compras › A pagar. O código Pix e o boleto deixam de valer. Se não fizer nada, ele é cancelado sozinho depois do vencimento, sem cobrança.',
               '**Pagou e a loja ainda não postou:** peça o cancelamento pelo chat da loja ou fale com a Vineon. Você recebe tudo de volta.',
               '**Já foi postado:** o botão **Solicitar devolução** já está liberado no pedido.',
             ],
@@ -1223,7 +1223,12 @@ export const HELP_TOPICS: HelpTopic[] = [
             t: 'note',
             text: 'Marque a venda como **entregue** assim que o pedido chegar. É o que começa a contar o prazo.',
           },
+          {
+            t: 'p',
+            text: 'O repasse vai por **Pix** para a chave cadastrada em **Minha conta › Recebimentos**, que precisa estar no seu nome ou no da sua empresa. Lá você também vê, venda por venda, quanto está retido, quando libera e quanto já foi pago.',
+          },
         ],
+        links: [{ label: 'Abrir Recebimentos', route: '/my-payouts' }],
       },
       {
         id: 'r-quanto',

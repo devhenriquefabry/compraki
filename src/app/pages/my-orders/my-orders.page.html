@@ -267,7 +267,9 @@
           <div class="oc-actions">
             @switch (v.stage) {
               @case ('pay') {
-                <button type="button" class="btn btn--ghost" (click)="talkToStore(v)">Falar com a loja</button>
+                <button type="button" class="btn btn--ghost" (click)="cancelUnpaid(v)" [disabled]="cancelling() === v.id">
+                  {{ cancelling() === v.id ? 'Cancelando…' : 'Cancelar pedido' }}
+                </button>
                 <button type="button" class="btn btn--primary" (click)="pay(v)">
                   {{ v.order.paymentMethod === 'CREDIT_CARD' ? 'Ver cobrança' : 'Pagar agora' }}
                 </button>

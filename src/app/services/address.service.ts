@@ -49,6 +49,11 @@ export class AddressService {
   private readonly loadedSubject = new BehaviorSubject<boolean>(false);
   readonly loaded$ = this.loadedSubject.asObservable();
 
+  /** Já chegou a primeira resposta da lista de endereços (para saber se "vazio" é vazio mesmo). */
+  isLoaded(): boolean {
+    return this.loadedSubject.value;
+  }
+
   constructor() {
     const app = getApps().length === 0 ? initializeApp(environment.firebase) : getApp();
     this.db = getFirestore(app);

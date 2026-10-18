@@ -192,6 +192,12 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Recebimentos da loja: chave Pix do repasse e quanto está retido/liberado.
+    path: 'my-payouts',
+    loadComponent: () => import('./pages/my-payouts/my-payouts.page').then(m => m.MyPayoutsPage),
+    canActivate: [authGuard]
+  },
+  {
     path: 'my-invoices',
     loadComponent: () => import('./pages/my-invoices/my-invoices.page').then(m => m.MyInvoicesPage),
     canActivate: [authGuard]
@@ -236,9 +242,13 @@ const routes: Routes = [
     path: 'seller-profile/:sellerId',
     loadComponent: () => import('./pages/seller-profile/seller-profile.page').then(m => m.SellerProfilePage),
     canActivate: [storefrontGuard]
+  },
+  {
+    // Endereço que não existe (link velho, digitação): página própria em vez
+    // de tela em branco. Precisa ser a ÚLTIMA rota.
+    path: '**',
+    loadComponent: () => import('./pages/not-found/not-found.page').then(m => m.NotFoundPage)
   }
-
-
 ];
 
 @NgModule({

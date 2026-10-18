@@ -122,7 +122,7 @@ export const getMyAdminStatus = onRequest(defaultRuntime, async (req, res) => {
   res.status(200).json({
     uid: user.uid,
     admin: user.isTokenAdmin === true,
-    bootstrapEligible: isBootstrapAdminEmail(user.email)
+    bootstrapEligible: user.emailVerified === true && isBootstrapAdminEmail(user.email)
   });
 });
 
@@ -173,6 +173,12 @@ export const bootstrapAdminClaims = onRequest(defaultRuntime, async (req, res) =
   for (const email of emails) {
     try {
       const user = await auth.getUserByEmail(email);
+      // Conta de e-mail/senha com o endereço da lista pode ter sido criada por
+      // outra pessoa (o cadastro não confere a posse do e-mail).
+      if (!user.emailVerified) {
+        failed.push({ email, reason: 'e-mail ainda não verificado nesta conta' });
+        continue;
+      }
       await auth.setCustomUserClaims(user.uid, {
         ...(user.customClaims || {}),
         admin: true

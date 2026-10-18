@@ -7,7 +7,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import {
   describeItems, itemsOf, notifyUser, photoOf, sellerAmountOf, sellerCouponOf, sellerItemsOf, stageOf,
 } from './notifications';
-import { defaultRuntime, handleCors, isBootstrapAdminEmail, methodNotAllowed, requireAuthenticated } from './shared/http';
+import { defaultRuntime, handleCors, isAdminUser, methodNotAllowed, requireAuthenticated } from './shared/http';
 import { appUrl, escapeHtml, mailParagraph, mailQuote, mailShell, sendMail } from './shared/mail';
 
 /**
@@ -424,7 +424,7 @@ export const replySupportTicket = onRequest({ ...defaultRuntime, maxInstances: 2
     const ticketRef = db.doc(`supportTickets/${ticketId}`);
     const first = await ticketRef.get();
     const preview = first.data();
-    const isStaffToken = auth.isTokenAdmin === true || isBootstrapAdminEmail(auth.email);
+    const isStaffToken = isAdminUser(auth);
     const actor: Actor | null = !preview ? null : preview['userId'] === auth.uid ? 'user' : isStaffToken ? 'staff' : null;
     // Não confirma que o atendimento existe para quem não é parte dele.
     if (!preview || !actor) throw new SupportError(404, 'Atendimento não encontrado.');

@@ -53,15 +53,30 @@ service firebase.storage {
 
     // ------------------------------------------------------------ produtos
 
-    // Fotos de produto (upload-product-form -> FirebaseProducts.uploadImage).
+    // Fotos de produto (FirebaseProducts.uploadImage): products/{uid}/{arquivo}.
     // Leitura publica (mesma politica de `products/{productId}` no Firestore).
-    // Escrita exige login; o dono real e validado pela regra do Firestore ao
-    // gravar o documento do produto, esta so evita upload anonimo.
-    match /products/{allPaths=**} {
+    // So a dona da pasta envia, troca e apaga.
+    match /products/{uid}/{fileName} {
       allow read: if true;
-      allow write: if isSignedIn()
+      allow create, update: if isUser(uid)
         && request.resource.size < 10 * 1024 * 1024
         && isImage();
+      allow delete: if isUser(uid) || isAdmin();
+    }
+
+    // Formato antigo, tudo solto em products/{arquivo}: o app de versoes
+    // anteriores ainda envia assim. Antes qualquer conta logada podia
+    // SOBRESCREVER a foto de anuncio de outra loja (o caminho aparece na URL
+    // publica). Agora so cria arquivo que ainda nao existe (`resource == null`:
+    // no Storage, enviar por cima de um arquivo conta como `create`); trocar ou
+    // apagar, so o admin.
+    match /products/{fileName} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && resource == null
+        && request.resource.size < 10 * 1024 * 1024
+        && isImage();
+      allow update, delete: if isAdmin();
     }
 
     // ------------------------------------------------------------- banners
@@ -170,7 +185,7 @@ service firebase.storage {
     // enviado (e prova do atendimento); a function confere tipo e tamanho de novo.
     match /support/{uid}/{ticketId}/{fileName} {
       allow read: if isAdmin() || isUser(uid);
-      allow create: if (isUser(uid) || isAdmin())
+      allow create: if (isAdmin() || (isUser(uid) && resource == null))
         && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('application/pdf|image/(jpeg|png|webp)');
       allow update, delete: if isAdmin();
@@ -180,11 +195,15 @@ service firebase.storage {
 
     // Fotos e audios trocados numa conversa (chat-box.component.ts -> upload).
     // Privado: so quem participa do chat le ou envia midia nele.
+    // Enviado nao se troca nem se apaga (um participante apagava a midia do
+    // outro); o historico da conversa e prova numa disputa.
     match /chats/{chatId}/{allPaths=**} {
-      allow read: if isChatParticipant(chatId);
-      allow write: if isChatParticipant(chatId)
+      allow read: if isChatParticipant(chatId) || isAdmin();
+      allow create: if isChatParticipant(chatId)
+        && resource == null
         && request.resource.size < 20 * 1024 * 1024
         && request.resource.contentType.matches('(image|audio|video)/.*');
+      allow update, delete: if isAdmin();
     }
   }
 }

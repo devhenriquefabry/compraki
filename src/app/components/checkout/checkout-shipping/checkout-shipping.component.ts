@@ -1,4 +1,6 @@
-import { Component, OnInit, inject, Input } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, Input } from '@angular/core';
+import { Subscription, take } from 'rxjs';
+import { AddressService } from 'src/app/services/address.service';
 import { IonicModule, LoadingController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { MelhorEnvioService } from 'src/app/services/melhor-envio.service';
@@ -16,7 +18,7 @@ import { hasFreeShipping } from 'src/app/core/product-pricing';
   standalone: true,
   imports: [IonicModule, CommonModule]
 })
-export class CheckoutShippingComponent implements OnInit {
+export class CheckoutShippingComponent implements OnInit, OnDestroy {
   @Input() readOnly: boolean = false;
 
 
@@ -33,26 +35,51 @@ export class CheckoutShippingComponent implements OnInit {
   /** Logo da transportadora que não carregou: mostra um ícone no lugar. */
   public brokenLogos: Record<number, boolean> = {};
   private items: CartItem[] = [];
+  private quotedZip = '';
+  private addressSub?: Subscription;
+  private cartSub?: Subscription;
+  private addressService = inject(AddressService);
 
   constructor() { }
 
   ngOnInit() {
-    this.loadShippingQuotes();
+    // O endereço chega depois (o `app-checkout-address`, acima, escolhe o
+    // padrão quando a lista carrega). Cota quando ele chegar e de novo se o CEP
+    // mudar — antes cotava na hora com um CEP de exemplo de São Paulo.
+    this.addressSub = this.addressService.addresses$.subscribe(() => {
+      const zip = String(this.stateService.addressData?.postalCode || '').replace(/\D/g, '');
+      if (zip === this.quotedZip) return;
+      if (zip.length !== 8) {
+        if (this.addressService.isLoaded()) {
+          this.error = 'Cadastre um endereço de entrega para ver o frete.';
+          this.isLoading = false;
+        }
+        return;
+      }
+      this.quotedZip = zip;
+      void this.loadShippingQuotes();
+    });
+  }
+
+  ngOnDestroy() {
+    this.addressSub?.unsubscribe();
+    this.cartSub?.unsubscribe();
   }
 
   async loadShippingQuotes() {
     this.isLoading = true;
     this.error = null;
 
-    const zipTo = this.stateService.addressData.postalCode.replace(/\D/g, '');
+    const zipTo = String(this.stateService.addressData?.postalCode || '').replace(/\D/g, '');
     if (zipTo.length !== 8) {
-      this.error = 'CEP de destino inválido no endereço selecionado.';
+      this.error = 'Cadastre um endereço de entrega para ver o frete.';
       this.isLoading = false;
       return;
     }
 
-    // Pega itens do carrinho
-    this.cartService.getAllCartItems().subscribe({
+    // Pega itens do carrinho (uma inscrição por cotação)
+    this.cartSub?.unsubscribe();
+    this.cartSub = this.cartService.getAllCartItems().pipe(take(1)).subscribe({
       next: (items: CartItem[]) => {
         this.items = items;
         if (items.length === 0) {

@@ -52,6 +52,19 @@ const MIME = {
   '.wasm': 'application/wasm',
 };
 
+// Cabecalhos de seguranca de todo arquivo servido daqui (nao no proxy do
+// login, que devolve o que o Firebase mandar).
+const SECURITY_HEADERS = {
+  // O navegador nao "adivinha" tipo de arquivo (upload que vira script).
+  'x-content-type-options': 'nosniff',
+  // Link para fora leva so o dominio, nunca a URL com id de pedido.
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  // So HTTPS daqui para frente (o App Hosting ja serve so HTTPS).
+  'strict-transport-security': 'max-age=31536000; includeSubDomains',
+  // Camera e microfone so para o proprio site (foto e audio no chat).
+  'permissions-policy': 'camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()',
+};
+
 // Cabecalhos que nao podem ser repassados de um salto para o outro.
 const HOP_BY_HOP = new Set([
   'connection', 'keep-alive', 'transfer-encoding', 'upgrade', 'te', 'trailer',
@@ -112,7 +125,7 @@ async function serveStatic(req, res) {
     // Arquivo com extensao que nao existe e 404 de verdade; o resto e rota
     // do Angular.
     if (extname(pathname)) {
-      res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+      res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
       return res.end('Not found');
     }
     file = await fileFor('/index.html');
@@ -137,6 +150,11 @@ async function serveStatic(req, res) {
     'content-type': MIME[ext] ?? 'application/octet-stream',
     'content-length': file.size,
     'cache-control': cache,
+    ...SECURITY_HEADERS,
+    // So a propria Vineon pode pôr o site dentro de um <iframe>: sem isso,
+    // outra pagina carregava o checkout invisivel por cima de um botao dela
+    // (clickjacking).
+    ...(isIndex ? { 'x-frame-options': 'SAMEORIGIN', 'content-security-policy': "frame-ancestors 'self'" } : {}),
   });
   if (req.method === 'HEAD') return res.end();
   createReadStream(file.path).pipe(res);

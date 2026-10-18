@@ -1,0 +1,181 @@
+/*
+ * Página não encontrada
+ * ----------------------------------------------------------------------------
+ * Fundo azul-noite (como a abertura), cartão em azul de segundo nível com o
+ * "404" vazado em lima. Lima só no traço, na logo e no botão principal (com
+ * texto azul-noite em cima).
+ */
+
+:host {
+  --nf-navy: var(--vn-navy-800, #0B1623);
+  --nf-navy-2: var(--vn-navy-700, #13233A);
+  --nf-lime: var(--vn-neon, #D8F51F);
+  --nf-display: var(--vn-font-display, 'Sora', 'Nunito', system-ui, sans-serif);
+  --nf-body: var(--vn-font-body, 'Nunito', system-ui, sans-serif);
+}
+
+.nf-content {
+  --background:
+    radial-gradient(70% 50% at 50% 0%, rgba(216, 245, 31, 0.08), transparent 70%),
+    var(--nf-navy);
+}
+
+.nf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  min-height: 100%;
+  padding: calc(32px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom));
+  font-family: var(--nf-body);
+  color: #fff;
+}
+
+.nf-logo {
+  display: block;
+  width: 140px;
+  color: var(--nf-lime);
+
+  app-vineon-logo { display: block; }
+  ::ng-deep svg { display: block; width: 100%; height: auto; }
+}
+
+.nf-card {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  padding: 28px 22px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: var(--nf-navy-2);
+  text-align: center;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 56px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--nf-lime);
+    transform: translateX(-50%);
+    box-shadow: 0 0 14px rgba(216, 245, 31, 0.5);
+  }
+
+  h1 {
+    margin: 4px 0 0;
+    font-family: var(--nf-display);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 10px 0 0;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: rgba(226, 232, 240, 0.78);
+  }
+}
+
+.nf-code {
+  display: block;
+  font-family: var(--nf-display);
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--nf-lime);
+}
+
+.nf-path {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 12.5px;
+  color: rgba(226, 232, 240, 0.55);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.nf-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 14px;
+  background: #fff;
+
+  ion-icon { flex-shrink: 0; font-size: 18px; color: #5B6573; }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    min-height: 42px;
+    border: 0;
+    background: transparent;
+    color: var(--nf-navy);
+    font: inherit;
+    font-size: 15px;
+
+    &:focus { outline: none; }
+  }
+
+  button {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--nf-navy);
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+}
+
+.nf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.nf-btn {
+  display: inline-flex;
+  flex: 1 1 160px;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nf-btn--lime { background: var(--nf-lime); color: var(--nf-navy); }
+.nf-btn--ghost { background: transparent; color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35); }
+
+:is(.nf-btn, .nf-search button, .nf-logo):focus-visible {
+  outline: 2px solid var(--nf-lime);
+  outline-offset: 3px;
+}

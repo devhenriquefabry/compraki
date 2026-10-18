@@ -1,0 +1,28 @@
+<ion-content class="nf-content" [fullscreen]="true">
+  <main class="nf">
+    <a class="nf-logo" routerLink="/tabs/tab2" aria-label="Vineon, ir para o início">
+      <app-vineon-logo variant="horizontal"></app-vineon-logo>
+    </a>
+
+    <section class="nf-card" aria-labelledby="nf-title">
+      <span class="nf-code" aria-hidden="true">404</span>
+      <h1 id="nf-title">Esta página não existe</h1>
+      <p>
+        O link pode estar errado ou o anúncio saiu do ar.
+        @if (path && path !== '/') { <span class="nf-path">{{ path }}</span> }
+      </p>
+
+      <form class="nf-search" role="search" (ngSubmit)="search()">
+        <label class="nf-sr" for="nf-q">Buscar na Vineon</label>
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <input id="nf-q" name="q" [(ngModel)]="term" placeholder="Buscar produtos e lojas" autocomplete="off" enterkeyhint="search" />
+        <button type="submit">Buscar</button>
+      </form>
+
+      <div class="nf-actions">
+        <button type="button" class="nf-btn nf-btn--lime" (click)="goHome()">Ir para o início</button>
+        <a class="nf-btn nf-btn--ghost" routerLink="/help">Central de ajuda</a>
+      </div>
+    </section>
+  </main>
+</ion-content>

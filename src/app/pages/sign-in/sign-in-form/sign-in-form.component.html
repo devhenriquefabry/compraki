@@ -46,7 +46,7 @@
             <label class="vn-label" for="su-password">Senha</label>
             <div class="vn-password">
               <input id="su-password" class="vn-input" [class.has-error]="errors['password']" [type]="showPassword ? 'text' : 'password'"
-                formControlName="password" placeholder="Pelo menos 6 caracteres" autocomplete="new-password">
+                formControlName="password" placeholder="8 ou mais, com letras e números" autocomplete="new-password">
               <button type="button" class="vn-password__toggle" (click)="showPassword = !showPassword"
                 [attr.aria-pressed]="showPassword">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button>
             </div>

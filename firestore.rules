@@ -37,8 +37,10 @@ service cloud.firestore {
     }
 
     // Campos que definem privilegio ou punicao: so admin encosta.
+    // `asaasCustomerId` e gravado pelo servidor (cliente do Asaas da pessoa):
+    // trocar pelo de outra conta mandaria a cobranca para o cadastro alheio.
     function privilegedFields() {
-      return ['isAdmin', 'super_admin', 'role', 'admin', 'isChatBanned', 'suspended'];
+      return ['isAdmin', 'super_admin', 'role', 'admin', 'isChatBanned', 'suspended', 'asaasCustomerId'];
     }
 
     // Conta derrubada pelo admin (`setAccountSuspension`). O login ja fica
@@ -77,8 +79,19 @@ service cloud.firestore {
 
     // Campos que o vendedor nao escreve: nota agregada (funcao de avaliacoes) e
     // `moderation` (anuncio fora do ar — admin e funcao `moderateProductName`).
+    // `soldCount` (vendidos) e `savedCount` (salvos) aparecem na vitrine como
+    // prova social: so o servidor escreve (gatilhos de pedido pago e de salvos).
     function sellerLockedProductFields() {
-      return reviewAggregateFields().concat(['moderation']);
+      return reviewAggregateFields().concat(['moderation', 'soldCount', 'savedCount']);
+    }
+
+    // Preco e estoque coerentes no documento como fica depois da escrita.
+    function isValidProductMoney() {
+      let d = request.resource.data;
+      return d.price is number && d.price > 0 && d.price <= 1000000
+        && (!('priceDiscounted' in d) || d.priceDiscounted == null
+            || (d.priceDiscounted is number && d.priceDiscounted >= 0 && d.priceDiscounted <= 1000000))
+        && (!('stock' in d) || (d.stock is number && d.stock >= 0 && d.stock <= 1000000));
     }
 
     match /products/{productId} {
@@ -88,6 +101,7 @@ service cloud.firestore {
         isSignedIn()
         && request.resource.data.sellerId == request.auth.uid
         && !request.resource.data.keys().hasAny(sellerLockedProductFields())
+        && isValidProductMoney()
         && !isSuspended()
       );
 
@@ -98,6 +112,7 @@ service cloud.firestore {
         && request.resource.data.sellerId == resource.data.sellerId
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(sellerLockedProductFields())
+        && isValidProductMoney()
         && !isSuspended()
       );
 
@@ -292,8 +307,12 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(privilegedFields())
       );
 
+      // `createdAt` vira o "Na Vineon desde" da loja (espelho em sellers/):
+      // grava uma vez e nao muda mais.
       allow update: if isAdmin() || (
         isUser(userId) && !touchesPrivileged()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdAt'])
+            || !('createdAt' in resource.data))
       );
 
       allow delete: if isAdmin();
@@ -302,8 +321,10 @@ service cloud.firestore {
       // O documento so guarda o vinculo, sem dado pessoal.
       match /followers/{followerId} {
         allow read: if true;
-        allow create, update, delete: if isUser(followerId)
-          && request.auth.uid != userId;
+        allow create, update: if isUser(followerId)
+          && request.auth.uid != userId
+          && request.resource.data.size() <= 6;
+        allow delete: if isUser(followerId);
       }
 
       match /followingSellers/{sellerId} {
@@ -378,15 +399,21 @@ service cloud.firestore {
       allow create: if isAdmin() || (
         isSignedIn()
         && request.resource.data.participantIds is list
+        && request.resource.data.participantIds.size() <= 5
         && request.auth.uid in request.resource.data.participantIds
+        && !isSuspended()
       );
 
+      // Participante atualiza a conversa (ultima mensagem, lidas, encerrar),
+      // mas nao muda QUEM participa: com isso dava para enfiar outra conta
+      // numa conversa alheia (ou se tirar do registro dela).
       allow update: if isAdmin() || (isSignedIn() && (
         (resource.data.participantIds is list
           && request.auth.uid in resource.data.participantIds) ||
         request.auth.uid == resource.data.buyerId ||
         request.auth.uid == resource.data.sellerId
-      ));
+      ) && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['participantIds', 'buyerId', 'sellerId', 'productId', 'createdAt']));
 
       allow delete: if isAdmin();
 
@@ -397,6 +424,8 @@ service cloud.firestore {
         allow create: if isAdmin() || (
           isChatParticipant(chatId)
           && request.resource.data.senderId == request.auth.uid
+          && (!('text' in request.resource.data) || request.resource.data.text == null
+              || (request.resource.data.text is string && request.resource.data.text.size() <= 5000))
           && !isSuspended()
         );
 
@@ -460,24 +489,46 @@ service cloud.firestore {
           && after.requestedAt == request.time;
       }
 
-      // Cupom no pedido: tem que ser copia exata da reserva que `couponQuote`
-      // gravou para esta pessoa, ainda aberta e dentro do prazo. O desconto e
-      // calculado no servidor; o navegador so repete o que recebeu.
-      function couponMatchesReservation() {
-        let c = request.resource.data.coupon;
-        let r = get(/databases/$(database)/documents/couponRedemptions/$(c.redemptionId)).data;
-        return c.keys().hasOnly(['redemptionId', 'code', 'scope', 'sellerId', 'type',
-                                 'discount', 'itemsDiscount', 'shippingDiscount'])
-          && r.uid == request.auth.uid
-          && r.status == 'reserved'
-          && r.expiresAt > request.time
-          && c.code == r.code
-          && c.scope == r.scope
-          && c.sellerId == r.sellerId
-          && c.type == r.type
-          && c.discount == r.discount
-          && c.itemsDiscount == r.itemsDiscount
-          && c.shippingDiscount == r.shippingDiscount;
+      function isPaidOrder() {
+        return resource.data.status in ['RECEIVED', 'CONFIRMED', 'DELIVERED', 'IN_ESCROW'];
+      }
+
+      function isSellerUpdate() {
+        let keys = changedKeys();
+        let data = request.resource.data;
+        let current = resource.data.get('shipmentStatus', '');
+        return isOrderSeller()
+          && isPaidOrder()
+          && !isSuspended()
+          && keys.hasOnly(['shipmentStatus', 'shippedAt', 'deliveredAt', 'shipmentProblemAt',
+                           'shippingInfo', 'fiscalDocuments', 'updatedAt'])
+          // Do envio, so o codigo de rastreio.
+          && (!keys.hasAny(['shippingInfo'])
+              || (data.shippingInfo.diff(resource.data.get('shippingInfo', {})).affectedKeys().hasOnly(['trackingCode'])
+                  && data.shippingInfo.trackingCode is string
+                  && data.shippingInfo.trackingCode.size() <= 40))
+          // Cada loja so mexe na propria nota (pedido pode ter varias lojas).
+          && (!keys.hasAny(['fiscalDocuments'])
+              || data.fiscalDocuments.diff(resource.data.get('fiscalDocuments', {})).affectedKeys().hasOnly([request.auth.uid]))
+          // Entregue so depois de enviado, e entregue nao volta atras (o prazo
+          // de desistencia e o repasse contam da entrega).
+          && (!keys.hasAny(['shipmentStatus']) || (
+                data.shipmentStatus in ['PREPARING', 'SHIPPED', 'DELIVERED', 'PROBLEM']
+                && current != 'DELIVERED'
+                && (data.shipmentStatus != 'DELIVERED' || current in ['SHIPPED', 'PROBLEM'])));
+      }
+
+      function isBuyerUpdate() {
+        let keys = changedKeys();
+        let data = request.resource.data;
+        return isBuyer()
+          && keys.hasOnly(['refundInfo', 'deliveryConfirmedAt', 'shipmentStatus', 'updatedAt'])
+          && (!keys.hasAny(['refundInfo']) || isRefundRequest())
+          // "Recebi": uma vez, em pedido pago, marcando entregue junto.
+          && (!keys.hasAny(['deliveryConfirmedAt']) || (
+                isPaidOrder() && resource.data.get('deliveryConfirmedAt', null) == null))
+          && (!keys.hasAny(['shipmentStatus']) || (
+                data.shipmentStatus == 'DELIVERED' && keys.hasAny(['deliveryConfirmedAt'])));
       }
 
       // `get` com padrao: na consulta "minhas vendas" (sellerIds contem eu) o
@@ -488,43 +539,28 @@ service cloud.firestore {
         request.auth.uid in resource.data.get('sellerIds', [])
       ));
 
-      // O pedido nasce esperando pagamento e com o valor retido. Quem diz que
-      // foi pago e o webhook (Admin SDK); devolucao, entrega e repasse vem
-      // depois, cada um por quem pode.
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && !isSuspended()
-        && request.resource.data.status == 'PENDING'
-        && request.resource.data.get('escrowInfo', {}).get('status', 'HOLDING') == 'HOLDING'
-        && !request.resource.data.keys().hasAny([
-             'refundInfo', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy',
-             'shipmentStatus', 'shippedAt', 'deliveredAt', 'deliveryConfirmedAt',
-             'shipmentProblemAt', 'fiscalDocuments', 'couponCheck', 'couponCheckReason'
-           ])
-        && (!request.resource.data.keys().hasAny(['coupon']) || couponMatchesReservation());
+      // O pedido nasce SO pela Cloud Function `placeOrder` (Admin SDK), que
+      // calcula preco, frete e cupom a partir de products/ e emite a cobranca
+      // com esse total. Com o pedido escrito pelo navegador, `items` e `total`
+      // eram o que o comprador quisesse: dava para pagar R$ 5 num produto de
+      // R$ 500 e o webhook aprovava (pago == total do pedido).
+      allow create: if false;
 
-      // Comprador e vendedor mexem em entrega e observacao, nunca no dinheiro
-      // nem no `status`.
+      // Comprador e vendedor mexem so no que e deles, campo a campo (lista do
+      // que PODE mudar, nao do que nao pode: campo novo nasce protegido):
+      //  - loja: andamento da entrega, rastreio e a propria nota fiscal, e so
+      //    em pedido pago;
+      //  - comprador: confirmar o recebimento e pedir devolucao.
+      // Dinheiro, `status`, forma de entrega (`shippingInfo.serviceId`, que a
+      // Vineon paga na etiqueta) e repasse ficam com o servidor e o admin.
       //
-      // `status` esta na lista porque e ele que diz se o pedido foi pago. Com
-      // ele liberado, o comprador escrevia `status: 'RECEIVED'` direto pelo SDK
-      // e levava o produto sem pagar - era o que o botao "SIMULAR PAGAMENTO"
-      // fazia. Quem confirma pagamento e a funcao `asaasWebhook`, pelo Admin
-      // SDK, que nao passa por estas regras.
-      //
-      // `escrowInfo` (retencao/repasse) e so do admin: com ele aberto, o
-      // vendedor podia marcar o proprio repasse como liberado pelo SDK.
+      // `status` fica fora das duas listas porque e ele que diz se o pedido foi
+      // pago: com ele liberado, o comprador escrevia `status: 'RECEIVED'` pelo
+      // SDK e levava o produto sem pagar. Quem confirma pagamento sao os
+      // webhooks (Admin SDK), que nao passam por estas regras. `escrowInfo`
+      // (retencao/repasse) e so do admin.
       allow update: if isAdmin() || (isSignedIn()
-        && (isBuyer() || isOrderSeller())
-        && !changedKeys().hasAny([
-             'total', 'userId', 'sellerIds', 'items', 'asaasPaymentId',
-             'coraInvoiceId', 'paymentProvider',
-             'status', 'paymentAlert', 'paymentConfirmedAt', 'paymentConfirmedBy',
-             'escrowInfo', 'coupon', 'couponCheck', 'couponCheckReason'
-           ])
-        && (!changedKeys().hasAny(['refundInfo']) || isRefundRequest())
-        // Nota fiscal / declaracao de conteudo: so a loja anexa.
-        && (!changedKeys().hasAny(['fiscalDocuments']) || isOrderSeller())
+        && (isSellerUpdate() || isBuyerUpdate())
         && deliveryStampsAreNow());
 
       allow delete: if isAdmin();
@@ -535,7 +571,19 @@ service cloud.firestore {
     // Denuncias de conversa (chat-box). A aba Conversas do admin lista tudo.
     match /reports/{reportId} {
       allow read: if isAdmin();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['senderId', 'senderName', 'reportedUserId', 'chatId',
+                                                 'productName', 'reason', 'details', 'createdAt', 'status'])
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.reportedUserId is string
+        && request.resource.data.reportedUserId != request.auth.uid
+        && request.resource.data.chatId is string && request.resource.data.chatId.size() <= 128
+        && request.resource.data.reason in ['spam', 'abuse', 'scam', 'other']
+        && (!('details' in request.resource.data) || (request.resource.data.details is string
+            && request.resource.data.details.size() <= 1000))
+        && request.resource.data.senderName is string && request.resource.data.senderName.size() <= 80
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time;
       allow update, delete: if isAdmin();
     }
 
@@ -672,6 +720,29 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time;
         allow update: if false;
       }
+    }
+
+    // ------------------------------------------------ dados para receber
+
+    // Chave Pix onde a loja recebe os repasses (tela Recebimentos). Dado
+    // financeiro: so a propria loja e o admin leem. A loja grava a dela; o
+    // admin so le (e quem paga o repasse, fora do app).
+    match /sellerPayouts/{uid} {
+      allow read: if isUser(uid) || isAdmin();
+      allow create, update: if isUser(uid)
+        && !isSuspended()
+        && request.resource.data.keys().hasOnly(['method', 'pixKeyType', 'pixKey', 'holderName',
+                                                 'holderDocument', 'updatedAt'])
+        && request.resource.data.method == 'pix'
+        && request.resource.data.pixKeyType in ['cpf', 'cnpj', 'email', 'phone', 'random']
+        && request.resource.data.pixKey is string
+        && request.resource.data.pixKey.size() >= 5 && request.resource.data.pixKey.size() <= 140
+        && request.resource.data.holderName is string
+        && request.resource.data.holderName.size() >= 3 && request.resource.data.holderName.size() <= 120
+        && request.resource.data.holderDocument is string
+        && request.resource.data.holderDocument.matches('^([0-9]{11}|[0-9]{14})$')
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isUser(uid);
     }
 
     // Marca de conta suspensa. So a funcao `setAccountSuspension` escreve; o

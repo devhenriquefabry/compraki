@@ -22,6 +22,8 @@ export interface HttpResponse {
 export interface AuthenticatedRequest {
   uid: string;
   email?: string;
+  /** `email_verified` do ID token. Conta de e-mail/senha nasce sem verificar. */
+  emailVerified?: boolean;
   isTokenAdmin?: boolean;
 }
 
@@ -63,6 +65,8 @@ export function getAllowedCorsOrigin(requestOrigin: string): string {
     : [
         'http://localhost:8100',
         'http://127.0.0.1:8100',
+        // App Android (Capacitor 6+ serve o WebView em https://localhost).
+        'https://localhost',
         'capacitor://localhost',
         'ionic://localhost'
       ];
@@ -126,6 +130,7 @@ export async function requireAuthenticated(
     return {
       uid: decoded.uid,
       email: decoded.email,
+      emailVerified: decoded.email_verified === true,
       isTokenAdmin: decoded['admin'] === true
     };
   } catch (error) {
@@ -133,6 +138,17 @@ export async function requireAuthenticated(
     res.status(401).json({ error: 'Invalid Firebase ID token' });
     return null;
   }
+}
+
+/**
+ * Admin de fato: custom claim `admin`, ou um e-mail de bootstrap
+ * (`ADMIN_EMAILS`) JÁ VERIFICADO. Sem a verificação, quem criasse uma conta de
+ * e-mail/senha com um endereço da lista que ainda não tivesse conta virava
+ * admin nas functions (o Firebase não confere a posse do e-mail no cadastro).
+ */
+export function isAdminUser(user: AuthenticatedRequest | null | undefined): boolean {
+  if (!user) return false;
+  return user.isTokenAdmin === true || (user.emailVerified === true && isBootstrapAdminEmail(user.email));
 }
 
 /**
@@ -150,7 +166,7 @@ export async function requireAdmin(
   const user = await requireAuthenticated(req, res);
   if (!user) return null;
 
-  if (user.isTokenAdmin === true || isBootstrapAdminEmail(user.email)) {
+  if (isAdminUser(user)) {
     return user;
   }
 

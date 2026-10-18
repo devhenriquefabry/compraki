@@ -19,6 +19,11 @@ export interface EscrowInfo {
   status: EscrowStatus;
   /** Data em que o escrow foi efetivamente liberado */
   releasedAt?: any;
+  /** O que foi pago a cada loja na liberação (valor e chave Pix), por uid. */
+  payouts?: Record<string, {
+    gross: number; fee: number; net: number;
+    pixKeyType: string | null; pixKey: string | null; holderName: string | null;
+  }>;
 }
 
 export interface RefundInfo {
@@ -45,6 +50,21 @@ export interface Order {
   userId: string;
   items: CartItem[];
   total: number;
+  /**
+   * Partes do total, calculadas no servidor (`placeOrder`): produtos, frete
+   * cobrado e desconto de cupom. Pedido antigo (feito pelo navegador) não tem.
+   */
+  subtotal?: number;
+  shippingCost?: number;
+  discount?: number;
+  /** `server` quando o total foi calculado pelo `placeOrder`. */
+  pricedBy?: 'server';
+  /** Estoque baixado na confirmação do pagamento (e devolvido se cancelar). */
+  inventory?: { applied?: boolean; appliedAt?: any; restored?: boolean; restoredAt?: any };
+  /** Cancelado sem pagamento: pelo comprador, pelo admin ou vencido (sistema). */
+  cancelledAt?: any;
+  cancelledBy?: 'buyer' | 'admin' | 'system';
+  cancelReason?: 'BUYER_REQUEST' | 'PAYMENT_EXPIRED' | string;
   status: OrderStatus;
   paymentMethod: 'PIX' | 'BOLETO' | 'CREDIT_CARD';
   /**

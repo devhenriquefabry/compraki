@@ -2,17 +2,14 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CartItem } from 'src/app/interfaces/cart-item';
 import { AppUser } from 'src/app/interfaces/app-user';
 import { FirebaseCartService } from 'src/app/services/firebase-cart.service';
-import { AsaasService, AsaasPaymentResult, CreditCardData, CreditCardHolderInfo } from 'src/app/services/asaas.service';
-import { CoraCharge, CoraService } from 'src/app/services/cora.service';
-import { Order } from 'src/app/interfaces/order';
 import { CheckoutStateService } from 'src/app/services/checkout-state.service';
 import { LoadingController, AlertController, NavController, ToastController } from '@ionic/angular';
-import { OrdersService } from 'src/app/services/orders.service';
+import { OrderRequestError, OrdersService, PlaceOrderInput, PlaceOrderResult } from 'src/app/services/orders.service';
 import { getAuth } from 'firebase/auth';
 import { Router } from '@angular/router';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
-import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { CouponReservation, CouponService } from 'src/app/services/coupon.service';
+import { isValidCpf } from 'src/app/core/br-documents';
 
 @Component({
   selector: 'app-checkout',
@@ -21,7 +18,7 @@ import { CouponReservation, CouponService } from 'src/app/services/coupon.servic
   standalone: false
 })
 export class CheckoutPage implements OnInit {
-  
+
   public currentStep: number = 1;
   public cartItems: CartItem[] = [];
   /** Perfil do comprador logado, carregado em `autoFillUserData()`. */
@@ -31,15 +28,12 @@ export class CheckoutPage implements OnInit {
   private cartService = inject(FirebaseCartService);
   private navCtrl = inject(NavController);
   private toastCtrl = inject(ToastController);
-  private asaasService = inject(AsaasService);
-  private coraService = inject(CoraService);
   private stateService = inject(CheckoutStateService);
   private loadingCtrl = inject(LoadingController);
   private alertCtrl = inject(AlertController);
   private ordersService = inject(OrdersService);
   private router = inject(Router);
   private usersService = inject(FirebaseUsersService);
-  private firebaseProducts = inject(FirebaseProducts);
   private couponService = inject(CouponService);
 
   constructor() { }
@@ -48,6 +42,11 @@ export class CheckoutPage implements OnInit {
     this.cartService.getAllCartItems().subscribe(items => {
       this.cartItems = items;
     });
+
+    // O carrinho guarda o preço de quando o item entrou; o pedido é cobrado
+    // pelo preço de agora. Atualizar já na abertura faz a tela mostrar o
+    // mesmo total que o servidor vai cobrar.
+    void this.cartService.refreshPrices().catch(() => undefined);
 
     this.autoFillUserData();
   }
@@ -68,7 +67,12 @@ export class CheckoutPage implements OnInit {
     }
   }
 
-  nextStep() {
+  async nextStep() {
+    const problem = this.stepProblem(this.currentStep);
+    if (problem) {
+      await this.showToast(problem);
+      return;
+    }
     if (this.currentStep < 4) {
       this.currentStep++;
     }
@@ -82,11 +86,35 @@ export class CheckoutPage implements OnInit {
     }
   }
 
+  /** O que impede de sair da etapa (vazio = pode seguir). */
+  private stepProblem(step: number): string {
+    const address = this.stateService.addressData;
+    const data = this.stateService.paymentData;
+    switch (step) {
+      case 1:
+        return this.cartItems.length ? '' : 'Seu carrinho está vazio.';
+      case 2:
+        if (!address?.street || String(address?.postalCode || '').replace(/\D/g, '').length !== 8) {
+          return 'Cadastre um endereço de entrega para continuar.';
+        }
+        return this.stateService.shippingData?.serviceId ? '' : 'Escolha a forma de entrega.';
+      case 3: {
+        if (String(data.buyerName || '').trim().length < 3) return 'Informe o nome completo de quem compra.';
+        if (!isValidCpf(String(data.buyerCpf || ''))) return 'CPF inválido. Confira os 11 números.';
+        const phone = String(data.buyerPhone || '').replace(/\D/g, '');
+        if (phone.length < 10 || phone.length > 11) return 'Informe um celular com DDD.';
+        return data.method ? '' : 'Escolha a forma de pagamento.';
+      }
+      default:
+        return '';
+    }
+  }
+
   /** Produtos + frete, sem cupom. */
   get grossTotal(): number {
     const productsTotal = this.cartItems.reduce((acc, item) => {
-      const p = item.productData.priceDiscounted 
-        ? Math.min(item.productData.price, item.productData.priceDiscounted) 
+      const p = item.productData.priceDiscounted
+        ? Math.min(item.productData.price, item.productData.priceDiscounted)
         : item.productData.price;
       return acc + (p * item.quantity);
     }, 0);
@@ -101,6 +129,15 @@ export class CheckoutPage implements OnInit {
   }
 
   async finishOrder() {
+    for (const step of [1, 2, 3]) {
+      const problem = this.stepProblem(step);
+      if (problem) {
+        this.currentStep = step;
+        await this.showToast(problem);
+        return;
+      }
+    }
+
     const loading = await this.loadingCtrl.create({
       message: 'Processando pagamento...',
     });
@@ -113,13 +150,7 @@ export class CheckoutPage implements OnInit {
 
     try {
       const data = this.stateService.paymentData;
-      
-      // 1. Validar ou Criar Cliente
-      if (!data.buyerName || !data.buyerCpf) {
-         throw new Error("Por favor, preencha Nome e CPF nos dados do comprador.");
-      }
-      
-      const buyerEmail = this.appUser?.email || undefined;
+      const address = this.stateService.addressData;
 
       const applied = this.stateService.coupon();
       if (applied) {
@@ -132,199 +163,111 @@ export class CheckoutPage implements OnInit {
         }
       }
 
-      const total = Math.round((this.grossTotal - (reservation?.quote.discount ?? 0)) * 100) / 100;
-      if (total <= 0) throw new Error("Carrinho vazio ou valor inválido.");
+      const expectedTotal = Math.round((this.grossTotal - (reservation?.quote.discount ?? 0)) * 100) / 100;
+      if (expectedTotal <= 0) throw new Error('Carrinho vazio ou valor inválido.');
 
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 3); // 3 dias de vencimento
-      const dueString = dueDate.toISOString().split('T')[0];
-
-      // PIX e boleto saem pelo Cora (conta PJ do lojista); cartão pelo Asaas.
-      let paymentResult: AsaasPaymentResult | null = null;
-      let coraCharge: CoraCharge | null = null;
-
-      if (data.method === 'PIX' || data.method === 'BOLETO') {
-         const address = this.stateService.addressData;
-         coraCharge = await this.coraService.createCharge({
-           billingType: data.method,
-           value: total,
-           dueDate: dueString,
-           customer: { name: data.buyerName, cpfCnpj: data.buyerCpf, email: buyerEmail },
-           address: {
-             street: address.street,
-             number: address.addressNumber,
-             district: address.neighborhood,
-             city: address.city,
-             state: address.state,
-             complement: address.complement,
-             zipCode: address.postalCode
-           }
-         });
-      } else if (data.method === 'CREDIT_CARD') {
-         // O servidor resolve o cliente Asaas a partir do ID token: reaproveita
-         // o cadastro se o CPF já existir e guarda o vínculo em `users/{uid}`.
-         const customer = await this.asaasService.createCustomer({
-           name: data.buyerName,
-           cpfCnpj: data.buyerCpf,
-           email: buyerEmail,
-           phone: data.buyerPhone
-         });
-
-         const expiryParts = data.cardData.expiry.split('/');
-         const cardData: CreditCardData = {
-           holderName: data.cardData.holderName,
-           number: data.cardData.number.replace(/\D/g, ''),
-           expiryMonth: expiryParts[0],
-           expiryYear: '20' + expiryParts[1],
-           ccv: data.cardData.ccv
-         };
-         
-         const address = this.stateService.addressData;
-         const holderInfo: CreditCardHolderInfo = {
-           name: data.buyerName,
-           email: buyerEmail || 'comprador@email.com',
-           cpfCnpj: data.buyerCpf,
-           postalCode: address.postalCode,
-           addressNumber: address.addressNumber,
-           phone: data.buyerPhone
-         };
-
-         paymentResult = await this.asaasService.createPayment(
-           customer.id,
-           'CREDIT_CARD',
-           total,
-           dueString,
-           cardData,
-           holderInfo
-         );
-      } else {
-         throw new Error('Forma de pagamento não suportada.');
+      let card: PlaceOrderInput['card'];
+      if (data.method === 'CREDIT_CARD') {
+        const [month, year] = String(data.cardData.expiry || '').split('/');
+        card = {
+          holderName: data.cardData.holderName,
+          number: String(data.cardData.number || '').replace(/\D/g, ''),
+          expiryMonth: month || '',
+          expiryYear: year ? `20${year}` : '',
+          ccv: data.cardData.ccv,
+        };
       }
 
-      await loading.dismiss();
-
-      // 4. Salvar Pedido no Firestore como PENDING com Escrow Automático
-      const user = getAuth().currentUser;
-      const sellerIds = [...new Set(this.cartItems.map(item => item.productData.sellerId || 'unknown'))];
-
-      // Só para ordenar a lista do admin: a liberação conta 7 dias da ENTREGA
-      // (escrowReleaseDate em core/order-stage.ts).
-      const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 7);
-
-      // Firestore recusa campo `undefined`: só entra o id de quem cobrou.
-      const paymentRef: Partial<Order> = coraCharge
-        ? {
-            paymentProvider: 'cora',
-            coraInvoiceId: coraCharge.id,
-            coraPayment: {
-              pixCode: coraCharge.pixCode,
-              bankSlipUrl: coraCharge.bankSlipUrl,
-              digitableLine: coraCharge.digitableLine,
-              sandbox: coraCharge.sandbox
-            }
-          }
-        : { paymentProvider: 'asaas', asaasPaymentId: paymentResult!.id };
-
-      // Cópia exata da reserva: a regra do Firestore confere campo a campo.
-      const couponRef: Partial<Order> = reservation
-        ? {
-            coupon: {
-              redemptionId: reservation.redemptionId,
-              code: reservation.quote.code,
-              scope: reservation.quote.scope,
-              sellerId: reservation.quote.sellerId,
-              type: reservation.quote.type,
-              discount: reservation.quote.discount,
-              itemsDiscount: reservation.quote.itemsDiscount,
-              shippingDiscount: reservation.quote.shippingDiscount
-            }
-          }
-        : {};
-
-      const orderId = await this.ordersService.createOrder({
-        userId: user?.uid || 'guest',
-        items: [...this.cartItems],
-        total: total,
-        status: 'PENDING',
-        paymentMethod: data.method as any,
-        ...paymentRef,
-        ...couponRef,
-        sellerIds: sellerIds,
-        escrowInfo: {
-          status: 'HOLDING',
-          releaseDate: releaseDate
+      // O servidor calcula preço, frete e cupom, emite a cobrança com esse
+      // total e grava o pedido. Daqui só sai O QUE comprar, nunca quanto custa.
+      const result = await this.ordersService.placeOrder({
+        items: this.cartItems.map(item => ({
+          productId: item.productId || item.productData?.id || '',
+          skuId: item.skuId || null,
+          quantity: item.quantity,
+        })),
+        shippingServiceId: Number(this.stateService.shippingData.serviceId),
+        address: {
+          street: address.street,
+          number: address.addressNumber,
+          complement: address.complement,
+          neighborhood: address.neighborhood,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
         },
-        customerData: {
-          name: data.buyerName,
-          cpf: data.buyerCpf,
-          phone: data.buyerPhone,
-          email: buyerEmail || `${data.buyerCpf}@compraki.com.br`
-        },
-        addressData: {
-          street: this.stateService.addressData.street || 'Endereço Salvo',
-          number: this.stateService.addressData.addressNumber,
-          city: this.stateService.addressData.city || 'Cidade',
-          state: this.stateService.addressData.state || 'Estado',
-          postalCode: this.stateService.addressData.postalCode,
-          complement: this.stateService.addressData.complement,
-          neighborhood: this.stateService.addressData.neighborhood
-        },
-        shippingInfo: {
-          serviceId: this.stateService.shippingData.serviceId,
-          serviceName: this.stateService.shippingData.serviceName,
-          price: this.stateService.shippingData.price,
-          freeShipping: this.stateService.shippingData.freeShipping === true,
-          quotedPrice: this.stateService.shippingData.quotedPrice ?? this.stateService.shippingData.price,
-          deliveryTime: this.stateService.shippingData.deliveryTime
-        }
+        buyer: { name: data.buyerName, cpf: data.buyerCpf, phone: data.buyerPhone },
+        method: data.method,
+        couponRedemptionId: reservation?.redemptionId ?? null,
+        card,
+        expectedTotal,
       });
       orderSaved = true;
       this.stateService.coupon.set(null);
-
-      // 5. Navegar conforme o método
-      if (data.method === 'PIX') {
-          // A tela de PIX lê o código do próprio pedido e acompanha o status.
-          this.router.navigate(['/pix-payment'], { queryParams: { orderId } });
-      } else if (data.method === 'BOLETO') {
-          await this.showBoletoAlert(coraCharge!);
-          await this.cartService.clearCart();
-          this.navCtrl.navigateRoot('/tabs/tab2');
-      } else {
-          // Cartão de Crédito
-          //
-          // O pedido segue PENDING aqui de proposito. Quem escreve `status` e
-          // a Cloud Function `asaasWebhook`, pelo Admin SDK — o cliente nao
-          // confirma o proprio pagamento (as regras do Firestore tambem barram).
-          // Para cartao aprovado o webhook chega em segundos.
-          const approved = ['CONFIRMED', 'RECEIVED'].includes(paymentResult!.status);
-          await this.showSuccessAlert(
-            approved ? 'Sucesso!' : 'Pagamento em análise',
-            approved
-              ? 'Compra em Cartão de Crédito aprovada!'
-              : 'Recebemos seu pagamento e ele está em análise. Você será avisado assim que for confirmado.'
-          );
-          await this.cartService.clearCart();
-          this.navCtrl.navigateRoot('/tabs/tab2');
-      }
-
+      await loading.dismiss();
+      await this.afterOrder(result);
     } catch (e: any) {
       await loading.dismiss();
       if (reservation && !orderSaved) void this.couponService.release(reservation.redemptionId);
-      const erroMsg = e.message || 'Falha ao processar pagamento.';
       console.error(e);
-      const toast = await this.toastCtrl.create({
-        message: erroMsg,
-        duration: 4000,
-        color: 'danger',
-        position: 'top'
-      });
-      await toast.present();
+      await this.explainFailure(e);
     }
   }
 
+  /** Para onde vai cada forma de pagamento depois do pedido criado. */
+  private async afterOrder(result: PlaceOrderResult) {
+    if (result.method === 'PIX') {
+      // A tela de PIX lê o código do próprio pedido e acompanha o status.
+      this.router.navigate(['/pix-payment'], { queryParams: { orderId: result.orderId } });
+      return;
+    }
+    if (result.method === 'BOLETO') {
+      if (result.charge) await this.showBoletoAlert(result.charge);
+      await this.cartService.clearCart();
+      this.navCtrl.navigateRoot('/tabs/tab2');
+      return;
+    }
+    // Cartão: o pedido segue PENDING. Quem confirma o pagamento é o webhook do
+    // Asaas (servidor); para cartão aprovado ele chega em segundos.
+    const approved = ['CONFIRMED', 'RECEIVED'].includes(String(result.cardStatus));
+    await this.showSuccessAlert(
+      approved ? 'Sucesso!' : 'Pagamento em análise',
+      approved
+        ? 'Compra em Cartão de Crédito aprovada!'
+        : 'Recebemos seu pagamento e ele está em análise. Você será avisado assim que for confirmado.'
+    );
+    await this.cartService.clearCart();
+    this.navCtrl.navigateRoot('/tabs/tab2');
+  }
+
+  private async explainFailure(e: any) {
+    if (e instanceof OrderRequestError) {
+      // Preço, frete ou estoque mudaram: atualiza o carrinho e mostra o total novo.
+      if (e.reason === 'TOTAL_CHANGED') {
+        await this.cartService.refreshPrices().catch(() => undefined);
+        if (this.stateService.coupon()) this.stateService.coupon.set(null);
+        const alert = await this.alertCtrl.create({ header: 'O total mudou', message: e.message, buttons: ['Conferir'] });
+        await alert.present();
+        return;
+      }
+      if (e.reason === 'COUPON_STALE' || e.reason === 'COUPON_EXPIRED') this.stateService.coupon.set(null);
+      if (e.reason === 'SHIPPING_UNAVAILABLE') this.currentStep = 2;
+    }
+    await this.showToast(e?.message || 'Falha ao processar pagamento.', 5000);
+  }
+
+  private async showToast(message: string, duration = 3500) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration,
+      color: 'danger',
+      position: 'top'
+    });
+    await toast.present();
+  }
+
   /** Boleto do Cora: linha digitável em texto e o PDF num botão. */
-  private async showBoletoAlert(charge: CoraCharge) {
+  private async showBoletoAlert(charge: NonNullable<PlaceOrderResult['charge']>) {
     const buttons: any[] = [];
     if (charge.digitableLine) {
       buttons.push({
@@ -354,15 +297,10 @@ export class CheckoutPage implements OnInit {
     await alert.onDidDismiss();
   }
 
-  async showSuccessAlert(header: string, message: string, imageSrc?: string) {
-    let htmlMsg = message;
-    if (imageSrc) {
-       htmlMsg = `<div style="text-align: center;"><img src="data:image/png;base64,${imageSrc}" width="200" /><br><p style="word-break: break-all; font-size: 12px; margin-top: 10px;">${message}</p></div>`;
-    }
-
+  async showSuccessAlert(header: string, message: string) {
     const alert = await this.alertCtrl.create({
       header: header,
-      message: htmlMsg,
+      message: message,
       buttons: ['OK']
     });
     await alert.present();

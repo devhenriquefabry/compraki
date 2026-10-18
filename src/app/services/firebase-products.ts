@@ -328,12 +328,18 @@ export class FirebaseProducts {
   }
 
 
-  // Função para fazer upload da imagem e retornar a URL
+  /**
+   * Sobe a foto do anúncio na pasta da própria loja (`products/{uid}/...`):
+   * a regra do Storage só deixa a dona da pasta enviar, trocar e apagar.
+   */
   async uploadImage(file: File): Promise<string> {
-    const filePath = `products/${Date.now()}_${file.name}`;
+    const uid = this.authenticator.currentUser?.uid;
+    if (!uid) throw new Error('Sessão expirada. Entre de novo para enviar fotos.');
+    const safeName = (file.name || 'foto').replace(/[^\w.\-]+/g, '_').slice(-80);
+    const filePath = `products/${uid}/${Date.now()}_${safeName}`;
     const storageRef = ref(this.storage, filePath);
 
-    await uploadBytes(storageRef, file);
+    await uploadBytes(storageRef, file, { contentType: file.type || 'image/jpeg', cacheControl: 'public,max-age=31536000' });
     return await getDownloadURL(storageRef);
   }
   async signIn(email: string, password: string, name: string, cpf?: string, phone?: string, address?: AppAddress): Promise<void> {

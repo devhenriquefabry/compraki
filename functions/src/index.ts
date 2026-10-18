@@ -3,9 +3,22 @@ import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { onRequest, type Request } from 'firebase-functions/v2/https';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import * as nodemailer from 'nodemailer';
+
+import {
+  type AuthenticatedRequest,
+  type HttpResponse,
+  handleCors,
+  isAdminUser,
+  methodNotAllowed,
+  requireAdmin,
+  requireAuthenticated
+} from './shared/http';
+import { getMelhorEnvioConfig, melhorEnvioBaseUrl, requestMelhorEnvio } from './shared/melhor-envio';
+import { applyOrderInventory } from './orders';
 
 initializeApp();
 
@@ -63,6 +76,8 @@ export {
 
 export { coraWebhook } from './payments/cora-webhook';
 
+export { placeOrder, cancelOrder, expireUnpaidOrders } from './orders';
+
 const WHATSAPP_MEDIA_CACHE_COLLECTION = 'whatsappMediaCache';
 const WHATSAPP_MEDIA_CACHE_STATS_DOC = 'whatsappMediaCacheStats/global';
 const WHATSAPP_MEDIA_STORAGE_PREFIX = 'whatsapp-media';
@@ -86,11 +101,6 @@ const region = 'us-central1';
  */
 const MAX_INSTANCES = 3;
 
-interface AuthenticatedRequest {
-  uid: string;
-  email?: string;
-  isTokenAdmin?: boolean;
-}
 
 interface EvolutionInstanceRequest {
   instanceName?: string;
@@ -219,12 +229,6 @@ interface EvolutionRequestOptions {
   body?: unknown;
 }
 
-interface HttpResponse {
-  set(field: string, value: string): HttpResponse;
-  status(code: number): HttpResponse;
-  json(body: unknown): void;
-  send(body: string): void;
-}
 
 interface StoredWhatsappInstance {
   name: string;
@@ -243,11 +247,6 @@ interface NormalizedEvolutionInstance {
   raw: unknown;
 }
 
-const defaultCorsHeaders = {
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type, x-evolution-webhook-secret',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Max-Age': '3600'
-};
 
 const whatsappTriggerDefaults: Array<Pick<WhatsappTriggerConfig, 'eventType' | 'label' | 'message'>> = [
   {
@@ -1086,6 +1085,38 @@ export const saveWhatsappTrigger = onRequest({ region, cors: false, maxInstances
   }
 });
 
+/** Eventos que o app (qualquer conta) pode avisar. "Venda" é só do servidor. */
+const CLIENT_WHATSAPP_EVENTS: WhatsappTriggerEvent[] = ['account_created', 'new_login', 'product_uploaded', 'new_conversation'];
+const WHATSAPP_TRIGGER_QUOTA = { windowMs: 60 * 60 * 1000, max: 6 };
+
+/** Só texto/número/sim-não, até 12 campos de até 200 caracteres. */
+function sanitizeTriggerData(data: unknown): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return out;
+  for (const [key, value] of Object.entries(data as Record<string, unknown>).slice(0, 12)) {
+    if (!/^[\w.-]{1,40}$/.test(key)) continue;
+    if (typeof value === 'string') out[key] = value.replace(/\s+/g, ' ').trim().slice(0, 200);
+    else if (typeof value === 'number' && Number.isFinite(value)) out[key] = value;
+    else if (typeof value === 'boolean') out[key] = value;
+  }
+  return out;
+}
+
+/** Teto por pessoa e por evento (janela de 1 h). Devolve `false` quando estourou. */
+async function takeWhatsappTriggerQuota(uid: string, eventType: string): Promise<boolean> {
+  const db = getFirestore();
+  const ref = db.doc(`whatsappTriggerQuota/${uid}_${eventType}`);
+  return db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    const since = Number(snap.get('since')) || 0;
+    const fresh = !since || Date.now() - since >= WHATSAPP_TRIGGER_QUOTA.windowMs;
+    const count = fresh ? 0 : Number(snap.get('count')) || 0;
+    if (count >= WHATSAPP_TRIGGER_QUOTA.max) return false;
+    tx.set(ref, { since: fresh ? Date.now() : since, count: count + 1 });
+    return true;
+  });
+}
+
 export const dispatchWhatsappTrigger = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -1093,10 +1124,27 @@ export const dispatchWhatsappTrigger = onRequest({ region, cors: false, maxInsta
   const user = await requireAuthenticated(req, res);
   if (!user) return;
 
-  const payload = req.body as WhatsappTriggerDispatchRequest;
+  const payload = (req.body || {}) as WhatsappTriggerDispatchRequest;
   if (!payload.eventType || !isWhatsappTriggerEvent(payload.eventType)) {
     res.status(400).json({ error: 'eventType is required' });
     return;
+  }
+
+  // Os avisos vão para o WhatsApp da equipe Vineon, pelo número da Vineon.
+  // Qualquer conta logada chama esta função (cadastro, login, anúncio, nova
+  // conversa), então ela não pode virar uma máquina de mensagens: dados
+  // curtos, sem objeto aninhado, e teto por pessoa. "Venda" sai só do
+  // servidor (`onOrderWrittenInventory`), quando o pagamento é confirmado.
+  if (!isAdminUser(user)) {
+    if (!CLIENT_WHATSAPP_EVENTS.includes(payload.eventType)) {
+      res.status(403).json({ error: 'Este aviso é enviado pelo servidor.' });
+      return;
+    }
+    payload.data = sanitizeTriggerData(payload.data);
+    if (!await takeWhatsappTriggerQuota(user.uid, payload.eventType)) {
+      res.status(429).json({ sent: false, reason: 'rate_limited' });
+      return;
+    }
   }
 
   let trigger: WhatsappTriggerConfig | null = null;
@@ -1548,52 +1596,7 @@ export const evolutionWebhook = onRequest({ region, cors: false, maxInstances: M
   res.status(200).json({ ok: true });
 });
 
-/**
- * Autoriza admin pelo custom claim `admin` do ID token.
- *
- * NÃO consulta mais `users/{uid}`. Aquele documento é gravável pelo próprio
- * dono, então lê-lo aqui transformava "criar conta" em "virar admin". A lista
- * `ADMIN_EMAILS` continua valendo apenas como bootstrap do primeiro
- * administrador, antes de existir qualquer claim.
- *
- * Para conceder ou revogar acesso, use a função `setAdminClaim`
- * (functions/src/admin-claims.ts).
- */
-async function requireAdmin(req: Request, res: HttpResponse): Promise<AuthenticatedRequest | null> {
-  const decodedUser = await requireAuthenticated(req, res);
-  if (!decodedUser) return null;
 
-  if (decodedUser.isTokenAdmin === true || isAdminEmail(decodedUser.email)) {
-    return decodedUser;
-  }
-
-  logger.warn('Admin access denied', { uid: decodedUser.uid, email: decodedUser.email });
-  res.status(403).json({ error: 'Admin access required' });
-  return null;
-}
-
-async function requireAuthenticated(req: Request, res: HttpResponse): Promise<AuthenticatedRequest | null> {
-  const authorization = req.header('authorization') || '';
-  const match = authorization.match(/^Bearer (.+)$/i);
-
-  if (!match) {
-    res.status(401).json({ error: 'Missing Firebase ID token' });
-    return null;
-  }
-
-  try {
-    const decoded = await getAuth().verifyIdToken(match[1]);
-    return {
-      uid: decoded.uid,
-      email: decoded.email,
-      isTokenAdmin: decoded['admin'] === true
-    };
-  } catch (error) {
-    logger.warn('Failed to verify Firebase ID token', error);
-    res.status(401).json({ error: 'Invalid Firebase ID token' });
-    return null;
-  }
-}
 
 function requireWorkerToken(req: Request, res: HttpResponse): boolean {
   const configuredToken = (process.env.BOT_WORKER_TOKEN || '').trim();
@@ -1679,51 +1682,8 @@ function extractEvolutionErrorDetail(data: unknown): string {
   return '';
 }
 
-function handleCors(req: Request, res: HttpResponse): boolean {
-  const requestOrigin = req.header('origin') || '';
-  const allowedOrigin = getAllowedCorsOrigin(requestOrigin);
 
-  if (allowedOrigin) {
-    res.set('Access-Control-Allow-Origin', allowedOrigin);
-  }
 
-  res.set('Vary', 'Origin');
-  Object.entries(defaultCorsHeaders).forEach(([key, value]) => res.set(key, value));
-
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return true;
-  }
-
-  return false;
-}
-
-function getAllowedCorsOrigin(requestOrigin: string): string {
-  const configuredOrigins = [
-    ...(process.env.ALLOWED_ORIGINS || '').split(','),
-    ...(process.env.ALLOWED_ORIGIN || '').split(',')
-  ]
-    .map(origin => origin.trim())
-    .filter(Boolean);
-
-  const allowedOrigins = configuredOrigins.length > 0
-    ? configuredOrigins
-    : [
-        'http://localhost:8100',
-        'http://127.0.0.1:8100',
-        'capacitor://localhost',
-        'ionic://localhost'
-      ];
-
-  if (allowedOrigins.includes('*')) return '*';
-  if (requestOrigin && allowedOrigins.includes(requestOrigin)) return requestOrigin;
-
-  return allowedOrigins[0] || '*';
-}
-
-function methodNotAllowed(res: HttpResponse): void {
-  res.status(405).json({ error: 'Method not allowed' });
-}
 
 function getRequiredQuery(req: Request, res: HttpResponse, key: string): string | null {
   const value = req.query[key];
@@ -2587,16 +2547,6 @@ function renderWhatsappTriggerMessage(template: string, data: Record<string, unk
   });
 }
 
-function isAdminEmail(email?: string): boolean {
-  if (!email) return false;
-
-  const adminEmails = (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map(value => value.trim().toLowerCase())
-    .filter(Boolean);
-
-  return adminEmails.includes(email.toLowerCase());
-}
 
 /**
  * RESET DE SENHA PERSONALIZADO
@@ -2606,125 +2556,40 @@ function isAdminEmail(email?: string): boolean {
  * MELHOR ENVIO INTEGRATION
  */
 
-async function getMelhorEnvioConfig() {
-  const snap = await getFirestore().doc('settings/melhor_envio').get();
-  return snap.exists ? snap.data() as any : null;
-}
 
 /**
- * Endereço da API do Melhor Envio. `MELHOR_ENVIO_API_URL` só existe para teste
- * (emulador apontando para um Melhor Envio falso local, via functions/.env.local);
- * em produção vem do `isSandbox` da configuração.
+ * Volta do OAuth do Melhor Envio. Sem conferir o `state`, qualquer pessoa que
+ * autorizasse o app da Vineon na PRÓPRIA conta do Melhor Envio podia chamar
+ * esta URL com o `code` dela e trocar o token da Vineon pelo seu: as etiquetas
+ * (com nome e endereço dos compradores) passariam a sair pela conta dela.
+ * Agora o fluxo só vale se começou no painel (`melhorEnvioSettings` com
+ * `action: 'oauthStart'`, só admin), que grava um `state` de uso único.
  */
-function melhorEnvioBaseUrl(isSandbox: boolean): string {
-  const override = (process.env.MELHOR_ENVIO_API_URL || '').trim().replace(/\/$/, '');
-  if (override) return override;
-  return isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
-}
-
-async function refreshMelhorEnvioToken() {
-  const config = await getMelhorEnvioConfig();
-  if (!config || !config.refreshToken) throw new Error('Refresh token not found');
-
-  const clientId = process.env.MELHOR_ENVIO_CLIENT_ID;
-  const clientSecret = process.env.MELHOR_ENVIO_CLIENT_SECRET;
-  const baseUrl = melhorEnvioBaseUrl(config.isSandbox === true);
-
-  const response = await fetch(`${baseUrl}/oauth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({
-      grant_type: 'refresh_token',
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: config.refreshToken
-    })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    logger.error('Failed to refresh Melhor Envio token', data);
-    throw new Error('Failed to refresh token');
-  }
-
-  await getFirestore().doc('settings/melhor_envio').set({
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresIn: data.expires_in,
-    updatedAt: FieldValue.serverTimestamp()
-  }, { merge: true });
-
-  return data.access_token;
-}
-
-async function requestMelhorEnvio(path: string, options: { method?: string; body?: any } = {}) {
-  let config = await getMelhorEnvioConfig();
-  if (!config) throw new Error('Melhor Envio not configured');
-
-  const baseUrl = melhorEnvioBaseUrl(config.isSandbox === true);
-  
-  let response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
-    method: options.method || 'GET',
-    headers: {
-      'Authorization': `Bearer ${config.accessToken}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
-
-  if (response.status === 401) {
-    // Tenta dar refresh no token se der erro de autorização
-    logger.info('Melhor Envio token expired, refreshing...');
-    const newToken = await refreshMelhorEnvioToken();
-    response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
-      method: options.method || 'GET',
-      headers: {
-        'Authorization': `Bearer ${newToken}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined
-    });
-  }
-
-  const text = await response.text();
-  let data: any = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch (e) {
-    logger.warn('Melhor Envio response is not JSON', { text });
-    data = { message: text };
-  }
-
-  if (!response.ok) {
-    logger.error('Melhor Envio API request failed', { path, status: response.status, data });
-    let errorMessage = data.message || data.error || `Erro na API Melhor Envio (Status ${response.status})`;
-    
-    // Se houver detalhes de validação (errors), adiciona à mensagem
-    if (data.errors) {
-      const details = Object.entries(data.errors)
-        .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-        .join('; ');
-      errorMessage += ` (${details})`;
-    } else if (typeof data === 'object' && Object.keys(data).length > 0 && !data.message) {
-      // Se não tem message mas tem outros campos, loga tudo como string
-      errorMessage += ` (Detalhes: ${JSON.stringify(data)})`;
-    }
-    
-    throw new Error(errorMessage);
-  }
-
-  return data;
-}
+const ME_OAUTH_STATE_DOC = 'settings/melhor_envio_oauth';
+const ME_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 export const meAuthorizer = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   const code = req.query['code'] as string;
   if (!code) {
     res.status(400).send('Code is missing');
+    return;
+  }
+
+  const state = String(req.query['state'] || '').trim();
+  const stateRef = getFirestore().doc(ME_OAUTH_STATE_DOC);
+  const validState = await getFirestore().runTransaction(async tx => {
+    const snap = await tx.get(stateRef);
+    const saved = String(snap.get('state') || '');
+    const at = Number(snap.get('at')) || 0;
+    if (!state || !saved || saved.length !== state.length) return false;
+    const ok = timingSafeEqual(Buffer.from(saved), Buffer.from(state)) && Date.now() - at < ME_OAUTH_STATE_TTL_MS;
+    // Uso único: o mesmo `state` nunca serve duas vezes.
+    if (ok) tx.delete(stateRef);
+    return ok;
+  });
+  if (!validState) {
+    logger.warn('meAuthorizer sem state válido', { ip: req.ip });
+    res.status(403).send('Autorização expirada ou não iniciada pelo painel da Vineon.');
     return;
   }
 
@@ -2866,7 +2731,7 @@ async function loadOrderFor(
   const snap = await ref.get();
   if (!snap.exists) throw new ShippingLabelError(404, 'Pedido não encontrado.');
   const order = snap.data() || {};
-  const isAdmin = user.isTokenAdmin === true || isAdminEmail(user.email);
+  const isAdmin = isAdminUser(user);
   const role: OrderRole | null = isAdmin
     ? 'admin'
     : Array.isArray(order['sellerIds']) && order['sellerIds'].includes(user.uid)
@@ -3046,8 +2911,17 @@ export const createMelhorEnvioShipment = onRequest({ region, cors: false, maxIns
     });
     lockRef = lock;
 
-    let shipmentId: string = info.shipmentId || '';
-    let stage: string = info.labelStatus || 'none';
+    // Relê o pedido JÁ com a trava: o outro clique pode ter terminado a
+    // etiqueta entre a primeira leitura e agora (e soltado a trava). Com o
+    // retrato antigo, este clique comprava uma segunda etiqueta.
+    const lockedInfo = ((await ref.get()).data()?.['shippingInfo'] || {}) as Record<string, any>;
+    if (lockedInfo['shipmentId'] && (!lockedInfo['labelStatus'] || lockedInfo['labelStatus'] === 'generated')) {
+      res.status(200).json({ shipmentId: lockedInfo['shipmentId'], labelStatus: 'generated', existing: true });
+      return;
+    }
+
+    let shipmentId: string = lockedInfo['shipmentId'] || '';
+    let stage: string = lockedInfo['labelStatus'] || 'none';
     const save = (patch: Record<string, unknown>) => ref.update({
       ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`shippingInfo.${k}`, v])),
       updatedAt: FieldValue.serverTimestamp(),
@@ -3142,7 +3016,7 @@ export const printMelhorEnvioLabel = onRequest({ region, cors: false, maxInstanc
       }
       shipmentIds = [info.shipmentId];
     } else {
-      if (user.isTokenAdmin !== true && !isAdminEmail(user.email)) {
+      if (!isAdminUser(user)) {
         throw new ShippingLabelError(403, 'Admin access required');
       }
       shipmentIds = Array.isArray(req.body?.shipmentIds) ? req.body.shipmentIds.map(String) : [];
@@ -3199,6 +3073,28 @@ export const melhorEnvioSettings = onRequest({ region, cors: false, maxInstances
   const ref = getFirestore().doc('settings/melhor_envio');
   const text = (value: unknown, max = 120) => String(value ?? '').trim().slice(0, max);
   try {
+    if (req.method === 'POST' && (req.body || {}).action === 'oauthStart') {
+      // Começa o OAuth: grava um `state` de uso único (10 min) que o
+      // `meAuthorizer` exige na volta.
+      const clientId = (process.env.MELHOR_ENVIO_CLIENT_ID || '').trim();
+      const redirectUrl = (process.env.MELHOR_ENVIO_REDIRECT_URL || '').trim();
+      if (!clientId || !redirectUrl) {
+        res.status(503).json({ error: 'OAuth do Melhor Envio não configurado nas Functions (MELHOR_ENVIO_CLIENT_ID / MELHOR_ENVIO_REDIRECT_URL).' });
+        return;
+      }
+      const state = createHash('sha256').update(`${randomInt(2 ** 47)}:${Date.now()}:${user.uid}`).digest('hex');
+      await getFirestore().doc(ME_OAUTH_STATE_DOC).set({ state, at: Date.now(), by: user.uid });
+      const config = (await ref.get()).data() || {};
+      const authorizeUrl = new URL(`${melhorEnvioBaseUrl(config['isSandbox'] === true)}/oauth/authorize`);
+      authorizeUrl.searchParams.set('client_id', clientId);
+      authorizeUrl.searchParams.set('redirect_uri', redirectUrl);
+      authorizeUrl.searchParams.set('response_type', 'code');
+      authorizeUrl.searchParams.set('state', state);
+      authorizeUrl.searchParams.set('scope', 'cart-read cart-write companies-read coupons-read notifications-read orders-read products-read products-write purchases-read shipping-calculate shipping-cancel shipping-checkout shipping-companies shipping-generate shipping-preview shipping-print shipping-share shipping-tracking ecommerce-shipping transactions-read users-read');
+      res.status(200).json({ authorizeUrl: authorizeUrl.toString() });
+      return;
+    }
+
     if (req.method === 'POST') {
       const body = (req.body || {}) as Record<string, any>;
       const address = (body.address || {}) as Record<string, unknown>;
@@ -3591,3 +3487,59 @@ export const completePasswordReset = onRequest({ region, cors: false, maxInstanc
     res.status(500).json({ error: 'Erro ao atualizar a senha.' });
   }
 });
+
+/**
+ * Estoque, "vendidos" e o aviso de venda no WhatsApp da equipe.
+ * ----------------------------------------------------------------------------
+ * Antes o navegador do COMPRADOR tentava baixar o estoque do produto e a regra
+ * do Firestore (só a loja edita o anúncio) recusava em silêncio: estoque e
+ * vendidos nunca mudavam. Agora muda aqui, quando o pagamento é confirmado, e
+ * volta se o pedido pago for cancelado/estornado (`applyOrderInventory`).
+ */
+export const onOrderWrittenInventory = onDocumentWritten(
+  { document: 'orders/{orderId}', region, maxInstances: 2 },
+  async (event) => {
+    const before = event.data?.before?.exists ? event.data.before.data() : null;
+    const after = event.data?.after?.exists ? event.data.after.data() : null;
+    // Só MUDANÇA de status de pedido existente: pedido criado já pago (seed,
+    // importação) não mexe em estoque.
+    if (!after || !before || before['status'] === after['status']) return;
+
+    const orderId = event.params.orderId;
+    const { paidNow } = await applyOrderInventory(orderId);
+    if (paidNow) await notifyProductSold(orderId, after).catch(error => logger.warn('Aviso de venda no WhatsApp falhou', { orderId, error }));
+  }
+);
+
+async function notifyProductSold(orderId: string, order: FirebaseFirestore.DocumentData): Promise<void> {
+  const trigger = await getWhatsappTriggerConfig('product_sold');
+  if (!trigger.enabled || !trigger.instanceName || !trigger.phoneNumber || !trigger.message) return;
+
+  const items: any[] = Array.isArray(order['items']) ? order['items'] : [];
+  const customer = order['customerData'] || {};
+  const message = renderWhatsappTriggerMessage(trigger.message, {
+    evento: trigger.label,
+    pedido: orderId,
+    nome: customer.name || 'Cliente',
+    email: customer.email || '',
+    telefone: customer.phone || '',
+    produto: items.map(item => item?.productData?.name).filter(Boolean).join(', '),
+    valor: Number(order['total'] || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  });
+
+  const result = await requestEvolution(`/message/sendText/${encodeURIComponent(trigger.instanceName)}`, {
+    method: 'POST',
+    body: { number: trigger.phoneNumber.replace(/\D/g, ''), text: message }
+  });
+  await getFirestore().collection('whatsappTriggerLogs').add({
+    eventType: 'product_sold',
+    userId: order['userId'] || null,
+    data: { pedido: orderId },
+    status: 'sent',
+    instanceName: trigger.instanceName,
+    phoneNumber: trigger.phoneNumber,
+    message,
+    result,
+    createdAt: FieldValue.serverTimestamp()
+  });
+}

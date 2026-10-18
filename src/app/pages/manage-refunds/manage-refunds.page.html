@@ -82,10 +82,30 @@
                 (prazo de desistência do CDC).
               </p>
             </ng-template>
+
+            <!-- Para quem vai o dinheiro: valor líquido de cada loja e a chave Pix dela. -->
+            <div class="payout-lines">
+              <div class="payout-line" *ngFor="let line of payoutLines[order.id!] || []; trackBy: trackSeller">
+                <div class="payout-line__top">
+                  <span class="payout-line__name">{{ line.name }}</span>
+                  <span class="payout-line__net">{{ formatCurrency(line.net) }}</span>
+                </div>
+                <span class="payout-line__calc">{{ formatCurrency(line.gross) }} em produtos − taxa {{ line.rateLabel }} ({{ formatCurrency(line.fee) }})</span>
+                <ng-container *ngIf="line.payout as p; else noKey">
+                  <button type="button" class="payout-line__pix" (click)="copyPix(line)" [attr.aria-label]="'Copiar chave Pix de ' + line.name">
+                    <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+                    <span>Pix ({{ keyLabel(p) }}): <strong>{{ p.pixKey }}</strong> · {{ p.holderName }}</span>
+                  </button>
+                </ng-container>
+                <ng-template #noKey>
+                  <span class="payout-line__missing" *ngIf="line.loaded">Loja sem chave Pix cadastrada (Minha conta › Recebimentos)</span>
+                </ng-template>
+              </div>
+            </div>
           </div>
           <div class="card-footer">
             <ng-container *ngIf="!refundOpen(order); else refundPending">
-              <ion-button *ngIf="canRelease(order)" fill="clear" size="small" color="primary" (click)="forceReleaseEscrow(order)">
+              <ion-button *ngIf="canRelease(order)" fill="solid" size="small" color="primary" (click)="forceReleaseEscrow(order)">
                 Liberar à loja
               </ion-button>
               <ion-button *ngIf="!canRelease(order)" fill="clear" size="small" color="medium" (click)="forceReleaseEscrow(order)">

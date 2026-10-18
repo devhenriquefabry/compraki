@@ -8,6 +8,7 @@ import {
   handleCors,
   HttpResponse,
   methodNotAllowed,
+  requireAdmin,
   requireAuthenticated
 } from '../shared/http';
 import { CoraInvoice, getCoraInvoice, isCoraSandbox, requestCora } from './cora-client';
@@ -86,7 +87,7 @@ function toCents(value: number): number {
 }
 
 /** O que o app precisa para mostrar a cobrança. */
-function presentInvoice(invoice: CoraInvoice) {
+export function presentInvoice(invoice: CoraInvoice) {
   const slip = invoice.payment_options?.bank_slip;
 
   return {
@@ -193,9 +194,8 @@ export async function applyCoraInvoiceToOrder(invoiceId: string, source: string)
       return { ...base, reason: 'COUPON_INVALID' };
     }
 
-    // O valor cobrado ainda vem do navegador. Aqui a conta é conferida:
-    // divergiu, o pedido NÃO vira pago e fica sinalizado para o admin.
-    // PENDÊNCIA (Fase 1): calcular o total no servidor, a partir de products/.
+    // O total do pedido é calculado no servidor (`placeOrder`). Aqui a conta é
+    // conferida de novo: divergiu, o pedido NÃO vira pago e fica sinalizado.
     if (target === 'RECEIVED') {
       const expectedValue = Number(order.total ?? 0);
       const paidCents = invoice.total_paid || invoice.total_amount || 0;
@@ -244,7 +244,10 @@ export const createCoraCharge = onRequest(coraRuntime, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
 
-  const user = await requireAuthenticated(req, res);
+  // O checkout cobra pelo `placeOrder` (functions/src/orders.ts), que calcula o
+  // valor no servidor a partir de products/. Esta rota recebia o valor do
+  // navegador; fica só para a equipe (cobrança avulsa/teste).
+  const user = await requireAdmin(req, res);
   if (!user) return;
 
   const { billingType, value, dueDate, description, customer, address } =

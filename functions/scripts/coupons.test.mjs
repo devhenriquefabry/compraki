@@ -2,6 +2,7 @@
 // Functions `couponQuote` e `saveCoupon`, o gatilho `onOrderWrittenCoupon` e a
 // trava do pagamento (`asaasWebhook` recusa pedido com cupom inválido).
 //
+//   node functions/scripts/fake-integrations.mjs   (Melhor Envio falso, com functions/.env.local)
 //   npm run emulators            (num terminal)
 //   node functions/scripts/coupons.test.mjs
 //
@@ -274,39 +275,52 @@ check('corrida no último cupom: exatamente 1 reserva', race.filter(x => x.statu
   race.map(x => x.status).join(','));
 
 // ============================================================ pedido
-console.log('\nPedido com cupom (regra + gatilho)');
-r = await quote('LOJA15', [line('fone')], 20, buyer, 'reserve');
+// Desde 2026-10-18 o pedido nasce só pelo `placeOrder` (servidor): ele confere
+// a reserva contra o carrinho e o frete recotado. Precisa do Melhor Envio falso
+// (fake-integrations.mjs + functions/.env.local), que cota PAC a R$ 24,90.
+console.log('\nPedido com cupom (placeOrder + gatilho)');
+await admin.doc('settings/melhor_envio').set({
+  accessToken: 'token-falso', isSandbox: true,
+  address: { street: 'Rua A', number: '1', district: 'Centro', city: 'São Paulo', state: 'SP', zipCode: '01001000' },
+});
+const buyerCpf = (await admin.doc('users/test-comprador').get()).get('cpf');
+const place = (items, redemptionId, token = buyer) => fn('placeOrder', {
+  items, shippingServiceId: 1, method: 'PIX', couponRedemptionId: redemptionId,
+  address: { street: 'Avenida Paulista', number: '1000', neighborhood: 'Bela Vista', city: 'São Paulo', state: 'SP', postalCode: '01310100' },
+  buyer: { name: 'Comprador de Teste', cpf: buyerCpf, phone: '11990000003' },
+}, token);
+
+r = await quote('LOJA15', [line('fone')], 24.9, buyer, 'reserve');
 const live = r.json;
 const goodCoupon = couponOf(live.redemptionId, live.quote);
 
-let o = orderWrite('test-comprador', { ...goodCoupon, discount: 200, itemsDiscount: 200 });
-check('pedido com desconto inflado é negado', !(await fsCommit(o.write, buyer)).ok);
-o = orderWrite('test-comprador', { ...goodCoupon, redemptionId: 'aaaaaaaaaaaaaaaaaaaa' });
-check('pedido com reserva inexistente é negado', !(await fsCommit(o.write, buyer)).ok);
-o = orderWrite('test-atelie', goodCoupon);
-check('pedido com a reserva de outra pessoa é negado', !(await fsCommit(o.write, atelie)).ok);
-o = orderWrite('test-comprador', { ...goodCoupon, extra: 1 });
-check('pedido com campo extra no cupom é negado', !(await fsCommit(o.write, buyer)).ok);
-o = orderWrite('test-comprador', goodCoupon, { couponCheck: 'ok' });
-check('cliente NÃO grava couponCheck', !(await fsCommit(o.write, buyer)).ok);
+let o = orderWrite('test-comprador', goodCoupon);
+check('navegador NÃO cria pedido direto (nem com a reserva certa)', !(await fsCommit(o.write, buyer)).ok);
 o = orderWrite('test-comprador', null);
-check('pedido sem cupom continua passando', (await fsCommit(o.write, buyer)).ok);
+check('navegador NÃO cria pedido sem cupom', !(await fsCommit(o.write, buyer)).ok);
+r = await place([line('fone')], live.redemptionId, atelie);
+check('reserva de outra pessoa no placeOrder: 409', r.status === 409, JSON.stringify(r.json));
 
-const order1 = orderWrite('test-comprador', goodCoupon);
-const order2 = orderWrite('test-comprador', goodCoupon);
-// As duas no mesmo commit: as duas passam na regra (reserva aberta), o gatilho
-// decide qual leva o cupom.
-check('pedido com a reserva certa é aceito', (await fsCommit([order1.write, order2.write], buyer)).ok);
-const checks = await waitFor(
-  async () => Promise.all([order1.id, order2.id].map(async id => (await admin.doc(`orders/${id}`).get()).get('couponCheck'))),
-  list => list.every(Boolean),
-);
-check('reserva usada 2x: um pedido ok e o outro inválido', checks.sort().join(',') === 'invalid,ok', checks.join(','));
-const okOrder = checks[0] === 'ok' ? order1.id : order2.id;
-const ok1 = (await admin.doc(`orders/${order1.id}`).get()).get('couponCheck') === 'ok';
-const goodId = ok1 ? order1.id : order2.id;
-const badId = ok1 ? order2.id : order1.id;
+r = await place([line('fone')], live.redemptionId);
+check('pedido com a reserva certa é aceito (placeOrder)', r.status === 200 && r.json.discount === 59.98 && r.json.total === 364.82, JSON.stringify(r.json));
+const goodId = r.json.orderId;
+const firstCheck = await waitFor(async () => (await admin.doc(`orders/${goodId}`).get()).get('couponCheck'), Boolean);
+check('gatilho confere a reserva (couponCheck ok)', firstCheck === 'ok', String(firstCheck));
+
+// Mesma reserva num 2º pedido (corrida simulada pelo Admin SDK): o gatilho
+// recusa o segundo.
+const dupRef = admin.collection('orders').doc();
+await dupRef.set({
+  userId: 'test-comprador', status: 'PENDING', total: 100, sellerIds: ['test-vendedor'],
+  items: [{ productId: 'fone', quantity: 1, productData: { id: 'fone', name: 'Fone', price: 399.9, sellerId: 'test-vendedor' } }],
+  coupon: goodCoupon, createdAt: Timestamp.now(),
+});
+const badId = dupRef.id;
+const dupCheck = await waitFor(async () => (await admin.doc(`orders/${badId}`).get()).get('couponCheck'), Boolean);
+check('reserva usada 2x: o segundo pedido fica inválido', dupCheck === 'invalid', String(dupCheck));
 check('o inválido diz por quê', (await admin.doc(`orders/${badId}`).get()).get('couponCheckReason') === 'ALREADY_USED');
+r = await place([line('fone')], live.redemptionId);
+check('placeOrder com reserva já usada: 409', r.status === 409 && r.json.reason === 'COUPON_EXPIRED', JSON.stringify(r.json));
 const used = await redemption(live.redemptionId);
 check('reserva virou uso com o id do pedido', used.status === 'used' && used.orderId === goodId);
 let c = await couponDoc('LOJA15');
@@ -323,7 +337,6 @@ check('comprador NÃO limpa o couponCheck', !(await fsCommit({
   update: { name: doc(`orders/${badId}`), fields: fields({ couponCheck: 'ok' }) },
   updateMask: { fieldPaths: ['couponCheck'] },
 }, buyer)).ok);
-void okOrder;
 
 // Cancelado: o uso volta.
 await admin.doc(`orders/${goodId}`).update({ status: 'CANCELLED' });
@@ -354,12 +367,16 @@ if (!hookToken) {
   const bad = (await admin.doc(`orders/${badId}`).get()).data();
   check('pagamento de pedido com cupom inválido NÃO aprova', bad.status === 'PENDING' && bad.paymentAlert?.reason === 'COUPON_INVALID', JSON.stringify({ s: bad.status, a: bad.paymentAlert }));
 
-  const fresh = await quote('VINEON10', [line('fone')], 20, buyer, 'reserve');
-  const paid = orderWrite('test-comprador', couponOf(fresh.json.redemptionId, fresh.json.quote), { asaasPaymentId: 'pay_cupom_ok', total: 379.91 });
-  await fsCommit(paid.write, buyer);
-  await waitFor(async () => (await admin.doc(`orders/${paid.id}`).get()).get('couponCheck'), Boolean);
-  await hook('pay_cupom_ok', 379.91);
-  const good = (await admin.doc(`orders/${paid.id}`).get()).data();
+  const fresh = await quote('VINEON10', [line('fone')], 24.9, buyer, 'reserve');
+  r = await place([line('fone')], fresh.json.redemptionId);
+  const paidId = r.json.orderId;
+  const paidTotal = r.json.total;
+  check('pedido com VINEON10 pelo placeOrder', r.status === 200 && r.json.discount === fresh.json.quote?.discount, JSON.stringify(r.json));
+  await waitFor(async () => (await admin.doc(`orders/${paidId}`).get()).get('couponCheck'), Boolean);
+  // Webhook do Asaas acha o pedido pelo id da cobrança do cartão.
+  await admin.doc(`orders/${paidId}`).update({ asaasPaymentId: 'pay_cupom_ok' });
+  await hook('pay_cupom_ok', paidTotal);
+  const good = (await admin.doc(`orders/${paidId}`).get()).data();
   check('pagamento de pedido com cupom válido aprova', good.status === 'RECEIVED' && !good.paymentAlert, JSON.stringify({ s: good.status, a: good.paymentAlert }));
 }
 

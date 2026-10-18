@@ -284,3 +284,55 @@
     font-weight: 700;
     color: #b45309;
 }
+
+
+/* Repasse por loja no card do pedido retido */
+.payout-lines {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.payout-line {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #F4F6F8;
+  font-size: 13px;
+}
+
+.payout-line__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 800;
+  color: #0B1623;
+}
+
+.payout-line__net { font-variant-numeric: tabular-nums; }
+.payout-line__calc { color: #5B6573; font-size: 12px; }
+
+.payout-line__pix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 0;
+  border: 0;
+  background: none;
+  color: #0B1623;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+
+  ion-icon { flex-shrink: 0; font-size: 15px; }
+}
+
+.payout-line__missing {
+  padding-top: 4px;
+  color: #9A3412;
+  font-size: 12.5px;
+  font-weight: 700;
+}

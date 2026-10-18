@@ -290,6 +290,8 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     // Cadastro, perfil público e tudo o que fica dentro de users/{uid}.
     await db.recursiveDelete(userRef);
     await db.doc(`sellers/${uid}`).delete();
+    // Chave Pix de repasse (Recebimentos): dado financeiro, sai junto.
+    await db.doc(`sellerPayouts/${uid}`).delete().catch(() => undefined);
     if (decoded.email) await db.doc(`passwordResets/${decoded.email.trim().toLowerCase()}`).delete().catch(() => undefined);
 
     // Arquivos: foto de perfil, banner da loja e fotos de anúncio sem venda.
