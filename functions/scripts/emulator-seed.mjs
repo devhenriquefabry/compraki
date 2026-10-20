@@ -763,6 +763,17 @@ const chatPlan = [
       ['seller', 'Cabe sim! Ela tem 38 cm de largura e forro por dentro.', 71 * 60],
       ['buyer', 'Perfeito, obrigado. Vou fechar o pedido hoje.', 70 * 60]
     ]
+  },
+  {
+    // Caso de moderação: a loja pede Pix por fora e o comprador denuncia.
+    id: 'seed-chat-pix', product: 'celular-usado', seller: users.vendedor, buyer: users.comprador, startedHoursAgo: 5,
+    unread: { [users.vendedor.uid]: 1 },
+    messages: [
+      ['buyer', 'Oi, o celular tem marcas de uso?', 5 * 60],
+      ['seller', 'Quase nada. Se pagar no Pix direto pra mim faço R$ 600, fora do site.', 4 * 60 + 50],
+      ['seller', 'Me chama no WhatsApp que te passo a chave.', 4 * 60 + 49],
+      ['buyer', 'Prefiro comprar pela Vineon mesmo.', 4 * 60 + 30]
+    ]
   }
 ];
 
@@ -797,13 +808,25 @@ for (const c of chatPlan) {
   }
 }
 
+await db.doc('reports/seed-report-pix').set({
+  senderId: users.comprador.uid,
+  senderName: users.comprador.displayName,
+  reportedUserId: users.vendedor.uid,
+  chatId: 'seed-chat-pix',
+  productName: productDocs['celular-usado'].name,
+  reason: 'scam',
+  details: 'A loja pediu pagamento por Pix fora da Vineon.',
+  createdAt: Timestamp.fromMillis(now - 4 * 3_600_000),
+  status: 'pending'
+});
+
 console.log(`Seed concluído em ${PROJECT_ID}:`);
 console.log(`  ${Object.keys(users).length} contas (admin, vendedor, atelie, comprador), senha "${PASSWORD}"`);
 console.log(`  ${categories.length} categorias, ${products.length + 1} produtos, ${orderPlan.length} pedidos`);
 console.log(`  ${catalog.length} produtos no catálogo (1 rascunho)`);
 console.log(`  ${reviewPlan.length} avaliações (Marina avalia a Loja de Teste; o comprador avaliou 2 e tem o resto em "Para avaliar")`);
 console.log(`  ${coupons.length} cupons (${coupons.map(c => c.code).join(', ')})`);
-console.log(`  ${chatPlan.length} conversas do comprador (Loja de Teste com 2 não lidas, Ateliê Maré lida)`);
+console.log(`  ${chatPlan.length} conversas do comprador (Loja de Teste com 2 não lidas, Ateliê Maré lida, uma denunciada por Pix fora do site)`);
 console.log(`  ${ticketPlan.length} atendimentos (um por situação: novo, aguardando cliente, resolvido, encerrado e um atrasado)`);
 console.log('  Entre pelo app com ?testUser=admin | vendedor | atelie | comprador');
 

@@ -67,6 +67,12 @@ export class ChatBoxComponent implements OnInit, OnDestroy {
   /** Botão de fechar no cabeçalho (painel do anúncio, janela da loja). */
   @Input() closable = false;
   @Input() showHeader = true;
+  /**
+   * Mostra a conversa do ponto de vista desta conta (as mensagens dela à
+   * direita). O admin observa uma conversa da qual não participa: com a loja
+   * aqui, cliente fica à esquerda e loja à direita.
+   */
+  @Input() viewAs?: string;
   @Input() aiSimulationActive: boolean = false;
   @Output() onClose = new EventEmitter<void>();
   @Output() onBack = new EventEmitter<void>();
@@ -196,10 +202,15 @@ export class ChatBoxComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** De que lado a conversa é desenhada (quem fica à direita). */
+  private get viewer(): string | undefined {
+    return this.viewAs || this.currentUserId;
+  }
+
   private applyRoom(room: ChatRoom) {
     const me = this.currentUserId;
     this.isParticipant = !!me && (room.participantIds?.includes(me) ?? false);
-    this.otherParticipant = otherParticipantOf(room, me);
+    this.otherParticipant = otherParticipantOf(room, this.viewer);
     this.isChatClosed = room.status === 'closed';
     this.iAmSeller = !!me && chatSellerId(room) === me;
 
@@ -252,7 +263,7 @@ export class ChatBoxComponent implements OnInit, OnDestroy {
 
   /** Monta as linhas: dia, marca de novas e blocos por remetente. */
   private rebuildRows() {
-    const me = this.currentUserId;
+    const me = this.viewer;
     const msgs = this.allMessages;
     const otherUid = this.otherParticipant?.uid;
     const otherRead = otherUid ? toMillis(this.chatRoom?.readAt?.[otherUid]) : null;

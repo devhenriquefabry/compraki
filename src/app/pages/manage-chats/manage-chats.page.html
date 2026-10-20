@@ -1,425 +1,317 @@
-<div class="admin-tabs-nav ion-no-border" *ngIf="!selectedChatId">
-  <div class="tabs-container">
-    <button class="nav-tab" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">
-      <ion-icon [name]="activeTab === 'all' ? 'chatbubbles' : 'chatbubbles-outline'"></ion-icon>
-      Todas
-    </button>
-    <button class="nav-tab" [class.active]="activeTab === 'reported'" (click)="activeTab = 'reported'">
-      <ion-icon [name]="activeTab === 'reported' ? 'flag' : 'flag-outline'"></ion-icon>
-      Denunciadas
-      <span class="count-badge warn" *ngIf="reports.length > 0">{{ reports.length }}</span>
-    </button>
-    <button class="nav-tab" [class.active]="activeTab === 'banned'" (click)="activeTab = 'banned'">
-      <ion-icon [name]="activeTab === 'banned' ? 'ban' : 'ban-outline'"></ion-icon>
-      Banidas
-    </button>
+<div class="adm mc" [class.has-detail]="!!selectedId()">
+
+  <!-- ============================== TOPO =============================== -->
+  <div class="mc-top">
+    <header class="adm-head">
+      <div>
+        <h2>Conversas</h2>
+        <p>Compradores e lojas falando pela Vineon. Denunciadas aparecem primeiro. <span class="adm-live">Ao vivo</span></p>
+      </div>
+      <div class="mc-head-actions">
+        <button type="button" class="adm-btn" [class.adm-btn--primary]="selecting()" (click)="toggleSelecting()" [attr.aria-pressed]="selecting()">
+          {{ selecting() ? 'Cancelar seleção' : 'Selecionar' }}
+        </button>
+        <button type="button" class="adm-btn adm-btn--accent" (click)="openNewChat()">
+          <vn-icon name="plus" /> Nova conversa
+        </button>
+      </div>
+    </header>
+
+    <div class="adm-stats mc-stats">
+      <div class="adm-stat"><span>Conversas</span><strong>{{ counts().all }}</strong></div>
+      <div class="adm-stat"><span>Ativas em 24 h</span><strong>{{ stats().active24h }}</strong></div>
+      <div class="adm-stat"><span>Mensagens</span><strong>{{ totalMessages() ?? '–' }}</strong></div>
+      <div class="adm-stat" [class.is-danger]="stats().pendingReports > 0"><span>Denúncias abertas</span><strong>{{ stats().pendingReports }}</strong></div>
+      <div class="adm-stat" [class.is-warn]="stats().restrictedUsers > 0"><span>Contas restritas</span><strong>{{ stats().restrictedUsers }}</strong></div>
+    </div>
+
   </div>
 
+  <!-- ================================ FILA ================================ -->
+  <section class="mc-queue" aria-label="Conversas">
+    <div class="adm-toolbar">
+      <label class="adm-search">
+        <vn-icon name="search" class="mc-search-ic" />
+        <input type="search" placeholder="Nome, e-mail, produto, mensagem ou ID" aria-label="Buscar conversa"
+               [ngModel]="search()" (ngModelChange)="search.set($event)" autocomplete="off" />
+      </label>
+    </div>
+
+    <div class="adm-toolbar mc-filters">
+      <div class="adm-chips" role="tablist" aria-label="Situação">
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="status() === 'all'" [attr.aria-selected]="status() === 'all'" (click)="status.set('all')">Todas <small>{{ counts().all }}</small></button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="status() === 'reported'" [class.is-alert]="counts().reported > 0" [attr.aria-selected]="status() === 'reported'" (click)="status.set('reported')">Denunciadas <small>{{ counts().reported }}</small></button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="status() === 'restricted'" [attr.aria-selected]="status() === 'restricted'" (click)="status.set('restricted')">Com restrição <small>{{ counts().restricted }}</small></button>
+        <button type="button" role="tab" class="adm-chip" [class.is-active]="status() === 'closed'" [attr.aria-selected]="status() === 'closed'" (click)="status.set('closed')">Encerradas <small>{{ counts().closed }}</small></button>
+        @if (counts().mine) {
+          <button type="button" role="tab" class="adm-chip" [class.is-active]="status() === 'mine'" [attr.aria-selected]="status() === 'mine'" (click)="status.set('mine')">Da Vineon <small>{{ counts().mine }}</small></button>
+        }
+      </div>
+      <div class="mc-selects">
+        <label>
+          <span>Tipo</span>
+          <select [ngModel]="kind()" (ngModelChange)="kind.set($event)">
+            <option value="all">Todas</option>
+            <option value="product">Sobre anúncio</option>
+            <option value="direct">Diretas</option>
+          </select>
+        </label>
+        <label>
+          <span>Atividade</span>
+          <select [ngModel]="period()" (ngModelChange)="period.set($event)">
+            <option value="all">Qualquer data</option>
+            <option value="1">Últimas 24 h</option>
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="adm-empty"><ion-spinner name="crescent"></ion-spinner></div>
+    } @else if (error()) {
+      <p class="adm-error" role="alert">{{ error() }} <button type="button" class="adm-btn" (click)="load()">Tentar de novo</button></p>
+    } @else if (!list().length) {
+      <div class="adm-empty">
+        <vn-icon name="chat" class="mc-empty-ic" />
+        <p>{{ search() || status() !== 'all' || kind() !== 'all' || period() !== 'all' ? 'Nenhuma conversa com esses filtros.' : 'Ainda não há conversas na Vineon.' }}</p>
+      </div>
+    } @else {
+      @if (selecting()) {
+        <div class="mc-pickbar">
+          <button type="button" class="mc-link" (click)="pickAllVisible()">
+            {{ picked().size && picked().size === list().length ? 'Desmarcar todas' : 'Marcar as ' + list().length + ' da lista' }}
+          </button>
+          <span class="mc-spacer"></span>
+          <button type="button" class="adm-btn adm-btn--danger" [disabled]="!picked().size" (click)="deletePicked()">
+            <vn-icon name="trash" /> Excluir {{ picked().size || '' }}
+          </button>
+        </div>
+      }
+      <ul class="mc-list">
+        @for (r of list(); track r.id) {
+          <li>
+            <button type="button" class="adm-card mc-item" [attr.data-chat]="r.id"
+                    [class.is-active]="selectedId() === r.id" [class.is-flagged]="r.pending > 0"
+                    [class.is-picked]="picked().has(r.id)" (click)="open(r)"
+                    [attr.aria-pressed]="selecting() ? picked().has(r.id) : null">
+              <span class="mc-item-top">
+                @if (selecting()) {
+                  <span class="mc-check" [class.is-on]="picked().has(r.id)" aria-hidden="true"><vn-icon name="tick" /></span>
+                }
+                @if (r.pending) { <span class="adm-tag is-danger"><vn-icon name="flag" /> {{ r.pending === 1 ? 'Denunciada' : r.pending + ' denúncias' }}</span> }
+                @if (r.restricted) { <span class="adm-tag is-warn">Restrição</span> }
+                @if (r.closed) { <span class="adm-tag">Encerrada</span> }
+                @if (r.mine) { <span class="adm-tag is-ok">Vineon</span> }
+                <span class="mc-time">{{ r.time }}</span>
+              </span>
+
+              <span class="mc-pair">
+                <span class="mc-avs" aria-hidden="true">
+                  @for (p of r.people; track p.uid) {
+                    <span class="mc-av" [class.is-store]="p.isStore">
+                      @if (p.photo) { <img [src]="p.photo" alt="" loading="lazy" /> } @else { {{ p.initials }} }
+                    </span>
+                  }
+                </span>
+                <span class="mc-names">
+                  <strong>{{ r.buyer?.name || r.people[0]?.name }}</strong>
+                  <vn-icon name="chevron" class="mc-arrow" />
+                  <strong>{{ r.seller?.name || r.people[1]?.name }}</strong>
+                </span>
+              </span>
+
+              @if (r.product) {
+                <span class="mc-product"><vn-icon name="tag" /> {{ r.product }}</span>
+              }
+              <span class="mc-preview">
+                @if (r.lastFrom) { <b>{{ r.lastFrom }}:</b> }
+                {{ r.preview }}
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- =============================== DOSSIÊ =============================== -->
+  <section class="mc-detail" aria-label="Conversa selecionada">
+    @if (selected(); as s) {
+      <article class="adm-card mc-card">
+        <header class="mc-head">
+          <button type="button" class="adm-btn mc-back" (click)="back()" aria-label="Voltar para a lista">
+            <vn-icon name="arrowLeft" />
+          </button>
+          @if (s.productPhoto) {
+            <img class="mc-thumb" [src]="s.productPhoto" alt="" />
+          } @else {
+            <span class="mc-thumb mc-thumb--icon"><vn-icon name="chat" /></span>
+          }
+          <div class="mc-head-txt">
+            <div class="mc-tags">
+              <span class="adm-tag" [class.is-info]="!!s.chat.productId">{{ s.chat.productId ? 'Sobre anúncio' : 'Conversa direta' }}</span>
+              @if (s.pending) { <span class="adm-tag is-danger">{{ s.pending === 1 ? '1 denúncia aberta' : s.pending + ' denúncias abertas' }}</span> }
+              @if (s.closed) { <span class="adm-tag">Encerrada {{ s.chat.closedAt?.seconds * 1000 | date:'dd/MM' }}</span> }
+            </div>
+            <h3>{{ s.product || 'Conversa sem anúncio' }}</h3>
+            <p>
+              Aberta em {{ s.createdMs | date:"dd/MM/yyyy 'às' HH:mm" }}
+              · {{ messages().length }} {{ messages().length === 1 ? 'mensagem' : 'mensagens' }}
+              @if (mediaCount()) { · {{ mediaCount() }} {{ mediaCount() === 1 ? 'foto ou áudio' : 'fotos ou áudios' }} }
+            </p>
+          </div>
+          <div class="mc-head-actions">
+            @if (s.chat.productId) {
+              <a class="adm-btn" [routerLink]="['/product-details', s.chat.productId]" target="_blank">Ver anúncio</a>
+            }
+          </div>
+        </header>
+
+        <!-- Quem está na conversa -->
+        <div class="mc-people">
+          @for (p of s.people; track p.uid) {
+            <div class="mc-person" [class.is-banned]="p.banned">
+              <span class="mc-av mc-av--lg" [class.is-store]="p.isStore" aria-hidden="true">
+                @if (p.photo) { <img [src]="p.photo" alt="" /> } @else { {{ p.initials }} }
+              </span>
+              <div class="mc-person-txt">
+                <small>{{ p.role }} @if (p.banned) { <span class="adm-tag is-warn">Restrito no chat</span> }</small>
+                <strong>{{ p.name }}</strong>
+                @if (p.email) { <span>{{ p.email }}</span> }
+                <button type="button" class="mc-uid" (click)="copy(p.uid)" title="Copiar ID da conta">{{ p.uid }}</button>
+              </div>
+              <div class="mc-person-actions">
+                @if (p.isStore) {
+                  <a class="adm-btn" [routerLink]="['/seller-profile', p.uid]" target="_blank"><vn-icon name="store" /> Loja</a>
+                }
+                @if (p.uid !== me()) {
+                  <button type="button" class="adm-btn" [class.adm-btn--ghost-danger]="!p.banned" [disabled]="busy() === p.uid" (click)="toggleBan(p)">
+                    {{ p.banned ? 'Liberar' : 'Restringir' }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Denúncias -->
+        @if (selectedReports().length) {
+          <div class="mc-section">
+            <h4>Denúncias</h4>
+            <ul class="mc-reports">
+              @for (rep of selectedReports(); track rep.id) {
+                <li class="mc-report" [class.is-open]="rep.status === 'pending'">
+                  <div class="mc-report-top">
+                    <span class="adm-tag" [class.is-danger]="rep.status === 'pending'" [class.is-ok]="rep.status === 'resolved'">
+                      {{ rep.status === 'pending' ? 'Aberta' : rep.status === 'resolved' ? 'Resolvida' : 'Ignorada' }}
+                    </span>
+                    <strong>{{ reasonLabel[rep.reason] || rep.reason }}</strong>
+                    <span class="mc-time">{{ rep.createdAt?.seconds * 1000 | date:'dd/MM HH:mm' }}</span>
+                  </div>
+                  <p class="mc-report-who">
+                    {{ rep.senderName }} denunciou <b>{{ personFor(rep.reportedUserId)?.name || 'a outra conta' }}</b>
+                  </p>
+                  @if (rep.details) { <blockquote>{{ rep.details }}</blockquote> }
+                  <div class="mc-report-actions">
+                    @if (rep.status === 'pending') {
+                      <button type="button" class="adm-btn adm-btn--primary" [disabled]="busy() === rep.id" (click)="setReport(rep, 'resolved')">Marcar resolvida</button>
+                      <button type="button" class="adm-btn" [disabled]="busy() === rep.id" (click)="setReport(rep, 'ignored')">Ignorar</button>
+                      @if (personFor(rep.reportedUserId); as target) {
+                        @if (!target.banned) {
+                          <button type="button" class="adm-btn adm-btn--ghost-danger" (click)="toggleBan(target)">Restringir {{ target.name.split(' ')[0] }}</button>
+                        }
+                      }
+                    } @else {
+                      <button type="button" class="mc-link" [disabled]="busy() === rep.id" (click)="setReport(rep, 'pending')">Reabrir</button>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <!-- Conversa -->
+        <div class="mc-section mc-thread">
+          <div class="mc-thread-head">
+            <h4>Conversa</h4>
+            <span class="mc-legend">
+              <i class="is-client"></i> {{ s.buyer?.name || 'Cliente' }}
+              <i class="is-store"></i> {{ s.seller?.name || 'Loja' }}
+            </span>
+          </div>
+          <div class="mc-activity" role="group" aria-label="Mensagens por dia nos últimos 14 dias">
+            @for (d of activity(); track d.key) {
+              <button type="button" class="mc-day" [disabled]="!d.count" (click)="jumpToDay(d.firstId)"
+                      [title]="(d.date | date:'EEE dd/MM') + ': ' + d.count + (d.count === 1 ? ' mensagem' : ' mensagens')">
+                <span class="mc-bar"><i [style.height.%]="d.pct"></i></span>
+                <small>{{ d.date | date:'dd' }}</small>
+              </button>
+            }
+          </div>
+          <div class="mc-chat">
+            <app-chat-box [chatId]="s.id" [showHeader]="false" [viewAs]="s.seller?.uid"></app-chat-box>
+          </div>
+        </div>
+
+        <footer class="mc-foot">
+          @if (!s.closed) {
+            <button type="button" class="adm-btn" (click)="closeConversation(s)"><vn-icon name="lock" /> Encerrar conversa</button>
+          }
+          <span class="mc-spacer"></span>
+          <button type="button" class="adm-btn adm-btn--ghost-danger" (click)="deleteOne(s)"><vn-icon name="trash" /> Excluir</button>
+        </footer>
+      </article>
+    } @else {
+      <div class="adm-card mc-none">
+        <span class="mc-none-mark"><vn-icon name="chat" /></span>
+        <h3>Escolha uma conversa</h3>
+        <p>
+          Você vê os dois lados, as denúncias e a conversa inteira.
+          @if (counts().reported) { Há <b>{{ counts().reported }} {{ counts().reported === 1 ? 'conversa denunciada' : 'conversas denunciadas' }}</b> no topo da lista. }
+        </p>
+        @if (counts().reported && status() !== 'reported') {
+          <button type="button" class="adm-btn adm-btn--primary" (click)="status.set('reported')">Ver denunciadas</button>
+        }
+      </div>
+    }
+  </section>
 </div>
 
-<ion-content color="light" [scrollY]="false" class="manage-chats-ion-content">
-  <div class="page-split-container">
-    
-    <div class="main-scroll-content" [class.main-scroll--inspection]="selectedChatId">
-      
-      <!-- MODO 1: DASHBOARD HUB (GRID) -->
-      <div class="dashboard-wrapper" *ngIf="!selectedChatId">
-        <app-admin-panel-hero
-          eyebrow="Moderação e auditoria"
-          title="Central de conversas"
-          description="Hub de auditoria para moderar chats, denúncias e restrições em tempo real."
-          [useCustomActionsColumn]="true">
-          <div panelHeroActions class="chats-panel-hero-actions">
-            <ion-button color="success" class="btn-new-chat-hero" (click)="openNewChatModal()">
-              <ion-icon name="add" slot="start"></ion-icon>
-              Nova Conversa
-            </ion-button>
-            <ion-button fill="outline" color="medium" (click)="loadData()">
-              <ion-icon slot="start" name="refresh-outline"></ion-icon>
-              Atualizar
-            </ion-button>
-          </div>
-        </app-admin-panel-hero>
-
-        <div class="main-panel-header chats-main-toolbar">
-          <div class="hub-header-actions">
-            <div class="selection-control" *ngIf="filteredChats.length > 0">
-               <ion-checkbox (ionChange)="toggleSelectAll($event)" [checked]="isAllSelected" mode="md"></ion-checkbox>
-               <span>Todos</span>
-            </div>
-            <div class="hub-search-contextual">
-              <ion-icon name="search-outline"></ion-icon>
-              <input type="text" [(ngModel)]="searchQuery" placeholder="Filtrar auditorias..." />
-            </div>
-            <button class="btn-hub-filter" id="open-audit-filters">
-              <ion-icon name="options-outline"></ion-icon>
+<!-- ============================ NOVA CONVERSA ============================ -->
+@if (newChatOpen()) {
+  <div class="mc-dialog-backdrop" (click)="newChatOpen.set(false)">
+    <div class="mc-dialog" role="dialog" aria-modal="true" aria-labelledby="mc-new-title" (click)="$event.stopPropagation()">
+      <header>
+        <h3 id="mc-new-title">Nova conversa da Vineon</h3>
+        <button type="button" class="adm-btn mc-x" (click)="newChatOpen.set(false)" aria-label="Fechar"><vn-icon name="close" /></button>
+      </header>
+      <p class="mc-dialog-hint">A conversa aparece em Mensagens da conta escolhida, com o nome de quem está logado no painel.</p>
+      <label class="adm-search">
+        <vn-icon name="search" class="mc-search-ic" />
+        <input type="search" placeholder="Nome, loja ou e-mail" aria-label="Buscar conta" autofocus
+               [ngModel]="userSearch()" (ngModelChange)="userSearch.set($event)" autocomplete="off" />
+      </label>
+      <ul class="mc-users">
+        @for (u of pickableUsers(); track u.uid) {
+          <li>
+            <button type="button" (click)="startChatWith(u)">
+              <span class="mc-av" [class.is-store]="!!u.shopName" aria-hidden="true">
+                @if (u.photoURL) { <img [src]="u.photoURL" alt="" /> } @else { {{ (u.shopName || u.displayName || '?').slice(0, 2).toUpperCase() }} }
+              </span>
+              <span class="mc-user-txt">
+                <strong>{{ u.shopName || u.displayName || 'Conta sem nome' }}</strong>
+                <small>{{ u.shopName ? (u.displayName + ' · ') : '' }}{{ u.email }}</small>
+              </span>
+              <vn-icon name="chevron" class="mc-arrow" />
             </button>
-          </div>
-        </div>
-
-        <!-- CARDS DE MÉTRICAS ANALÍTICAS (KPIs) -->
-        <div class="audit-metrics-grid animate-pop">
-            <div class="metric-group">
-               <span class="group-label">VISÃO GERAL DE OPERAÇÃO</span>
-               <div class="cards-row">
-                  <app-admin-metric-card
-                    label="CONVERSAS TOTAIS"
-                    [value]="totalChatsCount"
-                    icon="chatbubbles-outline"
-                    type="blue">
-                  </app-admin-metric-card>
-
-                  <app-admin-metric-card
-                    label="CONVERSAS DE VENDA"
-                    [value]="businessChatsCount"
-                    icon="cart-outline"
-                    type="green">
-                  </app-admin-metric-card>
-
-                  <app-admin-metric-card
-                    label="MENSAGENS TOTAIS"
-                    [value]="totalMessagesCount"
-                    icon="chatbubbles-outline"
-                    type="indigo">
-                  </app-admin-metric-card>
-
-                  <app-admin-metric-card
-                    label="IMAGENS TOTAIS"
-                    [value]="totalImagesCount"
-                    icon="camera-outline"
-                    type="warn">
-                  </app-admin-metric-card>
-
-                  <app-admin-metric-card
-                    label="ÁUDIOS TOTAIS"
-                    [value]="totalAudiosCount"
-                    icon="mic-outline"
-                    type="secondary">
-                  </app-admin-metric-card>
-               </div>
-            </div>
-
-            <div class="metric-group">
-               <span class="group-label">SEGURANÇA E MODERAÇÃO</span>
-               <div class="cards-row">
-                  <app-admin-metric-card
-                    label="DENÚNCIAS ATIVAS"
-                    [value]="activeReportsCount"
-                    icon="flag-outline"
-                    type="warn">
-                  </app-admin-metric-card>
-
-                  <app-admin-metric-card
-                    label="RESTRIÇÕES APLICADAS"
-                    [value]="restrictedUsersCount"
-                    icon="ban-outline"
-                    type="danger">
-                  </app-admin-metric-card>
-               </div>
-            </div>
-        </div>
-
-        <div *ngIf="isLoading" class="loader-state">
-          <ion-spinner name="crescent" style="color: #0B1623"></ion-spinner>
-          <p>Carregando Dashboard...</p>
-        </div>
-
-        <div *ngIf="!isLoading && filteredChats.length === 0" class="empty-state">
-          <ion-icon name="chatbox-outline"></ion-icon>
-          <p>Nenhuma conversa ativa para auditoria</p>
-        </div>
-
-        <!-- GRID DE CARDS QUADRADOS -->
-        <div class="admin-grid" *ngIf="!isLoading && filteredChats.length > 0">
-          <div *ngFor="let chat of filteredChats" 
-               class="square-chat-card animate-pop"
-               [class.selected-batch]="isChatSelected(chat.id!)">
-            
-            <div class="batch-selection-check" (click)="$event.stopPropagation()">
-               <ion-checkbox [checked]="isChatSelected(chat.id!)" 
-                             (ionChange)="toggleChatSelection(chat.id!)"
-                             mode="md">
-               </ion-checkbox>
-            </div>
-
-            <div class="card-clickable-area" (click)="selectChat(chat.id!)">
-              <img [src]="'assets/imagens/chat-card-background.png'" style="display:none">
-              <div class="card-status-indicator" *ngIf="getReportsForChat(chat.id!).length > 0"></div>
-              
-              <div class="card-inner">
-                <div class="participants-stack">
-                  <span class="user-a">{{ chat.participants[0]?.name }}</span>
-                  <ion-icon name="arrow-forward-outline" class="sep-icon"></ion-icon>
-                  <span class="user-b">{{ chat.participants[1]?.name }}</span>
-                </div>
-
-                <div class="msg-preview-box">
-                  <p>"{{ chat.lastMessage }}"</p>
-                </div>
-
-                <div class="card-metadata">
-                  <div class="product-context" *ngIf="chat.productName">
-                    <ion-icon name="cart-outline"></ion-icon>
-                    {{ chat.productName }}
-                  </div>
-                  <div class="time-info">
-                    {{ formatDate(chat.lastMessageAt) }}
-                  </div>
-                </div>
-
-                <div class="report-alert-banner" *ngIf="getReportsForChat(chat.id!).length > 0">
-                  <ion-icon name="flag"></ion-icon>
-                  {{ getReportsForChat(chat.id!).length }} Denúncias
-                </div>
-              </div>
-
-              <div class="card-footer-action">
-                <span>INSPECIONAR CONVERSA</span>
-                <ion-icon name="chevron-forward-outline"></ion-icon>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div> <!-- FIM dashboard-wrapper -->
-
-      <!-- MODO 2: INSPEÇÃO (CENTRO DE AUDITORIA 360) -->
-      <div class="management-grid inspection-mode" *ngIf="selectedChatId">
-        
-        <!-- COLUNA 1: PAINEL ANALÍTICO (ANTIGO ESPAÇO DA LISTA) -->
-        <div class="col-audit-panel">
-          <div class="inspection-audit-inner">
-            <div class="inspection-toolbar">
-              <ion-button fill="clear" color="dark" (click)="clearSelection()" class="btn-inspection-back">
-                <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
-                Voltar
-              </ion-button>
-            </div>
-
-            <!-- Cabeçalho único: anúncio (miniatura + título); Pessoas ficam só no Resumo -->
-            <div class="inspection-compact-head" *ngIf="activeChatRoom">
-              <img
-                class="inspection-compact-head__thumb"
-                [src]="activeChatRoom.productPhoto || 'assets/imagens/app-logo.png'"
-                [alt]="" />
-              <div class="inspection-compact-head__main">
-                <span class="inspection-compact-head__label">Anúncio</span>
-                <h2 class="inspection-compact-head__title">{{ activeChatRoom.productName || 'Conversa geral' }}</h2>
-                <p class="inspection-compact-head__meta" *ngIf="activeChatRoom.productId">
-                  ID {{ activeChatRoom.productId.substring(0, 8) }}…
-                </p>
-              </div>
-            </div>
-
-          <div class="audit-scroll">
-            
-            <!-- Resumo: participantes + risco num só cartão -->
-            <section class="audit-block" *ngIf="activeChatRoom">
-              <h3 class="audit-block__title">Resumo</h3>
-              <div class="audit-card audit-card--merged">
-                <div class="audit-merged__people">
-                  <span class="audit-inline-label">Pessoas</span>
-                  <ul class="audit-people-list">
-                    <li *ngFor="let p of activeChatRoom.participants || []">
-                      <span class="audit-people-list__name">{{ p.name }}</span>
-                      <code class="audit-people-list__uid">{{ (p.uid || '—').substring(0, 8) }}…</code>
-                    </li>
-                  </ul>
-                </div>
-                <div class="audit-merged__risk" aria-label="Risco de moderação">
-                  <span class="audit-inline-label">Risco</span>
-                  <div class="audit-risk-inline">
-                    <strong class="audit-risk-inline__n">8.4</strong>
-                    <span class="audit-risk-inline__txt">baixo</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Primeira mensagem (sem caixas extras) -->
-            <section class="audit-block" *ngIf="inspectedMessages.length > 0">
-              <h3 class="audit-block__title">Como começou</h3>
-              <p class="audit-first-line">
-                <strong>{{ getParticipantName(inspectedMessages[0].senderId) }}</strong>
-                <span class="audit-first-line__sep">—</span>
-                <span class="audit-first-line__msg">"{{ inspectedMessages[0].text }}"</span>
-              </p>
-            </section>
-
-            <!-- Atividade: faixa única de 14 dias (largura total, sem “quadradões” soltos) -->
-            <section class="audit-block">
-              <h3 class="audit-block__title">Atividade · últimos 14 dias</h3>
-              <p class="audit-activity__hint">Toque no dia para listar mensagens e ir ao chat.</p>
-              <div class="audit-activity">
-                <div class="audit-activity__track" role="list">
-                  <button
-                    type="button"
-                    class="audit-day"
-                    *ngFor="let day of heatmap; trackBy: trackHeatDay"
-                    role="listitem"
-                    [class.audit-day--active]="selectedHeatmapDay?.fullDate === day.fullDate"
-                    [attr.aria-pressed]="selectedHeatmapDay?.fullDate === day.fullDate"
-                    (click)="toggleHeatmapDay(day)"
-                    [title]="(day.fullDate | date:'dd/MM/yyyy') + ' · ' + day.count + ' msg(s)'">
-                    <span class="audit-day__dot" [attr.data-intensity]="day.intensity"></span>
-                    <span class="audit-day__num">{{ day.dayNum }}</span>
-                    <span class="audit-day__wday">{{ day.day | slice:0:3 }}</span>
-                    <span class="audit-day__count" *ngIf="day.count > 0">{{ day.count }}</span>
-                  </button>
-                </div>
-                <div class="audit-activity__legend">
-                  <span>mais antigo</span>
-                  <span>hoje</span>
-                </div>
-              </div>
-
-               <div class="dossier-overlay dossier-overlay--compact animate-pop" *ngIf="selectedHeatmapDay">
-                 <div class="dossier-header-hub">
-                   <div class="dh-info">
-                      <span class="dh-date">{{ selectedHeatmapDay.fullDate | date:'dd/MM' }}</span>
-                      <span class="dh-stats">{{ selectedHeatmapDay.count }} mensagens</span>
-                   </div>
-                   <ion-button fill="clear" size="small" (click)="selectedHeatmapDay = null" aria-label="Fechar">
-                     <ion-icon name="close-circle-outline"></ion-icon>
-                   </ion-button>
-                 </div>
-                 
-                 <div class="dossier-timeline">
-                    <div class="timeline-item" *ngFor="let m of selectedHeatmapDay.messages" 
-                         (click)="chatBox?.scrollToMessage(m.id || m.clientId)">
-                       <div class="t-dot-wrapper">
-                         <div class="t-dot" [class.is-admin]="m.senderId === currentUserId"></div>
-                         <div class="t-line"></div>
-                       </div>
-                       <div class="t-content">
-                          <span class="t-time">{{ formatDate(m.createdAt).split(',')[1] }}</span>
-                          <p class="t-msg">"{{ m.text || (m.type === 'image' ? '📷 Mídia' : '🎤 Áudio') }}"</p>
-                       </div>
-                    </div>
-                 </div>
-               </div>
-            </section>
-
-            <div class="audit-footer-actions">
-              <ion-button expand="block" color="danger" fill="outline" (click)="toggleBan(activeChatTargetUser!)" *ngIf="activeChatTargetUser" class="btn-audit-ban">
-                <ion-icon name="ban-outline" slot="start"></ion-icon>
-                Restringir participante
-              </ion-button>
-            </div>
-
-          </div>
-          </div>
-        </div>
-
-        <!-- COLUNA 2: CONSOLE DE CHAT (DIREITA) -->
-        <div class="col-chat-console">
-          <div class="console-header-premium">
-             <div class="live-status">
-               <div class="status-pulse-green"></div>
-               <span>Chat ao vivo</span>
-             </div>
-             <div class="console-meta" *ngIf="activeChatRoom">
-                Canal cifrado
-             </div>
-          </div>
-          <div class="chat-container">
-             <app-chat-box [chatId]="selectedChatId" [aiSimulationActive]="false"></app-chat-box>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Modais: inbox do admin + chat (FAB); sem coluna “Mensagens” à direita -->
-    <app-admin-chat-sidebar
-      [hideDesktopPane]="true"
-      [activeChatId]="activeChatId"
-      [activeChats]="activeChats"
-      [activeSellerName]="getActiveSellerName()"
-      [isChatOpen]="isChatOpen"
-      [isInboxOpen]="isInboxOpen"
-      (chatSelected)="openChatFromInbox($event)"
-      (backToInbox)="goBackToInbox()"
-      (chatClosed)="closeChat()"
-      (inboxDismissed)="isInboxOpen = false">
-    </app-admin-chat-sidebar>
-  </div>
-
-
-  <!-- FLOATING ACTION BUTTON PARA CONVERSAS ABERTAS -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="fab-chats-inbox">
-    <ion-fab-button color="success" (click)="openInbox()">
-      <ion-icon name="chatbubbles"></ion-icon>
-      <ion-badge color="danger" *ngIf="activeChats.length > 0">{{ activeChats.length }}</ion-badge>
-    </ion-fab-button>
-  </ion-fab>
-
-  <!-- FLOATING BATCH HUB -->
-  <div class="floating-batch-hub animate-up" *ngIf="selectedCount > 0">
-    <div class="hub-container">
-      <div class="batch-info">
-        <div class="count-pill">{{ selectedCount }}</div>
-        <div class="text-meta">
-          <span class="main-label">CONVERSAS SELECIONADAS</span>
-          <span class="sub-label">Ação definitiva em lote</span>
-        </div>
-      </div>
-      
-      <div class="batch-actions">
-        <ion-button fill="clear" color="medium" (click)="selectedChatIds.clear(); isAllSelected = false;">
-          Cancelar
-        </ion-button>
-        <ion-button color="danger" (click)="deleteSelectedChats()" class="btn-batch-delete">
-          <ion-icon name="trash-outline" slot="start"></ion-icon>
-          Excluir Selecionados
-        </ion-button>
-      </div>
+          </li>
+        } @empty {
+          <li class="mc-users-empty">Nenhuma conta encontrada.</li>
+        }
+      </ul>
     </div>
   </div>
-</ion-content>
-
-<!-- MODAL: NOVA CONVERSA -->
-<ion-modal [isOpen]="isNewChatModalOpen" (didDismiss)="isNewChatModalOpen = false" class="new-chat-modal">
-  <ng-template>
-    <ion-header class="ion-no-border">
-      <ion-toolbar color="white">
-        <ion-title class="poppins">Iniciar Nova Conversa</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="isNewChatModalOpen = false" color="medium">Fechar</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-      <ion-toolbar color="white">
-        <ion-searchbar placeholder="Buscar por nome ou e-mail..." [(ngModel)]="userSearchQuery" mode="ios" class="ion-no-padding px-16"></ion-searchbar>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content color="light">
-      <div class="user-selection-list">
-        <div *ngFor="let u of filteredUsers" class="user-select-item animate-pop" (click)="startChatWithUser(u)">
-          <div class="user-avatar-wrapper">
-             <ion-avatar>
-               <img [src]="u.photoURL || 'assets/icon/favicon.png'" />
-             </ion-avatar>
-             <div class="status-dot" [class.online]="u.status === 'online'"></div>
-          </div>
-          <div class="user-info-text">
-            <span class="u-name">{{ u.displayName }}</span>
-            <span class="u-email">{{ u.email }}</span>
-          </div>
-          <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
-        </div>
-      </div>
-    </ion-content>
-  </ng-template>
-</ion-modal>
-
-<!-- MODAL DE FILTROS 360 -->
-<ion-modal trigger="open-audit-filters" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.5, 0.75, 1]" class="filter-modal">
-  <ng-template>
-    <app-admin-chat-filter-modal 
-      [filterState]="chatFilterState" 
-      [participantsList]="participantsList"
-      (filterChange)="applyFilters()" 
-      (filterClear)="clearFilters()">
-    </app-admin-chat-filter-modal>
-  </ng-template>
-</ion-modal>
+}

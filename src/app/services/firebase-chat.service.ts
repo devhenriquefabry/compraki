@@ -359,12 +359,25 @@ export class FirebaseChatService {
    */
   async reportUser(report: Omit<ChatReport, 'createdAt' | 'status'>): Promise<void> {
     const reportsCol = collection(this.db, 'reports');
-    const newReport: ChatReport = {
-      ...report,
+    // Campo `undefined` o Firestore recusa: sem isso, só a denúncia com
+    // "Outro motivo" (que tem detalhes) chegava a ser gravada.
+    const newReport: Record<string, any> = {
+      senderId: report.senderId,
+      senderName: (report.senderName || 'Usuário').slice(0, 80),
+      reportedUserId: report.reportedUserId,
+      chatId: report.chatId,
+      reason: report.reason,
       createdAt: serverTimestamp(),
       status: 'pending'
     };
+    if (report.productName) newReport['productName'] = report.productName;
+    if (report.details?.trim()) newReport['details'] = report.details.trim().slice(0, 1000);
     await addDoc(reportsCol, newReport);
+  }
+
+  /** Admin fecha a denúncia de conversa: resolvida ou ignorada. */
+  async setReportStatus(reportId: string, status: 'resolved' | 'ignored' | 'pending'): Promise<void> {
+    await updateDoc(doc(this.db, 'reports', reportId), { status });
   }
 
   /**

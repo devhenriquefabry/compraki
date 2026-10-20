@@ -1,558 +1,437 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { add, addCircle, refreshOutline, chatbubbles, chatbubblesOutline, flag, flagOutline, ban, banOutline, chatboxOutline, chevronForwardOutline, arrowForwardOutline, searchOutline, gridOutline, cartOutline, cameraOutline, micOutline, trashOutline, closeCircleOutline, timeOutline, arrowBackOutline, swapHorizontalOutline, optionsOutline } from 'ionicons/icons';
+import { RouterLink } from '@angular/router';
+import { AlertController, IonSpinner, ToastController } from '@ionic/angular/standalone';
 import { Subscription, combineLatest } from 'rxjs';
 import { FirebaseChatService } from '../../services/firebase-chat.service';
 import { FirebaseUsersService } from '../../services/firebase-users.service';
-import { PresenceService } from '../../services/presence.service';
-import { ChatRoom, ChatMessage, ChatParticipant, ChatReport } from '../../interfaces/chat';
+import { ChatMessage, ChatReport, ChatRoom } from '../../interfaces/chat';
 import { AppUser } from '../../interfaces/app-user';
 import { ChatBoxComponent } from '../../components/chat-box/chat-box.component';
-import { AdminHeaderComponent } from '../../components/admin-header/admin-header.component';
-import { AdminChatSidebarComponent } from '../../components/admin-chat-sidebar/admin-chat-sidebar.component';
-import { AdminChatFilterModalComponent } from '../../components/admin-chat-filter-modal/admin-chat-filter-modal.component';
-import { AdminMetricCardComponent } from '../../components/admin-metric-card/admin-metric-card.component';
-import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
+import { VnIconComponent } from '../../components/vn-icon/vn-icon.component';
+import { chatSellerId, initialsOf, listTime, toMillis } from '../../core/chat-view';
 
+type Status = 'all' | 'reported' | 'restricted' | 'closed' | 'mine';
+type Kind = 'all' | 'product' | 'direct';
+type Period = 'all' | '1' | '7' | '30';
+
+interface Person {
+  uid: string;
+  name: string;
+  email: string;
+  photo: string;
+  initials: string;
+  role: 'Loja' | 'Cliente' | 'Participante';
+  isStore: boolean;
+  banned: boolean;
+  user?: AppUser;
+}
+
+interface Row {
+  id: string;
+  chat: ChatRoom;
+  seller?: Person;
+  buyer?: Person;
+  people: Person[];
+  product?: string;
+  productPhoto?: string;
+  preview: string;
+  lastFrom: string;
+  time: string;
+  lastMs: number;
+  createdMs: number;
+  pending: number;
+  restricted: boolean;
+  closed: boolean;
+  mine: boolean;
+  haystack: string;
+}
+
+const REASON: Record<string, string> = {
+  spam: 'Spam ou mensagens repetidas',
+  abuse: 'Ofensa ou comportamento inadequado',
+  scam: 'Tentativa de golpe',
+  other: 'Outro motivo',
+};
+
+const DAY_MS = 86_400_000;
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/**
+ * Conversas (admin): moderação das conversas entre compradores e lojas.
+ *
+ * Mesma casca do Atendimento: fila à esquerda (busca, situação, tipo,
+ * período) e, à direita, o dossiê da conversa — quem são os dois lados, as
+ * denúncias com resolver/ignorar, a atividade dos últimos 14 dias e a
+ * conversa em si, com a loja à direita e o cliente à esquerda. Abaixo de
+ * 992px, uma coisa de cada vez.
+ */
 @Component({
   selector: 'app-manage-chats',
   templateUrl: './manage-chats.page.html',
   styleUrls: ['./manage-chats.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatBoxComponent, IonicModule, AdminHeaderComponent, AdminChatSidebarComponent, AdminChatFilterModalComponent, AdminMetricCardComponent, AdminPanelHeroComponent]
+  imports: [FormsModule, DatePipe, RouterLink, IonSpinner, ChatBoxComponent, VnIconComponent]
 })
 export class ManageChatsPage implements OnInit, OnDestroy {
-  @ViewChild(ChatBoxComponent) chatBox?: ChatBoxComponent; 
+  private readonly chatService = inject(FirebaseChatService);
+  private readonly userService = inject(FirebaseUsersService);
+  private readonly alertCtrl = inject(AlertController);
+  private readonly toastCtrl = inject(ToastController);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
+  @ViewChild(ChatBoxComponent) chatBox?: ChatBoxComponent;
 
-  activeTab: 'all' | 'reported' | 'banned' = 'all';
-  
-  // Modais e Estados de Busca
-  public searchQuery: string = '';
-  public userSearchQuery: string = '';
-  public isLoading: boolean = true;
-  public isNewChatModalOpen: boolean = false;
+  readonly reasonLabel = REASON;
 
-  // -- MATRIZ DE FILTROS 360 --
-  public chatFilterState = {
-    status: 'all',          // all, active, reported, banned, closed
-    chatType: 'all',        // all, product, general
-    dateRange: 'all',       // all, today, 7days, 30days
-    participantId: 'all',   // specific UID
-    sortBy: 'newest'        // newest, oldest, activity
-  };
+  readonly chats = signal<ChatRoom[]>([]);
+  readonly reports = signal<ChatReport[]>([]);
+  readonly users = signal<AppUser[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly totalMessages = signal<number | null>(null);
+  readonly me = signal('');
 
-  public get participantsList() {
-    return this.users.map(u => ({ id: u.uid, name: u.displayName || u.email || 'Usuário Sem Nome' }));
-  }
-  
-  chats: ChatRoom[] = [];
-  reports: ChatReport[] = [];
-  users: AppUser[] = [];
-  
-  selectedChatId: string | null = null;
-  activeChatRoom?: ChatRoom;
-  activeChatTargetUser?: AppUser;
-  
-  public currentUserId: string = '';
-  
-  // -- DASHBOARD METRICS --
-  get totalChatsCount() { return this.chats.length; }
-  get activeReportsCount() { return this.reports.filter(r => r.status === 'pending').length; }
-  get businessChatsCount() { return this.chats.filter(c => !!c.productId).length; }
-  get restrictedUsersCount() { return this.users.filter(u => !!u.isChatBanned).length; }
-  
-  // -- BATCH OPERATIONS --
-  public selectedChatIds: Set<string> = new Set();
-  public isAllSelected: boolean = false;
-  get selectedCount() { return this.selectedChatIds.size; }
-  
-  public totalMessagesCount: number = 0;
-  public totalImagesCount: number = 0;
-  public totalAudiosCount: number = 0;
+  readonly search = signal('');
+  readonly status = signal<Status>('all');
+  readonly kind = signal<Kind>('all');
+  readonly period = signal<Period>('all');
 
-  // -- DASHBOARD AUDIT 360 --
-  public inspectedMessages: ChatMessage[] = [];
-  public heatmap: { day: string; dayNum: number; fullDate: string; count: number; intensity: number; messages: ChatMessage[] }[] = [];
-  public selectedHeatmapDay: any = null;
-  private chatSub?: Subscription;
+  readonly selectedId = signal<string | null>(null);
+  readonly messages = signal<ChatMessage[]>([]);
+  readonly selecting = signal(false);
+  readonly picked = signal<Set<string>>(new Set());
+  readonly busy = signal('');
 
-  
-  // -- ADMIN CHAT HUB STATES (Sidebar Direita) --
-  public isChatOpen = false;
-  public activeChatId = '';
-  public activeChats: ChatRoom[] = [];
-  public isInboxOpen = false;
-  public activeSellerFallbackName = '';
-  
+  readonly newChatOpen = signal(false);
+  readonly userSearch = signal('');
+
+  private readonly tick = signal(Date.now());
+  private tickTimer?: ReturnType<typeof setInterval>;
   private subs = new Subscription();
+  private msgSub?: Subscription;
 
-  constructor(
-    private chatService: FirebaseChatService,
-    private userService: FirebaseUsersService,
-    private presenceService: PresenceService, // Injetado para ativar monitoramento
-    private modalCtrl: ModalController,
-    private alertCtrl: AlertController,
-    private toastCtrl: ToastController
-  ) {
-    addIcons({ 
-      add, 
-      addCircle, 
-      refreshOutline, 
-      chatbubbles, 
-      chatbubblesOutline, 
-      flag, 
-      flagOutline, 
-      ban, 
-      banOutline, 
-      chatboxOutline, 
-      chevronForwardOutline, 
-      arrowForwardOutline, 
-      searchOutline, 
-      gridOutline, 
-      cartOutline, 
-      cameraOutline, 
-      micOutline, 
-      trashOutline, 
-      closeCircleOutline, 
-      timeOutline, 
-      arrowBackOutline, 
-      swapHorizontalOutline, 
-      optionsOutline,
-      'add-circle': addCircle,
-      'refresh-outline': refreshOutline,
-      'chatbubbles-outline': chatbubblesOutline,
-      'flag-outline': flagOutline,
-      'ban-outline': banOutline,
-      'chatbox-outline': chatboxOutline,
-      'chevron-forward-outline': chevronForwardOutline,
-      'arrow-forward-outline': arrowForwardOutline,
-      'search-outline': searchOutline,
-      'grid-outline': gridOutline,
-      'cart-outline': cartOutline,
-      'camera-outline': cameraOutline,
-      'mic-outline': micOutline,
-      'trash-outline': trashOutline,
-      'close-circle-outline': closeCircleOutline,
-      'time-outline': timeOutline,
-      'arrow-back-outline': arrowBackOutline,
-      'swap-horizontal-outline': swapHorizontalOutline,
-      'options-outline': optionsOutline
+  private readonly usersById = computed(() => new Map(this.users().map(u => [u.uid, u])));
+
+  readonly rows = computed<Row[]>(() => {
+    const users = this.usersById();
+    const pendingByChat = new Map<string, number>();
+    for (const r of this.reports()) {
+      if (r.status === 'pending') pendingByChat.set(r.chatId, (pendingByChat.get(r.chatId) || 0) + 1);
+    }
+    const me = this.me();
+    const now = this.tick();
+
+    return this.chats().filter(c => c.id).map(c => {
+      const sellerUid = c.productId || c.sellerId ? chatSellerId(c) : c.sellerId;
+      const people: Person[] = (c.participantIds || []).map(uid => {
+        const stored = c.participants?.find(p => p.uid === uid);
+        const u = users.get(uid);
+        const isStore = uid === sellerUid;
+        const base = (isStore ? u?.shopName : null) || u?.displayName || (stored?.name !== 'Você' ? stored?.name : '') || u?.email || 'Conta sem nome';
+        return {
+          uid,
+          name: base,
+          email: u?.email || '',
+          photo: u?.photoURL || stored?.photoUrl || '',
+          initials: initialsOf(base),
+          role: sellerUid ? (isStore ? 'Loja' : 'Cliente') : 'Participante',
+          isStore,
+          banned: !!u?.isChatBanned,
+          user: u,
+        } as Person;
+      });
+      // Loja sempre por último: "Cliente → Loja" na fila.
+      people.sort((a, b) => Number(a.isStore) - Number(b.isStore));
+      const seller = people.find(p => p.isStore);
+      const buyer = people.find(p => !p.isStore);
+      const lastFrom = c.lastSenderId ? people.find(p => p.uid === c.lastSenderId)?.name.split(' ')[0] || '' : '';
+      const started = !!c.lastSenderId || (!!c.lastMessage && c.lastMessage !== 'Chat iniciado. Mande um oi!');
+      return {
+        id: c.id!,
+        chat: c,
+        seller, buyer, people,
+        product: c.productName,
+        productPhoto: c.productPhoto,
+        preview: started ? c.lastMessage || '' : 'Conversa aberta, sem mensagens.',
+        lastFrom,
+        time: listTime(c.lastMessageAt, now),
+        lastMs: toMillis(c.lastMessageAt) ?? 0,
+        createdMs: toMillis(c.createdAt) ?? 0,
+        pending: pendingByChat.get(c.id!) || 0,
+        restricted: people.some(p => p.banned),
+        closed: c.status === 'closed',
+        mine: !!me && (c.participantIds || []).includes(me),
+        haystack: fold(`${people.map(p => p.name + ' ' + p.email).join(' ')} ${c.productName || ''} ${c.lastMessage || ''} ${c.id}`),
+      };
+    }).sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0) || b.lastMs - a.lastMs);
+  });
+
+  readonly counts = computed(() => {
+    const rows = this.rows();
+    return {
+      all: rows.length,
+      reported: rows.filter(r => r.pending > 0).length,
+      restricted: rows.filter(r => r.restricted).length,
+      closed: rows.filter(r => r.closed).length,
+      mine: rows.filter(r => r.mine).length,
+      product: rows.filter(r => !!r.chat.productId).length,
+    };
+  });
+
+  readonly stats = computed(() => {
+    const now = this.tick();
+    const rows = this.rows();
+    return {
+      active24h: rows.filter(r => now - r.lastMs < DAY_MS).length,
+      pendingReports: this.reports().filter(r => r.status === 'pending').length,
+      restrictedUsers: this.users().filter(u => u.isChatBanned).length,
+    };
+  });
+
+  readonly list = computed(() => {
+    const q = fold(this.search().trim());
+    const st = this.status();
+    const kind = this.kind();
+    const days = this.period() === 'all' ? 0 : Number(this.period());
+    const since = days ? this.tick() - days * DAY_MS : 0;
+    return this.rows().filter(r =>
+      (st === 'all' || (st === 'reported' && r.pending > 0) || (st === 'restricted' && r.restricted)
+        || (st === 'closed' && r.closed) || (st === 'mine' && r.mine))
+      && (kind === 'all' || (kind === 'product') === !!r.chat.productId)
+      && (!since || r.lastMs >= since)
+      && (!q || r.haystack.includes(q))
+    );
+  });
+
+  readonly selected = computed(() => this.rows().find(r => r.id === this.selectedId()) ?? null);
+
+  readonly selectedReports = computed(() => {
+    const id = this.selectedId();
+    return this.reports()
+      .filter(r => r.chatId === id)
+      .sort((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending') || (toMillis(b.createdAt) ?? 0) - (toMillis(a.createdAt) ?? 0));
+  });
+
+  /** Mensagens por dia nos últimos 14 dias da conversa aberta. */
+  readonly activity = computed(() => {
+    const msgs = this.messages();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(today.getTime() - (13 - i) * DAY_MS);
+      return { key: d.toDateString(), date: d, count: 0, firstId: '' as string };
     });
-  }
+    const byKey = new Map(days.map(d => [d.key, d]));
+    for (const m of msgs) {
+      const ms = toMillis(m.createdAt);
+      if (ms == null) continue;
+      const day = byKey.get(new Date(ms).toDateString());
+      if (!day) continue;
+      day.count++;
+      if (!day.firstId) day.firstId = m.id || m.clientId || '';
+    }
+    const max = Math.max(1, ...days.map(d => d.count));
+    return days.map(d => ({ ...d, pct: d.count ? Math.max(14, Math.round(d.count / max * 100)) : 0 }));
+  });
+
+  readonly mediaCount = computed(() => this.messages().filter(m => m.type !== 'text').length);
+
+  readonly pickableUsers = computed(() => {
+    const q = fold(this.userSearch().trim());
+    return this.users()
+      .filter(u => u.uid !== this.me())
+      .filter(u => !q || fold(`${u.displayName || ''} ${u.shopName || ''} ${u.email || ''}`).includes(q))
+      .slice(0, 60);
+  });
 
   ngOnInit() {
-    this.currentUserId = this.chatService.getCurrentUser()?.uid || '';
-    this.loadData();
-    this.monitorAdminChats();
+    this.me.set(this.chatService.getCurrentUser()?.uid || '');
+    this.tickTimer = setInterval(() => this.tick.set(Date.now()), 60_000);
+    this.load();
   }
 
   ngOnDestroy() {
     this.subs.unsubscribe();
-    if (this.chatSub) this.chatSub.unsubscribe();
+    this.msgSub?.unsubscribe();
+    clearInterval(this.tickTimer);
   }
 
-  loadData() {
-    this.isLoading = true;
-    
-    // Puxa conversas, denúncias e usuários em paralelo
-    const chats$ = this.chatService.getAllChatsAdmin();
-    const reports$ = this.chatService.getReports();
-    const users$ = this.userService.getAllUsers();
-
+  load() {
+    this.subs.unsubscribe();
+    this.subs = new Subscription();
+    this.loading.set(true);
+    this.error.set('');
     this.subs.add(
-      combineLatest([chats$, reports$, users$]).subscribe({
+      combineLatest([this.chatService.getAllChatsAdmin(), this.chatService.getReports(), this.userService.getAllUsers()]).subscribe({
         next: ([chats, reports, users]) => {
-          this.chats = chats;
-          this.reports = reports;
-          this.users = users;
-          this.isLoading = false;
-          
-          if (this.selectedChatId) {
-            this.refreshActiveChatDetails();
-          }
+          this.chats.set(chats);
+          this.reports.set(reports);
+          this.users.set(users);
+          this.loading.set(false);
         },
-        error: (err) => {
-          console.error("Erro ao carregar dados do dashboard de mods:", err);
-          this.isLoading = false;
+        error: err => {
+          console.error('Conversas do admin não carregaram', err);
+          this.error.set('Não deu para carregar as conversas agora.');
+          this.loading.set(false);
         }
       })
     );
-
-    // Carrega contagem de mensagens separadamente (Aggregation query)
-    this.chatService.getTotalMessagesCount().then(count => this.totalMessagesCount = count);
-    this.chatService.getTotalMediaCount('image').then(count => this.totalImagesCount = count);
-    this.chatService.getTotalMediaCount('audio').then(count => this.totalAudiosCount = count);
+    this.chatService.getTotalMessagesCount().then(n => this.totalMessages.set(n)).catch(() => this.totalMessages.set(null));
   }
 
-  get filteredChats() {
-    let list = this.chats;
-
-    // 1. Filtro por Aba Superior (Legacy Compatibility)
-    if (this.activeTab === 'reported') {
-      const reportedChatIds = this.reports.filter(r => r.status === 'pending').map(r => r.chatId);
-      list = list.filter(c => reportedChatIds.includes(c.id!));
-    } else if (this.activeTab === 'banned') {
-      const bannedUserIds = this.users.filter(u => u.isChatBanned).map(u => u.uid);
-      list = list.filter(c => c.participantIds.some(pid => bannedUserIds.includes(pid)));
+  open(row: Row) {
+    if (this.selecting()) {
+      this.togglePick(row.id);
+      return;
     }
-
-    // 2. Filtros Avançados (Matriz 360)
-    if (this.chatFilterState.status !== 'all') {
-      if (this.chatFilterState.status === 'reported') {
-        const reportedIds = this.reports.filter(r => r.status === 'pending').map(r => r.chatId);
-        list = list.filter(c => reportedIds.includes(c.id!));
-      } else if (this.chatFilterState.status === 'banned') {
-        const bannedIds = this.users.filter(u => u.isChatBanned).map(u => u.uid);
-        list = list.filter(c => c.participantIds.some(pid => bannedIds.includes(pid)));
-      } else if (this.chatFilterState.status === 'active') {
-        list = list.filter(c => c.status === 'active');
-      } else if (this.chatFilterState.status === 'closed') {
-        list = list.filter(c => c.status === 'closed');
-      }
-    }
-
-    if (this.chatFilterState.chatType !== 'all') {
-      const isProduct = this.chatFilterState.chatType === 'product';
-      list = list.filter(c => isProduct ? !!c.productId : !c.productId);
-    }
-
-    if (this.chatFilterState.participantId !== 'all') {
-      list = list.filter(c => c.participantIds.includes(this.chatFilterState.participantId));
-    }
-
-    if (this.chatFilterState.dateRange !== 'all') {
-      const now = new Date().getTime();
-      const oneDay = 24 * 60 * 60 * 1000;
-      let threshold = 0;
-      if (this.chatFilterState.dateRange === 'today') threshold = now - oneDay;
-      else if (this.chatFilterState.dateRange === '7days') threshold = now - (7 * oneDay);
-      else if (this.chatFilterState.dateRange === '30days') threshold = now - (30 * oneDay);
-      
-      list = list.filter(c => {
-        const created = this.chatService.convertTimestampToDate(c.createdAt).getTime();
-        return created >= threshold;
+    if (this.selectedId() === row.id) return;
+    this.selectedId.set(row.id);
+    // No celular o dossiê troca de lugar com a fila: começa do topo.
+    if (typeof matchMedia !== 'undefined' && matchMedia('(max-width: 991px)').matches) {
+      // No celular quem rola é a própria aba (o host); no desktop, o <main>.
+      setTimeout(() => {
+        const host = this.host.nativeElement;
+        host.scrollTop = 0;
+        const main = host.closest('.adm-content') as HTMLElement | null;
+        if (main) main.scrollTop = 0;
       });
     }
-
-    // 3. Busca por Texto
-    if (this.searchQuery.trim()) {
-      const q = this.searchQuery.toLowerCase();
-      list = list.filter(c => 
-        c.productName?.toLowerCase().includes(q) || 
-        c.participants.some(p => p.name?.toLowerCase().includes(q))
-      );
-    }
-
-    // 4. Ordenação
-    list = [...list].sort((a, b) => {
-      if (this.chatFilterState.sortBy === 'newest') {
-        const dateB = this.chatService.convertTimestampToDate(b.lastMessageAt || b.createdAt).getTime();
-        const dateA = this.chatService.convertTimestampToDate(a.lastMessageAt || a.createdAt).getTime();
-        return dateB - dateA;
-      } else if (this.chatFilterState.sortBy === 'oldest') {
-        return this.chatService.convertTimestampToDate(a.createdAt).getTime() - 
-               this.chatService.convertTimestampToDate(b.createdAt).getTime();
-      }
-      return 0;
+    this.messages.set([]);
+    this.msgSub?.unsubscribe();
+    this.msgSub = this.chatService.getMessages(row.id).subscribe({
+      next: msgs => this.messages.set(msgs),
+      error: e => console.warn('Mensagens da conversa não carregaram', e)
     });
-
-    return list;
   }
 
-  // -- BATCH METHODS --
-  toggleChatSelection(chatId: string) {
-    if (this.selectedChatIds.has(chatId)) {
-      this.selectedChatIds.delete(chatId);
-    } else {
-      this.selectedChatIds.add(chatId);
-    }
+  back() {
+    this.selectedId.set(null);
+    this.msgSub?.unsubscribe();
   }
 
-  isChatSelected(chatId: string): boolean {
-    return this.selectedChatIds.has(chatId);
+  jumpToDay(firstId: string) {
+    if (firstId) this.chatBox?.scrollToMessage(firstId);
   }
 
-  toggleSelectAll(event: any) {
-    const isChecked = event.detail.checked;
-    this.isAllSelected = isChecked;
-    
-    if (isChecked) {
-      this.filteredChats.forEach(c => {
-        if (c.id) this.selectedChatIds.add(c.id);
-      });
-    } else {
-      this.selectedChatIds.clear();
-    }
+  // ------------------------------------------------------------- seleção
+
+  toggleSelecting() {
+    this.selecting.update(v => !v);
+    this.picked.set(new Set());
   }
 
-  async deleteSelectedChats() {
-    if (this.selectedCount === 0) return;
+  togglePick(id: string) {
+    this.picked.update(set => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
+  pickAllVisible() {
+    const visible = this.list().map(r => r.id);
+    const all = visible.every(id => this.picked().has(id));
+    this.picked.set(all ? new Set() : new Set(visible));
+  }
+
+  async deletePicked() {
+    const ids = [...this.picked()];
+    if (!ids.length) return;
+    await this.confirmDelete(ids);
+  }
+
+  async deleteOne(row: Row) {
+    await this.confirmDelete([row.id]);
+  }
+
+  private async confirmDelete(ids: string[]) {
+    const n = ids.length;
     const alert = await this.alertCtrl.create({
-      header: 'Confirmar Exclusão',
-      mode: 'ios',
-      message: `Deseja realmente excluir ${this.selectedCount} conversas permanentemente? Esta ação não pode ser desfeita.`,
+      header: n === 1 ? 'Excluir esta conversa?' : `Excluir ${n} conversas?`,
+      message: 'Some da lista dos dois lados e não dá para desfazer. Para tirar do ar sem apagar o histórico, use Encerrar.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: n === 1 ? 'Excluir conversa' : `Excluir ${n} conversas`, role: 'destructive', handler: () => { void this.performDelete(ids); } }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async performDelete(ids: string[]) {
+    try {
+      await this.chatService.deleteChatsBulk(ids);
+      if (this.selectedId() && ids.includes(this.selectedId()!)) this.back();
+      this.picked.set(new Set());
+      this.selecting.set(false);
+      void this.toast(ids.length === 1 ? 'Conversa excluída.' : `${ids.length} conversas excluídas.`);
+    } catch (e) {
+      console.error('Exclusão de conversas falhou', e);
+      void this.toast('Não deu para excluir. Tente de novo.', 'danger');
+    }
+  }
+
+  // ------------------------------------------------------------ moderação
+
+  async toggleBan(person: Person) {
+    const banned = person.banned;
+    const alert = await this.alertCtrl.create({
+      header: banned ? `Liberar ${person.name}?` : `Restringir ${person.name} no chat?`,
+      message: banned
+        ? 'A conta volta a abrir conversas e mandar mensagens.'
+        : 'A conta não abre conversas nem manda mensagens. Comprar e vender continua normal.',
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
-          text: 'Excluir em Lote',
-          role: 'destructive',
-          handler: async () => {
-             await this.performBulkDelete();
-          }
+          text: banned ? 'Liberar' : 'Restringir',
+          role: banned ? undefined : 'destructive',
+          handler: () => { void this.applyBan(person, !banned); }
         }
       ]
     });
-
     await alert.present();
   }
 
-  private async performBulkDelete() {
+  private async applyBan(person: Person, ban: boolean) {
+    this.busy.set(person.uid);
     try {
-      const idsToDelete = Array.from(this.selectedChatIds);
-      this.isLoading = true;
-      
-      await this.chatService.deleteChatsBulk(idsToDelete);
-      
-      this.selectedChatIds.clear();
-      this.isAllSelected = false;
-      this.isLoading = false;
-      this.showToast(`${idsToDelete.length} conversas excluídas com sucesso.`);
-    } catch (err) {
-      console.error("Erro na exclusão em lote:", err);
-      this.isLoading = false;
-      this.showToast("Falha ao excluir algumas conversas.", 'danger');
-    }
-  }
-
-  applyFilters() {
-    // Apenas para triggar a reavaliação se necessário, mas o getter já cuida disso se o objeto mudar
-    // Como o ngModel está bindado diretamente, o getter filteredChats reage automaticamente
-  }
-
-  clearFilters() {
-    this.chatFilterState = {
-      status: 'all',
-      chatType: 'all',
-      dateRange: 'all',
-      participantId: 'all',
-      sortBy: 'newest'
-    };
-  }
-
-  get filteredUsers() {
-    if (!this.userSearchQuery.trim()) return this.users;
-    const q = this.userSearchQuery.toLowerCase();
-    return this.users.filter(u => 
-      u.displayName?.toLowerCase().includes(q) || 
-      u.email?.toLowerCase().includes(q)
-    );
-  }
-
-  openNewChatModal() {
-    this.isNewChatModalOpen = true;
-    this.userSearchQuery = '';
-  }
-
-  async startChatWithUser(user: AppUser) {
-    this.isNewChatModalOpen = false;
-    try {
-      this.isLoading = true;
-      const chatId = await this.chatService.startChat({
-        uid: user.uid,
-        name: user.displayName || 'Usuário',
-        photoUrl: user.photoURL || undefined
-      }, undefined, false);
-      
-      this.selectChat(chatId);
-      this.showToast(`Conversa iniciada com ${user.displayName}`);
-    } catch (e: any) {
-      console.error("Erro ao iniciar chat:", e);
-      this.showToast(e.message || 'Erro ao iniciar conversa');
+      await this.chatService.toggleUserChatBan(person.uid, ban);
+      void this.toast(ban ? `${person.name} está restrito no chat.` : `${person.name} foi liberado.`);
+    } catch (e) {
+      console.error('Restrição falhou', e);
+      void this.toast('Não deu para mudar a restrição.', 'danger');
     } finally {
-      this.isLoading = false;
+      this.busy.set('');
     }
   }
 
-  selectChat(chatId: string) {
-    this.selectedChatId = chatId;
-    this.activeChatRoom = this.chats.find(c => c.id === chatId);
-    
-    // Limpa dados anteriores
-    this.inspectedMessages = [];
-    this.heatmap = [];
-    this.selectedHeatmapDay = null;
-    if (this.chatSub) this.chatSub.unsubscribe();
-
-    if (this.activeChatRoom) {
-      // Subscrição para análise de auditoria (Histórico e Heatmap em tempo real)
-      this.chatSub = this.chatService.getMessages(chatId, 100).subscribe(msgs => {
-        this.inspectedMessages = msgs;
-        this.generateHeatmap(msgs);
-        
-        // Se houver um dia selecionado, atualiza as mensagens dele
-        if (this.selectedHeatmapDay) {
-          const updatedDay = this.heatmap.find(d => d.fullDate === this.selectedHeatmapDay.fullDate);
-          if (updatedDay) this.selectedHeatmapDay = updatedDay;
-        }
-      });
+  async setReport(report: ChatReport, status: 'resolved' | 'ignored' | 'pending') {
+    if (!report.id) return;
+    this.busy.set(report.id);
+    try {
+      await this.chatService.setReportStatus(report.id, status);
+      const label = status === 'resolved' ? 'Denúncia resolvida.' : status === 'ignored' ? 'Denúncia ignorada.' : 'Denúncia reaberta.';
+      void this.toast(label);
+    } catch (e) {
+      console.error('Denúncia não atualizou', e);
+      void this.toast('Não deu para atualizar a denúncia.', 'danger');
+    } finally {
+      this.busy.set('');
     }
   }
 
-  toggleHeatmapDay(day: any) {
-    if (this.selectedHeatmapDay?.fullDate === day.fullDate) {
-      this.selectedHeatmapDay = null;
-    } else {
-      this.selectedHeatmapDay = day;
-      
-      // Sincronização Temporal: Rola o chat até a primeira mensagem do dia
-      if (day.messages && day.messages.length > 0 && this.chatBox) {
-        const firstMsgId = day.messages[0].id || day.messages[0].clientId;
-        if (firstMsgId) {
-          this.chatBox.scrollToMessage(firstMsgId);
-        }
-      }
-    }
-  }
-
-  trackHeatDay(_i: number, d: { fullDate: string }): string {
-    return d.fullDate;
-  }
-
-
-  generateHeatmap(msgs: ChatMessage[]) {
-    const days = 14;
-    const now = new Date();
-    const result = [];
-    
-    // Mapeia mensagens por dia para facilitar o agrupamento
-    const msgGroups: {[key: string]: ChatMessage[]} = {};
-    msgs.forEach(m => {
-      if (m.createdAt) {
-        const d = new Date(m.createdAt.seconds * 1000);
-        const key = d.toISOString().split('T')[0];
-        if (!msgGroups[key]) msgGroups[key] = [];
-        msgGroups[key].push(m);
-      }
-    });
-
-    const max = Math.max(...Object.values(msgGroups).map(g => g.length), 1);
-
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const key = d.toISOString().split('T')[0];
-      const dayMsgs = msgGroups[key] || [];
-      
-      result.push({
-        day: d.toLocaleDateString('pt-BR', { weekday: 'short' }),
-        dayNum: d.getDate(),
-        fullDate: key,
-        count: dayMsgs.length,
-        intensity: dayMsgs.length > 0 ? Math.min(Math.floor((dayMsgs.length / (max * 0.4 || 1)) * 4), 4) : 0,
-        messages: dayMsgs
-      });
-    }
-    this.heatmap = result;
-  }
-
-
-  clearSelection() {
-    this.selectedChatId = null;
-    this.activeChatTargetUser = undefined;
-  }
-
-  getParticipantName(uid: string): string {
-    if (!this.activeChatRoom || !this.activeChatRoom.participants) return 'Usuário';
-    const participant = this.activeChatRoom.participants.find(p => p.uid === uid);
-    return participant ? participant.name : 'Usuário';
-  }
-
-  async refreshActiveChatDetails() {
-    this.activeChatRoom = this.chats.find(c => c.id === this.selectedChatId);
-    if (this.activeChatRoom) {
-      // No dashboard admin, o "target" costuma ser o cliente ou vendedor suspeito
-      // Vamos assumir que buscamos os dados do usuário que NÃO é o admin logado
-      const adminId = this.chatService.getCurrentUser()?.uid;
-      const targetId = this.activeChatRoom.participantIds.find(id => id !== adminId);
-      if (targetId) {
-        this.activeChatTargetUser = this.users.find(u => u.uid === targetId);
-      }
-    }
-  }
-
-  // -- MÉTODOS DO ADMIN CHAT HUB (SIDEBAR) --
-  
-  monitorAdminChats() {
-    this.subs.add(
-      this.chatService.getMyChats().subscribe(chats => {
-        this.activeChats = chats;
-      })
-    );
-  }
-
-  openChatFromInbox(chatId: string) {
-    this.activeChatId = chatId;
-    this.isChatOpen = true; 
-    this.isInboxOpen = false;
-    
-    const chat = this.activeChats.find(c => c.id === chatId);
-    if (chat && chat.participants) {
-      const other = chat.participants.find(p => p.uid !== this.chatService.getCurrentUser()?.uid);
-      if (other) this.activeSellerFallbackName = other.name;
-    }
-  }
-
-  public openInbox() {
-    this.activeChatId = '';
-    this.isChatOpen = false;
-    this.isInboxOpen = true;
-  }
-
-  public goBackToInbox() {
-    this.activeChatId = '';
-    this.activeSellerFallbackName = '';
-  }
-
-  public closeChat() {
-    this.isChatOpen = false;
-    this.activeChatId = '';
-  }
-
-  public getActiveSellerName(): string {
-    if (!this.activeChatId) return '';
-    const chat = this.activeChats.find(c => c.id === this.activeChatId);
-    if (chat && chat.participants) {
-      const user = this.chatService.getCurrentUser();
-      const other = chat.participants.find(p => p.uid !== user?.uid);
-      if (other && other.name) return other.name;
-    }
-    return this.activeSellerFallbackName;
-  }
-
-  getReportsForChat(chatId: string) {
-    return this.reports.filter(r => r.chatId === chatId);
-  }
-
-  async toggleBan(user: AppUser) {
-    const isBanned = user.isChatBanned;
+  async closeConversation(row: Row) {
     const alert = await this.alertCtrl.create({
-      header: isBanned ? 'Desbanir Usuário' : 'Banir do Chat',
-      message: isBanned 
-        ? `Deseja permitir que ${user.displayName} volte a enviar mensagens?`
-        : `Deseja impedir que ${user.displayName} inicie ou envie mensagens em qualquer chat? Ele ainda poderá realizar compras e vendas.`,
+      header: 'Encerrar esta conversa?',
+      message: 'Ninguém mais manda mensagens nela. O histórico continua disponível para os dois lados e para a Vineon.',
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { 
-          text: isBanned ? 'Confirmar Desbanimento' : 'CONFIRMAR BANIMENTO',
-          role: isBanned ? '' : 'destructive',
-          handler: async () => {
-            await this.chatService.toggleUserChatBan(user.uid, !isBanned);
-            this.showToast(isBanned ? 'Usuário desbanido.' : 'Usuário banido do chat.');
+        {
+          text: 'Encerrar conversa', role: 'destructive', handler: () => {
+            this.chatService.closeChat(row.id)
+              .then(() => this.toast('Conversa encerrada.'))
+              .catch(() => this.toast('Não deu para encerrar.', 'danger'));
           }
         }
       ]
@@ -560,25 +439,51 @@ export class ManageChatsPage implements OnInit, OnDestroy {
     await alert.present();
   }
 
-  async showToast(message: string, color: string = 'success') {
-    const toast = await this.toastCtrl.create({
-      message, duration: 2000, color, position: 'bottom'
-    });
-    await toast.present();
+  personFor(uid: string): Person | undefined {
+    return this.selected()?.people.find(p => p.uid === uid);
   }
 
-  getParticipantNames(chat: ChatRoom) {
-    return chat.participants.map(p => p.name).join(' e ');
+  async copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      void this.toast('Copiado.');
+    } catch {
+      void this.toast(text);
+    }
   }
 
-  getOtherParticipant(chat: ChatRoom) {
-    const adminId = this.chatService.getCurrentUser()?.uid;
-    return chat.participants.find(p => p.uid !== adminId);
+  // ------------------------------------------------------- nova conversa
+
+  openNewChat() {
+    this.userSearch.set('');
+    this.newChatOpen.set(true);
   }
 
-  formatDate(timestamp: any) {
-    if (!timestamp) return '';
-    const d = new Date(timestamp.seconds * 1000);
-    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  async startChatWith(user: AppUser) {
+    this.newChatOpen.set(false);
+    try {
+      const chatId = await this.chatService.startChat({
+        uid: user.uid,
+        name: user.shopName || user.displayName || 'Usuário',
+        photoUrl: user.photoURL || undefined
+      }, undefined, false);
+      this.status.set('all');
+      this.search.set('');
+      // A fila só mostra a conversa quando o snapshot chega.
+      const wait = (tries: number) => {
+        const row = this.rows().find(r => r.id === chatId);
+        if (row) this.open(row);
+        else if (tries > 0) setTimeout(() => wait(tries - 1), 250);
+      };
+      wait(12);
+    } catch (e: any) {
+      console.error('Nova conversa falhou', e);
+      void this.toast(e?.message || 'Não deu para abrir a conversa.', 'danger');
+    }
+  }
+
+  private async toast(message: string, color: 'dark' | 'danger' = 'dark') {
+    const t = await this.toastCtrl.create({ message, duration: 2500, color, position: 'bottom' });
+    await t.present();
   }
 }
