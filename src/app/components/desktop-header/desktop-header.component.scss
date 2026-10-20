@@ -457,3 +457,19 @@ button {
     transition: none;
   }
 }
+
+/* Não lidas ao lado de "Mensagens": lima com número azul-noite. */
+.dh-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--vn-lime, #D8F51F);
+  color: var(--vn-navy, #0B1623);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}

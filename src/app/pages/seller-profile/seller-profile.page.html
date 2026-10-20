@@ -342,16 +342,8 @@
 
 <ion-modal [isOpen]="isChatOpen" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="closeChat()" class="seller-chat-modal">
   <ng-template>
-    <ion-header class="ion-no-border">
-      <ion-toolbar>
-        <ion-title>Conversa com a loja</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeChat()">Fechar</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
     <div class="chat-wrapper">
-      <app-chat-box [chatId]="activeChatId"></app-chat-box>
+      <app-chat-box [chatId]="activeChatId" [closable]="true" (onClose)="closeChat()"></app-chat-box>
     </div>
   </ng-template>
 </ion-modal>

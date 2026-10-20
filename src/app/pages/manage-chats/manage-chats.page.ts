@@ -366,7 +366,7 @@ export class ManageChatsPage implements OnInit, OnDestroy {
         uid: user.uid,
         name: user.displayName || 'Usuário',
         photoUrl: user.photoURL || undefined
-      });
+      }, undefined, false);
       
       this.selectChat(chatId);
       this.showToast(`Conversa iniciada com ${user.displayName}`);

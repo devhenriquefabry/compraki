@@ -477,13 +477,7 @@
     <!-- Painel de chat lateral (desktop) -->
     @if (isChatOpen && layout.isDesktop()) {
       <aside class="pd-chat-pane" aria-label="Conversa com a loja">
-        <div class="pd-chat-head">
-          <h3>Conversa com a loja</h3>
-          <button type="button" class="pd-icon-btn" (click)="closeChat()" aria-label="Fechar conversa">
-            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.close" /></svg>
-          </button>
-        </div>
-        <app-chat-box [chatId]="activeChatId" (onClose)="closeChat()"></app-chat-box>
+        <app-chat-box [chatId]="activeChatId" [closable]="true" (onClose)="closeChat()"></app-chat-box>
       </aside>
     }
   </div>
@@ -496,16 +490,8 @@
 <!-- Chat no celular -->
 <ion-modal [isOpen]="isChatOpen && !layout.isDesktop()" [initialBreakpoint]="1" [breakpoints]="[0, 1]" (didDismiss)="closeChat()" class="mobile-chat-modal">
   <ng-template>
-    <ion-header class="ion-no-border">
-      <ion-toolbar>
-        <ion-title>Conversa com a loja</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeChat()">Fechar</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
     <div class="pd-chat-modal-body">
-      <app-chat-box [chatId]="activeChatId"></app-chat-box>
+      <app-chat-box [chatId]="activeChatId" [closable]="true" (onClose)="closeChat()"></app-chat-box>
     </div>
   </ng-template>
 </ion-modal>

@@ -1277,21 +1277,6 @@ a {
   }
 }
 
-.pd-chat-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 12px 12px 20px;
-  border-bottom: 1px solid var(--pd-line);
-
-  h3 {
-    margin: 0;
-    font-family: var(--pd-display);
-    font-size: 16px;
-    font-weight: 600;
-  }
-}
-
 .pd-chat-modal-body {
   height: 100%;
   display: flex;

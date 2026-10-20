@@ -76,7 +76,11 @@
       <a class="dh-link" routerLink="/tabs/tab2" [queryParams]="{ ofertas: 1 }">Ofertas</a>
       <a class="dh-link" routerLink="/tabs/tab2" [queryParams]="{ frete: 1 }">Frete grátis</a>
       <a class="dh-link dh-wide-only" routerLink="/tabs/tab2" [queryParams]="{ ordem: 'mais-vendidos' }">Mais vendidos</a>
-      <a class="dh-link" routerLink="/tabs/chats" routerLinkActive="is-active">Mensagens</a>
+      <a class="dh-link" routerLink="/tabs/chats" routerLinkActive="is-active"
+         [attr.aria-label]="chatUnread() ? 'Mensagens, ' + chatUnread() + (chatUnread() === 1 ? ' não lida' : ' não lidas') : null">
+        Mensagens
+        @if (chatUnread()) { <span class="dh-count" aria-hidden="true">{{ chatUnread() > 99 ? '99+' : chatUnread() }}</span> }
+      </a>
     </nav>
 
     <div class="dh-account">

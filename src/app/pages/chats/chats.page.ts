@@ -1,125 +1,205 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonAvatar, IonLabel, IonNote, IonSpinner, IonIcon, IonFab, IonFabButton, IonModal, IonButtons, IonButton } from '@ionic/angular/standalone';
-import { addIcons } from 'ionicons';
-import { chatbubblesOutline, personCircle, add, close } from 'ionicons/icons';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { NavController } from '@ionic/angular/standalone';
+import { IonContent, IonHeader } from '@ionic/angular/standalone';
 import { Subscription } from 'rxjs';
 import { FirebaseChatService } from '../../services/firebase-chat.service';
-import { FirebaseUsersService } from '../../services/firebase-users.service';
-import { ChatRoom, ChatParticipant } from '../../interfaces/chat';
-import { AppUser } from '../../interfaces/app-user';
-import { MiniHeaderComponent } from '../../components/mini-header/mini-header.component';
-import { trackById } from 'src/app/core/track-by';
+import { SellerDirectoryService } from '../../services/seller-directory.service';
+import { ChatRoom } from '../../interfaces/chat';
+import { ChatBoxComponent } from '../../components/chat-box/chat-box.component';
+import { VnIconComponent } from '../../components/vn-icon/vn-icon.component';
+import { LayoutService } from '../../core/layout.service';
+import {
+  chatSellerId, displayOf, initialsOf, isVisibleTo, listTime, otherParticipantOf, unreadOf
+} from '../../core/chat-view';
 
+type Filter = 'all' | 'unread' | 'buying' | 'selling';
+
+interface InboxItem {
+  id: string;
+  name: string;
+  photo: string;
+  initials: string;
+  isStore: boolean;
+  selling: boolean;
+  product?: string;
+  productPhoto?: string;
+  preview: string;
+  fromMe: boolean;
+  started: boolean;
+  time: string;
+  unread: number;
+  closed: boolean;
+  haystack: string;
+}
+
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/**
+ * Mensagens: as conversas da conta com lojas (o que ela compra) e com
+ * clientes (o que ela vende).
+ *
+ * No celular é a lista; tocar abre /chat-details/:id em tela cheia. No
+ * desktop são dois painéis — lista à esquerda, conversa à direita, com a
+ * conversa aberta em `?c=<id>` para o link e o voltar do navegador.
+ */
 @Component({
   selector: 'app-chats',
   templateUrl: './chats.page.html',
   styleUrls: ['./chats.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonAvatar, IonLabel, IonNote, IonSpinner, IonIcon, IonFab, IonFabButton, IonModal, IonButtons, IonButton, MiniHeaderComponent]
+  imports: [IonContent, IonHeader, RouterLink, ChatBoxComponent, VnIconComponent]
 })
 export class ChatsPage implements OnInit, OnDestroy {
-  /** trackBy padrao — evita recriar a lista inteira a cada emissao. */
-  public trackById = trackById;
+  private readonly chatService = inject(FirebaseChatService);
+  private readonly directory = inject(SellerDirectoryService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly navCtrl = inject(NavController);
+  readonly layout = inject(LayoutService);
 
-  @ViewChild('newChatModal') newChatModal!: IonModal;
-  
-  chats: ChatRoom[] = [];
-  isLoading = true;
-  private sub!: Subscription;
-  currentUserId?: string;
+  readonly chats = signal<ChatRoom[] | null>(null);
+  readonly failed = signal(false);
+  readonly uid = signal<string | undefined>(undefined);
+  readonly filter = signal<Filter>('all');
+  readonly search = signal('');
+  readonly activeId = signal<string | null>(null);
 
-  globalUsers: AppUser[] = [];
-  modalLoading = true;
-  private usersSub!: Subscription;
+  private sub?: Subscription;
+  private qpSub?: Subscription;
+  /** Atualiza "Ontem", "seg" etc. sem esperar mensagem nova. */
+  private readonly tick = signal(Date.now());
+  private tickTimer?: ReturnType<typeof setInterval>;
 
-  constructor(
-    private chatService: FirebaseChatService, 
-    private usersService: FirebaseUsersService,
-    private router: Router
-  ) {
-    addIcons({ chatbubblesOutline, personCircle, add, close });
-  }
+  readonly items = computed<InboxItem[]>(() => {
+    const me = this.uid();
+    const profiles = this.directory.profiles();
+    const now = this.tick();
+    return (this.chats() ?? [])
+      .filter(c => c.id && isVisibleTo(c, me))
+      .map(c => {
+        const other = otherParticipantOf(c, me);
+        const d = displayOf(c, other, other ? profiles[other.uid] : null);
+        const fromMe = !!me && c.lastSenderId === me;
+        const started = !!c.lastSenderId || (!!c.lastMessage && c.lastMessage !== 'Chat iniciado. Mande um oi!');
+        return {
+          id: c.id!,
+          name: d.name,
+          photo: d.photo,
+          initials: initialsOf(d.name),
+          isStore: d.isStore,
+          selling: !!me && chatSellerId(c) === me,
+          product: c.productName,
+          productPhoto: c.productPhoto,
+          preview: started ? c.lastMessage || '' : 'Conversa aberta. Mande a primeira mensagem.',
+          fromMe,
+          started,
+          time: listTime(c.lastMessageAt, now),
+          unread: unreadOf(c, me),
+          closed: c.status === 'closed',
+          haystack: fold(`${d.name} ${c.productName || ''} ${c.lastMessage || ''}`)
+        };
+      });
+  });
 
-  ngOnInit() {
-    this.currentUserId = this.chatService.getCurrentUser()?.uid;
-    this.sub = this.chatService.getMyChats().subscribe({
-      next: (chats) => {
-        this.chats = chats;
-        this.isLoading = false;
-      },
-      error: (e) => {
-        console.error("Erro ao puxar chats", e);
-        this.isLoading = false;
-      }
+  readonly hasSelling = computed(() => this.items().some(i => i.selling));
+  readonly totalUnread = computed(() => this.items().reduce((sum, i) => sum + i.unread, 0));
+  readonly counts = computed(() => {
+    const all = this.items();
+    return {
+      unread: all.filter(i => i.unread > 0).length,
+      buying: all.filter(i => !i.selling).length,
+      selling: all.filter(i => i.selling).length
+    };
+  });
+
+  readonly visible = computed(() => {
+    const q = fold(this.search().trim());
+    const f = this.filter();
+    return this.items().filter(i =>
+      (f === 'all' || (f === 'unread' && i.unread > 0) || (f === 'buying' && !i.selling) || (f === 'selling' && i.selling))
+      && (!q || i.haystack.includes(q))
+    );
+  });
+
+  readonly summary = computed(() => {
+    const n = this.totalUnread();
+    if (this.chats() === null) return '';
+    if (!this.items().length) return 'Nenhuma conversa ainda';
+    return n === 0 ? 'Tudo lido' : n === 1 ? '1 mensagem nova' : `${n} mensagens novas`;
+  });
+
+  constructor() {
+    // Nome e foto vêm do perfil público de cada conta (o gravado na conversa
+    // pode estar velho ou ser o "Você" das conversas antigas).
+    effect(() => {
+      const me = this.uid();
+      const ids = (this.chats() ?? []).map(c => otherParticipantOf(c, me)?.uid).filter((x): x is string => !!x);
+      if (ids.length) void this.directory.ensure(ids);
     });
 
-    // Fetches all users for the new chat modal
-    this.usersSub = this.usersService.getAllUsers().subscribe({
-      next: (users) => {
-        // Filter out the current user so they don't chat with themselves
-        this.globalUsers = users.filter(u => u.uid !== this.currentUserId);
-        this.modalLoading = false;
+    // Voltou para o celular com uma conversa aberta no painel: abre a tela dela.
+    effect(() => {
+      const id = this.activeId();
+      if (id && !this.layout.isDesktop()) {
+        this.activeId.set(null);
+        void this.router.navigate(['/chat-details', id]);
+      }
+    });
+  }
+
+  async ngOnInit() {
+    this.qpSub = this.route.queryParamMap.subscribe(p => {
+      const c = p.get('c');
+      if (this.layout.isDesktop()) this.activeId.set(c);
+    });
+    this.tickTimer = setInterval(() => this.tick.set(Date.now()), 60_000);
+
+    const user = await this.chatService.waitForUser();
+    this.uid.set(user?.uid);
+    this.sub = this.chatService.getMyChats().subscribe({
+      next: chats => {
+        this.chats.set(chats);
+        this.failed.set(false);
       },
-      error: (e) => {
-        console.error("Erro ao carregar usuários:", e);
-        this.modalLoading = false;
+      error: e => {
+        console.error('Erro ao puxar chats', e);
+        this.failed.set(true);
+        this.chats.set([]);
       }
     });
   }
 
   ngOnDestroy() {
-    if (this.sub) this.sub.unsubscribe();
-    if (this.usersSub) this.usersSub.unsubscribe();
+    this.sub?.unsubscribe();
+    this.qpSub?.unsubscribe();
+    clearInterval(this.tickTimer);
   }
 
-  // Identifica quem é a "outra pessoa" para mostrar foto/nome
-  getOtherParticipant(chat: ChatRoom): ChatParticipant | undefined {
-      return chat.participants.find(p => p.uid !== this.currentUserId);
-  }
-
-  openChat(chatId?: string) {
-      if (chatId) {
-          this.router.navigate(['/chat-details', chatId]);
-      }
-  }
-
-  async startNewChatWith(user: AppUser) {
-    if (this.newChatModal) {
-      this.newChatModal.dismiss();
-    }
-    
-    try {
-      const otherParticipant: ChatParticipant = {
-        uid: user.uid,
-        name: user.displayName || 'Usuário',
-        photoUrl: user.photoURL || undefined
-      };
-      const chatId = await this.chatService.startChat(otherParticipant);
-      this.router.navigate(['/chat-details', chatId]);
-    } catch (e) {
-      console.error("Erro ao iniciar novo chat: ", e);
-      alert('Não foi possível iniciar o chat.');
-    }
-  }
-
-  formatDate(timestamp: any): string {
-    if (!timestamp || !timestamp.seconds) return '';
-    const date = new Date(timestamp.seconds * 1000);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-    const isYesterday = date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear();
-
-    if (isToday) {
-      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    } else if (isYesterday) {
-      return 'Ontem';
+  open(item: InboxItem) {
+    if (this.layout.isDesktop()) {
+      this.activeId.set(item.id);
+      void this.router.navigate([], { relativeTo: this.route, queryParams: { c: item.id }, replaceUrl: true });
     } else {
-      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      void this.router.navigate(['/chat-details', item.id]);
     }
+  }
+
+  closePane() {
+    this.activeId.set(null);
+    void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+  }
+
+  setFilter(f: Filter) {
+    this.filter.set(this.filter() === f && f !== 'all' ? 'all' : f);
+  }
+
+  onSearch(event: Event) {
+    this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  goBack() {
+    if (window.history.length > 1) this.navCtrl.back();
+    else this.navCtrl.navigateRoot('/tabs/my-account');
   }
 }

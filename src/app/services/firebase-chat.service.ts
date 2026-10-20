@@ -3,7 +3,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import {
   getFirestore, collection, doc, query, where, getDoc,
   getDocs, addDoc, onSnapshot, serverTimestamp, writeBatch, orderBy, updateDoc, Firestore,
-  deleteDoc, collectionGroup, getCountFromServer
+  deleteDoc, collectionGroup, getCountFromServer, increment
 } from 'firebase/firestore';
 import { getAuth, Auth, User } from 'firebase/auth';
 import { getDownloadURL, ref, getStorage, uploadBytes, FirebaseStorage } from 'firebase/storage';
@@ -53,47 +53,53 @@ export class FirebaseChatService {
   }
 
   /**
-   * Inicia um chat ou retorna um existente com o mesmo vendedor e mesmo produto (se especificado).
+   * Abre a conversa com a outra conta — ou devolve a que já existe para o
+   * mesmo anúncio. Sem anúncio (página da loja, pedido), reaproveita a conversa
+   * direta com ela ou, na falta, a mais recente.
+   *
+   * @param otherIsSeller o outro lado é a loja (anúncio, vitrine, pedido). Só
+   *   a conversa direta do admin passa `false`.
    */
-  async startChat(otherParticipant: ChatParticipant, productContext?: { id: string, name: string, photo?: string }): Promise<string> {
+  async startChat(
+    otherParticipant: ChatParticipant,
+    productContext?: { id: string, name: string, photo?: string },
+    otherIsSeller = true
+  ): Promise<string> {
     const user = this.getCurrentUser();
     if (!user) throw new Error("Usuário não autenticado");
+    if (otherParticipant.uid === user.uid) {
+      throw new Error('Este anúncio é seu. As perguntas dos clientes chegam em Mensagens.');
+    }
 
     // Validação de Banimento
     const userDocRef = doc(this.db, 'users', user.uid);
     const userSnap = await getDoc(userDocRef);
-    if (userSnap.exists() && (userSnap.data() as AppUser).isChatBanned) {
+    const myData = userSnap.exists() ? (userSnap.data() as AppUser) : undefined;
+    if (myData?.isChatBanned) {
       throw new Error("Você está temporariamente impedido de iniciar novas conversas.");
     }
 
     const chatsCol = collection(this.db, 'chats');
-    
-    // Procura chats onde eu estou participando
     const q = query(chatsCol, where('participantIds', 'array-contains', user.uid));
     const snapshot = await getDocs(q);
-    
-    let existingChatId: string | null = null;
-    snapshot.docs.forEach(d => {
-       const data = d.data() as ChatRoom;
-       // Verifica se é o chat exato (mesmo vendedor e mesmo produto se aplicável)
-       const isSameParticipant = data.participantIds.includes(otherParticipant.uid);
-       const isSameContext = productContext ? data.productId === productContext.id : true;
 
-       if (isSameParticipant && isSameContext) {
-         existingChatId = d.id;
-       }
-    });
+    const withOther = snapshot.docs
+      .map(d => ({ id: d.id, data: d.data() as ChatRoom }))
+      .filter(c => c.data.participantIds?.includes(otherParticipant.uid))
+      .sort((a, b) => (b.data.lastMessageAt?.seconds || 0) - (a.data.lastMessageAt?.seconds || 0));
+    const existing = productContext
+      ? withOther.find(c => c.data.productId === productContext.id)
+      : withOther.find(c => !c.data.productId) ?? withOther[0];
+    if (existing) return existing.id;
 
-    if (existingChatId) {
-       return existingChatId;
-    }
-
-    // Criar nova sala
+    // O nome de quem abre vem do cadastro: o `displayName` do Auth pode estar
+    // vazio, e as conversas antigas gravavam "Você" — que o outro lado via.
     const me: ChatParticipant = {
       uid: user.uid,
-      name: user.displayName || 'Você'
+      name: myData?.displayName || user.displayName || 'Cliente Vineon'
     };
-    if (user.photoURL) me.photoUrl = user.photoURL;
+    const myPhoto = myData?.photoURL || user.photoURL;
+    if (myPhoto) me.photoUrl = myPhoto;
 
     const cleanOther: ChatParticipant = {
       uid: otherParticipant.uid,
@@ -104,11 +110,17 @@ export class FirebaseChatService {
     const newChat: ChatRoom = {
       participantIds: [me.uid, cleanOther.uid],
       participants: [me, cleanOther],
+      createdBy: me.uid,
       createdAt: serverTimestamp(),
-      lastMessage: 'Chat iniciado. Mande um oi!',
+      lastMessage: '',
       lastMessageAt: serverTimestamp(),
-      source: 'marketplace'
+      source: 'marketplace',
+      unread: {}
     };
+    if (otherIsSeller) {
+      newChat.buyerId = me.uid;
+      newChat.sellerId = cleanOther.uid;
+    }
 
     if (productContext) {
       newChat.productId = productContext.id;
@@ -119,6 +131,25 @@ export class FirebaseChatService {
     const docRef = await addDoc(chatsCol, newChat);
     void this.dispatchNewConversationTrigger(docRef.id, me, cleanOther, productContext);
     return docRef.id;
+  }
+
+  /** A conversa em tempo real — status, quem leu, não lidas. */
+  watchChat(chatId: string): Observable<ChatRoom | undefined> {
+    return new Observable(observer => onSnapshot(
+      doc(this.db, 'chats', chatId),
+      snap => observer.next(snap.exists() ? ({ id: snap.id, ...snap.data() } as ChatRoom) : undefined),
+      err => observer.error(err)
+    ));
+  }
+
+  /** Zera as não lidas da conta e registra quando ela leu. */
+  async markRead(chatId: string): Promise<void> {
+    const uid = this.getCurrentUser()?.uid;
+    if (!uid) return;
+    await updateDoc(doc(this.db, 'chats', chatId), {
+      [`unread.${uid}`]: 0,
+      [`readAt.${uid}`]: serverTimestamp()
+    });
   }
 
   /**
@@ -177,8 +208,10 @@ export class FirebaseChatService {
 
         return onSnapshot(q, (snapshot) => {
             const msgs: ChatMessage[] = [];
+            // `estimate`: a mensagem recém-enviada aparece na hora, com o
+            // relógio local, em vez de esperar o horário do servidor.
             snapshot.forEach(d => {
-                msgs.push({ id: d.id, ...d.data() } as ChatMessage);
+                msgs.push({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) } as ChatMessage);
             });
             // Revertemos para exibir cronológico na UI
             observer.next(msgs.reverse());
@@ -188,13 +221,26 @@ export class FirebaseChatService {
     });
   }
 
-  async sendMessage(chatId: string, content: { text: string, type: 'text' | 'image' | 'audio', mediaUrl?: string, clientId?: string }): Promise<void> {
+  /**
+   * @param recipientIds quem recebe (soma 1 nas não lidas dessas contas). Sem
+   *   isso, lê a conversa para descobrir.
+   */
+  async sendMessage(
+    chatId: string,
+    content: { text: string, type: 'text' | 'image' | 'audio', mediaUrl?: string, clientId?: string },
+    recipientIds?: string[]
+  ): Promise<void> {
      const user = this.getCurrentUser();
      if (!user) throw new Error("Usuário não autenticado");
 
      // Validação de Banimento
      const userDocRef = doc(this.db, 'users', user.uid);
-     const userSnap = await getDoc(userDocRef);
+     const [userSnap, recipients] = await Promise.all([
+       getDoc(userDocRef),
+       recipientIds
+         ? Promise.resolve(recipientIds)
+         : this.getChatDetails(chatId).then(c => c?.participantIds ?? [])
+     ]);
      if (userSnap.exists() && (userSnap.data() as AppUser).isChatBanned) {
        throw new Error("Sua conta possui restrições para envio de mensagens.");
      }
@@ -220,10 +266,18 @@ export class FirebaseChatService {
      if (content.type === 'image') lastText = '📷 Foto';
      if (content.type === 'audio') lastText = '🎤 Áudio';
 
-     batch.update(chatRef, {
+     const chatUpdate: Record<string, any> = {
         lastMessage: lastText,
-        lastMessageAt: serverTimestamp()
+        lastMessageAt: serverTimestamp(),
+        lastSenderId: user.uid,
+        // Quem escreve está com a conversa aberta: o que veio antes já foi lido.
+        [`unread.${user.uid}`]: 0,
+        [`readAt.${user.uid}`]: serverTimestamp()
+     };
+     recipients.filter(id => id && id !== user.uid).forEach(id => {
+        chatUpdate[`unread.${id}`] = increment(1);
      });
+     batch.update(chatRef, chatUpdate);
 
      await batch.commit();
   }
@@ -247,7 +301,8 @@ export class FirebaseChatService {
      const chatRef = doc(this.db, 'chats', chatId);
      batch.update(chatRef, {
         lastMessage: text,
-        lastMessageAt: serverTimestamp()
+        lastMessageAt: serverTimestamp(),
+        lastSenderId: senderId
      });
 
      await batch.commit();

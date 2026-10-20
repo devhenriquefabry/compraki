@@ -1,183 +1,219 @@
-<ion-header class="ion-no-border">
-  <div class="product-context-header" *ngIf="chatRoom?.productId">
-    <div class="context-card animate-down">
-      <div class="product-link" (click)="goToProduct()">
-        <div class="product-thumb">
-          <img [src]="chatRoom?.productPhoto || 'assets/imagens/app-logo.png'" alt="">
-        </div>
-        <div class="product-meta">
-          <span class="context-label">ASSUNTO DO CHAT</span>
-          <h4 class="product-name">{{ chatRoom?.productName }}</h4>
-        </div>
-      </div>
-      <div class="context-actions">
-        <div class="platform-badge">
-           <ion-icon name="checkmark-circle"></ion-icon>
-           VIA COMPRAKI
-        </div>
-        <ion-button *ngIf="!isChatClosed" fill="clear" size="small" class="btn-close-chat" (click)="promptCloseChat()">
-          <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
-          Finalizar
-        </ion-button>
-        <ion-button fill="clear" size="small" class="btn-report-chat" (click)="openReportModal()">
-          <ion-icon name="flag-outline" slot="start" color="danger"></ion-icon>
-          <span style="color: var(--ion-color-danger)">Denunciar</span>
-        </ion-button>
-        <span *ngIf="isChatClosed" class="closed-badge">FINALIZADA</span>
-      </div>
-    </div>
-  </div>
-</ion-header>
+@if (showHeader) {
+  <header class="cb-head">
+    <div class="cb-bar">
+      @if (backable) {
+        <button type="button" class="cb-icon" (click)="onBack.emit()" aria-label="Voltar para Mensagens">
+          <vn-icon name="arrowLeft" />
+        </button>
+      }
 
-<!-- OVERLAY DE FINALIZAÇÃO -->
-<div class="closing-overlay" *ngIf="closingState !== 'idle'">
-  <!-- CONFIRMAÇÃO -->
-  <div class="closing-content" *ngIf="closingState === 'confirming'">
-    <ion-icon name="alert-circle-outline" class="closing-icon warn"></ion-icon>
-    <h3>Finalizar conversa?</h3>
-    <p>Essa conversa será movida para a aba "Finalizadas" e não poderá mais receber mensagens.</p>
-    <div class="closing-actions">
-      <ion-button fill="outline" color="medium" (click)="cancelCloseChat()">Cancelar</ion-button>
-      <ion-button color="success" (click)="confirmCloseChat()">Confirmar</ion-button>
+      <div class="cb-who">
+        <span class="cb-avatar" [class.is-store]="other.isStore" aria-hidden="true">
+          @if (other.photo) { <img [src]="other.photo" alt="" /> } @else { {{ other.initials }} }
+        </span>
+        <span class="cb-who-text">
+          <strong class="cb-name">{{ other.name || ' ' }}</strong>
+          <small class="cb-role">
+            @if (isChatClosed) { Conversa encerrada }
+            @else if (other.isStore) { Loja na Vineon }
+            @else if (iAmSeller) { Cliente da sua loja }
+            @else { Na Vineon }
+          </small>
+        </span>
+      </div>
+
+      @if (storeLink) {
+        <a class="cb-ghost" [routerLink]="storeLink">Ver loja</a>
+      }
+
+      <div class="cb-menu-wrap">
+        <button type="button" class="cb-icon" (click)="toggleMenu($event)" aria-label="Mais opções"
+                aria-haspopup="menu" [attr.aria-expanded]="menuOpen">
+          <vn-icon name="dots" />
+        </button>
+        @if (menuOpen) {
+          <div class="cb-menu" role="menu">
+            @if (chatRoom?.productId) {
+              <button type="button" role="menuitem" (click)="goToProduct()"><vn-icon name="tag" /> Ver anúncio</button>
+            }
+            @if (storeLink) {
+              <a role="menuitem" [routerLink]="storeLink" (click)="menuOpen = false"><vn-icon name="store" /> Ver loja</a>
+            }
+            <button type="button" role="menuitem" (click)="openReportModal()"><vn-icon name="flag" /> Denunciar</button>
+            @if (!isChatClosed) {
+              <button type="button" role="menuitem" class="is-danger" (click)="promptCloseChat()"><vn-icon name="close" /> Encerrar conversa</button>
+            }
+          </div>
+        }
+      </div>
+
+      @if (closable) {
+        <button type="button" class="cb-icon" (click)="onClose.emit()" aria-label="Fechar conversa">
+          <vn-icon name="close" />
+        </button>
+      }
     </div>
-  </div>
-  <!-- LOADING -->
-  <div class="closing-content" *ngIf="closingState === 'loading'">
-    <ion-spinner name="crescent" style="color: #0B1623"></ion-spinner>
-    <p>Finalizando conversa...</p>
-  </div>
-  <!-- SUCESSO -->
-  <div class="closing-content" *ngIf="closingState === 'success'">
-    <ion-icon name="checkmark-circle" class="closing-icon success"></ion-icon>
-    <h3>Conversa finalizada!</h3>
-    <p>Movida para a aba de finalizadas.</p>
-  </div>
+
+    @if (chatRoom?.productId) {
+      <button type="button" class="cb-tag" (click)="goToProduct()" [attr.aria-label]="'Ver anúncio: ' + chatRoom?.productName">
+        <span class="cb-tag-hole" aria-hidden="true"></span>
+        @if (chatRoom?.productPhoto) {
+          <img class="cb-tag-photo" [src]="chatRoom?.productPhoto" alt="" />
+        } @else {
+          <span class="cb-tag-photo cb-tag-photo--empty"><vn-icon name="tag" /></span>
+        }
+        <span class="cb-tag-text">
+          <small>Sobre o anúncio</small>
+          <strong>{{ chatRoom?.productName }}</strong>
+        </span>
+        <span class="cb-tag-cta">Ver anúncio <vn-icon name="chevron" /></span>
+      </button>
+    }
+  </header>
+}
+
+<div class="cb-scroll" #scroller (scroll)="onScroll()">
+  @if (isLoading) {
+    <div class="cb-skeleton" aria-label="Carregando mensagens">
+      <span class="sk sk-l"></span>
+      <span class="sk sk-r"></span>
+      <span class="sk sk-l sk-short"></span>
+    </div>
+  } @else {
+    @if (!rows.length) {
+      <div class="cb-start">
+        <span class="cb-start-mark"><vn-icon name="chat" /></span>
+        @if (iAmSeller) {
+          <h3>Nenhuma mensagem ainda</h3>
+          <p>Quando {{ other.name || 'o cliente' }} escrever, a mensagem aparece aqui na hora.</p>
+        } @else {
+          <h3>Fale direto com {{ other.name || 'a loja' }}</h3>
+          <p>Tire dúvidas antes de comprar. A resposta chega aqui e no seu sino de avisos.</p>
+          @if (!isChatClosed && isParticipant) {
+            <div class="cb-quick" role="group" aria-label="Sugestões de mensagem">
+              @for (q of quickReplies; track q) {
+                <button type="button" (click)="useQuickReply(q)">{{ q }}</button>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <ol class="cb-list" aria-live="polite">
+      @for (row of rows; track trackRow($index, row)) {
+        @switch (row.kind) {
+          @case ('day') {
+            <li class="cb-day"><span>{{ row.label }}</span></li>
+          }
+          @case ('new') {
+            <li class="cb-new"><span>{{ row.count === 1 ? '1 mensagem nova' : row.count + ' mensagens novas' }}</span></li>
+          }
+          @case ('msg') {
+            @if (row.kind === 'msg') {
+              <li class="cb-msg" [id]="'msg-' + (row.msg.id || row.msg.clientId)"
+                  [class.is-mine]="row.mine" [class.is-first]="row.first" [class.is-last]="row.last"
+                  [class.is-error]="row.msg.status === 'error'">
+                <div class="cb-bubble" [class.is-media]="row.msg.type === 'image'">
+                  @switch (row.msg.type) {
+                    @case ('image') {
+                      <button type="button" class="cb-photo" [disabled]="row.msg.status === 'sending'"
+                              (click)="row.msg.mediaUrl && openImage(row.msg.mediaUrl)" aria-label="Ampliar foto">
+                        <img [src]="row.msg.mediaUrl" alt="Foto enviada na conversa" loading="lazy" />
+                        @if (row.msg.status === 'sending') { <span class="cb-photo-busy"><ion-spinner name="crescent"></ion-spinner></span> }
+                      </button>
+                    }
+                    @case ('audio') {
+                      <audio class="cb-audio" controls preload="none" [src]="row.msg.mediaUrl"></audio>
+                    }
+                    @default {
+                      <span class="cb-text">{{ row.msg.text }}</span>
+                    }
+                  }
+                  <span class="cb-meta">
+                    {{ row.time }}
+                    @if (row.mine) {
+                      @if (row.msg.status === 'sending') {
+                        <vn-icon name="clock" class="cb-state" aria-label="Enviando" />
+                      } @else if (row.msg.status !== 'error') {
+                        <vn-icon [name]="row.read ? 'checks' : 'tick'" class="cb-state" [class.is-read]="row.read"
+                                 [attr.aria-label]="row.read ? 'Lida' : 'Enviada'" />
+                      }
+                    }
+                  </span>
+                </div>
+                @if (row.msg.status === 'error') {
+                  <button type="button" class="cb-retry" (click)="retry(row.msg)">Não enviada · tentar de novo</button>
+                }
+              </li>
+            }
+          }
+        }
+      }
+
+      @if (isAiTyping) {
+        <li class="cb-msg is-first is-last">
+          <div class="cb-bubble cb-typing" aria-label="Digitando"><i></i><i></i><i></i></div>
+        </li>
+      }
+    </ol>
+
+    @if (isChatClosed && chatRoom?.closedAt) {
+      <p class="cb-closed-note">Conversa encerrada em {{ chatRoom?.closedAt?.seconds * 1000 | date:"dd/MM/yyyy 'às' HH:mm" }}</p>
+    }
+  }
 </div>
 
-<ion-content #content [scrollEvents]="true" class="chat-content">
-  <!-- MENSAGENS -->
-  <div class="messages-container" *ngIf="!isLoading">
-    <div *ngFor="let msg of allMessages; let i = index; trackBy: trackByMessages" 
-         [id]="'msg-' + (msg.id || msg.clientId)"
-         [class.msg-me]="msg.senderId === currentUserId" 
-         [class.msg-other]="msg.senderId !== currentUserId"
-         class="msg-wrapper animate-pop">
-      
-      <div class="msg-bubble" [class.is-sending]="msg.status === 'sending'">
-        <!-- TIPO: TEXTO -->
-        <span *ngIf="msg.type === 'text'" class="msg-text">{{ msg.text }}</span>
-        
-        <!-- TIPO: IMAGEM -->
-        <div *ngIf="msg.type === 'image'" class="msg-image">
-           <img [src]="msg.mediaUrl || 'assets/imagens/placeholder-image-gray.png'" 
-                (click)="msg.mediaUrl && msg.status !== 'sending' ? openImage(msg.mediaUrl) : false"
-                [class.img-uploading]="msg.status === 'sending'"
-                class="cursor-zoom">
-        </div>
+@if (pendingBelow > 0) {
+  <button type="button" class="cb-jump" (click)="scrollToBottom()">
+    <vn-icon name="arrowDown" /> {{ pendingBelow === 1 ? '1 nova' : pendingBelow + ' novas' }}
+  </button>
+}
 
-        <!-- TIPO: ÁUDIO -->
-        <div *ngIf="msg.type === 'audio'" class="msg-audio">
-           <ion-button fill="clear" color="light" size="small">
-              <ion-icon name="play" slot="icon-only"></ion-icon>
-           </ion-button>
-           <div class="audio-wave">
-              <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-           </div>
-           <span class="audio-label">Áudio</span>
-           <audio #audioPlayer [src]="msg.mediaUrl" style="display:none"></audio>
-        </div>
-
-        <div class="msg-footer">
-          <span class="msg-time">{{ formatTime(msg.createdAt) }}</span>
-          
-          <!-- INDICADORES DE STATUS -->
-          <ion-spinner *ngIf="msg.status === 'sending'" name="dots" class="sending-spinner"></ion-spinner>
-          <ion-icon *ngIf="msg.status === 'error'" name="alert-circle" color="danger"></ion-icon>
-          <ion-icon *ngIf="msg.senderId === currentUserId && !msg.status" name="checkmark-circle" class="status-icon"></ion-icon>
-        </div>
+@if (isChatClosed) {
+  <footer class="cb-closed">
+    <vn-icon name="lock" /> Esta conversa foi encerrada e não recebe mais mensagens.
+  </footer>
+} @else if (isParticipant || !chatRoom) {
+  <footer class="cb-compose">
+    @if (isRecording) {
+      <div class="cb-rec" [class.is-cancel]="isDraggingToCancel">
+        <span class="cb-rec-dot"></span>
+        <span class="cb-rec-time">{{ formatDuration(recordingDuration) }}</span>
+        <span class="cb-rec-hint">{{ isDraggingToCancel ? 'Solte para cancelar' : 'Arraste para a esquerda para cancelar' }}</span>
       </div>
-    </div>
+    } @else {
+      <button type="button" class="cb-icon cb-attach" (click)="fileInput.click()" aria-label="Enviar foto">
+        <vn-icon name="image" />
+      </button>
+      <input #fileInput type="file" hidden (change)="onFileSelected($event)" accept="image/*" />
 
-    <!-- AI TYPING INDICATOR -->
-    <div class="msg-wrapper msg-other animate-pop" *ngIf="isAiTyping">
-      <div class="msg-bubble typing-bubble" style="padding: 10px 16px; min-width: 60px;">
-        <ion-spinner name="dots" color="medium"></ion-spinner>
-      </div>
-    </div>
+      <label class="cb-field">
+        <span class="cb-sr">Mensagem</span>
+        <textarea #composer rows="1" maxlength="2000" [(ngModel)]="newMessage" (input)="autoGrow()"
+                  (keydown)="onComposerKey($event)"
+                  [placeholder]="iAmSeller ? 'Responder ao cliente…' : 'Escreva para a loja…'"></textarea>
+      </label>
+    }
+
+    @if (canRecord && !newMessage.trim()) {
+      <button type="button" class="cb-send cb-mic" aria-label="Segure para gravar áudio"
+              (touchstart)="startRecording($event)" (touchend)="stopRecording()" (touchmove)="handleTouchMove($event)">
+        <vn-icon name="mic" />
+      </button>
+    } @else {
+      <button type="button" class="cb-send" (click)="sendMessage()" [disabled]="!newMessage.trim()" aria-label="Enviar mensagem">
+        <vn-icon name="send" />
+      </button>
+    }
+  </footer>
+}
+
+@if (selectedImage) {
+  <div class="cb-viewer" (click)="closeImage()" role="dialog" aria-label="Foto ampliada">
+    <button type="button" class="cb-viewer-close" (click)="closeImage(); $event.stopPropagation()" aria-label="Fechar foto">
+      <vn-icon name="close" />
+    </button>
+    <img [src]="selectedImage" alt="Foto enviada na conversa" (click)="$event.stopPropagation()" />
   </div>
-
-  <!-- BANNER DE FINALIZAÇÃO -->
-  <div class="closed-banner" *ngIf="isChatClosed && !isLoading">
-    <ion-icon name="checkmark-done-outline"></ion-icon>
-    <span>FINALIZADA EM {{ chatRoom?.closedAt?.seconds * 1000 | date:'dd/MM/yyyy \'às\' HH:mm' }}</span>
-  </div>
-
-  <div *ngIf="isLoading" class="loader-center">
-    <ion-spinner name="crescent" style="color: #0B1623"></ion-spinner>
-  </div>
-</ion-content>
-
-<!-- FOOTER / TOOLBAR (CONVERSA ATIVA) -->
-<ion-footer class="ion-no-border chat-footer" *ngIf="!isChatClosed">
-  
-  <!-- Overlay de Gravação -->
-  <div class="recording-overlay" *ngIf="isRecording" [class.cancel-active]="isDraggingToCancel">
-    <div class="rec-info">
-      <div class="rec-dot"></div>
-      <span class="timer">{{ formatDuration(recordingDuration) }}</span>
-    </div>
-    <div class="cancel-instruction">
-       <span *ngIf="!isDraggingToCancel">Arraste para cancelar <ion-icon name="trash"></ion-icon></span>
-       <span *ngIf="isDraggingToCancel" class="cancel-text">Solte para cancelar</span>
-    </div>
-  </div>
-
-  <div class="toolbar-row" *ngIf="!isRecording">
-    <ion-buttons slot="start">
-      <ion-button class="btn-media" (click)="fileInput.click()">
-        <ion-icon name="image-outline"></ion-icon>
-        <input #fileInput type="file" style="display:none" (change)="onFileSelected($event)" accept="image/*">
-      </ion-button>
-    </ion-buttons>
-
-    <div class="input-container">
-      <ion-input type="text" placeholder="Tire sua dúvida..." 
-                [(ngModel)]="newMessage" 
-                (keyup.enter)="sendMessage()"
-                class="message-input">
-      </ion-input>
-    </div>
-
-    <ion-buttons slot="end">
-      <!-- Botão de Enviar (Texto) -->
-      <ion-button *ngIf="newMessage.trim()" (click)="sendMessage()" class="btn-send-text">
-        <ion-icon name="send"></ion-icon>
-      </ion-button>
-      
-      <!-- Botão de Microfone -->
-      <ion-button *ngIf="!newMessage.trim()" 
-                 class="btn-mic"
-                 (touchstart)="startRecording($event)"
-                 (touchend)="stopRecording()"
-                 (touchmove)="handleTouchMove($event)">
-        <ion-icon name="mic"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </div>
-</ion-footer>
-
-<!-- FOOTER PARA CONVERSA FINALIZADA -->
-<ion-footer class="ion-no-border chat-footer-closed" *ngIf="isChatClosed">
-  <div class="closed-footer-content">
-    <ion-icon name="checkmark-done-outline"></ion-icon>
-    <span>Conversa finalizada</span>
-  </div>
-</ion-footer>
-
-<!-- VISUALIZADOR DE IMAGEM -->
-<div class="image-viewer-overlay" *ngIf="selectedImage" (click)="closeImage()">
-  <ion-button class="btn-close-viewer" fill="clear" color="light" (click)="closeImage(); $event.stopPropagation()">
-    <ion-icon name="close-circle"></ion-icon>
-  </ion-button>
-  <img [src]="selectedImage" (click)="$event.stopPropagation()" class="zoomed-image animate-pop">
-</div>
+}

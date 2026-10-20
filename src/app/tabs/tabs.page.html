@@ -94,6 +94,7 @@
     <a class="vn-tile" routerLink="/tabs/chats">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.chat" /></svg>
       <span>Mensagens</span>
+      @if (chatUnread() > 0) { <em>{{ chatUnread() > 99 ? '99+' : chatUnread() }}</em> }
     </a>
     <a class="vn-tile" routerLink="/tabs/notifications">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.bell" /></svg>

@@ -145,6 +145,12 @@ export class NotificationCenterService {
     await this.markRead([...new Set([...this.entries.map(e => e.id), ...extra])]);
   }
 
+  /** Conversa aberta fora da rota dela (painel de Mensagens no desktop, anúncio). */
+  markReadForLink(link: string): void {
+    const ids = this.entries.filter(e => e.link === link).map(e => e.id);
+    if (ids.length) void this.markRead(ids);
+  }
+
   /**
    * Abriu a tela de que o aviso falava (a conversa, a venda): o aviso já
    * cumpriu o papel, vira lido. Rotas genéricas (abas de pedidos) não contam.

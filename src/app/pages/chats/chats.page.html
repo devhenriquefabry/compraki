@@ -1,97 +1,136 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="false" [showMenuButton]="true" [useChatIcon]="true"></app-mini-header>
-  <ion-toolbar class="title-toolbar">
-    <ion-title>Mensagens</ion-title>
-  </ion-toolbar>
+<ion-header class="ion-no-border ms-header">
+  <div class="ms-bar">
+    <button type="button" class="ms-icon-btn" (click)="goBack()" aria-label="Voltar">
+      <vn-icon name="arrowLeft" />
+    </button>
+    <h1 class="ms-title">Mensagens</h1>
+    @if (totalUnread()) {
+      <span class="ms-bar-count" aria-label="mensagens novas">{{ totalUnread() > 99 ? '99+' : totalUnread() }}</span>
+    }
+  </div>
 </ion-header>
 
-<ion-content color="light">
-  <!-- Loading -->
-  <div class="loading-state" *ngIf="isLoading">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Carregando conversas...</p>
+<ion-content class="ms-content" [scrollY]="!layout.isDesktop()">
+  <div class="ms-shell" [class.has-open]="!!activeId()">
+
+    <!-- ============================================================ LISTA -->
+    <aside class="ms-inbox" aria-label="Conversas">
+      <div class="ms-inbox-head">
+        <div class="ms-heading">
+          <h1>Mensagens</h1>
+          <p>{{ summary() }}</p>
+        </div>
+
+        @if (items().length > 3 || search()) {
+          <label class="ms-search">
+            <vn-icon name="search" />
+            <span class="ms-sr">Buscar conversa</span>
+            <input type="search" placeholder="Buscar por loja, pessoa ou produto" [value]="search()" (input)="onSearch($event)" />
+          </label>
+        }
+
+        @if (items().length) {
+          <div class="ms-chips" role="group" aria-label="Filtrar conversas">
+            <button type="button" class="ms-chip" [class.is-on]="filter() === 'all'" [attr.aria-pressed]="filter() === 'all'" (click)="setFilter('all')">Todas</button>
+            <button type="button" class="ms-chip" [class.is-on]="filter() === 'unread'" [attr.aria-pressed]="filter() === 'unread'" (click)="setFilter('unread')">
+              Não lidas @if (counts().unread) { <small>{{ counts().unread }}</small> }
+            </button>
+            @if (hasSelling()) {
+              <button type="button" class="ms-chip" [class.is-on]="filter() === 'buying'" [attr.aria-pressed]="filter() === 'buying'" (click)="setFilter('buying')">Compras</button>
+              <button type="button" class="ms-chip" [class.is-on]="filter() === 'selling'" [attr.aria-pressed]="filter() === 'selling'" (click)="setFilter('selling')">
+                Sua loja <small>{{ counts().selling }}</small>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="ms-list-wrap">
+        @if (chats() === null) {
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="ms-sk" aria-hidden="true">
+              <span class="sk sk-av"></span>
+              <span class="sk-col"><span class="sk sk-a"></span><span class="sk sk-b"></span><span class="sk sk-c"></span></span>
+            </div>
+          }
+        } @else if (failed()) {
+          <div class="ms-empty">
+            <span class="ms-empty-mark"><vn-icon name="chat" /></span>
+            <h2>Sem conexão com as mensagens</h2>
+            <p>Não deu para carregar suas conversas agora. Confira a internet e abra de novo.</p>
+          </div>
+        } @else if (!items().length) {
+          <div class="ms-empty">
+            <span class="ms-empty-mark"><vn-icon name="chat" /></span>
+            <h2>Nenhuma conversa ainda</h2>
+            <p>Para tirar uma dúvida, abra o anúncio ou a página da loja e toque em <strong>Mandar mensagem</strong>. A conversa aparece aqui.</p>
+            <a class="ms-cta" routerLink="/tabs/tab2">Explorar produtos</a>
+          </div>
+        } @else if (!visible().length) {
+          <div class="ms-empty ms-empty--small">
+            <h2>Nada por aqui</h2>
+            <p>Nenhuma conversa com esse filtro.</p>
+            <button type="button" class="ms-link" (click)="setFilter('all'); search.set('')">Ver todas</button>
+          </div>
+        } @else {
+          <ul class="ms-list">
+            @for (item of visible(); track item.id) {
+              <li>
+                <button type="button" class="ms-item" [class.is-unread]="item.unread > 0" [class.is-active]="activeId() === item.id"
+                        [attr.aria-current]="activeId() === item.id ? 'true' : null" (click)="open(item)"
+                        [attr.aria-label]="item.name + (item.product ? ', sobre ' + item.product : '') + (item.unread ? ', ' + item.unread + (item.unread === 1 ? ' mensagem nova' : ' mensagens novas') : '')">
+                  <span class="ms-av-wrap" aria-hidden="true">
+                    <span class="ms-av" [class.is-store]="item.isStore">
+                      @if (item.photo) { <img [src]="item.photo" alt="" loading="lazy" /> } @else { {{ item.initials }} }
+                    </span>
+                    @if (item.productPhoto) {
+                      <img class="ms-av-product" [src]="item.productPhoto" alt="" loading="lazy" />
+                    }
+                  </span>
+
+                  <span class="ms-body">
+                    <span class="ms-row">
+                      <strong class="ms-name">{{ item.name }}</strong>
+                      @if (item.selling) { <span class="ms-role">Cliente</span> }
+                      <span class="ms-time">{{ item.time }}</span>
+                    </span>
+                    @if (item.product) {
+                      <span class="ms-product"><vn-icon name="tag" /> {{ item.product }}</span>
+                    }
+                    <span class="ms-row">
+                      <span class="ms-preview" [class.is-hint]="!item.started">
+                        @if (item.closed) { <vn-icon name="lock" class="ms-lock" /> }
+                        @if (item.fromMe && item.started) { <span class="ms-you">Você:</span> }
+                        {{ item.preview }}
+                      </span>
+                      @if (item.unread) { <span class="ms-unread">{{ item.unread > 99 ? '99+' : item.unread }}</span> }
+                    </span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </aside>
+
+    <!-- ========================================================= CONVERSA -->
+    @if (layout.isDesktop()) {
+      <section class="ms-pane" aria-label="Conversa aberta">
+        @if (activeId(); as id) {
+          <app-chat-box [chatId]="id" [closable]="true" (onClose)="closePane()"></app-chat-box>
+        } @else {
+          <div class="ms-pane-empty">
+            <div class="ms-pane-art" aria-hidden="true">
+              <span class="ms-pane-bubble ms-pane-bubble--a"></span>
+              <span class="ms-pane-bubble ms-pane-bubble--b"></span>
+              <span class="ms-pane-tag"><i></i></span>
+            </div>
+            <h2>{{ items().length ? 'Escolha uma conversa' : 'Suas conversas aparecem aqui' }}</h2>
+            <p>Dúvidas sobre um anúncio, combinações de entrega e conversas com os clientes da sua loja, tudo num lugar só.</p>
+          </div>
+        }
+      </section>
+    }
   </div>
-
-  <!-- Vazio -->
-  <div class="empty-state" *ngIf="!isLoading && chats.length === 0">
-    <div class="icon-circle">
-       <ion-icon name="chatbubbles-outline"></ion-icon>
-    </div>
-    <h2>Nenhuma conversa</h2>
-    <p>Você ainda não iniciou bate-papos com nenhum vendedor ou comprador.</p>
-  </div>
-
-  <ion-list lines="full" *ngIf="!isLoading && chats.length > 0" class="chat-list">
-    <ion-item *ngFor="let chat of chats; trackBy: trackById" button detail="false" (click)="openChat(chat.id)">
-      <!-- Avatar -->
-      <ion-avatar slot="start">
-        <img [src]="getOtherParticipant(chat)?.photoUrl || 'assets/imagens/foto-henrique.jpeg'" alt="avatar">
-      </ion-avatar>
-      
-      <!-- Content -->
-      <ion-label>
-        <div class="header-row">
-           <h2>{{ getOtherParticipant(chat)?.name || 'Usuário Compraki' }}</h2>
-           <ion-note slot="end">{{ formatDate(chat.lastMessageAt) }}</ion-note>
-        </div>
-        
-        <div class="product-context" *ngIf="chat.productName">
-            Sobre: {{ chat.productName }}
-        </div>
-        
-        <p class="last-msg">
-          {{ chat.lastMessage }}
-        </p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
-
-  <!-- Botão Flutuante Nova Conversa -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button id="open-new-chat-modal" color="primary">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
-
-  <!-- Modal Nova Conversa -->
-  <ion-modal #newChatModal trigger="open-new-chat-modal" [initialBreakpoint]="1" [breakpoints]="[0, 1]">
-    <ng-template>
-      <ion-header class="ion-no-border">
-        <ion-toolbar>
-          <ion-title>Nova Conversa</ion-title>
-          <ion-buttons slot="end">
-            <ion-button (click)="newChatModal.dismiss()">
-              <ion-icon name="close" slot="icon-only"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-
-      <ion-content class="ion-padding">
-        
-        <div class="loading-state" *ngIf="modalLoading">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Carregando usuários...</p>
-        </div>
-
-        <div class="empty-state" *ngIf="!modalLoading && globalUsers.length === 0">
-          <p>Nenhum outro usuário cadastrado no momento.</p>
-        </div>
-
-        <ion-list *ngIf="!modalLoading && globalUsers.length > 0" lines="full">
-          <ion-item button detail="true" *ngFor="let user of globalUsers; trackBy: trackById" (click)="startNewChatWith(user)">
-            <ion-avatar slot="start">
-              <img [src]="user.photoURL || 'assets/imagens/foto-henrique.jpeg'" alt="avatar">
-            </ion-avatar>
-            <ion-label>
-              <h2>{{ user.displayName || 'Novo Usuário' }}</h2>
-              <p *ngIf="user.email">{{ user.email }}</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-
-      </ion-content>
-    </ng-template>
-  </ion-modal>
-
 </ion-content>

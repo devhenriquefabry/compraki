@@ -19,7 +19,18 @@ export interface ChatRoom {
   source?: 'marketplace' | 'direct';
   status?: 'active' | 'closed';
   closedAt?: any; // Firestore Timestamp
-} 
+  /** Quem abriu a conversa. Conversa sem mensagem não aparece para o outro lado. */
+  createdBy?: string;
+  /** Lados da conversa de anúncio/loja. Antigas não têm: ver `chatSellerId()`. */
+  buyerId?: string;
+  sellerId?: string;
+  /** Quem mandou a última mensagem — "Você:" na lista. */
+  lastSenderId?: string;
+  /** Mensagens ainda não lidas, por conta. Quem envia soma 1 no outro lado. */
+  unread?: Record<string, number>;
+  /** Última vez que cada conta abriu a conversa — vira o "Lida" do outro lado. */
+  readAt?: Record<string, any>;
+}
  
 export interface ChatMessage {
   id?: string;

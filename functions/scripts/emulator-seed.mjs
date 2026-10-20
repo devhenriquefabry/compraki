@@ -738,12 +738,72 @@ for (const coupon of coupons) {
   await db.doc(`coupons/${coupon.code}`).set({ ...couponBase, ...coupon });
 }
 
+// ---------------------------------------------------------------- mensagens
+
+// Duas conversas do comprador: com a Loja de Teste sobre o tênis (a loja
+// respondeu por último e o comprador ainda não leu) e com o Ateliê Maré sobre
+// a bolsa (já lida). `unread` guarda, por conta, quantas faltam ler.
+const chatPlan = [
+  {
+    id: 'seed-chat-tenis', product: 'tenis', seller: users.vendedor, buyer: users.comprador, startedHoursAgo: 26,
+    unread: { [users.comprador.uid]: 2 },
+    messages: [
+      ['buyer', 'Oi! O tênis ainda está disponível no 41?', 26 * 60],
+      ['seller', 'Oi, tudo bem? Está sim, temos o 41 e o 42.', 25 * 60 + 40],
+      ['buyer', 'Ele foi usado quantas vezes? A sola está gasta?', 25 * 60 + 30],
+      ['seller', 'Usei só duas vezes numa prova de 5 km. A sola está como nova.', 40],
+      ['seller', 'Se quiser mando mais fotos da sola por aqui.', 39]
+    ]
+  },
+  {
+    id: 'seed-chat-bolsa', product: 'bolsa-palha', seller: users.atelie, buyer: users.comprador, startedHoursAgo: 72,
+    unread: {},
+    messages: [
+      ['buyer', 'Boa tarde! A bolsa cabe um notebook de 13"?', 72 * 60],
+      ['seller', 'Cabe sim! Ela tem 38 cm de largura e forro por dentro.', 71 * 60],
+      ['buyer', 'Perfeito, obrigado. Vou fechar o pedido hoje.', 70 * 60]
+    ]
+  }
+];
+
+for (const c of chatPlan) {
+  const product = productDocs[c.product];
+  const sellerName = c.seller.doc.shopName || c.seller.displayName;
+  const at = minutesAgo => Timestamp.fromMillis(now - minutesAgo * 60_000);
+  const last = c.messages[c.messages.length - 1];
+  await db.doc(`chats/${c.id}`).set({
+    participantIds: [c.buyer.uid, c.seller.uid],
+    participants: [
+      { uid: c.buyer.uid, name: c.buyer.displayName },
+      { uid: c.seller.uid, name: sellerName }
+    ],
+    productId: product.id,
+    productName: product.name,
+    productPhoto: product.photoURL[0],
+    lastMessage: last[1],
+    lastMessageAt: at(last[2]),
+    lastSenderId: last[0] === 'buyer' ? c.buyer.uid : c.seller.uid,
+    createdAt: at(c.startedHoursAgo * 60),
+    source: 'marketplace',
+    unread: c.unread
+  });
+  for (const [i, [who, text, minutesAgo]] of c.messages.entries()) {
+    await db.doc(`chats/${c.id}/messages/m${String(i + 1).padStart(2, '0')}`).set({
+      senderId: who === 'buyer' ? c.buyer.uid : c.seller.uid,
+      text,
+      type: 'text',
+      createdAt: at(minutesAgo)
+    });
+  }
+}
+
 console.log(`Seed concluído em ${PROJECT_ID}:`);
 console.log(`  ${Object.keys(users).length} contas (admin, vendedor, atelie, comprador), senha "${PASSWORD}"`);
 console.log(`  ${categories.length} categorias, ${products.length + 1} produtos, ${orderPlan.length} pedidos`);
 console.log(`  ${catalog.length} produtos no catálogo (1 rascunho)`);
 console.log(`  ${reviewPlan.length} avaliações (Marina avalia a Loja de Teste; o comprador avaliou 2 e tem o resto em "Para avaliar")`);
 console.log(`  ${coupons.length} cupons (${coupons.map(c => c.code).join(', ')})`);
+console.log(`  ${chatPlan.length} conversas do comprador (Loja de Teste com 2 não lidas, Ateliê Maré lida)`);
 console.log(`  ${ticketPlan.length} atendimentos (um por situação: novo, aguardando cliente, resolvido, encerrado e um atrasado)`);
 console.log('  Entre pelo app com ?testUser=admin | vendedor | atelie | comprador');
 
