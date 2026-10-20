@@ -136,10 +136,22 @@
             <h2>Credenciais e Ambiente</h2>
           </div>
           <div class="card-body">
-            <div class="form-group">
-              <label>Token de Acesso (Bearer)</label>
+            <div class="me-connection" [class.is-oauth]="hasRefreshToken" [class.is-off]="!hasToken">
+              <div class="me-connection-status">
+                <strong>{{ hasRefreshToken ? 'Conectado pelo aplicativo Vineon' : hasToken ? 'Conectado por token manual' : 'Não conectado' }}</strong>
+                <span>{{ hasRefreshToken ? 'O acesso se renova sozinho.' : hasToken ? 'Este token não se renova: quando vencer, a cotação de frete para.' : 'Conecte a conta do Melhor Envio da Vineon.' }}</span>
+              </div>
+              <ion-button (click)="connectAccount()" [disabled]="connecting" class="me-connect-btn">
+                <ion-icon slot="start" name="open-outline"></ion-icon>
+                {{ hasRefreshToken ? 'Reconectar' : 'Conectar ao Melhor Envio' }}
+              </ion-button>
+            </div>
+            <small class="me-connection-hint">Abre o Melhor Envio no ambiente escolhido abaixo. Entre com a conta da Vineon e autorize o aplicativo.</small>
+
+            <div class="form-group mt-24">
+              <label>Token manual (alternativa)</label>
               <input type="password" [(ngModel)]="config.accessToken" autocomplete="off" [placeholder]="hasToken ? 'Token salvo (termina em ' + tokenEnd + ') — deixe vazio para manter' : 'Insira o token do Melhor Envio'">
-              <small>Gerado em: Painel ME > Gerenciar > Tokens</small>
+              <small>Só se não usar o botão acima. Gerado em: Painel ME > Gerenciar > Tokens</small>
             </div>
             <div class="form-group mt-16">
               <label>Ambiente</label>

@@ -17,7 +17,7 @@ import {
   requireAdmin,
   requireAuthenticated
 } from './shared/http';
-import { getMelhorEnvioConfig, melhorEnvioBaseUrl, requestMelhorEnvio } from './shared/melhor-envio';
+import { getMelhorEnvioConfig, melhorEnvioBaseUrl, melhorEnvioSignatureMatches, requestMelhorEnvio } from './shared/melhor-envio';
 import { applyOrderInventory } from './orders';
 
 initializeApp();
@@ -2632,9 +2632,9 @@ export const meAuthorizer = onRequest({ region, cors: false, maxInstances: MAX_I
       updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
 
-    // Redireciona de volta para o app
+    // Volta para a aba do Melhor Envio no admin, onde o OAuth foi iniciado.
     const appUrl = (process.env.APP_PUBLIC_URL || 'https://www.vineonsite.com.br').replace(/\/+$/, '');
-    res.redirect(`${appUrl}/tabs/tab2`);
+    res.redirect(`${appUrl}/admin/melhor-envio?me=conectado`);
   } catch (error) {
     logger.error('Melhor Envio Auth Callback Error', error);
     res.status(500).send('Internal Server Error');
@@ -3117,7 +3117,12 @@ export const melhorEnvioSettings = onRequest({ region, cors: false, maxInstances
         updatedBy: user.uid,
       };
       const token = text(body.accessToken, 4000);
-      if (token) patch['accessToken'] = token;
+      if (token) {
+        patch['accessToken'] = token;
+        // Token colado à mão não tem refresh; o refresh antigo pode ser de
+        // outra conta e, no primeiro 401, trocaria a conta por baixo dos panos.
+        patch['refreshToken'] = FieldValue.delete();
+      }
       await ref.set(patch, { merge: true });
     }
 
@@ -3142,54 +3147,47 @@ export const melhorEnvioWebhook = onRequest({ region, cors: false, maxInstances:
     return;
   }
 
-  // Este handler escreve direto em `orders`. Sem verificar a origem, qualquer
-  // um marca pedido como entregue. Mesmo padrão já usado no evolutionWebhook.
-  const expectedSecret = (process.env.MELHOR_ENVIO_WEBHOOK_SECRET || '').trim();
-  if (!expectedSecret) {
-    logger.error('MELHOR_ENVIO_WEBHOOK_SECRET não configurado — webhook recusado');
+  // Este handler escreve direto em `orders`: só aceita o que o Melhor Envio
+  // assinou. Doc (docs.melhorenvio.com.br/docs/webhooks): `X-ME-Signature` =
+  // HMAC-SHA256 do corpo cru com o secret do aplicativo, em base64.
+  const appSecret = (process.env.MELHOR_ENVIO_CLIENT_SECRET || '').trim();
+  if (!appSecret) {
+    logger.error('MELHOR_ENVIO_CLIENT_SECRET não configurado — webhook recusado');
     res.status(503).json({ error: 'Webhook not configured' });
     return;
   }
-
-  const providedSecret = (
-    req.header('x-melhor-envio-webhook-secret') ||
-    req.header('x-webhook-secret') ||
-    ''
-  ).trim();
-
-  if (providedSecret !== expectedSecret) {
-    logger.warn('Melhor Envio webhook com segredo inválido', { ip: req.ip });
-    res.status(401).json({ error: 'Invalid webhook secret' });
+  if (!melhorEnvioSignatureMatches(req.rawBody, req.header('x-me-signature'), appSecret)) {
+    logger.warn('Melhor Envio webhook com assinatura inválida', { ip: req.ip });
+    res.status(401).json({ error: 'Invalid signature' });
     return;
   }
 
-  const payload = req.body;
-  // Payload pode conter dados do destinatário — registrar só o identificador.
-  logger.info('Melhor Envio Webhook received', {
-    shipmentId: payload?.id || payload?.shipment_id,
-    status: payload?.status
-  });
+  // `{ event: 'order.posted', data: { id, status, tracking, ... } }`. `data`
+  // traz dados do destinatário — registrar e guardar só o necessário.
+  const event = String(req.body?.event || '');
+  const data = (req.body?.data || {}) as Record<string, any>;
+  const shipmentId = String(data['id'] || '');
+  const status = String(data['status'] || '');
+  logger.info('Melhor Envio Webhook received', { event, shipmentId, status });
 
   try {
-    const db = getFirestore();
-    
-    // Se o payload contiver o ID do envio e o novo status
-    const shipmentId = payload.id || payload.shipment_id;
-    const status = payload.status;
-
-    if (shipmentId) {
-      // Procura o pedido que tem esse shipmentId (salvo normalmente em shippingInfo ou meta)
-      const ordersSnap = await db.collection('orders')
+    if (shipmentId && status) {
+      // `shippingInfo.shipmentId` é o id do envio no carrinho do Melhor Envio
+      // (createMelhorEnvioShipment) — o mesmo `data.id` do webhook.
+      const ordersSnap = await getFirestore().collection('orders')
         .where('shippingInfo.shipmentId', '==', shipmentId)
         .limit(1)
         .get();
 
       if (!ordersSnap.empty) {
         const orderDoc = ordersSnap.docs[0];
+        const tracking = String(data['tracking'] || '').trim().toUpperCase();
         await orderDoc.ref.update({
           'shippingInfo.status': status,
+          'shippingInfo.lastWebhookEvent': event,
           'shippingInfo.updatedAt': FieldValue.serverTimestamp(),
-          'shippingInfo.lastWebhookPayload': payload
+          // Código de rastreio só se a loja ainda não informou um.
+          ...(tracking && !orderDoc.get('shippingInfo.trackingCode') ? { 'shippingInfo.trackingCode': tracking } : {}),
         });
         logger.info(`Order ${orderDoc.id} updated via Melhor Envio Webhook`);
       }

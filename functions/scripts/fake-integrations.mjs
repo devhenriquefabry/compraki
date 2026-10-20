@@ -7,6 +7,9 @@
 //   MELHOR_ENVIO_API_URL=http://127.0.0.1:2626
 //   EVOLUTION_API_URL=http://127.0.0.1:2727
 //   EVOLUTION_API_KEY=chave-falsa-local
+//   MELHOR_ENVIO_CLIENT_ID=id-falso-local
+//   MELHOR_ENVIO_CLIENT_SECRET=secret-falso-local
+//   MELHOR_ENVIO_REDIRECT_URL=http://127.0.0.1:5001/demo-vineon/us-central1/meAuthorizer
 //
 // Cada chamada recebida vai para FAKE_LOG (padrão: %TEMP%/fake-integrations.jsonl),
 // que os testes leem para conferir o que as functions mandaram.
@@ -50,6 +53,17 @@ const shipments = new Map();
 serve(2626, 'melhorenvio', (req, body, send) => {
   const url = req.url.split('?')[0];
   if (url.startsWith('/label/')) return send(200, '%PDF-1.4 etiqueta falsa', 'application/pdf');
+  // OAuth: troca o `code` (ou o refresh) por tokens. Sem client_id/secret recusa.
+  if (req.method === 'POST' && url === '/oauth/token') {
+    if (!body?.client_id || !body?.client_secret) return send(401, { error: 'invalid_client' });
+    if (body.grant_type === 'authorization_code' && body.code && body.redirect_uri) {
+      return send(200, { token_type: 'Bearer', expires_in: 2592000, access_token: `token-oauth-${body.code}`, refresh_token: `refresh-oauth-${body.code}` });
+    }
+    if (body.grant_type === 'refresh_token' && body.refresh_token) {
+      return send(200, { token_type: 'Bearer', expires_in: 2592000, access_token: `${body.refresh_token}-renovado`, refresh_token: body.refresh_token });
+    }
+    return send(400, { error: 'invalid_grant' });
+  }
   if (!/^Bearer \S+/.test(req.headers.authorization || '')) return send(401, { message: 'Unauthenticated.' });
 
   if (req.method === 'GET' && url === '/api/v2/me') {

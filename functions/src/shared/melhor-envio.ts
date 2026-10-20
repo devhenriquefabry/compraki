@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 
@@ -22,6 +23,20 @@ export function melhorEnvioBaseUrl(isSandbox: boolean): string {
   const override = (process.env.MELHOR_ENVIO_API_URL || '').trim().replace(/\/$/, '');
   if (override) return override;
   return isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
+}
+
+/**
+ * Confere o `X-ME-Signature` do webhook: HMAC-SHA256 do corpo cru com o secret
+ * do aplicativo. A doc mostra base64; hex também é aceito por segurança.
+ */
+export function melhorEnvioSignatureMatches(rawBody: Buffer | undefined, signature: string | undefined, secret: string): boolean {
+  const provided = Buffer.from(String(signature || '').trim());
+  if (!rawBody || !provided.length || !secret) return false;
+  const digest = createHmac('sha256', secret).update(rawBody).digest();
+  return [digest.toString('base64'), digest.toString('hex')].some(expected => {
+    const e = Buffer.from(expected);
+    return e.length === provided.length && timingSafeEqual(e, provided);
+  });
 }
 
 async function refreshMelhorEnvioToken() {

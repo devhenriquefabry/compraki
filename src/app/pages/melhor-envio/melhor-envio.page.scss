@@ -231,6 +231,50 @@
     @media (max-width: 600px) { flex-direction: column; }
 }
 
+/* CONEXÃO (OAuth) */
+.me-connection {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #f59e0b;
+    background: #f8fafc;
+
+    &.is-oauth { border-left-color: #D8F51F; }
+    &.is-off { border-left-color: #94a3b8; }
+
+    @media (max-width: 600px) { flex-direction: column; align-items: stretch; }
+}
+
+.me-connection-status {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong { font-size: 0.95rem; color: #0B1623; }
+    span { font-size: 0.8rem; color: #475569; }
+}
+
+.me-connect-btn {
+    --background: #0B1623;
+    --background-hover: #16253a;
+    --color: #D8F51F;
+    --border-radius: 10px;
+    margin: 0;
+    font-weight: 700;
+    text-transform: none;
+}
+
+.me-connection-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
 /* EMPTY STATE */
 .empty-state-mini {
     display: flex;

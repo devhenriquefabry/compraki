@@ -33,6 +33,14 @@ export class MelhorEnvioService {
     return from(this.callFunction<MelhorEnvioSettings>('melhorEnvioSettings', { method: 'POST', body: config }));
   }
 
+  /**
+   * Começa o OAuth: o servidor grava um `state` de uso único e devolve a URL de
+   * autorização do Melhor Envio (no ambiente salvo). A volta cai no `meAuthorizer`.
+   */
+  startOAuth(): Observable<{ authorizeUrl: string }> {
+    return from(this.callFunction<{ authorizeUrl: string }>('melhorEnvioSettings', { method: 'POST', body: { action: 'oauthStart' } }));
+  }
+
   getUserInfo(config: MelhorEnvioConfig): Observable<any> {
     return from(this.callFunction<any>('getMelhorEnvioMe'));
   }

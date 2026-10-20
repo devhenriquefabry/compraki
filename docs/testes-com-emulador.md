@@ -75,14 +75,19 @@ sem tocar nos serviços reais:
    MELHOR_ENVIO_API_URL=http://127.0.0.1:2626
    EVOLUTION_API_URL=http://127.0.0.1:2727
    EVOLUTION_API_KEY=chave-falsa-local
-   MELHOR_ENVIO_WEBHOOK_SECRET=segredo-falso-local
+   MELHOR_ENVIO_CLIENT_ID=id-falso-local
+   MELHOR_ENVIO_CLIENT_SECRET=secret-falso-local
+   MELHOR_ENVIO_REDIRECT_URL=http://127.0.0.1:5001/demo-vineon/us-central1/meAuthorizer
    ```
+
+   O secret também assina o webhook nos testes (`X-ME-Signature`, como o
+   Melhor Envio real faz com o secret do aplicativo).
 
 2. `node functions/scripts/fake-integrations.mjs` — sobe os dois falsos. O do
    Melhor Envio valida o pedido de etiqueta com as regras da documentação oficial
    (CNPJ em `company_document`, `state_abbr`, um volume só para Correios).
 3. `npm run emulators` e `node functions/scripts/integrations.test.mjs`
-   (84 verificações).
+   (101 verificações).
 
 Apague o `.env.local` depois: com ele, o emulador nunca fala com o WhatsApp real.
 

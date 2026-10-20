@@ -4,7 +4,8 @@
 // admin, gatilhos, recuperação de senha por WhatsApp, bots e funções de admin.
 //
 //   1. functions/.env.local com MELHOR_ENVIO_API_URL, EVOLUTION_API_URL,
-//      EVOLUTION_API_KEY e MELHOR_ENVIO_WEBHOOK_SECRET (ver fake-integrations.mjs)
+//      EVOLUTION_API_KEY e MELHOR_ENVIO_CLIENT_ID/SECRET/REDIRECT_URL
+//      (ver fake-integrations.mjs)
 //   2. node functions/scripts/fake-integrations.mjs
 //   3. npm run emulators
 //   4. node functions/scripts/integrations.test.mjs
@@ -12,6 +13,7 @@
 // Roda o seed primeiro. Só funciona contra projeto `demo-*`.
 
 import { execFileSync } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { initializeApp } from 'firebase-admin/app';
@@ -25,6 +27,7 @@ const FS = `http://${HOST}:8080/v1/projects/${PROJECT}/databases/(default)/docum
 const FAKE_LOG = process.env.FAKE_LOG || `${process.env.TEMP || '/tmp'}/fake-integrations.jsonl`;
 const PASSWORD = 'vineon-teste';
 const ME_TOKEN = 'token-falso-melhorenvio-9876';
+const ME_APP_SECRET = 'secret-falso-local';
 
 process.env.FIRESTORE_EMULATOR_HOST = `${HOST}:8080`;
 process.env.GCLOUD_PROJECT = PROJECT;
@@ -190,10 +193,48 @@ r = await fn('listMelhorEnvioShipments', admin, { method: 'GET' });
 check('admin lista os envios', r.status === 200 && Array.isArray(r.json.data) && r.json.data.length >= 1, r.text);
 check('loja NÃO lista os envios', (await fn('listMelhorEnvioShipments', seller, { method: 'GET' })).status === 403);
 
-const hook = (secret, payload) => fetch(`${FN}/melhorEnvioWebhook`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(secret ? { 'x-webhook-secret': secret } : {}) }, body: JSON.stringify(payload) });
-check('webhook sem segredo: 401', (await hook(null, { id: order1.shippingInfo.shipmentId, status: 'posted' })).status === 401);
-check('webhook com segredo: 200', (await hook('segredo-falso-local', { id: order1.shippingInfo.shipmentId, status: 'posted' })).status === 200);
-check('webhook atualiza o status do envio no pedido', (await o1.get()).get('shippingInfo.status') === 'posted');
+// Webhook no formato da doc: `{ event, data }`, assinado com o secret do app.
+const hookBody = (status, tracking) => JSON.stringify({ event: `order.${status}`, data: { id: order1.shippingInfo.shipmentId, protocol: 'ORD-1', status, tracking } });
+const sign = (raw, encoding = 'base64', secret = ME_APP_SECRET) => createHmac('sha256', secret).update(raw).digest(encoding);
+const hook = (raw, signature) => fetch(`${FN}/melhorEnvioWebhook`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(signature ? { 'X-ME-Signature': signature } : {}) }, body: raw });
+let raw = hookBody('posted', 'me123456789br');
+check('webhook sem assinatura: 401', (await hook(raw, null)).status === 401);
+check('webhook assinado com outro secret: 401', (await hook(raw, sign(raw, 'base64', 'outro-secret'))).status === 401);
+check('webhook com corpo trocado depois de assinar: 401', (await hook(hookBody('delivered'), sign(raw))).status === 401);
+check('webhook só com o segredo antigo no cabeçalho: 401', (await fetch(`${FN}/melhorEnvioWebhook`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-webhook-secret': 'segredo-falso-local' }, body: raw })).status === 401);
+check('webhook assinado (base64): 200', (await hook(raw, sign(raw))).status === 200);
+let shipping = (await o1.get()).get('shippingInfo') || {};
+check('webhook atualiza o status do envio no pedido', shipping.status === 'posted' && shipping.lastWebhookEvent === 'order.posted', JSON.stringify(shipping));
+check('webhook preenche o rastreio que faltava', shipping.trackingCode === 'ME123456789BR', shipping.trackingCode);
+check('webhook não guarda o payload (dados do destinatário)', shipping.lastWebhookPayload === undefined);
+raw = hookBody('delivered', 'OUTRO-CODIGO');
+check('webhook assinado (hex): 200', (await hook(raw, sign(raw, 'hex'))).status === 200);
+shipping = (await o1.get()).get('shippingInfo') || {};
+check('webhook não troca rastreio já informado', shipping.status === 'delivered' && shipping.trackingCode === 'ME123456789BR', JSON.stringify(shipping));
+
+console.log('\nMelhor Envio — conectar pelo aplicativo (OAuth)');
+check('loja NÃO inicia o OAuth', (await fn('melhorEnvioSettings', seller, { body: { action: 'oauthStart' } })).status === 403);
+r = await fn('melhorEnvioSettings', admin, { body: { action: 'oauthStart' } });
+const authorize = r.json.authorizeUrl ? new URL(r.json.authorizeUrl) : null;
+check('admin recebe a URL de autorização', r.status === 200 && authorize?.pathname === '/oauth/authorize', r.text);
+check('URL leva client_id, redirect_uri, state e escopos', authorize?.searchParams.get('client_id') === 'id-falso-local'
+  && /\/meAuthorizer$/.test(authorize?.searchParams.get('redirect_uri') || '')
+  && (authorize?.searchParams.get('state') || '').length === 64
+  && (authorize?.searchParams.get('scope') || '').includes('shipping-generate'), r.json.authorizeUrl);
+const state = authorize?.searchParams.get('state') || '';
+t0 = Date.now();
+r = await fetch(`${FN}/meAuthorizer?code=codigo1&state=${state}`, { redirect: 'manual' });
+check('volta do OAuth vai para a aba do Melhor Envio no admin', r.status === 302 && /\/admin\/melhor-envio\?me=conectado$/.test(r.headers.get('location') || ''), `${r.status} ${r.headers.get('location')}`);
+const exchange = callsSince(t0, 'melhorenvio', '/oauth/token')[0]?.body;
+check('troca o code com client_id, secret e o mesmo redirect_uri', exchange?.grant_type === 'authorization_code' && exchange.client_secret === ME_APP_SECRET && exchange.redirect_uri === authorize?.searchParams.get('redirect_uri'), JSON.stringify(exchange));
+let meDoc = (await db.doc('settings/melhor_envio').get()).data() || {};
+check('guarda access e refresh token', meDoc.accessToken === 'token-oauth-codigo1' && meDoc.refreshToken === 'refresh-oauth-codigo1');
+check('o mesmo state não serve duas vezes', (await fetch(`${FN}/meAuthorizer?code=codigo2&state=${state}`, { redirect: 'manual' })).status === 403);
+r = await fn('melhorEnvioSettings', admin, { method: 'GET' });
+check('admin vê "conectado pelo aplicativo" sem receber tokens', r.json.hasRefreshToken === true && !r.text.includes('oauth-codigo1'), r.text);
+r = await fn('melhorEnvioSettings', admin, { body: { ...r.json.config, accessToken: ME_TOKEN } });
+meDoc = (await db.doc('settings/melhor_envio').get()).data() || {};
+check('token manual apaga o refresh antigo (outra conta)', r.json.hasRefreshToken === false && meDoc.accessToken === ME_TOKEN && meDoc.refreshToken === undefined, r.text);
 
 // ===================================================== WhatsApp (admin)
 console.log('\nWhatsApp — instâncias e conversas');

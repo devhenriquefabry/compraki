@@ -9,6 +9,7 @@ import {
   openOutline, alertCircleOutline, personCircleOutline, gridOutline, listOutline, 
   analyticsOutline, barChartOutline
 } from 'ionicons/icons';
+import { switchMap } from 'rxjs';
 import { MelhorEnvioService } from '../../services/melhor-envio.service';
 import { MelhorEnvioConfig, MelhorEnvioSettings, ShippingAnalysis, ShippingQuote } from '../../interfaces/shipping';
 import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin-panel-hero.component';
@@ -56,6 +57,9 @@ export class MelhorEnvioPage implements OnInit {
   /** Há token salvo no servidor (ele nunca vem para o navegador). */
   public hasToken = false;
   public tokenEnd: string | null = null;
+  /** Conectado pelo OAuth do aplicativo (há refresh token: renova sozinho). */
+  public hasRefreshToken = false;
+  public connecting = false;
 
   constructor(
     private melhorEnvioService: MelhorEnvioService,
@@ -71,9 +75,37 @@ export class MelhorEnvioPage implements OnInit {
   }
 
   ngOnInit() {
+    // Volta do OAuth (`meAuthorizer` redireciona com ?me=conectado).
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('me') === 'conectado') {
+      this.activeTab = 'config';
+      this.showToast('Conta do Melhor Envio conectada.');
+      params.delete('me');
+      const query = params.toString();
+      history.replaceState(history.state, '', window.location.pathname + (query ? `?${query}` : ''));
+    }
     this.loadConfig();
   }
 
+  /**
+   * Salva o formulário (o OAuth usa o ambiente salvo) e manda para a tela de
+   * autorização do Melhor Envio.
+   */
+  connectAccount() {
+    this.connecting = true;
+    this.melhorEnvioService.saveSettings(this.config).pipe(
+      switchMap(settings => {
+        this.applySettings(settings);
+        return this.melhorEnvioService.startOAuth();
+      })
+    ).subscribe({
+      next: ({ authorizeUrl }) => window.location.assign(authorizeUrl),
+      error: err => {
+        this.connecting = false;
+        this.showToast(err?.message || 'Não foi possível iniciar a conexão com o Melhor Envio.', 'danger');
+      }
+    });
+  }
 
 
   async loadConfig() {
@@ -100,6 +132,7 @@ export class MelhorEnvioPage implements OnInit {
     };
     this.hasToken = settings.hasToken;
     this.tokenEnd = settings.tokenEnd;
+    this.hasRefreshToken = settings.hasRefreshToken;
     this.hasConfig = settings.hasToken || !!c.senderName;
   }
 
