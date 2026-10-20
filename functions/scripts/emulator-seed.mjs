@@ -301,6 +301,28 @@ const catalog = [
   }
 ];
 
+// Foto de teste com a cor e o número escritos: na galeria dá para ver de qual
+// opção cada foto é (a do picsum é aleatória e não mostra a cor).
+const COLOR_HEX = {
+  Preto: '#1F2937', Azul: '#60A5FA', Verde: '#86EFAC', Rosa: '#F9A8D4', Branco: '#F1F5F9',
+  Roxo: '#C4B5FD', Grafite: '#4B5563', 'Verde-oliva': '#84A98C', Amarelo: '#FDE68A'
+};
+function optionPhoto(value, n) {
+  const bg = COLOR_HEX[value] || '#CBD5E1';
+  const ink = ['Preto', 'Grafite'].includes(value) ? '#FFFFFF' : '#0B1623';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">` +
+    `<rect width="800" height="800" fill="${bg}"/>` +
+    `<text x="400" y="380" font-family="Arial" font-size="88" font-weight="700" fill="${ink}" text-anchor="middle">${value}</text>` +
+    `<text x="400" y="480" font-family="Arial" font-size="64" fill="${ink}" text-anchor="middle">foto ${n}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+/** Galeria de 3 fotos por cor, menos a última cor (testa a cor sem fotos próprias). */
+function colorGalleries(attributes) {
+  const first = attributes[0];
+  if (first?.name !== 'Cor') return {};
+  return Object.fromEntries(first.values.slice(0, -1).map(value => [value, [1, 2, 3].map(n => optionPhoto(value, n))]));
+}
+
 for (const [index, item] of catalog.entries()) {
   const { id, pkg, specs, status = 'active', photos = 4, ...rest } = item;
   const [weight, width, height, length] = pkg;
@@ -314,6 +336,7 @@ for (const [index, item] of catalog.entries()) {
     photos: photoList,
     specs: specs.map(([label, value]) => ({ label, value })),
     variantImages: photoList.length ? variantImages : {},
+    variantPhotos: colorGalleries(rest.variantAttributes),
     weight, width, height, length,
     status,
     createdBy: users.admin.uid,
@@ -347,6 +370,45 @@ await db.doc('products/iphone-15-atelie').set({
   createdAt: Timestamp.fromMillis(now - 86_400_000),
   updatedAt: Timestamp.fromMillis(now - 86_400_000)
 });
+
+// Anúncio com galeria por cor (fone JBL do catálogo): a página do produto
+// abre na 1ª cor com estoque (Azul — Preto está esgotado) e mostra só as dela.
+{
+  const colors = ['Preto', 'Azul', 'Branco', 'Roxo'];
+  const galleries = colorGalleries([{ name: 'Cor', values: colors }]);
+  const general = ['https://picsum.photos/seed/vineon-jbl-geral-0/800/800', 'https://picsum.photos/seed/vineon-jbl-geral-1/800/800'];
+  const stockBy = { Preto: 0, Azul: 4, Branco: 2, Roxo: 5 };
+  const skus = Object.fromEntries(colors.map(value => {
+    const id = value.toLowerCase();
+    return [id, { id, attributes: { Cor: value }, price: null, stock: stockBy[value] }];
+  }));
+  await db.doc('products/jbl-tune-520-atelie').set({
+    name: 'Fone de Ouvido JBL Tune 520BT',
+    price: 259.9,
+    description: 'Headphone JBL sem fio, lacrado, com nota fiscal.',
+    photoURL: [...general, ...colors.flatMap(value => galleries[value] || [])],
+    generalPhotoCount: general.length,
+    hasVariants: true,
+    variantAttributes: [{ name: 'Cor', values: colors }],
+    variantPhotos: galleries,
+    variantImages: Object.fromEntries(Object.entries(galleries).map(([value, list]) => [value, list[0]])),
+    skus,
+    condition: 'novo',
+    stock: Object.values(stockBy).reduce((a, b) => a + b, 0),
+    soldCount: 0,
+    categoryIds: ['eletronicos'],
+    subcategoryIds: ['fones'],
+    acceptOffers: false,
+    paymentMethods: ['PIX'],
+    shipping: 'Frete Grátis',
+    weight: 0.25, width: 8, height: 18, length: 20,
+    catalogId: 'cat-jbl-tune-520',
+    location: 'Florianópolis - SC',
+    sellerId: users.atelie.uid,
+    createdAt: Timestamp.fromMillis(now - 43_200_000),
+    updatedAt: Timestamp.fromMillis(now - 43_200_000)
+  });
+}
 
 // ------------------------------------------------------------------- pedidos
 

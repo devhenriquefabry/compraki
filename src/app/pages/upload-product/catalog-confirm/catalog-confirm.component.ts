@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { getCurrentUser } from '../../../core/auth-state';
 import { catalogCode, catalogPhotos, packageSummary } from '../../../core/catalog';
 import { illustrationUrl } from '../../../core/catalog-illustrations';
+import { defaultPhotoOption, hasOptionPhotos, photosForOption } from '../../../core/product-variants';
 import { CatalogCompetition, CatalogProduct } from '../../../interfaces/catalog';
 import { CatalogService } from '../../../services/catalog.service';
 
@@ -40,7 +41,23 @@ export class CatalogConfirmComponent implements OnInit {
   /** Sem foto oficial, a galeria mostra a imagem ilustrativa do tipo de produto. */
   readonly allPhotos = computed(() => catalogPhotos(this.product()));
   readonly illustrative = computed(() => !this.allPhotos().length);
-  readonly photos = computed(() => (this.illustrative() ? [illustrationUrl(this.product())] : this.allPhotos()));
+  /** Cor (1º atributo) escolhida: a galeria mostra só as fotos dela, como na página do produto. */
+  readonly selectedValue = signal<string | null>(null);
+  /** Só vale tocar na cor quando alguma tem foto própria — senão a galeria não muda. */
+  readonly pickable = computed(() => {
+    const p = this.product();
+    return !this.illustrative() && hasOptionPhotos({ galleries: p.variantPhotos, legacy: p.variantImages });
+  });
+  readonly photos = computed(() => {
+    if (this.illustrative()) return [illustrationUrl(this.product())];
+    const p = this.product();
+    return photosForOption({
+      all: this.allPhotos(),
+      general: p.photos || [],
+      galleries: p.variantPhotos,
+      legacy: p.variantImages
+    }, this.selectedValue());
+  });
   readonly currentPhoto = computed(() => this.photos()[this.photoIndex()] ?? this.photos()[0] ?? null);
   readonly specs = computed(() => {
     const specs = this.product().specs;
@@ -49,6 +66,8 @@ export class CatalogConfirmComponent implements OnInit {
   readonly hiddenSpecs = computed(() => Math.max(0, this.product().specs.length - SPECS_PREVIEW));
 
   ngOnInit() {
+    const p = this.product();
+    this.selectedValue.set(defaultPhotoOption(p.variantAttributes, { galleries: p.variantPhotos, legacy: p.variantImages }));
     void this.loadCompetition();
   }
 
@@ -66,12 +85,10 @@ export class CatalogConfirmComponent implements OnInit {
     this.photoIndex.set(index);
   }
 
-  /** Ao tocar numa cor com foto, a galeria pula para a 1ª foto dela. */
+  /** Tocar numa cor troca a galeria para as fotos dela, a partir da 1ª. */
   previewValue(value: string) {
-    const url = this.imageFor(value);
-    if (!url) return;
-    const index = this.photos().indexOf(url);
-    if (index >= 0) this.photoIndex.set(index);
+    this.selectedValue.set(value);
+    this.photoIndex.set(0);
   }
 
   imageFor(value: string): string | null {

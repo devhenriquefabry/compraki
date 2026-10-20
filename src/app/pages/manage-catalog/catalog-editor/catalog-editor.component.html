@@ -143,7 +143,7 @@
           <span class="ce-sec__n" aria-hidden="true">2</span>
           <div>
             <h3 id="ce-s2">Fotos</h3>
-            <p>Fotos que valem para todas as opções. A primeira é a capa. Fundo claro, produto inteiro, sem marca d'água nem texto. As fotos de cada cor ficam em “Opções do produto”.</p>
+            <p>Fotos que valem para todas as opções. A primeira é a capa do anúncio nas vitrines. Fundo claro, produto inteiro, sem marca d'água nem texto. As fotos de cada cor ficam em “Opções do produto” — com a cor escolhida, a página mostra só as dela; as gerais aparecem para cor sem fotos próprias.</p>
           </div>
           <span class="ce-sec__meta">{{ d.photos.length }}/{{ maxPhotos }}</span>
         </header>
@@ -225,7 +225,7 @@
             @if (i === 0 && attr.values.length) {
               <div class="ce-varimg">
                 <p class="ce-varimg__title">Fotos de cada {{ (attr.name || 'opção') | lowercase }}
-                  <small>— até {{ maxOptionPhotos }} por opção. Quando o comprador escolhe uma, a página do produto mostra as fotos dela.</small></p>
+                  <small>— até {{ maxOptionPhotos }} por opção. A página do produto abre com a 1ª {{ (attr.name || 'opção') | lowercase }} escolhida e mostra só as fotos da que estiver selecionada; a principal é a capa dela.</small></p>
                 @for (value of attr.values; track value) {
                   <div class="ce-varimg__row">
                     <div class="ce-varimg__head">
@@ -239,6 +239,9 @@
                           @if (j === 0) { <span class="ce-photo__cover">Principal</span> }
                           <div class="ce-photo__tools">
                             <button type="button" (click)="moveOptionPhoto(value, j, -1)" [disabled]="j === 0" aria-label="Mover para a esquerda"><ion-icon name="chevron-back" aria-hidden="true"></ion-icon></button>
+                            @if (j > 0) {
+                              <button type="button" (click)="makeOptionMain(value, j)" [attr.aria-label]="'Usar como principal de ' + value" title="Usar como principal"><ion-icon name="star-outline" aria-hidden="true"></ion-icon></button>
+                            }
                             <button type="button" (click)="moveOptionPhoto(value, j, 1)" [disabled]="lastPhoto" aria-label="Mover para a direita"><ion-icon name="chevron-forward" aria-hidden="true"></ion-icon></button>
                             <button type="button" class="is-danger" (click)="removeOptionPhoto(value, j)" aria-label="Remover foto"><ion-icon name="trash-outline" aria-hidden="true"></ion-icon></button>
                           </div>

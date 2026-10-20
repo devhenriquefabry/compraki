@@ -13,7 +13,7 @@ import {
 import { ModalController } from '@ionic/angular';
 
 import { Product, ProductSpec } from 'src/app/interfaces/product';
-import { findSku, generalPhotos, variantAttributeNames, variantLabel } from 'src/app/core/product-variants';
+import { defaultPhotoOption, findSku, generalPhotos, photosForOption, variantAttributeNames, variantLabel } from 'src/app/core/product-variants';
 import { Category } from 'src/app/interfaces/category';
 import { ProductSelectionService } from 'src/app/services/product-selection-service';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
@@ -303,7 +303,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
       this.selectionService.setSelectedProduct(p);
       rememberViewedProduct(p.id);
       this.quantity = 1;
-      this.selectedVariant = {};
+      this.selectedVariant = this.initialVariant(p);
       this.descriptionExpanded = false;
       this.specsExpanded = false;
       this.titleService.setTitle(`${p.name} | Vineon`);
@@ -551,28 +551,57 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Fotos da galeria. Escolhida uma opção do 1º atributo (normalmente Cor):
-   * - com galeria própria, mostra as fotos dela e depois as gerais — as das
-   *   outras cores saem;
-   * - com uma foto só (anúncio antigo), ela vai para a frente.
-   * A galeria reage sozinha à troca (ver efeito em `ProductGalleryComponent`).
+   * Fotos da galeria. Com a cor (1º atributo) escolhida, só as fotos dela —
+   * as das outras cores saem, como no Mercado Livre (ver `photosForOption`).
+   * Quando o seletor de opções não aparece (anúncio do próprio vendedor ou
+   * esgotado), não há como trocar de cor: mostra todas.
+   *
+   * Guarda a última lista: a galeria volta para a 1ª foto sempre que recebe
+   * uma lista nova, então devolver um array novo a cada detecção de mudança
+   * desfaria o clique nas miniaturas.
    */
   public galleryPhotos(product: Product): string[] {
-    const photos = product.photoURL || [];
     const firstAttr = product.variantAttributes?.[0]?.name;
-    const value = firstAttr ? this.selectedVariant[firstAttr] : undefined;
-    if (!value) return photos;
+    const value = firstAttr && this.variantPickerVisible(product) ? this.selectedVariant[firstAttr] || null : null;
+    const cache = this.galleryCache;
+    if (cache && cache.product === product && cache.value === value) return cache.photos;
 
-    const own = product.variantPhotos?.[value] ?? [];
-    if (own.length) return [...own, ...generalPhotos(product).filter(p => !own.includes(p))];
-    const variantPhoto = this.variantImageFor(product, value);
-    if (!variantPhoto) return photos;
-    return [variantPhoto, ...photos.filter(p => p !== variantPhoto)];
+    const photos = photosForOption({
+      all: product.photoURL || [],
+      general: generalPhotos(product),
+      galleries: product.variantPhotos,
+      legacy: product.variantImages
+    }, value);
+    this.galleryCache = { product, value, photos };
+    return photos;
+  }
+  private galleryCache: { product: Product; value: string | null; photos: string[] } | null = null;
+
+  /** Mesmas condições do template para mostrar os botões de cor/tamanho. */
+  private variantPickerVisible(product: Product): boolean {
+    return !!product.hasVariants && !this.isOwnProduct(product) && (product.stock ?? 0) > 0;
+  }
+
+  /**
+   * A página abre com uma cor já escolhida quando as cores têm fotos próprias,
+   * para a galeria não começar com as fotos de todas misturadas.
+   */
+  private initialVariant(product: Product): Record<string, string> {
+    if (!product.hasVariants) return {};
+    const value = defaultPhotoOption(product.variantAttributes,
+      { galleries: product.variantPhotos, legacy: product.variantImages }, product.skus);
+    const firstAttr = product.variantAttributes?.[0]?.name;
+    return value && firstAttr ? { [firstAttr]: value } : {};
   }
 
   public selectVariantValue(attrName: string, value: string) {
     this.selectedVariant = { ...this.selectedVariant, [attrName]: value };
     this.quantity = 1;
+  }
+
+  /** O que falta escolher — a cor pode já vir escolhida (ver `initialVariant`). */
+  public missingVariantNames(product: Product): string[] {
+    return variantAttributeNames(product).filter(name => !this.selectedVariant[name]);
   }
 
   public variantFullySelected(product: Product): boolean {

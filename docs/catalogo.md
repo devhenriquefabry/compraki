@@ -69,8 +69,22 @@ como 1ª da galeria da opção.
 
 No anúncio, entram as galerias das opções que o vendedor marcou:
 `variantPhotos` só com elas, e as fotos também vão para o fim de `photoURL`
-(capa e vitrines leem `photoURL`). Na página do produto, escolher a cor mostra
-as fotos dela e depois as gerais; as das outras cores saem da galeria.
+(capa e vitrines leem `photoURL`).
+
+**Galeria mostra só a cor selecionada** (molde Mercado Livre, desde 2026-10-20).
+Regra única em `photosForOption` (`core/product-variants.ts`), usada pela página
+do produto e pelo "É este o produto?" do Anunciar:
+- cor com galeria própria → só a galeria dela (nem as gerais entram);
+- cor sem galeria → as gerais, tirando as que são de outra cor;
+- anúncio antigo (uma foto por cor em `variantImages`) → ela na frente + gerais.
+
+Para não abrir com tudo misturado, a página já nasce com uma cor escolhida
+(`defaultPhotoOption`): a 1ª com estoque, ou a 1ª se nenhuma tem. Só quando
+alguma cor tem foto própria — sem isso a escolha continua com o comprador (um
+tamanho pré-escolhido viraria compra errada). No anúncio do próprio vendedor ou
+esgotado o seletor de cor não aparece, então a galeria mostra todas.
+A 1ª foto de cada galeria é a "Principal" (capa da cor, vai no botão da cor);
+a estrela troca a principal, no painel e no editor de variações.
 
 Anúncio **sem catálogo** ("Criar do zero" e a edição de qualquer anúncio) tem a
 mesma galeria no editor de variações (`product-variants-editor`): o vendedor
@@ -88,6 +102,10 @@ ligado ao iPhone 15, para a "concorrência" aparecer:
 - admin: `http://localhost:4210/admin/catalog?testUser=admin`
 - vendedor: `http://localhost:4210/tabs/upload-product?testUser=vendedor`
   (tente "iphone 15", "airfryer", "galax 256" ou o EAN `0194253890010`)
+- galeria por cor: as fichas com "Cor" têm 3 fotos de teste por cor (a cor
+  escrita na foto; a última cor fica sem galeria) e o anúncio
+  `products/jbl-tune-520-atelie` abre na Azul (Preto está esgotado):
+  `http://localhost:4210/product-details/jbl-tune-520-atelie?testUser=comprador`
 
 ## Catálogo inicial
 

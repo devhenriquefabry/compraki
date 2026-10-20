@@ -336,6 +336,13 @@ export class CatalogEditorComponent implements OnInit {
     this.setOptionPhotos(value, photos);
   }
 
+  /** A principal é a capa da opção: aparece no botão da cor e abre a galeria dela. */
+  makeOptionMain(value: string, index: number) {
+    const photos = [...this.optionPhotos(value)];
+    const [photo] = photos.splice(index, 1);
+    this.setOptionPhotos(value, [photo, ...photos]);
+  }
+
   removeOptionPhoto(value: string, index: number) {
     this.setOptionPhotos(value, this.optionPhotos(value).filter((_, i) => i !== index));
   }

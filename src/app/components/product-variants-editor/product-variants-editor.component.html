@@ -82,7 +82,7 @@
           @if (i === 0 && attr.values.length > 0) {
             <div class="pve-images">
               <span class="pve-images-label">Fotos de cada {{ (attr.name || 'valor').toLowerCase() }} <small>(opcional, até {{ maxOptionPhotos }} por opção)</small></span>
-              <p class="pve-images-hint">Quando o comprador escolhe uma opção, a página do produto mostra as fotos dela.</p>
+              <p class="pve-images-hint">A página do produto abre com a 1ª opção escolhida e mostra só as fotos da que estiver selecionada. A principal (estrela) é a capa da opção.</p>
               @for (value of attr.values; track value) {
                 <div class="pve-image-row">
                   <div class="pve-gallery-head">

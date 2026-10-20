@@ -44,12 +44,12 @@
 
         @for (attr of p.variantAttributes; track attr.name; let i = $index) {
           <div class="cc-attr">
-            <span class="cc-attr__name">{{ attr.name }} <small>· {{ attr.values.length }} {{ attr.values.length === 1 ? 'opção' : 'opções' }}</small></span>
+            <span class="cc-attr__name">{{ attr.name }}@if (i === 0 && selectedValue()) {: <b>{{ selectedValue() }}</b>}&ngsp;<small>· {{ attr.values.length }} {{ attr.values.length === 1 ? 'opção' : 'opções' }}</small></span>
             <div class="cc-attr__opts">
               @for (value of attr.values; track value) {
-                @if (i === 0 && imageFor(value)) {
-                  <button type="button" class="cc-swatch" [class.is-on]="currentPhoto() === imageFor(value)" (click)="previewValue(value)" [attr.aria-label]="attr.name + ' ' + value">
-                    <img [src]="imageFor(value)" alt="" loading="lazy">
+                @if (i === 0 && pickable()) {
+                  <button type="button" class="cc-swatch" [class.is-on]="selectedValue() === value" [attr.aria-pressed]="selectedValue() === value" (click)="previewValue(value)" [attr.aria-label]="attr.name + ' ' + value">
+                    @if (imageFor(value); as img) { <img [src]="img" alt="" loading="lazy"> }
                     <span>{{ value }}</span>
                   </button>
                 } @else {

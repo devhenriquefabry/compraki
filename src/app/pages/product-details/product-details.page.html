@@ -339,7 +339,7 @@
               }
 
               @if (!variantFullySelected(p)) {
-                <p class="pd-variant-hint">Escolha {{ variantAttributeNames(p).join(' e ') }} para continuar.</p>
+                <p class="pd-variant-hint">Escolha {{ missingVariantNames(p).join(' e ') }} para continuar.</p>
               } @else if (effectiveStock(p) <= 0) {
                 <div class="pd-variant-soldout">
                   <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="ic.alert" /></svg>

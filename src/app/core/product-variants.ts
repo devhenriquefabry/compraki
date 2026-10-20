@@ -178,6 +178,74 @@ export function generalPhotos(product: Pick<Product, 'photoURL' | 'variantPhotos
   return all.filter(url => !optionPhotos.has(url));
 }
 
+/** Fotos de um produto ou ficha, separadas como a galeria por opção precisa. */
+export interface OptionPhotoSource {
+  /** Todas as fotos, na ordem de exibição (gerais e das opções). */
+  all: string[];
+  /** Fotos que valem para todas as opções. */
+  general: string[];
+  /** Galeria de cada valor do 1º atributo. */
+  galleries: Record<string, string[]> | null | undefined;
+  /** Foto única por valor, de antes de existir galeria. */
+  legacy?: Record<string, string> | null;
+}
+
+/** Se alguma opção tem foto própria — só então escolher a opção muda a galeria. */
+export function hasOptionPhotos(source: Pick<OptionPhotoSource, 'galleries' | 'legacy'>): boolean {
+  return Object.values(source.galleries || {}).some(list => list?.length > 0)
+    || Object.values(source.legacy || {}).some(Boolean);
+}
+
+/**
+ * Fotos que a galeria mostra com uma opção do 1º atributo escolhida, no molde
+ * do Mercado Livre: só as daquela opção, nunca as das outras.
+ * - opção com galeria própria: só a galeria dela;
+ * - opção sem galeria: as fotos gerais, tirando as que são de outra opção;
+ * - anúncio antigo, com uma foto por opção: ela na frente, depois as gerais.
+ * Sem opção escolhida (ou sem foto que sobre), mostra todas.
+ */
+export function photosForOption(source: OptionPhotoSource, value: string | null | undefined): string[] {
+  const all = source.all || [];
+  if (!value) return all;
+
+  const own = (source.galleries?.[value] || []).filter(Boolean);
+  if (own.length) return Array.from(new Set(own));
+
+  const others = new Set<string>();
+  for (const [key, list] of Object.entries(source.galleries || {})) {
+    if (key !== value) (list || []).forEach(url => others.add(url));
+  }
+  for (const [key, url] of Object.entries(source.legacy || {})) {
+    if (key !== value && url) others.add(url);
+  }
+
+  const notOthers = (list: string[]) => list.filter(url => url && !others.has(url));
+  let base = notOthers(source.general || []);
+  if (!base.length) base = notOthers(all);
+
+  const single = source.legacy?.[value];
+  if (single) return [single, ...base.filter(url => url !== single)];
+  return base.length ? base : all;
+}
+
+/**
+ * Opção do 1º atributo que a página já abre escolhida, para a galeria nascer
+ * com as fotos de uma cor só: a 1ª que ainda tem estoque (ou a 1ª, se nenhuma
+ * tem). Sem foto por opção, não escolhe nada — a escolha fica com o comprador.
+ */
+export function defaultPhotoOption(
+  attributes: ProductVariantAttribute[] | null | undefined,
+  source: Pick<OptionPhotoSource, 'galleries' | 'legacy'>,
+  skus?: Record<string, ProductSku> | null
+): string | null {
+  const first = attributes?.[0];
+  if (!first?.values.length || !hasOptionPhotos(source)) return null;
+  if (!skus) return first.values[0];
+  const inStock = first.values.find(value =>
+    Object.values(skus).some(sku => sku.stock > 0 && sku.attributes[first.name] === value));
+  return inStock ?? first.values[0];
+}
+
 /** Troca cada foto das galerias pela URL definitiva (sobe as prévias locais). */
 export async function resolveGalleries(
   galleries: Record<string, string[]>,
