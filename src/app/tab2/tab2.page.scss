@@ -209,7 +209,7 @@ ion-toolbar {
   .promo-banner {
     width: 100%;
     aspect-ratio: 2.7 / 1;
-    background: #D8F51F;
+    background: linear-gradient(120deg, var(--vn-navy-900) 0%, var(--vn-navy-800) 100%);
     border-radius: 20px;
     padding: 20px;
     display: flex;
@@ -217,8 +217,8 @@ ion-toolbar {
     align-items: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 25px rgba(216, 245, 31, 0.2);
-    color: #0B1623;
+    box-shadow: 0 10px 25px rgba(11, 22, 35, 0.25);
+    color: #fff;
 
     .promo-text {
       z-index: 2;
@@ -273,7 +273,7 @@ ion-toolbar {
   @media (min-width: 1024px) {
     .promo-banner {
       height: auto;
-      box-shadow: 0 14px 36px rgba(216, 245, 31, 0.18);
+      box-shadow: 0 14px 36px rgba(11, 22, 35, 0.22);
 
       .promo-text h3 {
         font-size: 26px;
@@ -1043,22 +1043,48 @@ ion-toolbar {
   }
 }
 
-/* Banner provisório (sem banner cadastrado): a proporção fixa 2,7:1 cortava o
-   título e o botão em telas de 375 px; aqui a altura acompanha o conteúdo. */
+/* Banner padrão (sem banner cadastrado): assinatura da marca, igual à do desktop.
+   A altura acompanha o conteúdo para o texto não cortar em telas de 375 px. */
 .banner-scroll-container .promo-banner--fallback {
   aspect-ratio: auto;
   min-height: 140px;
   gap: 12px;
   padding: 18px 16px 18px 20px;
+  background:
+    radial-gradient(55% 95% at 85% 50%, rgba(216, 245, 31, 0.14), transparent 70%),
+    linear-gradient(120deg, var(--vn-navy-900) 0%, var(--vn-navy-800) 100%);
 
-  .promo-text { flex: 1 1 auto; min-width: 0; }
+  .promo-text {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    .brand-tagline {
+      margin: 0 0 10px;
+      color: rgba(255, 255, 255, 0.86);
+      font-family: var(--vn-font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+
+      span { color: var(--vn-neon); text-decoration: none; font-weight: 600; }
+    }
+
+    h3 {
+      color: #fff;
+      font-family: var(--vn-font-display);
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+  }
 
   img {
-    flex: 0 1 44%;
-    min-width: 0;
-    max-width: 44%;
-    height: auto;
-    max-height: 120px;
+    flex: 0 0 auto;
+    width: auto;
+    height: 76px;
+    filter: drop-shadow(0 0 20px rgba(216, 245, 31, 0.45));
   }
 }
 
