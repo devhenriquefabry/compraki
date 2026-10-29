@@ -142,6 +142,7 @@ export class FirebaseCartService {
           condition: product.condition || null,
           stock: variant ? variant.stock : (product.stock || 0),
           shipping: product.shipping || null,
+          localDelivery: product.localDelivery || null,
           paymentMethods: product.paymentMethods || [],
           categoryIds: product.categoryIds || [],
           subcategoryIds: product.subcategoryIds || [],

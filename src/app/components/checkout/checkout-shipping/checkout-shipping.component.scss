@@ -205,3 +205,10 @@
 .price-val--free {
   color: #0B1623 !important;
 }
+
+// Entrega da própria loja: ícone em azul-noite com lima (paleta Noite).
+.quote-card .carrier-logo.carrier-logo--local {
+  background: #0B1623;
+
+  ion-icon { color: #D8F51F; }
+}

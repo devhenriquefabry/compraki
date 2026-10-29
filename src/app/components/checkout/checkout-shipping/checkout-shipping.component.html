@@ -22,12 +22,43 @@
 
   <!-- Quotes List -->
   <div *ngIf="!isLoading && !error" class="quotes-list animate-fade">
+    <!-- Entrega da própria loja: grátis, sem transportadora -->
+    @if (local; as l) {
+      @if (!readOnly) {
+        <div class="free-note">
+          <ion-icon name="gift-outline"></ion-icon>
+          <span>A <strong>própria loja entrega</strong> no seu endereço, sem custo de frete.</span>
+        </div>
+      }
+      <div class="quote-card selected local-card" [class.readonly-card]="readOnly" (click)="!readOnly && selectLocal()">
+        <div class="carrier-logo carrier-logo--local">
+          <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
+        </div>
+        <div class="quote-info">
+          <span class="carrier-name">Entrega da loja</span>
+          <span class="service-name">{{ l.sellerIds.length > 1 ? 'Cada loja leva os próprios itens até você' : 'A loja leva até você e combina o horário pelo chat' }}</span>
+          <span class="delivery-time">
+            <ion-icon name="time-outline"></ion-icon>
+            {{ localEta(l.days) }}
+          </span>
+        </div>
+        <div class="quote-price">
+          <span class="price-val price-val--free">Grátis</span>
+          @if (!readOnly) {
+            <div class="radio-indicator">
+              <div class="inner-circle"></div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <div *ngIf="freeShipping && !readOnly && quotes.length > 0" class="free-note">
       <ion-icon name="gift-outline"></ion-icon>
       <span>Seu pedido tem <strong>frete grátis</strong>. Escolha só a forma de envio.</span>
     </div>
 
-    <div *ngIf="quotes.length === 0 && !readOnly" class="empty-state">
+    <div *ngIf="quotes.length === 0 && !local && !readOnly" class="empty-state">
       <p>Nenhuma transportadora disponível para este endereço.</p>
     </div>
 

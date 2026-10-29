@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject, Input } from '@angular/core';
-import { Subscription, take } from 'rxjs';
+import { Subscription, firstValueFrom, take } from 'rxjs';
 import { AddressService } from 'src/app/services/address.service';
 import { IonicModule, LoadingController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
@@ -10,6 +10,8 @@ import { ShippingQuote } from 'src/app/interfaces/shipping';
 import { CartItem } from 'src/app/interfaces/cart-item';
 import { AppConfigService } from 'src/app/services/app-config.service';
 import { hasFreeShipping } from 'src/app/core/product-pricing';
+import { DeliveryPlan, LOCAL_DELIVERY_SERVICE, planDelivery } from 'src/app/core/local-delivery';
+import { FirebaseProducts } from 'src/app/services/firebase-products';
 
 @Component({
   selector: 'app-checkout-shipping',
@@ -27,11 +29,17 @@ export class CheckoutShippingComponent implements OnInit, OnDestroy {
   private cartService = inject(FirebaseCartService);
   private loadingCtrl = inject(LoadingController);
   private appConfig = inject(AppConfigService);
+  private productsService = inject(FirebaseProducts);
 
   public quotes: ShippingQuote[] = [];
   public isLoading: boolean = true;
   public error: string | null = null;
   public selectedServiceId: number | null = null;
+  /**
+   * Entrega da própria loja (todos os itens entregues pela loja na cidade do
+   * endereço): grátis, sem transportadora. Ver core/local-delivery.ts.
+   */
+  public local: DeliveryPlan['local'] = null;
   /** Logo da transportadora que não carregou: mostra um ícone no lugar. */
   public brokenLogos: Record<number, boolean> = {};
   private items: CartItem[] = [];
@@ -69,6 +77,7 @@ export class CheckoutShippingComponent implements OnInit, OnDestroy {
   async loadShippingQuotes() {
     this.isLoading = true;
     this.error = null;
+    this.local = null;
 
     const zipTo = String(this.stateService.addressData?.postalCode || '').replace(/\D/g, '');
     if (zipTo.length !== 8) {
@@ -80,13 +89,33 @@ export class CheckoutShippingComponent implements OnInit, OnDestroy {
     // Pega itens do carrinho (uma inscrição por cotação)
     this.cartSub?.unsubscribe();
     this.cartSub = this.cartService.getAllCartItems().pipe(take(1)).subscribe({
-      next: (items: CartItem[]) => {
+      next: async (items: CartItem[]) => {
         this.items = items;
         if (items.length === 0) {
           this.error = 'Carrinho vazio.';
           this.isLoading = false;
           return;
         }
+
+        // Entrega da loja: lê a configuração de AGORA no anúncio (o carrinho
+        // guarda um retrato de quando o item entrou). O servidor confere de novo.
+        const plan = planDelivery(await this.deliveryLines(items), this.stateService.addressData?.city || '', this.stateService.addressData?.state || '');
+        if (plan.blocked) {
+          this.quotes = [];
+          this.clearSelection();
+          this.error = plan.blocked;
+          this.isLoading = false;
+          return;
+        }
+        if (plan.local) {
+          this.quotes = [];
+          this.local = plan.local;
+          this.selectLocal();
+          this.isLoading = false;
+          return;
+        }
+        // Era entrega da loja e o endereço mudou: escolhe de novo entre as cotações.
+        if (this.stateService.shippingData?.serviceId === LOCAL_DELIVERY_SERVICE) this.clearSelection();
 
         // A cotação é feita pela Cloud Function `calculateMelhorEnvioShipping`,
         // que lê a configuração (token e CEP de origem) no servidor. O app não
@@ -126,6 +155,47 @@ export class CheckoutShippingComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  private async deliveryLines(items: CartItem[]) {
+    const ids = [...new Set(items.map(item => item.productId || item.productData?.id || '').filter(Boolean))];
+    const products = new Map(await Promise.all(ids.map(async id =>
+      [id, await firstValueFrom(this.productsService.getById(id)).catch(() => null)] as const)));
+    return items.map(item => {
+      const product = products.get(item.productId || item.productData?.id || '');
+      return {
+        name: item.productData?.name || 'Produto',
+        sellerId: item.productData?.sellerId || '',
+        localDelivery: product ? product.localDelivery : item.productData?.localDelivery,
+      };
+    });
+  }
+
+  selectLocal() {
+    if (!this.local) return;
+    this.selectedServiceId = null;
+    this.stateService.shippingData = {
+      serviceId: LOCAL_DELIVERY_SERVICE,
+      serviceName: 'Entrega da loja',
+      price: 0,
+      quotedPrice: 0,
+      freeShipping: true,
+      deliveryTime: this.local.days,
+      localDelivery: true,
+    };
+  }
+
+  /** Nenhuma entrega possível: o checkout não segue sem escolher de novo. */
+  private clearSelection() {
+    this.selectedServiceId = null;
+    this.stateService.shippingData = { serviceId: null, serviceName: '', price: 0, quotedPrice: 0, freeShipping: false, deliveryTime: 0 };
+  }
+
+  /** "Chega no mesmo dia do pagamento" / "Chega em até 2 dias úteis depois do pagamento". */
+  localEta(days: number): string {
+    return days <= 0
+      ? 'Chega no mesmo dia do pagamento'
+      : `Chega em até ${days} ${days === 1 ? 'dia útil' : 'dias úteis'} depois do pagamento`;
   }
 
   /**

@@ -178,15 +178,19 @@
       <span>Logística e Dimensões (Frete)</span>
     </div>
 
-    <div class="form-group">
-      <label>Forma de Entrega</label>
+    <div class="form-group" *ngIf="!localDelivery?.onlyLocal">
+      <label>{{ localDelivery ? 'Envio para outras cidades' : 'Forma de Entrega' }}</label>
       <div class="input-wrapper">
         <select formControlName="shipping" class="custom-select">
-          <option value="A combinar">A combinar com vendedor</option>
-          <option value="Frete Grátis">Frete Grátis</option>
-          <option value="Entrega Expressa">Melhor Envio (Cálculo automático)</option>
+          <option value="A combinar">Comprador paga o frete (calculado no checkout)</option>
+          <option value="Frete Grátis">Frete grátis para todo o Brasil (você assume o envio)</option>
+          <option value="Entrega Expressa">Expressa (envio prioritário)</option>
         </select>
       </div>
+    </div>
+
+    <div class="form-group">
+      <app-local-delivery-editor [(value)]="localDelivery"></app-local-delivery-editor>
     </div>
 
     <div class="row">
@@ -245,7 +249,8 @@
   </form>
 
   <div class="fixed-bottom-actions">
-    <button type="submit" class="btn-publish" (click)="submit()" [disabled]="!editProductForm.valid">
+    <p class="publish-hint" *ngIf="localDeliveryProblem">{{ localDeliveryProblem }}</p>
+    <button type="submit" class="btn-publish" (click)="submit()" [disabled]="!editProductForm.valid || !!localDeliveryProblem">
       <ion-icon name="save-outline"></ion-icon>
       SALVAR ALTERAÇÕES
     </button>

@@ -113,7 +113,9 @@
                   @if (o.shippingInfo) {
                     <div><dt>Frete</dt><dd>
                       {{ o.shippingInfo.serviceName || '—' }} ·
-                      @if (o.shippingInfo.freeShipping) {
+                      @if (o.shippingInfo.localDelivery) {
+                        grátis, a loja entrega (sem etiqueta)
+                      } @else if (o.shippingInfo.freeShipping) {
                         grátis para o comprador (etiqueta {{ formatBRL(o.shippingInfo.quotedPrice || 0) }})
                       } @else {
                         {{ formatBRL(o.shippingInfo.price || 0) }}

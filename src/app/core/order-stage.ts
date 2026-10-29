@@ -97,9 +97,14 @@ export function addBusinessDays(from: Date, days: number): Date {
  */
 export function deliveryWindow(order: Order): { from: Date; to: Date } | null {
   const days = order.shippingInfo?.deliveryTime;
-  if (!days || days <= 0) return null;
   const base = toDate(order.paymentConfirmedAt) ?? toDate(order.createdAt);
   if (!base) return null;
+  // Entrega da loja: o prazo dela já é o da entrega (0 = no mesmo dia), sem postagem.
+  if (order.shippingInfo?.localDelivery) {
+    const day = addBusinessDays(base, Math.max(0, days || 0));
+    return { from: day, to: day };
+  }
+  if (!days || days <= 0) return null;
   return { from: addBusinessDays(base, days), to: addBusinessDays(base, days + 2) };
 }
 
@@ -257,7 +262,10 @@ export function sellerAmount(order: Order, sellerId: string): number {
  */
 export function shipByDate(order: Order): Date | null {
   const base = toDate(order.paymentConfirmedAt) ?? toDate(order.createdAt);
-  return base ? addBusinessDays(base, 2) : null;
+  if (!base) return null;
+  // Entrega da loja: o prazo é o que a loja prometeu no anúncio, até a porta do comprador.
+  if (order.shippingInfo?.localDelivery) return addBusinessDays(base, Math.max(0, order.shippingInfo.deliveryTime || 0));
+  return addBusinessDays(base, 2);
 }
 
 export function isPaid(order: Order): boolean {

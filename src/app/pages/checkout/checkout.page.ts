@@ -10,6 +10,7 @@ import { Router } from '@angular/router';
 import { FirebaseUsersService } from 'src/app/services/firebase-users.service';
 import { CouponReservation, CouponService } from 'src/app/services/coupon.service';
 import { isValidCpf } from 'src/app/core/br-documents';
+import { LOCAL_DELIVERY_SERVICE } from 'src/app/core/local-delivery';
 
 @Component({
   selector: 'app-checkout',
@@ -186,7 +187,9 @@ export class CheckoutPage implements OnInit {
           skuId: item.skuId || null,
           quantity: item.quantity,
         })),
-        shippingServiceId: Number(this.stateService.shippingData.serviceId),
+        shippingServiceId: this.stateService.shippingData.serviceId === LOCAL_DELIVERY_SERVICE
+          ? LOCAL_DELIVERY_SERVICE
+          : Number(this.stateService.shippingData.serviceId),
         address: {
           street: address.street,
           number: address.addressNumber,

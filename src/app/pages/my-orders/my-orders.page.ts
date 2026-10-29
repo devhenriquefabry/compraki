@@ -661,6 +661,8 @@ function formatDay(date: Date | null, withYear = false): string {
 }
 
 function formatRange(from: Date, to: Date): string {
+  // Entrega da loja tem dia certo: "29 out", não "29 – 29 out".
+  if (from.toDateString() === to.toDateString()) return formatDay(from);
   if (from.getMonth() === to.getMonth()) return `${from.getDate()} – ${to.getDate()} ${MONTHS[to.getMonth()]}`;
   return `${formatDay(from)} – ${formatDay(to)}`;
 }

@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AlertController, IonicModule, LoadingController, NavController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
-  alertCircleOutline, arrowBack, barcodeOutline, callOutline, chatbubblesOutline, checkmarkCircle,
+  alertCircleOutline, arrowBack, barcodeOutline, bicycleOutline, callOutline, chatbubblesOutline, checkmarkCircle,
   copyOutline, cubeOutline, documentAttachOutline, documentTextOutline, locationOutline, mailOutline, mapOutline,
   printOutline, shieldHalfOutline, timeOutline,
 } from 'ionicons/icons';
@@ -17,6 +17,7 @@ import {
   orderStage, paidUnitPrice, productIdOf, sellerAmount, sellerCouponDiscount, sellerItems, shipByDate, toDate, trackIndex, trackingUrl,
 } from 'src/app/core/order-stage';
 import { FISCAL_DOCUMENT_LABEL, FiscalDocumentType, Order } from 'src/app/interfaces/order';
+import { daysLabel } from 'src/app/core/local-delivery';
 import { FirebaseChatService } from 'src/app/services/firebase-chat.service';
 import { MelhorEnvioService } from 'src/app/services/melhor-envio.service';
 import { SalesService } from 'src/app/services/sales.service';
@@ -108,6 +109,9 @@ export class SaleDetailsPage {
       paidAt: formatDay(toDate(order.paymentConfirmedAt)),
       release: release ? formatDay(release, true) : null,
       released: order.escrowInfo?.status === 'RELEASED',
+      // Entrega da própria loja: sem etiqueta nem rastreio (core/local-delivery.ts).
+      local: !!order.shippingInfo?.localDelivery,
+      localDays: daysLabel(order.shippingInfo?.deliveryTime ?? 0),
       trackingCode: order.shippingInfo?.trackingCode || null,
       fiscal: order.fiscalDocuments?.[seller] ?? null,
       fiscalAt: formatDay(toDate(order.fiscalDocuments?.[seller]?.uploadedAt), true),
@@ -128,7 +132,7 @@ export class SaleDetailsPage {
 
   constructor() {
     addIcons({
-      alertCircleOutline, arrowBack, barcodeOutline, callOutline, chatbubblesOutline, checkmarkCircle,
+      alertCircleOutline, arrowBack, barcodeOutline, bicycleOutline, callOutline, chatbubblesOutline, checkmarkCircle,
       copyOutline, cubeOutline, documentAttachOutline, documentTextOutline, locationOutline, mailOutline, mapOutline,
       printOutline, shieldHalfOutline, timeOutline,
     });
@@ -176,6 +180,20 @@ export class SaleDetailsPage {
     await this.run(() => this.salesService.markShipped(v.id, code), 'Venda marcada como enviada. O comprador já vê "A caminho".');
   }
 
+  /** Entrega da loja: saiu para entregar (sem rastreio). */
+  async markOutForDelivery() {
+    const v = this.view();
+    if (!v) return;
+    const alert = await this.alertCtrl.create({
+      header: 'Saiu para entrega?',
+      message: 'O comprador é avisado de que o pedido está a caminho.',
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Saiu para entrega', role: 'confirm' }],
+    });
+    await alert.present();
+    if ((await alert.onDidDismiss()).role !== 'confirm') return;
+    await this.run(() => this.salesService.markShipped(v.id), 'Pedido saiu para entrega. O comprador já vê "A caminho".');
+  }
+
   async editTracking() {
     const v = this.view();
     if (!v) return;
@@ -189,7 +207,9 @@ export class SaleDetailsPage {
     if (!v) return;
     const alert = await this.alertCtrl.create({
       header: 'Marcar como entregue?',
-      message: 'Use quando o rastreio já mostra a entrega. O comprador também pode confirmar pelo app.',
+      message: v.local
+        ? 'Use depois de entregar o pedido ao comprador. Ele também pode confirmar pelo app.'
+        : 'Use quando o rastreio já mostra a entrega. O comprador também pode confirmar pelo app.',
       buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Marcar como entregue', role: 'confirm' }],
     });
     await alert.present();

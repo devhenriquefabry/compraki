@@ -9,6 +9,7 @@ import { CORA_CHARGES, applyCoraInvoiceToOrder, presentInvoice } from './payment
 import { CoraInvoice, cancelCoraInvoice, getCoraInvoice, isCoraSandbox, requestCora } from './payments/cora-client';
 import { defaultRuntime, handleCors, isAdminUser, methodNotAllowed, region, requireAuthenticated } from './shared/http';
 import { getMelhorEnvioConfig, requestMelhorEnvio } from './shared/melhor-envio';
+import { LOCAL_DELIVERY_SERVICE, planDelivery, readLocalDelivery } from './local-delivery';
 
 /**
  * Fechamento do pedido — tudo no servidor.
@@ -22,7 +23,8 @@ import { getMelhorEnvioConfig, requestMelhorEnvio } from './shared/melhor-envio'
  * endereço, a forma de entrega escolhida e o cupom reservado. `placeOrder`:
  *   1. lê os produtos e calcula o preço de AGORA (o mesmo de `couponQuote`);
  *   2. confere estoque, anúncio no ar e que ninguém compra de si mesmo;
- *   3. recota o frete no Melhor Envio e aplica a regra de frete grátis;
+ *   3. recota o frete no Melhor Envio e aplica a regra de frete grátis (ou
+ *      confere que a própria loja entrega nesse endereço — local-delivery.ts);
  *   4. confere a reserva do cupom contra esse carrinho e esse frete;
  *   5. emite a cobrança (Cora: Pix/boleto; Asaas: cartão) com esse total;
  *   6. grava o pedido pelo Admin SDK (o cliente não cria mais `orders/`).
@@ -221,6 +223,7 @@ function itemSnapshot(line: PricedLine) {
       condition: p['condition'] ?? null,
       stock: Number.isFinite(Number(p['stock'])) ? Number(p['stock']) : null,
       shipping: p['shipping'] ?? null,
+      localDelivery: readLocalDelivery(p['localDelivery']),
       paymentMethods: Array.isArray(p['paymentMethods']) ? p['paymentMethods'] : [],
       categoryIds: Array.isArray(p['categoryIds']) ? p['categoryIds'] : [],
       subcategoryIds: Array.isArray(p['subcategoryIds']) ? p['subcategoryIds'] : [],
@@ -237,12 +240,14 @@ function itemSnapshot(line: PricedLine) {
 // ------------------------------------------------------------------- frete
 
 interface ShippingChoice {
-  serviceId: number;
+  /** `null` na entrega da loja (não há serviço do Melhor Envio nem etiqueta). */
+  serviceId: number | null;
   serviceName: string;
   quotedPrice: number;
   price: number;
   freeShipping: boolean;
   deliveryTime: number;
+  localDelivery: boolean;
 }
 
 /** Regra de frete grátis da loja (`appConfig/storefront.freeShipping`). */
@@ -300,7 +305,42 @@ async function quoteShipping(lines: PricedLine[], zipTo: string, serviceId: numb
     price: freeShipping ? 0 : quotedPrice,
     freeShipping,
     deliveryTime: Number(quote.delivery_time) || 0,
+    localDelivery: false,
   };
+}
+
+/**
+ * Entrega da loja (`serviceId === null`) ou transportadora, conferindo o que o
+ * carrinho permite neste endereço (`planDelivery`, mesma regra do app): a loja
+ * só entrega de graça onde disse que entrega, e item "só entrega da loja" não
+ * vai por transportadora.
+ */
+async function chooseShipping(lines: PricedLine[], address: Address, serviceId: number | null): Promise<ShippingChoice> {
+  const plan = planDelivery(
+    lines.map(l => ({ name: text(l.product['name'], 120) || 'Produto', sellerId: l.sellerId, localDelivery: l.product['localDelivery'] })),
+    address.city,
+    address.state,
+  );
+  if (plan.blocked) throw new OrderError(409, plan.blocked, { reason: 'SHIPPING_UNAVAILABLE' });
+
+  if (serviceId === null) {
+    if (!plan.local) {
+      throw new OrderError(409, 'A entrega da loja não atende este endereço. Volte e escolha outra forma de entrega.', { reason: 'SHIPPING_UNAVAILABLE' });
+    }
+    return {
+      serviceId: null,
+      serviceName: 'Entrega da loja',
+      quotedPrice: 0,
+      price: 0,
+      freeShipping: true,
+      deliveryTime: plan.local.days,
+      localDelivery: true,
+    };
+  }
+  if (!plan.carrier) {
+    throw new OrderError(409, 'Este pedido é entregue pela própria loja. Volte e escolha a entrega da loja.', { reason: 'SHIPPING_UNAVAILABLE' });
+  }
+  return quoteShipping(lines, address.postalCode, serviceId);
 }
 
 // ------------------------------------------------------------------- cupom
@@ -471,8 +511,10 @@ export const placeOrder = onRequest(orderRuntime, async (req, res) => {
     if (method !== 'PIX' && method !== 'BOLETO' && method !== 'CREDIT_CARD') {
       throw new OrderError(400, 'Escolha a forma de pagamento.');
     }
-    const serviceId = Number(body['shippingServiceId']);
-    if (!Number.isInteger(serviceId) || serviceId <= 0) throw new OrderError(400, 'Escolha a forma de entrega.');
+    // Número = serviço do Melhor Envio; 'local' = entrega da própria loja.
+    const rawService = body['shippingServiceId'];
+    const serviceId = rawService === LOCAL_DELIVERY_SERVICE ? null : Number(rawService);
+    if (serviceId !== null && (!Number.isInteger(serviceId) || serviceId <= 0)) throw new OrderError(400, 'Escolha a forma de entrega.');
 
     const buyer = readBuyer(body['buyer'], text(auth.email, 120));
     const address = readAddress(body['address']);
@@ -487,7 +529,7 @@ export const placeOrder = onRequest(orderRuntime, async (req, res) => {
 
     const lines = await priceLines(readWanted(body['items']), auth.uid);
     const subtotal = cents(lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0));
-    const shipping = await quoteShipping(lines, address.postalCode, serviceId);
+    const shipping = await chooseShipping(lines, address, serviceId);
     const coupon = await readCoupon(body['couponRedemptionId'], auth.uid, subtotal, shipping.price);
     const discount = coupon?.discount ?? 0;
     const total = cents(subtotal + shipping.price - discount);
@@ -573,6 +615,8 @@ export const placeOrder = onRequest(orderRuntime, async (req, res) => {
           freeShipping: shipping.freeShipping,
           quotedPrice: shipping.quotedPrice,
           deliveryTime: shipping.deliveryTime,
+          // Sem etiqueta: `createMelhorEnvioShipment` recusa pedido sem serviceId.
+          ...(shipping.localDelivery ? { localDelivery: true } : {}),
         },
         pricedBy: 'server',
         createdAt: FieldValue.serverTimestamp(),

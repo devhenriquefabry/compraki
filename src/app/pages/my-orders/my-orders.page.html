@@ -202,7 +202,11 @@
                   @switch (v.stage) {
                     @case ('preparing') {
                       <p class="oc-panel-title">{{ v.window ? 'Previsão de entrega: ' + v.window : 'A loja está preparando seu pedido' }}</p>
-                      <p>Pagamento aprovado. A loja está separando e embalando seu pedido.</p>
+                      @if (v.order.shippingInfo?.localDelivery) {
+                        <p>Pagamento aprovado. A própria loja entrega no seu endereço e combina o horário com você pelo chat.</p>
+                      } @else {
+                        <p>Pagamento aprovado. A loja está separando e embalando seu pedido.</p>
+                      }
                     }
                     @case ('shipping') {
                       <p class="oc-panel-title">{{ v.window ? 'Previsão de entrega: ' + v.window : 'Seu pedido está a caminho' }}</p>
@@ -216,6 +220,8 @@
                             <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
                           </button>
                         </p>
+                      } @else if (v.order.shippingInfo?.localDelivery) {
+                        <p>Saiu para entrega com a própria loja. Quando receber, toque em "Recebi o pedido".</p>
                       } @else {
                         <p>O código de rastreio aparece aqui quando a loja informar.</p>
                       }
@@ -278,7 +284,11 @@
                 <button type="button" class="btn btn--outline" (click)="talkToStore(v)">Falar com a loja</button>
               }
               @case ('shipping') {
-                <button type="button" class="btn btn--accent" (click)="trackOrder(v)">Rastrear pedido</button>
+                @if (v.order.shippingInfo?.localDelivery) {
+                  <button type="button" class="btn btn--outline" (click)="talkToStore(v)">Falar com a loja</button>
+                } @else {
+                  <button type="button" class="btn btn--accent" (click)="trackOrder(v)">Rastrear pedido</button>
+                }
                 <button type="button" class="btn btn--primary" (click)="confirmReceipt(v)">Recebi o pedido</button>
               }
               @case ('done') {

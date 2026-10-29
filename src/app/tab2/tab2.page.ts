@@ -13,6 +13,7 @@ import { shareReplay } from 'rxjs/operators';
 import { trackById } from 'src/app/core/track-by';
 import { LayoutService } from '../core/layout.service';
 import { discountPercent, hasDiscount, hasFreeShipping, installmentHint, priceMain } from '../core/product-pricing';
+import { localDeliveryTag, readLocalDelivery } from '../core/local-delivery';
 import { AppConfigService } from '../services/app-config.service';
 
 @Component({
@@ -201,6 +202,13 @@ export class Tab2Page implements OnInit, OnDestroy {
   /** Selo de frete grátis: do vendedor ou da regra da loja (painel admin). */
   public freeShipping(product: Product): boolean {
     return hasFreeShipping(product, this.appConfig.freeShippingRule());
+  }
+
+  /** Etiqueta de entrega do card: frete grátis, entrega grátis da loja na cidade dela, ou o que o vendedor marcou. */
+  public shippingTag(product: Product): { text: string; highlight: boolean } {
+    if (this.freeShipping(product)) return { text: 'Frete Grátis', highlight: true };
+    const local = localDeliveryTag(readLocalDelivery(product.localDelivery));
+    return local ? { text: local, highlight: true } : { text: product.shipping, highlight: false };
   }
 
   public getIcon(icon: any): string {

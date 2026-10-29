@@ -2,9 +2,11 @@ import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } fro
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
+import { LocalDelivery, Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
+import { LocalDeliveryEditorComponent } from 'src/app/components/local-delivery-editor/local-delivery-editor.component';
+import { readLocalDelivery } from 'src/app/core/local-delivery';
 import {
   cleanVariantPhotos, cleanVariants, galleriesFromProduct, generalPhotos, mainOptionImages, optionGalleryPhotos, resolveGalleries,
   totalVariantStock,
@@ -22,7 +24,7 @@ import { LoadingSpinnerOverlayComponent } from 'src/app/components/loading-spinn
   templateUrl: './edit-product-form.component.html',
   styleUrls: ['./edit-product-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent]
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, CommonModule, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent, LocalDeliveryEditorComponent]
 })
 export class EditProductFormComponent implements OnInit, OnDestroy {
   private readonly nameGuard = inject(ProductNameGuardService);
@@ -54,6 +56,16 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
   public categories$!: Observable<Category[]>;
   public availableSubcategories: Subcategory[] = [];
   private allCategories: Category[] = [];
+
+  /** Entrega grátis da própria loja (`null` = desligada). Ver core/local-delivery.ts. */
+  public localDelivery: LocalDelivery | null = null;
+
+  /** Ligou a entrega da loja e não escolheu cidade. */
+  get localDeliveryProblem(): string | null {
+    return this.localDelivery && !readLocalDelivery(this.localDelivery)
+      ? 'Entrega grátis da loja: adicione ao menos uma cidade.'
+      : null;
+  }
 
   public showFeedback = false;
   public feedbackType: 'success' | 'error' = 'success';
@@ -128,6 +140,7 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
       this.variantSkus = product.skus ? { ...product.skus } : {};
       this.variantImages = product.variantImages ? { ...product.variantImages } : {};
       this.variantPhotos = galleriesFromProduct(product);
+      this.localDelivery = readLocalDelivery(product.localDelivery);
       this.optionFiles.clear();
     }
   }
@@ -293,6 +306,7 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
         if (this.hasVariants && !variantsEnabled) {
           throw new Error('Adicione ao menos um atributo com um valor em "Variações", ou desative a opção.');
         }
+        if (this.localDeliveryProblem) throw new Error(this.localDeliveryProblem);
 
         // 1. Identificar quais "fotos" no selectedPhotos são arquivos novos (data:base64)
         // e quais são URLs existentes.
@@ -345,7 +359,8 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
           variantImages,
           variantPhotos,
           generalPhotoCount: finalPhotoURL.length,
-          skus: variantsEnabled ? skus : {}
+          skus: variantsEnabled ? skus : {},
+          localDelivery: readLocalDelivery(this.localDelivery),
         } as Product;
 
         await this.servicoFirebase.update(updatedProduct);
@@ -362,7 +377,7 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.feedbackType = 'error';
         this.feedbackTitle = 'Erro ao Atualizar';
-        this.feedbackMessage = err instanceof Error && err.message.includes('Variações')
+        this.feedbackMessage = err instanceof Error && (err.message.includes('Variações') || err.message.startsWith('Entrega grátis'))
           ? err.message
           : 'Verifique sua conexão e tente novamente.';
         this.showFeedback = true;

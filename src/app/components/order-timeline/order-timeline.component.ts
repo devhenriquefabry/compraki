@@ -190,7 +190,9 @@ export function buildTimeline(order: Order): TimelineStep[] {
     steps.push({
       key: 'delivered',
       label: 'Entrega',
-      detail: window ? `Previsão: ${formatDay(window.from)} a ${formatDay(window.to)}` : undefined,
+      detail: !window ? undefined
+        : window.from.toDateString() === window.to.toDateString() ? `Previsão: ${formatDay(window.from)}`
+        : `Previsão: ${formatDay(window.from)} a ${formatDay(window.to)}`,
       at: null,
       state: shipped && order.shipmentStatus !== 'PROBLEM' ? 'current' : 'upcoming',
     });

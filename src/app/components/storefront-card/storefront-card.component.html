@@ -24,6 +24,8 @@
 
     @if (view().freeShipping) {
       <span class="sc-shipping">Frete grátis</span>
+    } @else if (view().localDelivery; as local) {
+      <span class="sc-shipping">{{ local }}</span>
     } @else if (view().express) {
       <span class="sc-shipping sc-shipping--express">Entrega expressa</span>
     }

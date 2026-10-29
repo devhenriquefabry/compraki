@@ -130,7 +130,8 @@ export interface Order {
 
   // Informações de frete (Melhor Envio)
   shippingInfo?: {
-    serviceId: number;
+    /** `null` na entrega da própria loja (sem Melhor Envio). */
+    serviceId: number | null;
     serviceName: string;
     price: number;
     /** Pedido saiu com frete grátis (vendedor ou regra da loja); `price` é 0. */
@@ -138,6 +139,11 @@ export interface Order {
     /** Valor da cotação do Melhor Envio — o custo real da etiqueta. */
     quotedPrice?: number;
     deliveryTime: number;
+    /**
+     * A própria loja entrega (core/local-delivery.ts): grátis para o comprador,
+     * sem etiqueta. `deliveryTime` é o prazo da loja (0 = no mesmo dia).
+     */
+    localDelivery?: boolean;
     shipmentId?: string;
     /**
      * Em que passo parou a etiqueta (servidor): `cart` → `paid` → `generated`.

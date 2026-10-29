@@ -20,7 +20,12 @@ export interface Product {
     acceptOffers?: boolean;
     paymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[];
     shipping: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa';
-    
+    /**
+     * Entrega própria da loja, sem custo para o comprador, nas cidades
+     * escolhidas (ver core/local-delivery.ts). `null`/ausente = desligada.
+     */
+    localDelivery?: LocalDelivery | null;
+
     // Dimensões para Melhor Envio
     weight?: number; // em kg
     width?: number;  // em cm
@@ -106,6 +111,22 @@ export interface ProductModeration {
     note?: string;
     at?: any;
     by?: string;
+}
+
+export interface DeliveryCity {
+    /** Nome oficial (IBGE/ViaCEP), ex.: "São José dos Pinhais". */
+    city: string;
+    /** UF em maiúsculas, ex.: "PR". */
+    state: string;
+}
+
+export interface LocalDelivery {
+    /** Cidades onde a própria loja entrega de graça (1 a 20). */
+    cities: DeliveryCity[];
+    /** Prazo depois do pagamento, em dias úteis; 0 = no mesmo dia. */
+    days: number;
+    /** `true` = a loja não envia para fora dessas cidades (sem transportadora). */
+    onlyLocal: boolean;
 }
 
 export interface ProductSpec {

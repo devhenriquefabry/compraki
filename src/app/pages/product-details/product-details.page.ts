@@ -37,6 +37,7 @@ import { ProductReviewsComponent } from 'src/app/components/product-reviews/prod
 import { ProductQuestionsComponent } from 'src/app/components/product-questions/product-questions.component';
 import { rememberViewedProduct } from 'src/app/core/recently-viewed';
 import { discountPercent, hasDiscount, hasStoreFreeShipping, priceMain } from 'src/app/core/product-pricing';
+import { citiesLabel, daysLabel, readLocalDelivery } from 'src/app/core/local-delivery';
 import { AppConfigService } from 'src/app/services/app-config.service';
 import { isProductHidden } from 'src/app/core/product-moderation';
 import { ReportModalComponent } from 'src/app/components/report-modal/report-modal.component';
@@ -671,6 +672,16 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   public shippingInfo(product: Product): { title: string; detail: string; icon: StoreIcon; highlight: boolean } {
+    const local = readLocalDelivery(product.localDelivery);
+    if (local) {
+      const where = `Em ${citiesLabel(local.cities)}, a própria loja entrega ${daysLabel(local.days)} depois do pagamento, sem custo de frete.`;
+      const elsewhere = local.onlyLocal
+        ? ' Esta loja vende só para essas cidades.'
+        : product.shipping === 'Frete Grátis'
+          ? ' Para o resto do Brasil, o frete também é grátis.'
+          : ' Para outras cidades, o frete é calculado no pagamento.';
+      return { title: 'Entrega grátis da loja', detail: where + elsewhere, icon: 'store', highlight: true };
+    }
     const rule = this.appConfig.freeShippingRule();
     if (hasStoreFreeShipping(product, rule)) {
       const min = rule!.minValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

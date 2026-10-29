@@ -55,18 +55,32 @@
                   <p><ion-icon name="time-outline" aria-hidden="true"></ion-icon> Aguardando o pagamento do comprador. <strong>Não envie ainda.</strong></p>
                 }
                 @case ('preparing') {
-                  <p [class.is-late]="v.shipBy?.late">
-                    <ion-icon name="cube-outline" aria-hidden="true"></ion-icon>
-                    @if (v.shipBy?.late) { O prazo de envio passou em {{ v.shipBy?.label }}. Poste o quanto antes. }
-                    @else { Embale e poste até <strong>{{ v.shipBy?.label }}</strong>. }
-                  </p>
-                  <div class="status-actions">
-                    <button type="button" class="btn btn--primary" (click)="markShipped()" [disabled]="busy()">Marcar como enviada</button>
-                  </div>
+                  @if (v.local) {
+                    <p [class.is-late]="v.shipBy?.late">
+                      <ion-icon name="bicycle-outline" aria-hidden="true"></ion-icon>
+                      @if (v.shipBy?.late) { O prazo de entrega passou em {{ v.shipBy?.label }}. Entregue o quanto antes. }
+                      @else { Entrega da loja: combine o horário com o comprador e entregue até <strong>{{ v.shipBy?.label }}</strong>. }
+                    </p>
+                    <div class="status-actions">
+                      <button type="button" class="btn btn--accent" (click)="talkToBuyer()">Combinar pelo chat</button>
+                      <button type="button" class="btn btn--primary" (click)="markOutForDelivery()" [disabled]="busy()">Saiu para entrega</button>
+                    </div>
+                  } @else {
+                    <p [class.is-late]="v.shipBy?.late">
+                      <ion-icon name="cube-outline" aria-hidden="true"></ion-icon>
+                      @if (v.shipBy?.late) { O prazo de envio passou em {{ v.shipBy?.label }}. Poste o quanto antes. }
+                      @else { Embale e poste até <strong>{{ v.shipBy?.label }}</strong>. }
+                    </p>
+                    <div class="status-actions">
+                      <button type="button" class="btn btn--primary" (click)="markShipped()" [disabled]="busy()">Marcar como enviada</button>
+                    </div>
+                  }
                 }
                 @case ('shipping') {
                   @if (v.order.shipmentStatus === 'PROBLEM') {
                     <p class="is-late"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon> Você sinalizou um problema na entrega. O comprador foi avisado para falar com você.</p>
+                  } @else if (v.local) {
+                    <p><ion-icon name="bicycle-outline" aria-hidden="true"></ion-icon> Saiu para entrega. Depois de entregar ao comprador, marque como entregue.</p>
                   } @else {
                     <p><ion-icon name="cube-outline" aria-hidden="true"></ion-icon> A caminho do comprador. Quando o rastreio mostrar a entrega, marque como entregue.</p>
                   }
@@ -75,7 +89,7 @@
                       <button type="button" class="btn btn--accent" (click)="track()">Rastrear</button>
                     }
                     @if (v.order.shipmentStatus === 'PROBLEM') {
-                      <button type="button" class="btn btn--primary" (click)="markShipped()" [disabled]="busy()">Voltar para enviada</button>
+                      <button type="button" class="btn btn--primary" (click)="v.local ? markOutForDelivery() : markShipped()" [disabled]="busy()">{{ v.local ? 'Voltar para "saiu para entrega"' : 'Voltar para enviada' }}</button>
                     } @else {
                       <button type="button" class="btn btn--primary" (click)="markDelivered()" [disabled]="busy()">Marcar como entregue</button>
                     }
@@ -110,6 +124,10 @@
               <h2 class="sheet-title" id="sd-ship">Envio</h2>
 
               <dl class="kv">
+                @if (v.local) {
+                  <div><dt>Forma</dt><dd>Entrega da loja (grátis para o comprador)</dd></div>
+                  <div><dt>Prazo que você prometeu</dt><dd>{{ v.localDays }} depois do pagamento</dd></div>
+                } @else {
                 @if (v.order.shippingInfo?.serviceName) {
                   <div><dt>Serviço</dt><dd>{{ v.order.shippingInfo?.serviceName }}</dd></div>
                 }
@@ -129,10 +147,11 @@
                     }
                   </dd>
                 </div>
+                }
               </dl>
 
               <div class="ship-actions">
-                @if (v.order.shippingInfo && v.paid) {
+                @if (v.order.shippingInfo && v.paid && !v.local) {
                   @if (!v.order.shippingInfo.shipmentId || (v.order.shippingInfo.labelStatus && v.order.shippingInfo.labelStatus !== 'generated')) {
                     <button type="button" class="btn btn--outline" (click)="generateShippingLabel()">
                       <ion-icon name="barcode-outline" aria-hidden="true"></ion-icon> Gerar etiqueta
@@ -143,9 +162,11 @@
                     </button>
                   }
                 }
-                <button type="button" class="btn btn--ghost" (click)="editTracking()">
-                  {{ v.trackingCode ? 'Alterar rastreio' : 'Adicionar rastreio' }}
-                </button>
+                @if (!v.local) {
+                  <button type="button" class="btn btn--ghost" (click)="editTracking()">
+                    {{ v.trackingCode ? 'Alterar rastreio' : 'Adicionar rastreio' }}
+                  </button>
+                }
                 @if (v.stage === 'shipping' && v.order.shipmentStatus !== 'PROBLEM') {
                   <button type="button" class="btn btn--ghost btn--danger" (click)="reportProblem()">Problema na entrega</button>
                 }

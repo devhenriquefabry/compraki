@@ -193,7 +193,11 @@
                     @switch (v.stage) {
                       @case ('preparing') {
                         <p class="panel-title" [class.is-late]="v.shipBy?.late">
-                          {{ v.shipBy?.late ? 'Prazo de envio passou em ' + v.shipBy?.label : 'Envie até ' + v.shipBy?.label }}
+                          @if (v.order.shippingInfo?.localDelivery) {
+                            {{ v.shipBy?.late ? 'Prazo de entrega passou em ' + v.shipBy?.label : 'Entregue até ' + v.shipBy?.label }}
+                          } @else {
+                            {{ v.shipBy?.late ? 'Prazo de envio passou em ' + v.shipBy?.label : 'Envie até ' + v.shipBy?.label }}
+                          }
                         </p>
                         @if (v.destination) {
                           <p><ion-icon name="location-outline" aria-hidden="true"></ion-icon> Para {{ v.destination }}@if (v.order.shippingInfo?.serviceName) { · {{ v.order.shippingInfo?.serviceName }}}</p>
@@ -208,6 +212,8 @@
                               <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
                             </button>
                           </p>
+                        } @else if (v.order.shippingInfo?.localDelivery) {
+                          <p>Entrega da loja, sem rastreio. Marque como entregue nos detalhes da venda.</p>
                         } @else {
                           <p>Sem código de rastreio. Adicione nos detalhes da venda.</p>
                         }

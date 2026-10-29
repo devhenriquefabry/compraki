@@ -216,8 +216,9 @@
         {{ installmentHint(product) }}
       </div>
       <div class="card-meta-row">
-        <span class="card-shipping-tag" [class.card-shipping-tag--highlight]="freeShipping(product)">
-          {{ freeShipping(product) ? 'Frete Grátis' : product.shipping }}
+        @let tag = shippingTag(product);
+        <span class="card-shipping-tag" [class.card-shipping-tag--highlight]="tag.highlight">
+          {{ tag.text }}
         </span>
         <span class="card-location">
           <ion-icon name="location-outline" aria-hidden="true"></ion-icon>

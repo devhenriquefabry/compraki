@@ -94,6 +94,22 @@ service cloud.firestore {
         && (!('stock' in d) || (d.stock is number && d.stock >= 0 && d.stock <= 1000000));
     }
 
+    // Entrega propria da loja (core/local-delivery.ts): 1 a 20 cidades, prazo
+    // de 0 a 10 dias uteis. O placeOrder rele e limpa; aqui so barra lixo.
+    function isValidLocalDelivery() {
+      let d = request.resource.data;
+      return !('localDelivery' in d) || d.localDelivery == null
+        || (d.localDelivery is map
+            && d.localDelivery.keys().hasOnly(['cities', 'days', 'onlyLocal'])
+            && d.localDelivery.cities is list
+            && d.localDelivery.cities.size() >= 1
+            && d.localDelivery.cities.size() <= 20
+            && d.localDelivery.days is number
+            && d.localDelivery.days >= 0
+            && d.localDelivery.days <= 10
+            && d.localDelivery.onlyLocal is bool);
+    }
+
     match /products/{productId} {
       allow read: if true;
 
@@ -102,6 +118,7 @@ service cloud.firestore {
         && request.resource.data.sellerId == request.auth.uid
         && !request.resource.data.keys().hasAny(sellerLockedProductFields())
         && isValidProductMoney()
+        && isValidLocalDelivery()
         && !isSuspended()
       );
 
@@ -113,6 +130,7 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(sellerLockedProductFields())
         && isValidProductMoney()
+        && isValidLocalDelivery()
         && !isSuspended()
       );
 

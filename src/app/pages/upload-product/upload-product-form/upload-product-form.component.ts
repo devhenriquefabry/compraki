@@ -2,9 +2,11 @@ import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } fro
 import { Router } from '@angular/router';
 import {  FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
+import { LocalDelivery, Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
+import { LocalDeliveryEditorComponent } from 'src/app/components/local-delivery-editor/local-delivery-editor.component';
+import { readLocalDelivery } from 'src/app/core/local-delivery';
 import {
   cleanVariantImages, cleanVariantPhotos, cleanVariants, mainOptionImages, optionGalleryPhotos, resolveGalleries, totalVariantStock,
 } from 'src/app/core/product-variants';
@@ -25,7 +27,7 @@ import { catalogCover, illustrationUrl, isIllustration } from 'src/app/core/cata
   selector: 'app-upload-product-form',
   templateUrl: './upload-product-form.component.html',
   styleUrls: ['./upload-product-form.component.scss'],
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent ],
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent, LocalDeliveryEditorComponent ],
   standalone: true
 })
 export class UploadProductFormComponent  implements OnInit, OnDestroy {
@@ -76,10 +78,20 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
 
   public shippingOptions: { value: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa'; label: string; hint: string; icon: string }[] = [
     { value: 'Frete Grátis', label: 'Frete grátis', hint: 'Você assume o custo do envio', icon: 'gift-outline' },
-    { value: 'A combinar', label: 'A combinar', hint: 'Combine o frete com o comprador', icon: 'chatbubbles-outline' },
+    { value: 'A combinar', label: 'Comprador paga', hint: 'Frete calculado no checkout', icon: 'chatbubbles-outline' },
     { value: 'Entrega Expressa', label: 'Expressa', hint: 'Envio prioritário', icon: 'flash-outline' },
   ];
   public availablePaymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[] = ['PIX', 'CARTÃO', 'DINHEIRO'];
+
+  /** Entrega grátis da própria loja (`null` = desligada). Ver core/local-delivery.ts. */
+  public localDelivery: LocalDelivery | null = null;
+
+  /** Ligou a entrega da loja e não escolheu cidade. */
+  get localDeliveryProblem(): string | null {
+    return this.localDelivery && !readLocalDelivery(this.localDelivery)
+      ? 'Entrega grátis da loja: adicione ao menos uma cidade.'
+      : null;
+  }
 
   /** Campos obrigatórios do formulário, usados só para calcular o progresso exibido ao vendedor. */
   private readonly requiredFields = ['name', 'condition', 'price', 'stock', 'description', 'categoryIds', 'shipping', 'paymentMethods', 'weight', 'width', 'height', 'length'];
@@ -267,7 +279,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   }
 
   get canPublish(): boolean {
-    return this.submitProductForm.valid && !this.missingCatalogOption && !this.missingCatalogPhoto;
+    return this.submitProductForm.valid && !this.missingCatalogOption && !this.missingCatalogPhoto && !this.localDeliveryProblem;
   }
 
   get completionPercent(): number {
@@ -433,6 +445,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
         if (this.missingCatalogOption) {
           throw new Error(`Variações: escolha ao menos uma opção de ${this.missingCatalogOption}.`);
         }
+        if (this.localDeliveryProblem) throw new Error(this.localDeliveryProblem);
 
         // Foto do catálogo já é URL pública; só sobem as fotos novas.
         const uploadPromises = this.filesToUpload.map((file, i) =>
@@ -478,6 +491,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
           subcategoryIds: data.subcategoryIds || [],
           paymentMethods: data.paymentMethods as any,
           shipping: data.shipping as any,
+          localDelivery: readLocalDelivery(this.localDelivery),
           weight: data.weight!,
           width: data.width!,
           height: data.height!,
@@ -514,7 +528,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
         this.isLoading = false;
         this.feedbackType = 'error';
         this.feedbackTitle = 'Erro ao Publicar';
-        this.feedbackMessage = err instanceof Error && (err.message.includes('Variações') || err.message.startsWith('Fotos:'))
+        this.feedbackMessage = err instanceof Error && (err.message.includes('Variações') || err.message.startsWith('Fotos:') || err.message.startsWith('Entrega grátis'))
           ? err.message
           : 'Verifique sua conexão e tente novamente.';
         this.showFeedback = true;
@@ -537,6 +551,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
       this.variantImages = {};
       this.catalogOptionPhotos = {};
       this.variantPhotos = {};
+      this.localDelivery = null;
       this.optionFiles.clear();
       this.published.emit(id ?? '');
       // Mostra o anúncio recém-publicado, do jeito que o comprador vê.

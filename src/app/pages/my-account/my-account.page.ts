@@ -188,7 +188,9 @@ export class MyAccountPage {
     const first = pick.items?.[0]?.productData;
     const others = itemCount(pick) - (pick.items?.[0]?.quantity || 0);
     const eta = deliveryWindow(pick);
-    const arrives = eta ? `Chega entre ${formatDay(eta.from)} e ${formatDay(eta.to)}` : null;
+    const arrives = !eta ? null
+      : eta.from.toDateString() === eta.to.toDateString() ? `Chega em ${formatDay(eta.from)}`
+      : `Chega entre ${formatDay(eta.from)} e ${formatDay(eta.to)}`;
     const due = paymentDueDate(pick);
 
     let hint: string;

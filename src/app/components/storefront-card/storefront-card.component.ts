@@ -4,6 +4,7 @@ import { Product } from '../../interfaces/product';
 import { ProductSelectionService } from '../../services/product-selection-service';
 import { AppConfigService } from '../../services/app-config.service';
 import { discountPercent, hasDiscount, hasFreeShipping, installmentHint, priceMain } from '../../core/product-pricing';
+import { localDeliveryTag, readLocalDelivery } from '../../core/local-delivery';
 
 const PLACEHOLDER_IMAGE = 'assets/imagens/imagem-placeholder.png';
 
@@ -49,6 +50,7 @@ export class StorefrontCardComponent {
       installment: installmentHint(product),
       freeShipping: hasFreeShipping(product, this.appConfig.freeShippingRule()),
       express: product.shipping === 'Entrega Expressa',
+      localDelivery: localDeliveryTag(readLocalDelivery(product.localDelivery)),
       used: !!product.condition && product.condition !== 'novo',
     };
   });

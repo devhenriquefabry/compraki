@@ -1,0 +1,98 @@
+<div class="ld" [class.is-on]="enabled()">
+  <button type="button" class="ld-head" role="switch" [attr.aria-checked]="enabled()" (click)="toggle()">
+    <span class="ld-head-icon" aria-hidden="true"><ion-icon name="bicycle-outline"></ion-icon></span>
+    <span class="ld-head-text">
+      <strong>Entrega grátis da loja</strong>
+      <small>Você mesmo entrega, sem custo para o comprador, nas cidades que escolher.</small>
+    </span>
+    <span class="ld-switch" aria-hidden="true"><span></span></span>
+  </button>
+
+  @if (enabled()) {
+    <div class="ld-body">
+      <div class="ld-field">
+        <span class="ld-label" id="ld-cities-label">Cidades onde você entrega</span>
+
+        @if (cities().length) {
+          <ul class="ld-chips" aria-labelledby="ld-cities-label">
+            @for (c of cities(); track cityTrack(c)) {
+              <li class="ld-chip">
+                <span>{{ c.city }}/{{ c.state }}</span>
+                <button type="button" (click)="removeCity(c)" [attr.aria-label]="'Tirar ' + c.city + '/' + c.state">
+                  <ion-icon name="close" aria-hidden="true"></ion-icon>
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="ld-empty">Adicione ao menos uma cidade.</p>
+        }
+
+        @if (suggestion(); as s) {
+          <button type="button" class="ld-suggest" (click)="addCity(s)">
+            <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+            Adicionar {{ s.city }}/{{ s.state }} (seu endereço)
+          </button>
+        }
+
+        @if (cities().length < maxCities) {
+          <div class="ld-add">
+            <select (change)="setUf($any($event.target).value)" aria-label="UF da cidade">
+              <option value="" [selected]="!uf()">UF</option>
+              @for (u of ufs; track u) {
+                <option [value]="u" [selected]="u === uf()">{{ u }}</option>
+              }
+            </select>
+            <input type="text" list="ld-city-options" autocomplete="off" maxlength="80"
+                   placeholder="Nome da cidade" aria-label="Nome da cidade"
+                   [value]="cityInput()" (input)="cityInput.set($any($event.target).value); addError.set('')"
+                   (keydown.enter)="$event.preventDefault(); addTyped()" />
+            <datalist id="ld-city-options">
+              @for (name of ufCities(); track name) {
+                <option [value]="name"></option>
+              }
+            </datalist>
+            <button type="button" class="ld-add-btn" (click)="addTyped()">Adicionar</button>
+          </div>
+        }
+        @if (addError()) {
+          <p class="ld-error" role="alert">{{ addError() }}</p>
+        }
+      </div>
+
+      <div class="ld-field">
+        <span class="ld-label" id="ld-days-label">Prazo de entrega depois do pagamento</span>
+        <div class="ld-days" role="radiogroup" aria-labelledby="ld-days-label">
+          @for (d of dayOptions; track d) {
+            <button type="button" role="radio" [attr.aria-checked]="value()?.days === d" [class.is-on]="value()?.days === d" (click)="setDays(d)">
+              {{ dayLabel(d) }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="ld-field">
+        <span class="ld-label" id="ld-scope-label">Para outras cidades</span>
+        <div class="ld-scope" role="radiogroup" aria-labelledby="ld-scope-label">
+          <button type="button" role="radio" [attr.aria-checked]="!value()?.onlyLocal" [class.is-on]="!value()?.onlyLocal" (click)="setOnlyLocal(false)">
+            <strong>Também envio pela transportadora</strong>
+            <small>Do jeito escolhido nas opções de entrega</small>
+          </button>
+          <button type="button" role="radio" [attr.aria-checked]="!!value()?.onlyLocal" [class.is-on]="!!value()?.onlyLocal" (click)="setOnlyLocal(true)">
+            <strong>Vendo só para essas cidades</strong>
+            <small>Quem mora fora não consegue fechar a compra</small>
+          </button>
+        </div>
+      </div>
+
+      <p class="ld-note">
+        <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+        <span>
+          Quem compra numa dessas cidades vê <strong>Entrega grátis da loja</strong> e paga R$ 0 de frete.
+          Não tem etiqueta: você combina o horário pelo chat, marca <strong>Saiu para entrega</strong> e depois
+          <strong>Entregue</strong>. Vale quando todos os itens do pedido são entregues pela loja.
+        </span>
+      </p>
+    </div>
+  }
+</div>

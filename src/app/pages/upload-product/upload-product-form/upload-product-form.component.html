@@ -296,8 +296,8 @@
           </div>
         </header>
 
-        <div class="form-group">
-          <label>Opções de entrega</label>
+        <div class="form-group" *ngIf="!localDelivery?.onlyLocal">
+          <label>{{ localDelivery ? 'Envio para outras cidades' : 'Opções de entrega' }}</label>
           <div class="shipping-options">
             <button type="button"
                     *ngFor="let opt of shippingOptions"
@@ -311,6 +311,10 @@
               </span>
             </button>
           </div>
+        </div>
+
+        <div class="form-group">
+          <app-local-delivery-editor [(value)]="localDelivery"></app-local-delivery-editor>
         </div>
 
         <div class="form-group">
@@ -433,7 +437,10 @@
               {{ submitProductForm.value.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
             </span>
           </div>
-          <span class="preview-shipping" *ngIf="submitProductForm.value.shipping">{{ submitProductForm.value.shipping }}</span>
+          <span class="preview-shipping" *ngIf="localDelivery?.cities?.length; else previewShipping">Entrega grátis da loja</span>
+          <ng-template #previewShipping>
+            <span class="preview-shipping" *ngIf="submitProductForm.value.shipping">{{ submitProductForm.value.shipping }}</span>
+          </ng-template>
         </div>
       </div>
 
@@ -444,6 +451,7 @@
       <p class="publish-hint" *ngIf="missingCatalogPhoto">Adicione ao menos uma foto do produto</p>
       <p class="publish-hint publish-hint--illus" *ngIf="onlyIllustration">Você vai publicar com imagem ilustrativa. Se puder, envie fotos reais.</p>
       <p class="publish-hint" *ngIf="missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }} em "Opções que você tem"</p>
+      <p class="publish-hint" *ngIf="localDeliveryProblem">{{ localDeliveryProblem }}</p>
       <p class="publish-hint" *ngIf="!missingCatalogOption && !missingCatalogPhoto && !submitProductForm.valid">Complete os campos obrigatórios para publicar</p>
     </aside>
   </div>
@@ -452,6 +460,7 @@
   <div class="fixed-bottom-actions">
     <p class="publish-hint publish-hint--bar" *ngIf="missingCatalogPhoto">Adicione ao menos uma foto do produto</p>
     <p class="publish-hint publish-hint--bar" *ngIf="!missingCatalogPhoto && missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }}</p>
+    <p class="publish-hint publish-hint--bar" *ngIf="!missingCatalogPhoto && !missingCatalogOption && localDeliveryProblem">{{ localDeliveryProblem }}</p>
     <button type="button" class="btn-publish" (click)="submit()" [disabled]="!canPublish">
       <ion-icon name="pricetag-outline"></ion-icon>
       Publicar produto

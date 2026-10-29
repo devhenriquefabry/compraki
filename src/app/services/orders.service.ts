@@ -8,6 +8,7 @@ import {
 import { getAuth } from 'firebase/auth';
 import { Observable } from 'rxjs';
 import { Order } from '../interfaces/order';
+import { LOCAL_DELIVERY_SERVICE } from '../core/local-delivery';
 
 import { environment } from '../../environments/environment';
 const firebaseConfig = environment.firebase;
@@ -15,7 +16,8 @@ const firebaseConfig = environment.firebase;
 /** O que o app manda para `placeOrder`: o que comprar, para onde e como pagar. */
 export interface PlaceOrderInput {
   items: { productId: string; skuId: string | null; quantity: number }[];
-  shippingServiceId: number;
+  /** Serviço do Melhor Envio, ou `'local'` para a entrega da própria loja. */
+  shippingServiceId: number | typeof LOCAL_DELIVERY_SERVICE;
   address: {
     street: string; number: string; complement?: string; neighborhood?: string;
     city: string; state: string; postalCode: string;

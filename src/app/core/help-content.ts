@@ -134,6 +134,25 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        id: 'comprar-entrega-loja',
+        q: 'O que é a "Entrega grátis da loja"?',
+        keys: 'entrega da loja entrega propria entrega local frete gratis cidade motoboy entregador',
+        a: [
+          {
+            t: 'p',
+            text: 'Algumas lojas entregam elas mesmas, **sem cobrar frete**, nas cidades que escolheram. O anúncio mostra **Entrega grátis da loja** e as cidades atendidas.',
+          },
+          {
+            t: 'p',
+            text: 'Se o seu endereço fica numa dessas cidades e **todos** os produtos do pedido têm essa entrega, o checkout mostra **Entrega da loja — Grátis**. A loja combina o horário com você pelo chat; quando receber, toque em **Recebi o pedido**.',
+          },
+          {
+            t: 'p',
+            text: 'Fora dessas cidades, o produto vai pela transportadora com o frete calculado — ou não pode ser comprado, se a loja vende só para a cidade dela (o checkout avisa antes de você pagar).',
+          },
+        ],
+      },
+      {
         id: 'comprar-frete-calculo',
         q: 'Como o frete e o prazo são calculados?',
         keys: 'cep melhor envio transportadora correios valor do frete',
@@ -1065,6 +1084,30 @@ export const HELP_TOPICS: HelpTopic[] = [
           },
         ],
         links: [{ label: 'Abrir minhas vendas', route: '/my-sales' }],
+      },
+      {
+        id: 's-entrega-propria',
+        q: 'Como ofereço entrega grátis feita pela minha loja?',
+        keys: 'entrega propria entrega da loja frete gratis cidade entregar eu mesmo motoboy entrega local',
+        a: [
+          {
+            t: 'ol',
+            items: [
+              'No anúncio (ao criar ou em **Editar**), na parte **Entrega e pagamento**, ligue **Entrega grátis da loja**.',
+              'Escolha as cidades onde você entrega e o prazo depois do pagamento (do mesmo dia a 5 dias úteis).',
+              'Diga se para outras cidades você também envia pela transportadora ou se vende só para essas cidades.',
+            ],
+          },
+          {
+            t: 'p',
+            text: 'Quem compra numa dessas cidades paga **R$ 0 de frete**. Não tem etiqueta: na venda, combine o horário pelo chat, toque em **Saiu para entrega** e, depois de entregar, em **Marcar como entregue**. O repasse conta da entrega, como nas outras vendas.',
+          },
+          {
+            t: 'p',
+            text: 'A entrega da loja vale quando todos os itens do pedido são entregues por loja que atende a cidade do comprador.',
+          },
+        ],
+        links: [{ label: 'Anunciar produto', route: '/upload-product' }],
       },
       {
         id: 's-prazo',
