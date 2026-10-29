@@ -34,6 +34,8 @@ export interface SellerInvoiceFile {
 export interface SellerInvoiceSummary {
   grossRevenue: number;
   platformFee: number;
+  /** Frete grátis que a loja ofereceu no mês (etiquetas); já descontado de `netAmount`. */
+  shippingCost?: number;
   netAmount: number;
   orderCount: number;
   itemCount: number;

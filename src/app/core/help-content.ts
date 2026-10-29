@@ -1236,7 +1236,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         a: [
           {
             t: 'p',
-            text: 'A Vineon cobra uma **taxa percentual sobre o valor dos produtos vendidos**. O frete não entra na conta.',
+            text: 'A Vineon cobra uma **taxa percentual sobre o valor dos produtos vendidos**. O frete não entra na conta (se você oferecer frete grátis, só a etiqueta sai do repasse — veja "Quem paga o frete grátis?").',
           },
           {
             t: 'ul',
@@ -1247,6 +1247,26 @@ export const HELP_TOPICS: HelpTopic[] = [
             ],
           },
         ],
+      },
+      {
+        id: 'r-frete-gratis',
+        q: 'Quem paga o frete grátis?',
+        keys: 'frete gratis quem paga etiqueta desconto repasse custo do envio cupom de frete',
+        a: [
+          {
+            t: 'ul',
+            items: [
+              '**Você marcou "Frete grátis" no anúncio:** a loja paga. O valor da etiqueta daquela venda sai do seu repasse (a taxa da Vineon continua só sobre os produtos).',
+              '**Frete grátis da Vineon** (promoção por valor mínimo ou cupom de frete da Vineon): a Vineon paga. Seu repasse não muda. Se o produto já ganharia o frete grátis da Vineon, ela paga mesmo que você tenha marcado no anúncio.',
+              '**Entrega grátis da loja** (você mesmo entrega na sua cidade): não tem etiqueta, então nada é descontado.',
+            ],
+          },
+          {
+            t: 'p',
+            text: 'Pedido de várias lojas com frete grátis dividido: cada loja paga a parte da etiqueta proporcional ao valor dos produtos dela. O valor aparece na venda, em **Recebimentos** e na nota do mês.',
+          },
+        ],
+        links: [{ label: 'Abrir recebimentos', route: '/my-payouts' }],
       },
       {
         id: 'r-quando',

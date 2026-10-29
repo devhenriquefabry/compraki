@@ -153,6 +153,9 @@
                   <dl class="sl-sum">
                     <div><dt>Vendido</dt><dd>{{ brl(row.grossRevenue) }}</dd></div>
                     <div><dt>Taxa Vineon ({{ row.rateLabel }})</dt><dd>− {{ brl(row.platformFee) }}</dd></div>
+                    @if (row.shippingCost > 0) {
+                      <div><dt>Frete grátis da loja (etiquetas)</dt><dd>− {{ brl(row.shippingCost) }}</dd></div>
+                    }
                     <div class="sl-sum__total"><dt>Repasse à loja</dt><dd>{{ brl(row.netAmount) }}</dd></div>
                   </dl>
                 } @else {

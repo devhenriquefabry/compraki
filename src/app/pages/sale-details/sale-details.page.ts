@@ -14,7 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { waitForAuthUser } from 'src/app/core/auth-state';
 import {
   REFUND_LABEL, SALE_STAGE_LABEL, SALE_TRACK_STEPS, escrowReleaseDate, formatDay, isPaid, listUnitPrice,
-  orderStage, paidUnitPrice, productIdOf, sellerAmount, sellerCouponDiscount, sellerItems, shipByDate, toDate, trackIndex, trackingUrl,
+  orderStage, paidUnitPrice, productIdOf, sellerAmount, sellerCouponDiscount, sellerItems, sellerShippingCost, shipByDate, toDate, trackIndex, trackingUrl,
 } from 'src/app/core/order-stage';
 import { FISCAL_DOCUMENT_LABEL, FiscalDocumentType, Order } from 'src/app/interfaces/order';
 import { daysLabel } from 'src/app/core/local-delivery';
@@ -111,6 +111,9 @@ export class SaleDetailsPage {
       released: order.escrowInfo?.status === 'RELEASED',
       // Entrega da própria loja: sem etiqueta nem rastreio (core/local-delivery.ts).
       local: !!order.shippingInfo?.localDelivery,
+      // Etiqueta do frete grátis que a loja ofereceu: sai do repasse dela.
+      sellerShipping: sellerShippingCost(order, seller),
+      vineonFreeShipping: !!order.shippingInfo?.freeShipping && !order.shippingInfo?.localDelivery && !sellerShippingCost(order, seller),
       localDays: daysLabel(order.shippingInfo?.deliveryTime ?? 0),
       trackingCode: order.shippingInfo?.trackingCode || null,
       fiscal: order.fiscalDocuments?.[seller] ?? null,

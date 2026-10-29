@@ -77,7 +77,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   ];
 
   public shippingOptions: { value: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa'; label: string; hint: string; icon: string }[] = [
-    { value: 'Frete Grátis', label: 'Frete grátis', hint: 'Você assume o custo do envio', icon: 'gift-outline' },
+    { value: 'Frete Grátis', label: 'Frete grátis', hint: 'A etiqueta sai do seu repasse', icon: 'gift-outline' },
     { value: 'A combinar', label: 'Comprador paga', hint: 'Frete calculado no checkout', icon: 'chatbubbles-outline' },
     { value: 'Entrega Expressa', label: 'Expressa', hint: 'Envio prioritário', icon: 'flash-outline' },
   ];

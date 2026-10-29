@@ -144,6 +144,12 @@ export interface Order {
      * sem etiqueta. `deliveryTime` é o prazo da loja (0 = no mesmo dia).
      */
     localDelivery?: boolean;
+    /**
+     * Parte da etiqueta que cada loja paga, por uid (servidor, `placeOrder`):
+     * só quando o frete grátis foi escolha da loja ("Frete Grátis" no anúncio).
+     * Sai do repasse, depois da taxa. Frete grátis da Vineon não entra aqui.
+     */
+    sellerShippingCost?: Record<string, number>;
     shipmentId?: string;
     /**
      * Em que passo parou a etiqueta (servidor): `cart` → `paid` → `generated`.

@@ -248,6 +248,12 @@ interface ShippingChoice {
   freeShipping: boolean;
   deliveryTime: number;
   localDelivery: boolean;
+  /**
+   * Parte da etiqueta que cada loja paga (sai do repasse): só quando o frete
+   * grátis é escolha da loja ("Frete Grátis" no anúncio). Frete grátis da
+   * Vineon (regra por valor, cupom de frete) a Vineon banca.
+   */
+  sellerShippingCost: Record<string, number>;
 }
 
 /** Regra de frete grátis da loja (`appConfig/storefront.freeShipping`). */
@@ -296,7 +302,8 @@ async function quoteShipping(lines: PricedLine[], zipTo: string, serviceId: numb
   const quotedPrice = cents(parseFloat(String(quote.price)) || 0);
 
   const rule = await freeShippingRule();
-  const freeShipping = lines.every(l => l.product['shipping'] === 'Frete Grátis' || (rule !== null && l.unitPrice >= rule));
+  const byVineon = (l: PricedLine) => rule !== null && l.unitPrice >= rule;
+  const freeShipping = lines.every(l => l.product['shipping'] === 'Frete Grátis' || byVineon(l));
 
   return {
     serviceId,
@@ -306,7 +313,26 @@ async function quoteShipping(lines: PricedLine[], zipTo: string, serviceId: numb
     freeShipping,
     deliveryTime: Number(quote.delivery_time) || 0,
     localDelivery: false,
+    // Quando a Vineon também daria o frete grátis ao item, a Vineon paga.
+    sellerShippingCost: freeShipping ? splitShippingCost(lines, quotedPrice, l => !byVineon(l)) : {},
   };
+}
+
+/**
+ * Divide o custo da etiqueta entre os itens pelo valor de cada um e soma, por
+ * loja, a parte dos itens que ela paga. Arredonda para baixo: a soma nunca
+ * passa do custo (o centavo que sobra fica com a Vineon).
+ */
+export function splitShippingCost(lines: PricedLine[], cost: number, sellerPays: (l: PricedLine) => boolean): Record<string, number> {
+  const total = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  if (!(cost > 0) || !(total > 0)) return {};
+  const out: Record<string, number> = {};
+  for (const l of lines) {
+    if (!sellerPays(l)) continue;
+    out[l.sellerId] = (out[l.sellerId] ?? 0) + (cost * l.unitPrice * l.quantity) / total;
+  }
+  for (const id of Object.keys(out)) out[id] = Math.floor(out[id] * 100) / 100;
+  return out;
 }
 
 /**
@@ -335,6 +361,7 @@ async function chooseShipping(lines: PricedLine[], address: Address, serviceId: 
       freeShipping: true,
       deliveryTime: plan.local.days,
       localDelivery: true,
+      sellerShippingCost: {},
     };
   }
   if (!plan.carrier) {
@@ -617,6 +644,7 @@ export const placeOrder = onRequest(orderRuntime, async (req, res) => {
           deliveryTime: shipping.deliveryTime,
           // Sem etiqueta: `createMelhorEnvioShipment` recusa pedido sem serviceId.
           ...(shipping.localDelivery ? { localDelivery: true } : {}),
+          ...(Object.keys(shipping.sellerShippingCost).length ? { sellerShippingCost: shipping.sellerShippingCost } : {}),
         },
         pricedBy: 'server',
         createdAt: FieldValue.serverTimestamp(),

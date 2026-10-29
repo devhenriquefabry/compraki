@@ -67,6 +67,9 @@
               <dl class="inv-figures">
                 <div><dt>Vendido</dt><dd>{{ brl(invoice.summary.grossRevenue) }}</dd></div>
                 <div><dt>Taxa Vineon ({{ rateLabel(invoice) }})</dt><dd>{{ brl(invoice.summary.platformFee) }}</dd></div>
+                @if (invoice.summary.shippingCost) {
+                  <div><dt>Frete grátis que você ofereceu</dt><dd>{{ brl(invoice.summary.shippingCost) }}</dd></div>
+                }
                 <div class="is-total"><dt>Seu repasse</dt><dd>{{ brl(invoice.summary.netAmount) }}</dd></div>
               </dl>
 

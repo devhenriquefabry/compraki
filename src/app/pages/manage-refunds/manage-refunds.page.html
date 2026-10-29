@@ -90,7 +90,7 @@
                   <span class="payout-line__name">{{ line.name }}</span>
                   <span class="payout-line__net">{{ formatCurrency(line.net) }}</span>
                 </div>
-                <span class="payout-line__calc">{{ formatCurrency(line.gross) }} em produtos − taxa {{ line.rateLabel }} ({{ formatCurrency(line.fee) }})</span>
+                <span class="payout-line__calc">{{ formatCurrency(line.gross) }} em produtos − taxa {{ line.rateLabel }} ({{ formatCurrency(line.fee) }})@if (line.shipping > 0) { − frete grátis da loja ({{ formatCurrency(line.shipping) }})}</span>
                 <ng-container *ngIf="line.payout as p; else noKey">
                   <button type="button" class="payout-line__pix" (click)="copyPix(line)" [attr.aria-label]="'Copiar chave Pix de ' + line.name">
                     <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>

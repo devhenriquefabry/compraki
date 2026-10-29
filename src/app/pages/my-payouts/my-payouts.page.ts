@@ -7,7 +7,7 @@ import { IonicModule, NavController, ToastController } from '@ionic/angular';
 import { onAuthUserChanged } from '../../core/auth-state';
 import { isValidCpfOrCnpj, formatCpfCnpj } from '../../core/br-documents';
 import { feeFor, formatRate, rateAt } from '../../core/commission';
-import { escrowReleaseDate, formatBRL, formatDay, isPaid, sellerAmount, sellerItems, toDate } from '../../core/order-stage';
+import { escrowReleaseDate, formatBRL, formatDay, isPaid, sellerAmount, sellerItems, sellerShippingCost, toDate } from '../../core/order-stage';
 import { PIX_KEY_TYPES, PixKeyType, SellerPayout, maskPixKey, normalizePixKey, pixKeyLabel, pixKeyProblem } from '../../core/pix';
 import { Order } from '../../interfaces/order';
 import { AppConfigService } from '../../services/app-config.service';
@@ -25,6 +25,8 @@ interface PayoutLine {
   gross: number;
   rateLabel: string;
   fee: number;
+  /** Frete grátis que a loja ofereceu (parte da etiqueta), descontado do repasse. */
+  shipping: number;
   net: number;
   state: PayoutState;
   label: string;
@@ -147,7 +149,8 @@ export class MyPayoutsPage {
     const paidAt = toDate(order.paymentConfirmedAt) ?? toDate(order.createdAt);
     const rate = rateAt(commission, paidAt);
     const fee = feeFor(gross, rate);
-    const net = Math.round((gross - fee) * 100) / 100;
+    // Frete grátis que a loja ofereceu sai do repasse (a taxa é só sobre os produtos).
+    const net = Math.round((gross - fee - sellerShippingCost(order, uid)) * 100) / 100;
 
     let state: PayoutState;
     let label: string;
@@ -187,6 +190,7 @@ export class MyPayoutsPage {
       gross,
       rateLabel: formatRate(rate),
       fee,
+      shipping: sellerShippingCost(order, uid),
       net,
       state,
       label,

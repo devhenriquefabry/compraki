@@ -250,6 +250,16 @@ export function sellerCouponDiscount(order: Order, sellerId: string): number {
     : 0;
 }
 
+/**
+ * Frete grátis que a loja ofereceu neste pedido ("Frete Grátis" no anúncio):
+ * a parte dela no custo da etiqueta, que sai do repasse (depois da taxa, que
+ * é só sobre os produtos). Frete grátis da Vineon (regra por valor, cupom de
+ * frete) e entrega própria da loja dão 0.
+ */
+export function sellerShippingCost(order: Order, sellerId: string): number {
+  return Number(order.shippingInfo?.sellerShippingCost?.[sellerId]) || 0;
+}
+
 /** Quanto a loja vendeu neste pedido: só os itens dela, sem frete, menos o cupom dela. */
 export function sellerAmount(order: Order, sellerId: string): number {
   const gross = sellerItems(order, sellerId).reduce((sum, item) => sum + paidUnitPrice(item) * (item.quantity || 0), 0);

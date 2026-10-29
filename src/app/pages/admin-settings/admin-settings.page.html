@@ -110,7 +110,7 @@
 
         <p class="as-status" [class.is-on]="config().freeShipping.enabled">
           @if (config().freeShipping.enabled) {
-            <strong>Ligado:</strong> produtos a partir de {{ formatBRL(config().freeShipping.minValue) }} têm frete grátis.
+            <strong>Ligado:</strong> produtos a partir de {{ formatBRL(config().freeShipping.minValue) }} têm frete grátis. A Vineon paga a etiqueta; o repasse da loja não muda.
           } @else {
             <strong>Desligado.</strong> Só vale o frete grátis que o próprio vendedor oferece no anúncio.
           }

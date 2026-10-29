@@ -10,7 +10,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { describeRates, formatRate, rateAt, roundCents } from '../core/commission';
-import { isPaid, paidUnitPrice, productIdOf, sellerCouponDiscount, sellerItems, toDate } from '../core/order-stage';
+import { isPaid, paidUnitPrice, productIdOf, sellerCouponDiscount, sellerItems, sellerShippingCost, toDate } from '../core/order-stage';
 import { AppUser } from '../interfaces/app-user';
 import { Order } from '../interfaces/order';
 import { SellerInvoice, SellerInvoiceSummary, invoiceId } from '../interfaces/seller-invoice';
@@ -38,6 +38,8 @@ export interface SellerMonthRow {
   itemCount: number;
   grossRevenue: number;
   platformFee: number;
+  /** Frete grátis que a loja ofereceu no mês (etiquetas), descontado do repasse. */
+  shippingCost: number;
   netAmount: number;
   /** Taxa(s) aplicada(s) no mês: "8%" ou "5% e 8%" se mudou no meio. */
   rateLabel: string;
@@ -52,6 +54,7 @@ export interface SellersMonthReport {
   totals: {
     grossRevenue: number;
     platformFee: number;
+    shippingCost: number;
     netAmount: number;
     orderCount: number;
     sellersWithSales: number;
@@ -117,7 +120,7 @@ export class SellerInvoicesService {
           email: null,
           photoURL: null,
           listings: 0,
-          orderCount: 0, itemCount: 0, grossRevenue: 0, platformFee: 0, netAmount: 0,
+          orderCount: 0, itemCount: 0, grossRevenue: 0, platformFee: 0, shippingCost: 0, netAmount: 0,
           rateLabel: '',
           products: [],
         };
@@ -172,6 +175,9 @@ export class SellerInvoicesService {
           row.platformFee += revenue * rate;
         }
 
+        // Frete grátis que a loja ofereceu: sai do repasse, fora da base da taxa.
+        row.shippingCost += sellerShippingCost(order, sellerId);
+
         // Cupom da própria loja sai da venda (e a taxa é sobre o que sobrou).
         const couponOff = sellerCouponDiscount(order, sellerId);
         if (couponOff > 0) {
@@ -200,11 +206,13 @@ export class SellerInvoicesService {
     const list = [...rows.values()].map(row => {
       const gross = roundCents(row.grossRevenue);
       const fee = roundCents(row.platformFee);
+      const shipping = roundCents(row.shippingCost);
       return {
         ...row,
         grossRevenue: gross,
         platformFee: fee,
-        netAmount: roundCents(gross - fee),
+        shippingCost: shipping,
+        netAmount: roundCents(gross - fee - shipping),
         rateLabel: describeRates(ratesBySeller.get(row.sellerId) ?? []) || currentRate,
         orderCount: orderIds.get(row.sellerId)?.size ?? 0,
         products: [...(productMaps.get(row.sellerId)?.values() ?? [])]
@@ -216,6 +224,7 @@ export class SellerInvoicesService {
     const withSales = list.filter(r => r.grossRevenue > 0);
     const gross = roundCents(withSales.reduce((sum, r) => sum + r.grossRevenue, 0));
     const fee = roundCents(withSales.reduce((sum, r) => sum + r.platformFee, 0));
+    const shipping = roundCents(withSales.reduce((sum, r) => sum + r.shippingCost, 0));
 
     return {
       period,
@@ -224,7 +233,8 @@ export class SellerInvoicesService {
       totals: {
         grossRevenue: gross,
         platformFee: fee,
-        netAmount: roundCents(gross - fee),
+        shippingCost: shipping,
+        netAmount: roundCents(gross - fee - shipping),
         orderCount: withSales.reduce((sum, r) => sum + r.orderCount, 0),
         sellersWithSales: withSales.length,
       },
@@ -259,6 +269,7 @@ export class SellerInvoicesService {
     const summary: SellerInvoiceSummary = {
       grossRevenue: row.grossRevenue,
       platformFee: row.platformFee,
+      ...(row.shippingCost > 0 ? { shippingCost: row.shippingCost } : {}),
       netAmount: row.netAmount,
       orderCount: row.orderCount,
       itemCount: row.itemCount,

@@ -62,3 +62,23 @@ Ordem: function antes do site. O site novo manda `'local'`, que o
   fecha a entrega do pedido.
 - O selo da vitrine mostra a cidade da loja para todo mundo; quem é de outra
   cidade vê o selo e descobre no anúncio/checkout que lá o frete é cobrado.
+
+## Quem paga o frete grátis (desde 29/10/2026)
+
+| Origem do frete grátis | Quem paga a etiqueta |
+|---|---|
+| Loja marcou **Frete grátis** no anúncio | A loja: sai do repasse, depois da taxa (a taxa continua só sobre os produtos). |
+| Regra da Vineon por valor mínimo (Admin › Ajustes) | A Vineon. Se o item já entraria na regra, a Vineon paga mesmo que a loja tenha marcado. |
+| Cupom de frete da Vineon | A Vineon (como antes: cupom `platform` não sai da loja). |
+| Entrega própria da loja | Ninguém: não tem etiqueta. |
+
+O `placeOrder` grava `shippingInfo.sellerShippingCost = { <uid>: valor }` só
+quando há parte paga pela loja. Pedido de várias lojas divide o custo da
+etiqueta (`quotedPrice`) pelo valor dos produtos, arredondando para baixo (o
+centavo que sobra fica com a Vineon). Quem lê: `sellerShippingCost()` em
+`core/order-stage.ts`, usado em Recebimentos, Admin › Devoluções (repasse),
+relatório mensal da aba Vendedores (`shippingCost`, guardado no resumo da nota
+e mostrado no e-mail) e no resumo da venda. Pedido antigo, sem o campo, não
+desconta nada.
+
+Bateria: `node functions/scripts/free-shipping-cost.test.mjs` (9).

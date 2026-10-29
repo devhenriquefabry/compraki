@@ -263,6 +263,11 @@
               @if (v.onlySeller && v.shipping) {
                 <div><dt>Frete pago pelo comprador</dt><dd>{{ v.shipping | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
               }
+              @if (v.sellerShipping > 0) {
+                <div><dt>Frete grátis que você ofereceu (sai do seu repasse)</dt><dd>-{{ v.sellerShipping | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              } @else if (v.vineonFreeShipping) {
+                <div><dt>Frete grátis (pago pela Vineon)</dt><dd>{{ 0 | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+              }
               @if (v.onlySeller) {
                 <div class="kv-total"><dt>Total do pedido</dt><dd>{{ v.order.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
               } @else {

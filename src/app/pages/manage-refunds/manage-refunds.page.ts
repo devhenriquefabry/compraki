@@ -6,7 +6,7 @@ import { Subscription } from 'rxjs';
 import { RefundsService } from '../../services/refunds.service';
 import { AsaasService } from '../../services/asaas.service';
 import { Order } from '../../interfaces/order';
-import { escrowReleaseDate, isPaid, receivedAt, sellerAmount, toDate } from '../../core/order-stage';
+import { escrowReleaseDate, isPaid, receivedAt, sellerAmount, sellerShippingCost, toDate } from '../../core/order-stage';
 import { feeFor, formatRate, rateAt } from '../../core/commission';
 import { SellerPayout, pixKeyLabel } from '../../core/pix';
 import { AppConfigService } from '../../services/app-config.service';
@@ -19,6 +19,8 @@ interface SellerPayoutLine {
   gross: number;
   rateLabel: string;
   fee: number;
+  /** Frete grátis que a loja ofereceu, descontado do repasse. */
+  shipping: number;
   net: number;
   payout: SellerPayout | null;
   loaded: boolean;
@@ -177,7 +179,7 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
     return line.sellerId;
   }
 
-  /** Repasse de cada loja do pedido: produtos dela, menos o cupom dela, menos a taxa. */
+  /** Repasse de cada loja do pedido: produtos dela, menos o cupom dela, a taxa e o frete grátis que ela ofereceu. */
   sellerLines(order: Order): SellerPayoutLine[] {
     const commission = this.appConfig.config().commission;
     const rate = rateAt(commission, toDate(order.paymentConfirmedAt) ?? toDate(order.createdAt));
@@ -191,7 +193,8 @@ export class ManageRefundsPage implements OnInit, OnDestroy {
         gross,
         rateLabel: formatRate(rate),
         fee,
-        net: Math.round((gross - fee) * 100) / 100,
+        shipping: sellerShippingCost(order, sellerId),
+        net: Math.round((gross - fee - sellerShippingCost(order, sellerId)) * 100) / 100,
         payout: info?.payout ?? null,
         loaded: info?.loaded ?? false,
       };

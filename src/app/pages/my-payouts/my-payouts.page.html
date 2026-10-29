@@ -154,7 +154,7 @@
                 </span>
                 <span class="pay-row__money">
                   <strong>{{ brl(line.net) }}</strong>
-                  <small>{{ brl(line.gross) }} − {{ line.rateLabel }}</small>
+                  <small>{{ brl(line.gross) }} − {{ line.rateLabel }}@if (line.shipping > 0) { − frete grátis {{ brl(line.shipping) }}}</small>
                 </span>
               </a>
             </li>

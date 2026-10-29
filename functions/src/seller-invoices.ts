@@ -25,7 +25,7 @@ interface InvoiceDoc {
   sellerId: string;
   period: string;
   file: { name: string; path: string; contentType: string; size: number };
-  summary: { grossRevenue: number; platformFee: number; netAmount: number; orderCount: number; commissionRate: number; commissionLabel?: string };
+  summary: { grossRevenue: number; platformFee: number; shippingCost?: number; netAmount: number; orderCount: number; commissionRate: number; commissionLabel?: string };
   emailRequestedAt?: Timestamp;
 }
 
@@ -131,6 +131,7 @@ function invoiceText(name: string, period: string, invoice: InvoiceDoc): string 
     '',
     `Vendido no mês: ${brl(invoice.summary.grossRevenue)}`,
     `Taxa Vineon (${rate}): ${brl(invoice.summary.platformFee)}`,
+    ...(invoice.summary.shippingCost ? [`Frete grátis que você ofereceu: ${brl(invoice.summary.shippingCost)}`] : []),
     `Seu repasse: ${brl(invoice.summary.netAmount)}`,
     '',
     `Ela também fica no app, em Minha conta > Notas fiscais: ${appUrl()}/my-invoices`,
@@ -168,6 +169,7 @@ export function invoiceHtml(name: string, period: string, invoice: InvoiceDoc): 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F8FA;border-radius:12px;padding:8px 16px;">
             ${row('Vendido no mês', brl(invoice.summary.grossRevenue))}
             ${row(`Taxa Vineon (${escapeHtml(rate)})`, brl(invoice.summary.platformFee))}
+            ${invoice.summary.shippingCost ? row('Frete grátis que você ofereceu', brl(invoice.summary.shippingCost)) : ''}
             ${row('Seu repasse', brl(invoice.summary.netAmount), true)}
           </table>
         </td></tr>
