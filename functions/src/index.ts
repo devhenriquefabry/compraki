@@ -17,7 +17,7 @@ import {
   requireAdmin,
   requireAuthenticated
 } from './shared/http';
-import { getMelhorEnvioConfig, melhorEnvioBaseUrl, melhorEnvioSignatureMatches, requestMelhorEnvio } from './shared/melhor-envio';
+import { getMelhorEnvioConfig, melhorEnvioBaseUrl, melhorEnvioPackage, melhorEnvioSignatureMatches, requestMelhorEnvio } from './shared/melhor-envio';
 import { applyOrderInventory } from './orders';
 
 initializeApp();
@@ -2668,13 +2668,18 @@ export const calculateMelhorEnvioShipping = onRequest({ region, cors: false, max
       return;
     }
 
-    // Sanitiza produtos garantindo dimensões mínimas aceitas pelo Melhor Envio
-    const sanitizedProducts = products.map((p: any) => ({
-      id: String(p.id || 'prod').substring(0, 50),
-      width: Math.max(Number(p.width) || 0, 11),
-      height: Math.max(Number(p.height) || 0, 2),
-      length: Math.max(Number(p.length) || 0, 16),
-      weight: Math.max(Number(p.weight) || 0, 0.1),
+    // Peso e medidas vêm do anúncio (o carrinho não guarda): são os mesmos que
+    // o `placeOrder` usa para recotar. Item que não é anúncio (calculadora do
+    // admin) usa o que veio no pedido.
+    const ids = products.map((p: any) => String(p?.id || ''));
+    const validIds = [...new Set<string>(ids.filter((id: string) => id && id.length <= 200 && !id.includes('/')))];
+    const db = getFirestore();
+    const snaps = validIds.length ? await db.getAll(...validIds.map(id => db.doc(`products/${id}`))) : [];
+    const listed = new Map(snaps.filter(s => s.exists).map(s => [s.id, s.data() || {}]));
+
+    const sanitizedProducts = products.map((p: any, i: number) => ({
+      id: (ids[i] || 'prod').substring(0, 50),
+      ...melhorEnvioPackage(listed.get(ids[i]) ?? p),
       insurance_value: Number(p.insurance_value || p.price || 10),
       quantity: Number(p.quantity) || 1
     }));

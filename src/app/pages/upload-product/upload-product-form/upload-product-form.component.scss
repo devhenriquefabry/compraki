@@ -258,7 +258,8 @@
       font-weight: 700;
       margin-top: 6px;
 
-      &.discount-hint { color: var(--uc-danger); }
+      &.weight-hint { color: var(--uc-ink-muted); }
+      &.discount-hint, &.field-hint--bad { color: var(--uc-danger); }
     }
 
     .input-wrapper {

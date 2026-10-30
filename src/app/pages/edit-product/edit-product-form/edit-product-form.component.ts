@@ -126,7 +126,8 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
     categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
     subcategoryIds: new FormControl<string[]>([]),
     shipping: new FormControl<Shipping>('A combinar', [Validators.required]),
-    weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0.01)]),
+    // Em kg, até 30 (limite dos Correios): pega quem digita gramas.
+    weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0.01), Validators.max(30)]),
     width: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
     height: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
     length: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),

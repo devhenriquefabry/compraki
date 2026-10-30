@@ -120,7 +120,9 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     paymentMethods: new FormControl<('PIX' | 'CARTÃO' | 'DINHEIRO')[]>(['PIX'], [Validators.required, Validators.minLength(1)]),
     
     // Novos campos de dimensões
-    weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0.1)]),
+    // Em kg. Teto de 30 kg (limite dos Correios): pega quem digita gramas
+    // (350 em vez de 0,35), que deixava o anúncio sem nenhum frete.
+    weight: new FormControl<number | null>(null, [Validators.required, Validators.min(0.1), Validators.max(30)]),
     width: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
     height: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)]),
     length: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(100)])

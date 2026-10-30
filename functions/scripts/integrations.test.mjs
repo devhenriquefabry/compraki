@@ -104,6 +104,15 @@ r = await fn('calculateMelhorEnvioShipping', buyer, { body: { zipTo: '01310-100'
 check('comprador cota o frete', r.status === 200 && Array.isArray(r.json) && r.json.some(q => q.name === 'PAC'), r.text);
 let calc = callsSince(t0, 'melhorenvio', '/shipment/calculate')[0];
 check('cotação sai do CEP de origem configurado e com o token salvo', calc?.body?.from?.postal_code === '01001000' && calc?.auth === `Bearer ${ME_TOKEN}`, JSON.stringify(calc));
+// O carrinho não guarda peso e medidas: a cotação tem que usar as do anúncio,
+// as mesmas do `placeOrder` — senão o serviço escolhido some na hora de fechar.
+const calcFone = calc?.body?.products?.[0] || {};
+check('item que não é anúncio (calculadora do admin) usa o que veio', calcFone.id === 'fone' && calcFone.weight === 0.5 && calcFone.width === 20, JSON.stringify(calcFone));
+t0 = Date.now();
+r = await fn('calculateMelhorEnvioShipping', buyer, { body: { zipTo: '01310-100', products: [{ id: 'vaso-ceramica', width: 10, height: 10, length: 15, weight: 0.1, insurance_value: 129, quantity: 2 }] } });
+calc = callsSince(t0, 'melhorenvio', '/shipment/calculate')[0];
+const quoted = calc?.body?.products?.[0] || {};
+check('cotação usa peso e medidas do anúncio, não as do app', r.status === 200 && quoted.weight === 0.5 && quoted.width === 20 && quoted.length === 20 && quoted.height === 10 && quoted.quantity === 2, JSON.stringify(calc?.body));
 check('cotação sem login: 401', (await fn('calculateMelhorEnvioShipping', null, { body: { zipTo: '01310100', products: [{ id: 'x' }] } })).status === 401);
 check('cotação sem CEP: 400', (await fn('calculateMelhorEnvioShipping', buyer, { body: { products: [] } })).status === 400);
 

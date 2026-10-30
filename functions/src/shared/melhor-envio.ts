@@ -26,6 +26,21 @@ export function melhorEnvioBaseUrl(isSandbox: boolean): string {
 }
 
 /**
+ * Medidas de um item como o Melhor Envio aceita (mínimo 11 x 2 x 16 cm e
+ * 0,1 kg). A cotação do checkout e a recotação do `placeOrder` passam pela
+ * mesma conta, com os dados do anúncio: se as duas cotassem pacotes
+ * diferentes, o serviço escolhido podia sumir na hora de fechar o pedido.
+ */
+export function melhorEnvioPackage(p: { width?: unknown; height?: unknown; length?: unknown; weight?: unknown }) {
+  return {
+    width: Math.max(Number(p.width) || 10, 11),
+    height: Math.max(Number(p.height) || 10, 2),
+    length: Math.max(Number(p.length) || 15, 16),
+    weight: Math.max(Number(p.weight) || 0.1, 0.1),
+  };
+}
+
+/**
  * Confere o `X-ME-Signature` do webhook: HMAC-SHA256 do corpo cru com o secret
  * do aplicativo. A doc mostra base64; hex também é aceito por segurança.
  */

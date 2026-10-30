@@ -346,8 +346,11 @@
           <div class="form-group col">
             <label>Peso (kg)</label>
             <div class="input-wrapper">
-              <input type="number" formControlName="weight" placeholder="Ex: 0.5">
+              <input type="number" formControlName="weight" placeholder="Ex: 0.5" min="0.1" max="30" step="0.01">
             </div>
+            <span class="field-hint weight-hint" [class.field-hint--bad]="submitProductForm.controls.weight.hasError('max')">
+              {{ submitProductForm.controls.weight.hasError('max') ? 'Peso em kg, até 30: 350 g = 0,35' : 'Em kg: 350 g = 0,35' }}
+            </span>
           </div>
           <div class="form-group col">
             <label>Comprimento (cm)</label>

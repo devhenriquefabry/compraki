@@ -227,7 +227,7 @@
         <div class="ef-grid ef-grid--4">
           <label class="ef-dim">
             <small>Peso</small>
-            <span class="field-box" [class.is-bad]="invalid('weight')"><input type="number" inputmode="decimal" min="0.01" step="0.01" formControlName="weight" placeholder="0,5" /><em>kg</em></span>
+            <span class="field-box" [class.is-bad]="invalid('weight')"><input type="number" inputmode="decimal" min="0.01" max="30" step="0.01" formControlName="weight" placeholder="0,5" /><em>kg</em></span>
           </label>
           <label class="ef-dim">
             <small>Comprimento</small>
@@ -243,7 +243,7 @@
           </label>
         </div>
         @if (invalid('weight') || invalid('length') || invalid('width') || invalid('height')) {
-          <small class="ef-error">Peso acima de 0 e medidas de 1 a 100 cm (limite dos Correios e transportadoras).</small>
+          <small class="ef-error">Peso em kg, até 30 (350 g = 0,35), e medidas de 1 a 100 cm (limite dos Correios e transportadoras).</small>
         }
       </div>
     </section>
