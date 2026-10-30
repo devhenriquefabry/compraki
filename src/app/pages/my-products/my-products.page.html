@@ -1,71 +1,141 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="true" [showMenuButton]="false"></app-mini-header>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Meus anúncios</h1>
+    <a class="mp-new" routerLink="/tabs/upload-product">
+      <vn-icon name="plus" /> <span>Anunciar</span>
+    </a>
+  </div>
+  @if (products()?.length) {
+    <nav class="pg-tabs" aria-label="Situação dos anúncios">
+      @for (f of filters; track f.id) {
+        <button type="button" class="pg-tab" [class.is-active]="filter() === f.id"
+                [attr.aria-pressed]="filter() === f.id" (click)="setFilter(f.id)">
+          {{ f.label }}
+          @if (counts()[f.id] && f.id !== 'all') { <span class="pg-tab-count">{{ counts()[f.id] }}</span> }
+        </button>
+      }
+    </nav>
+  }
 </ion-header>
 
-<ion-content class="ion-padding custom-bg">
-  <div class="page-container">
-    
-    <div class="header-section">
-      <h1 class="page-title">Meus Produtos</h1>
-      <p class="subtitle">Gerencie seu inventário e estoque</p>
-    </div>
-
-    <!-- Skeleton Loading -->
-    <div *ngIf="isLoading">
-      <ion-card *ngFor="let i of [1,2,3]" class="product-item-card skeleton">
-        <ion-skeleton-text animated style="width: 100%; height: 80px;"></ion-skeleton-text>
-      </ion-card>
-    </div>
-
-    <!-- Empty State -->
-    <div *ngIf="!isLoading && myProducts.length === 0" class="empty-state">
-      <ion-icon name="cube-outline"></ion-icon>
-      <h3>Nenhum produto cadastrado</h3>
-      <p>Você ainda não colocou produtos à venda.</p>
-      <ion-button expand="block" shape="round" color="primary" routerLink="/upload-product" class="ion-margin-top">
-        Cadastrar Primeiro Produto
-      </ion-button>
-    </div>
-
-    <!-- Lista de Produtos -->
-    <div class="product-list" *ngIf="!isLoading && myProducts.length > 0">
-      
-      <div *ngFor="let p of myProducts" class="product-item-card" [routerLink]="['/product-admin', p.id]">
-        <div class="product-main">
-          <div class="product-img">
-            <img [src]="p.photoURL?.[0] || 'assets/imagens/placeholder.png'" alt="Produto">
-          </div>
-          
-          <div class="product-info">
-            <h4 class="product-name">{{ p.name }}</h4>
-            <div class="product-meta">
-              <span class="price">{{ formatPrice(p.priceDiscounted || p.price) }}</span>
-              <span class="stock" [class.low]="p.stock < 5">Estoq: {{ p.stock }}</span>
-            </div>
-            <span class="moderation-tag" *ngIf="p.moderation?.hidden" [title]="p.moderation?.note || ''">
-              Fora do ar · {{ moderationLabel[p.moderation!.reason] }}
-            </span>
-          </div>
-
-          <div class="product-actions">
-            <button class="action-btn edit" (click)="editProduct(p.id!)" title="Editar">
-              <ion-icon name="create-outline"></ion-icon>
-            </button>
-            <button class="action-btn delete" (click)="deleteProduct(p)" title="Excluir">
-              <ion-icon name="trash-outline"></ion-icon>
-            </button>
-          </div>
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (failed()) {
+      <div class="panel panel--refund" role="alert">
+        <ion-icon class="panel-icon" name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+        <div class="panel-body">
+          <p class="panel-title">Não deu para carregar seus anúncios</p>
+          <p>Confira a conexão e abra a tela de novo.</p>
         </div>
       </div>
+    } @else if (products() === null) {
+      <div class="sk mp-sk-hero" aria-hidden="true"></div>
+      @for (i of [1, 2, 3]; track i) { <div class="sk mp-sk-row" aria-hidden="true"></div> }
+    } @else if (!products()!.length) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><vn-icon name="tag" /></span>
+        <h2>Nenhum anúncio ainda</h2>
+        <p>Anuncie em 3 passos: escolha o produto, coloque fotos e defina o preço.</p>
+        <a class="btn btn--primary" routerLink="/tabs/upload-product"><vn-icon name="plus" /> Anunciar meu primeiro produto</a>
+      </div>
+    } @else {
+      @let c = counts();
+      @let s = summary();
 
-    </div>
+      <!-- Resumo da loja -->
+      <section class="ledger mp-ledger" aria-labelledby="mp-total">
+        <span class="ledger-label" id="mp-total">anúncios da loja</span>
+        <strong class="ledger-value">{{ int(c.all) }}</strong>
+        <dl class="ledger-split">
+          <div><dt>No ar</dt><dd>{{ int(c.active) }}</dd></div>
+          <div><dt>Em estoque</dt><dd>{{ int(s.units) }} un.</dd></div>
+          <div><dt>Valor em estoque</dt><dd>{{ brl(s.stockValue) }}</dd></div>
+          <div><dt>Vendidos</dt><dd>{{ int(s.sold) }}</dd></div>
+        </dl>
+        <a class="ledger-cta" routerLink="/seller-dashboard"><vn-icon name="chart" /> Painel da loja</a>
+      </section>
 
-    <!-- Botão Flutuante para Adicionar Novo -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button color="primary" routerLink="/upload-product">
-        <ion-icon name="add"></ion-icon>
-      </ion-fab-button>
-    </ion-fab>
+      @if (c.out || c.hidden || c.low) {
+        <p class="mp-alert">
+          <vn-icon name="flag" />
+          <span>
+            @if (c.hidden) { <strong>{{ c.hidden }} fora do ar</strong>@if (c.out || c.low) {, } }
+            @if (c.out) { <strong>{{ c.out }} sem estoque</strong>@if (c.low) {, } }
+            @if (c.low) { <strong>{{ c.low }} com estoque baixo</strong> }
+            — {{ c.out + c.hidden ? 'quem está sem estoque ou fora do ar não aparece para compra.' : 'reponha antes de esgotar.' }}
+          </span>
+        </p>
+      }
 
+      <!-- Busca e ordem -->
+      <div class="mp-tools">
+        <label class="mp-search">
+          <vn-icon name="search" />
+          <input type="search" placeholder="Buscar nos seus anúncios" aria-label="Buscar nos seus anúncios"
+                 [ngModel]="search()" (ngModelChange)="search.set($event)" />
+        </label>
+        <label class="mp-sort">
+          <span class="vn-sr-only">Ordenar</span>
+          <select [ngModel]="sort()" (ngModelChange)="sort.set($event)" aria-label="Ordenar anúncios">
+            @for (o of sorts; track o.id) { <option [value]="o.id">{{ o.label }}</option> }
+          </select>
+          <vn-icon name="sliders" />
+        </label>
+      </div>
+
+      @if (!visible().length) {
+        <p class="mp-none">
+          {{ search() ? 'Nenhum anúncio com "' + search() + '".' : 'Nenhum anúncio nesta situação.' }}
+          <button type="button" (click)="search.set(''); setFilter('all')">Ver todos</button>
+        </p>
+      } @else {
+        <ul class="mp-list">
+          @for (r of visible(); track r.id) {
+            <li class="ad" [attr.data-status]="r.status" [class.is-busy]="deleting() === r.id">
+              <a class="ad-main" [routerLink]="['/product-admin', r.id]" [attr.aria-label]="'Gerenciar ' + r.product.name">
+                <span class="ad-photo">
+                  @if (r.photo) {
+                    <img [src]="r.photo" alt="" loading="lazy" width="84" height="84" />
+                  } @else {
+                    <vn-icon name="image" />
+                  }
+                </span>
+                <span class="ad-body">
+                  <span class="ad-status">{{ r.statusLabel }}</span>
+                  <strong class="ad-name">{{ r.product.name }}</strong>
+                  <span class="ad-price">
+                    @if (r.product.hasVariants) { <small>a partir de</small> }
+                    <b>{{ brl(r.price) }}</b>
+                    @if (r.listPrice) { <s>{{ brl(r.listPrice) }}</s> }
+                  </span>
+                  <span class="ad-meta">
+                    <span [class.is-warn]="r.status === 'low' || r.status === 'out'">{{ int(r.stock) }} em estoque</span>
+                    <span>{{ int(r.sold) }} {{ r.sold === 1 ? 'vendido' : 'vendidos' }}</span>
+                    @if (r.saved) { <span><vn-icon name="heart" />{{ r.saved }}</span> }
+                    @if (r.rating !== null) { <span><vn-icon name="star" />{{ rating(r.rating) }} ({{ r.reviews }})</span> }
+                  </span>
+                </span>
+                <vn-icon class="ad-go" name="chevron" />
+              </a>
+              <div class="ad-actions">
+                <button type="button" class="ad-btn" (click)="edit(r)">
+                  <vn-icon name="pencil" /> Editar
+                </button>
+                <a class="ad-btn" [routerLink]="['/product-details', r.id]">
+                  <ion-icon name="eye-outline" aria-hidden="true"></ion-icon> Ver no site
+                </a>
+                <button type="button" class="ad-btn ad-btn--danger" (click)="remove(r)" [disabled]="deleting() === r.id"
+                        [attr.aria-label]="'Excluir ' + r.product.name">
+                  <vn-icon name="trash" /> <span class="ad-btn-label">Excluir</span>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    }
   </div>
 </ion-content>

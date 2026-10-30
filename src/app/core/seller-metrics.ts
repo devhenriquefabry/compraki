@@ -415,6 +415,16 @@ export interface ListingHealth {
 
 export const LOW_STOCK = 2;
 
+export type ListingStatus = 'active' | 'low' | 'out' | 'hidden';
+
+/** Situação de um anúncio para a loja (Meus anúncios, Meu anúncio). */
+export function listingStatus(p: Product): ListingStatus {
+  if (p.moderation?.hidden) return 'hidden';
+  const stock = p.stock || 0;
+  if (stock <= 0) return 'out';
+  return stock <= LOW_STOCK ? 'low' : 'active';
+}
+
 export function listingHealth(products: Product[]): ListingHealth {
   const hidden = products.filter(p => p.moderation?.hidden);
   const visible = products.filter(p => !p.moderation?.hidden);

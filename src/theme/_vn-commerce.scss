@@ -854,3 +854,183 @@
     }
   }
 }
+
+/*
+ * Blocos de número (Painel da loja, Meu anúncio): rótulo, valor em Sora e uma
+ * nota. Branco sobre o fundo cinza da página, sem ícone decorativo.
+ */
+@mixin tiles {
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 14px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(11, 22, 35, 0.07);
+  }
+
+  .tile-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--vc-muted);
+  }
+
+  .tile-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
+    font-family: var(--vc-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--vc-ink);
+  }
+
+  .tile-note {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--vc-muted);
+  }
+
+  @media (min-width: 720px) {
+    .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+}
+
+/* Alternador de duas ou três opções: a escolhida fica azul-noite. */
+@mixin seg {
+  .seg {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--vc-ground);
+
+    button {
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      color: var(--vc-ink-2);
+      font-size: 12.5px;
+      font-weight: 800;
+      transition: background-color 0.15s, color 0.15s;
+
+      &.is-on { background: var(--vc-navy); color: #fff; }
+    }
+  }
+}
+
+/* Linhas de ação com ícone num quadrado, texto e seta (atalhos, filas). */
+@mixin link-rows {
+  .lrows {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    color: inherit;
+    text-align: left;
+    text-decoration: none;
+    transition: background-color 0.15s;
+
+    &:hover { background: var(--vc-ground); }
+  }
+
+  .lrow-mark {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--vc-ground);
+    color: var(--vc-ink);
+    font-size: 19px;
+  }
+
+  .lrow-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong { font-size: 14px; font-weight: 800; color: var(--vc-ink); }
+    small { font-size: 12px; color: var(--vc-muted); }
+  }
+
+  .lrow-go { flex-shrink: 0; font-size: 16px; color: #9AA4B2; }
+}
+
+/* Campo de formulário das telas da loja (rótulo em cima, borda de 1,5px). */
+@mixin field {
+  .field {
+    display: block;
+
+    > span:first-child {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--vc-ink-2);
+
+      small { font-weight: 600; color: var(--vc-muted); }
+    }
+  }
+
+  .field-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1.5px solid #C7CED8;
+    border-radius: 12px;
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &:focus-within { border-color: var(--vc-navy); box-shadow: 0 0 0 3px rgba(11, 22, 35, 0.12); }
+
+    em { font-style: normal; font-weight: 700; color: var(--vc-muted); }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 46px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--vc-ink);
+      font: 700 16px var(--vc-body);
+      font-variant-numeric: tabular-nums;
+
+      &::placeholder { color: #9AA4B2; font-weight: 600; }
+    }
+  }
+}

@@ -3,16 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AlertController, IonicModule, NavController, ToastController } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import {
-  alertCircle, arrowBack, cartOutline, cashOutline, checkmarkCircle, chevronForward, createOutline,
-  eyeOutline, heartOutline, imagesOutline, layersOutline, shareSocialOutline, star, trashOutline,
-} from 'ionicons/icons';
 
+import { AdminChartComponent, ChartPoint } from 'src/app/components/admin-chart/admin-chart.component';
+import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
 import { waitForAuthUser } from 'src/app/core/auth-state';
 import {
-  SALE_STAGE_LABEL, formatDay, isPaid, orderStage, paidUnitPrice, productIdOf, toDate,
+  MONTHS_SHORT, SALE_STAGE_LABEL, formatBRL, formatDay, isPaid, orderStage, paidUnitPrice, productIdOf, toDate,
 } from 'src/app/core/order-stage';
+import { MODERATION_LABEL } from 'src/app/core/product-moderation';
+import { listingStatus } from 'src/app/core/seller-metrics';
 import { Order } from 'src/app/interfaces/order';
 import { Product } from 'src/app/interfaces/product';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
@@ -35,7 +34,7 @@ const RECENT_SALES = 5;
   templateUrl: './product-admin.page.html',
   styleUrls: ['./product-admin.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, RouterModule],
+  imports: [CommonModule, FormsModule, IonicModule, RouterModule, AdminChartComponent, VnIconComponent],
 })
 export class ProductAdminPage {
   private readonly route = inject(ActivatedRoute);
@@ -55,6 +54,9 @@ export class ProductAdminPage {
   readonly product = signal<Product | null>(null);
   readonly orders = signal<Order[]>([]);
   readonly tab = signal<AdminTab>('overview');
+  /** uid de quem está logado; `undefined` enquanto a sessão não respondeu. */
+  readonly uid = signal<string | null | undefined>(undefined);
+  readonly moderationLabel = MODERATION_LABEL;
 
   // Edição rápida
   readonly draftPrice = signal<number | null>(null);
@@ -75,7 +77,9 @@ export class ProductAdminPage {
         return {
           id: order.id || '',
           buyer: firstName(order.customerData?.name),
+          initial: firstName(order.customerData?.name).charAt(0),
           date: formatDay(toDate(order.createdAt), true),
+          paidAt: toDate(order.paymentConfirmedAt) ?? toDate(order.createdAt),
           quantity: lines.reduce((s, i) => s + (i.quantity || 0), 0),
           amount: lines.reduce((s, i) => s + paidUnitPrice(i) * (i.quantity || 0), 0),
           variants: lines.map(i => i.variantLabel).filter(Boolean).join(' · '),
@@ -89,11 +93,53 @@ export class ProductAdminPage {
 
   readonly recentSales = computed(() => this.sales().slice(0, RECENT_SALES));
 
+  /** Só a loja dona mexe no anúncio; outra conta vê o aviso e o link público. */
+  readonly isOwner = computed(() => {
+    const p = this.product();
+    const uid = this.uid();
+    return !!p && !!uid && p.sellerId === uid;
+  });
+
+  readonly status = computed(() => {
+    const p = this.product();
+    return p ? listingStatus(p) : 'active';
+  });
+
+  /** Vendido com este anúncio nos últimos 6 meses, mês a mês (data do pagamento). */
+  readonly monthly = computed<ChartPoint[]>(() => {
+    const now = new Date();
+    const points = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      return { start: d, label: MONTHS_SHORT[d.getMonth()], value: 0 };
+    });
+    const first = points[0].start;
+    for (const sale of this.sales()) {
+      if (!sale.counts || !sale.paidAt) continue;
+      const i = (sale.paidAt.getFullYear() - first.getFullYear()) * 12 + sale.paidAt.getMonth() - first.getMonth();
+      if (i >= 0 && i < points.length) points[i].value += sale.amount;
+    }
+    return points.map(p => ({ label: p.label, value: Math.round(p.value * 100) / 100 }));
+  });
+
+  readonly monthlyTotal = computed(() => this.monthly().reduce((sum, p) => sum + p.value, 0));
+
+  /** Preço que o comprador vê com o rascunho atual, para a prévia da edição rápida. */
+  readonly preview = computed(() => {
+    const price = Number(this.draftPrice());
+    const promo = this.draftPromo() === null || (this.draftPromo() as any) === '' ? null : Number(this.draftPromo());
+    if (!Number.isFinite(price) || price <= 0) return null;
+    if (promo !== null && Number.isFinite(promo) && promo > 0 && promo < price) {
+      return { price: promo, list: price, off: Math.round((1 - promo / price) * 100) };
+    }
+    return { price, list: null, off: 0 };
+  });
+
   readonly metrics = computed(() => {
     const p = this.product();
     const counted = this.sales().filter(s => s.counts);
     return {
       units: counted.reduce((s, x) => s + x.quantity, 0),
+      orders: counted.length,
       revenue: counted.reduce((s, x) => s + x.amount, 0),
       saved: p?.savedCount ?? 0,
       rating: p?.reviewCount ? (p.rating ?? 0) : null,
@@ -138,11 +184,6 @@ export class ProductAdminPage {
   });
 
   constructor() {
-    addIcons({
-      alertCircle, arrowBack, cartOutline, cashOutline, checkmarkCircle, chevronForward, createOutline,
-      eyeOutline, heartOutline, imagesOutline, layersOutline, shareSocialOutline, star, trashOutline,
-    });
-
     const destroy = inject(DestroyRef);
     this.productId = this.route.snapshot.paramMap.get('id') || '';
     if (this.route.snapshot.queryParamMap.get('aba') === 'gerenciar') this.tab.set('manage');
@@ -164,6 +205,7 @@ export class ProductAdminPage {
     destroy.onDestroy(() => productSub.unsubscribe());
 
     void waitForAuthUser().then(user => {
+      this.uid.set(user?.uid ?? null);
       if (!user) return;
       const salesSub = this.salesService.getSellerSales(user.uid).subscribe({
         next: orders => this.orders.set(orders),
@@ -196,19 +238,44 @@ export class ProductAdminPage {
     this.router.navigate(['/sale-details', id]);
   }
 
+  /**
+   * No celular abre o compartilhar do sistema; no computador (ou se o
+   * compartilhar falhar) copia o link e avisa. Antes, no Windows, o erro do
+   * compartilhar era engolido e nada acontecia.
+   */
   async share() {
     const p = this.product();
     const url = `${window.location.origin}/product-details/${this.productId}`;
-    try {
-      if (navigator.share) {
+    const touch = window.matchMedia?.('(pointer: coarse)').matches;
+    if (touch && navigator.share) {
+      try {
         await navigator.share({ title: p?.name, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        this.toast('Link do anúncio copiado.', 'dark');
+        return;
+      } catch (err) {
+        if ((err as DOMException)?.name === 'AbortError') return;
       }
-    } catch {
-      // Compartilhamento cancelado: nada a fazer.
     }
+    try {
+      await navigator.clipboard.writeText(url);
+      this.toast('Link do anúncio copiado. É só colar no WhatsApp ou nas redes.', 'dark');
+    } catch {
+      const alert = await this.alertCtrl.create({
+        header: 'Link do anúncio',
+        message: 'Copie o link abaixo para compartilhar.',
+        inputs: [{ name: 'url', type: 'url', value: url, attributes: { readonly: true } }],
+        buttons: ['Fechar'],
+      });
+      await alert.present();
+    }
+  }
+
+  stepStock(delta: number) {
+    const current = Number(this.draftStock()) || 0;
+    this.draftStock.set(Math.max(0, Math.round(current + delta)));
+  }
+
+  brl(value: number): string {
+    return formatBRL(value || 0);
   }
 
   // --------------------------------------------------------- edição rápida
