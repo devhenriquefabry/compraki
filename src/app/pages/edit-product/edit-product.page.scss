@@ -1,0 +1,21 @@
+/*
+ * Editar anúncio — casca da página (topo e estados). O formulário tem o
+ * próprio estilo em edit-product-form.
+ */
+
+@use '../../../theme/vn-commerce' as vc;
+
+:host { @include vc.tokens; }
+
+@include vc.base;
+@include vc.header;
+@include vc.content(1120px);
+@include vc.empty;
+@include vc.skeleton;
+@include vc.buttons;
+@include vc.desktop-header(1120px);
+@include vc.reduced-motion;
+
+.ep-sk { margin-bottom: 12px; border-radius: 16px; }
+.ep-sk--a { height: 220px; }
+.ep-sk--b { height: 300px; }

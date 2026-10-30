@@ -1,25 +1,23 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 
 import { IonicModule } from '@ionic/angular';
 
 import { EditProductPageRoutingModule } from './edit-product-routing.module';
-import { ProductSelectorComponent } from 'src/app/components/product-selector/product-selector.component';
 import { EditProductFormComponent } from './edit-product-form/edit-product-form.component';
-import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
+import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
 
 import { EditProductPage } from './edit-product.page';
 
 @NgModule({
   imports: [
     CommonModule,
-    FormsModule,
     IonicModule,
+    RouterModule,
     EditProductPageRoutingModule,
-    ProductSelectorComponent,
     EditProductFormComponent,
-    MiniHeaderComponent
+    VnIconComponent,
   ],
   declarations: [EditProductPage]
 })

@@ -1,19 +1,51 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [useChatIcon]="true" [showBackButton]="true" [showMenuButton]="false" backUrl="/tabs/tab2"></app-mini-header>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Editar anúncio</h1>
+    @if (product && !notOwner) {
+      <button type="button" class="pg-icon-btn" (click)="openListing()" aria-label="Ver como comprador" title="Ver como comprador">
+        <ion-icon name="eye-outline" aria-hidden="true"></ion-icon>
+      </button>
+    }
+  </div>
+  @if (product && !notOwner) {
+    <nav class="pg-tabs" aria-label="Seções do anúncio">
+      @for (s of sections; track s.id) {
+        <button type="button" class="pg-tab" [class.is-active]="activeSection === s.id"
+                [attr.aria-current]="activeSection === s.id ? 'true' : null" (click)="jump(s.id)">{{ s.label }}</button>
+      }
+    </nav>
+  }
 </ion-header>
 
-<ion-content>
-  <!-- SELETOR SE NADA SELECIONADO -->
-  <app-product-selector 
-    *ngIf="!selectedProduct"
-    [allProducts$]="allProducts$"
-    (productSelected)="onProductSelect($event)">
-  </app-product-selector>
-
-  <!-- FORMULÁRIO DE EDIÇÃO SE ITEM SELECIONADO -->
-  <app-edit-product-form 
-    *ngIf="selectedProduct"
-    [product]="selectedProduct"
-    (cancel)="onCancelEdit()">
-  </app-edit-product-form>
+<ion-content class="pg-content" [scrollEvents]="true" (ionScroll)="onScroll()">
+  @if (loading) {
+    <div class="pg-wrap">
+      <div class="sk ep-sk ep-sk--a" aria-hidden="true"></div>
+      <div class="sk ep-sk ep-sk--b" aria-hidden="true"></div>
+      <div class="sk ep-sk ep-sk--b" aria-hidden="true"></div>
+    </div>
+  } @else if (!product) {
+    <div class="pg-wrap">
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><vn-icon name="tag" /></span>
+        <h2>Anúncio não encontrado</h2>
+        <p>Ele pode ter sido excluído.</p>
+        <a class="btn btn--primary" routerLink="/my-products">Ver meus anúncios</a>
+      </div>
+    </div>
+  } @else if (notOwner) {
+    <div class="pg-wrap">
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><vn-icon name="lock" /></span>
+        <h2>Este anúncio é de outra loja</h2>
+        <p>Só a loja que publicou pode editar fotos, preço e descrição.</p>
+        <button type="button" class="btn btn--primary" (click)="openListing()">Ver o anúncio</button>
+      </div>
+    </div>
+  } @else {
+    <app-edit-product-form [product]="product" (saved)="onSaved()"></app-edit-product-form>
+  }
 </ion-content>

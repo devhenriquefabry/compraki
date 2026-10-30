@@ -1,160 +1,181 @@
-<app-loading-spinner-overlay *ngIf="isLoading"></app-loading-spinner-overlay>
-<div class="upload-container">
-  <!-- LOGO BRANDING -->
-  <div class="form-logo-top">
-    <img src="assets/imagens/logo-devmode-notice.png" alt="Compraki Devmode">
-  </div>
+<div class="ef">
+  <form class="ef-main" [formGroup]="form" (ngSubmit)="submit()" novalidate>
 
-  <!-- BANNER TOPO REAL -->
-  <div class="announce-banner-real">
-    <img src="assets/imagens/banner-anunciar.png" alt="Anunciar Produto">
-  </div>
+    <!-- FOTOS -->
+    <section class="ef-card" id="ef-fotos" aria-labelledby="ef-fotos-t">
+      <header class="ef-head">
+        <span class="ef-step" aria-hidden="true">1</span>
+        <div>
+          <h2 id="ef-fotos-t">Fotos</h2>
+          <p>A primeira é a capa. Mostre o produto de frente, de lado e os detalhes.</p>
+        </div>
+        <span class="ef-count" [class.is-full]="selectedPhotos.length >= maxPhotos">{{ selectedPhotos.length }}/{{ maxPhotos }}</span>
+      </header>
 
-  <form action="" [formGroup]="editProductForm">
-    <!-- SEÇÃO FOTOS -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Fotos do Produto</span>
-      <button type="button" class="btn-reorder-trigger" *ngIf="selectedPhotos.length > 1" (click)="openReorderModal()">
-        <ion-icon name="swap-horizontal-outline"></ion-icon>
-        Selecionar Ordem
-      </button>
-    </div>
-    
-    <div class="photos-grid">
-      <div class="add-photo-box" (click)="fileInput.click()">
-        <ion-icon name="camera-outline"></ion-icon>
-        <span>+ Adicionar Fotos</span>
-        <small>Arquivos novos</small>
-        <input #fileInput type="file" multiple (change)="onFileSelected($event)" style="display: none;">
+      <ul class="ef-photos">
+        @for (photo of selectedPhotos; track photo; let i = $index; let last = $last) {
+          <li class="ef-photo" [class.is-cover]="i === 0">
+            <button type="button" class="ef-photo-img" (click)="previewImage = photo" [attr.aria-label]="'Ampliar foto ' + (i + 1)">
+              <img [src]="photo" alt="" draggable="false" />
+            </button>
+            @if (i === 0) { <span class="ef-cover">Capa</span> }
+            <button type="button" class="ef-photo-x" (click)="removePhoto(i)" [attr.aria-label]="'Remover foto ' + (i + 1)">
+              <vn-icon name="close" />
+            </button>
+            <div class="ef-photo-bar">
+              <button type="button" (click)="movePhoto(i, -1)" [disabled]="i === 0" [attr.aria-label]="'Mover foto ' + (i + 1) + ' para a esquerda'">‹</button>
+              @if (i > 0) {
+                <button type="button" class="ef-make-cover" (click)="makeCover(i)">Capa</button>
+              } @else {
+                <span class="ef-photo-n">1</span>
+              }
+              <button type="button" (click)="movePhoto(i, 1)" [disabled]="last" [attr.aria-label]="'Mover foto ' + (i + 1) + ' para a direita'">›</button>
+            </div>
+          </li>
+        }
+        @if (selectedPhotos.length < maxPhotos) {
+          <li>
+            <label class="ef-add">
+              <input type="file" accept="image/*" multiple (change)="onFileSelected($event)" />
+              <vn-icon name="camera" />
+              <strong>{{ selectedPhotos.length ? 'Adicionar' : 'Adicionar fotos' }}</strong>
+              <small>JPG ou PNG</small>
+            </label>
+          </li>
+        }
+      </ul>
+      @if (selectedPhotos.length && selectedPhotos.length < 3) {
+        <p class="ef-tip"><vn-icon name="camera" /> Anúncios com 3 fotos ou mais passam mais confiança.</p>
+      }
+    </section>
+
+    <!-- DETALHES -->
+    <section class="ef-card" id="ef-detalhes" aria-labelledby="ef-detalhes-t">
+      <header class="ef-head">
+        <span class="ef-step" aria-hidden="true">2</span>
+        <div>
+          <h2 id="ef-detalhes-t">Detalhes</h2>
+          <p>Título, categoria e o estado do produto.</p>
+        </div>
+      </header>
+
+      <label class="field">
+        <span>Título</span>
+        @if (product.catalogId) {
+          <span class="ef-locked"><vn-icon name="lock" /> {{ form.controls.name.value }}</span>
+          <small class="ef-hint">Anúncio feito pelo catálogo Vineon: o título segue a ficha do catálogo.</small>
+        } @else {
+          <span class="field-box" [class.is-bad]="invalid('name')">
+            <input type="text" formControlName="name" maxlength="140" placeholder="Ex.: Notebook Acer i5 8 GB RAM 256 GB SSD"
+                   [attr.aria-invalid]="invalid('name')" />
+          </span>
+          @if (blockedTerm) {
+            <small class="ef-error" role="alert">Esse produto não é aceito na Vineon.</small>
+          } @else if (invalid('name')) {
+            <small class="ef-error">Escreva o título do anúncio.</small>
+          } @else {
+            <small class="ef-hint">Marca, modelo e o que diferencia: é o que o comprador procura.</small>
+          }
+        }
+      </label>
+
+      <div class="field">
+        <span>Categoria</span>
+        <div class="ef-chips" role="radiogroup" aria-label="Categoria">
+          @for (cat of (categories$ | async); track cat.id) {
+            <button type="button" role="radio" class="ef-chip" [class.is-on]="form.controls.categoryIds.value?.[0] === cat.id"
+                    [attr.aria-checked]="form.controls.categoryIds.value?.[0] === cat.id" (click)="selectCategory(cat.id)">
+              <ion-icon [name]="cat.icon || 'folder-outline'" aria-hidden="true"></ion-icon>{{ cat.name }}
+            </button>
+          }
+        </div>
+        @if (invalid('categoryIds')) { <small class="ef-error">Escolha uma categoria.</small> }
       </div>
 
-      <div class="photo-item" *ngFor="let photo of selectedPhotos; let i = index">
-        <img [src]="photo" alt="Preview" draggable="false" (click)="openPreview(photo)">
-        <div class="photo-order-badge">{{ i + 1 }}</div>
-        <div class="remove-photo" (click)="removePhoto(i)">
-          <ion-icon name="close"></ion-icon>
+      @if (availableSubcategories.length) {
+        <div class="field">
+          <span>Subcategoria <small>opcional, pode marcar mais de uma</small></span>
+          <div class="ef-chips">
+            @for (sub of availableSubcategories; track sub.id) {
+              <button type="button" class="ef-chip ef-chip--sm" [class.is-on]="form.controls.subcategoryIds.value?.includes(sub.id)"
+                      [attr.aria-pressed]="form.controls.subcategoryIds.value?.includes(sub.id)" (click)="toggleSubcategory(sub.id)">{{ sub.name }}</button>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="field">
+        <span>Condição</span>
+        <div class="ef-conds" role="radiogroup" aria-label="Condição">
+          @for (c of conditionOptions; track c.value) {
+            <button type="button" role="radio" class="ef-cond" [class.is-on]="form.controls.condition.value === c.value"
+                    [attr.aria-checked]="form.controls.condition.value === c.value" (click)="setCondition(c.value)">
+              <span class="ef-radio" aria-hidden="true"></span>
+              <strong>{{ c.label }}</strong>
+              <small>{{ c.hint }}</small>
+            </button>
+          }
         </div>
       </div>
+    </section>
 
-      <div class="photo-placeholder" *ngIf="selectedPhotos.length < 5" (click)="fileInput.click()" style="cursor: pointer;">
-        <ion-icon name="add"></ion-icon>
-      </div>
-    </div>
-
-    <!-- SEÇÃO INFORMAÇÕES -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Informações do Produto</span>
-    </div>
-
-    <div class="form-group">
-      <label>Título do Produto</label>
-      <div class="input-wrapper">
-        <input type="text" formControlName="name" placeholder="Ex: Notebook Acer i5 8GB RAM" [readonly]="!!product?.catalogId" [attr.aria-invalid]="!!blockedTerm" [attr.aria-describedby]="blockedTerm ? 'name-blocked' : null">
-        <ion-icon name="checkmark" style="color: #0B1623" *ngIf="editProductForm.get('name')?.valid"></ion-icon>
-      </div>
-      <p class="catalog-lock-hint" *ngIf="product?.catalogId">
-        <ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon>
-        Anúncio feito pelo catálogo Vineon: o título segue a ficha do catálogo.
-      </p>
-      <p class="field-blocked" id="name-blocked" role="alert" *ngIf="blockedTerm">
-        <ion-icon name="ban-outline" aria-hidden="true"></ion-icon>
-        Esse produto não é aceito no Vineon.
-      </p>
-    </div>
-
-    <div class="form-group">
-      <label>Categoria principal</label>
-      <div class="category-chips">
-        <button type="button" 
-                *ngFor="let cat of (categories$ | async)" 
-                class="cat-chip"
-                [class.active]="editProductForm.get('categoryIds')?.value?.[0] === cat.id"
-                (click)="selectCategory(cat.id)">
-          <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
-          <span>{{ cat.name }}</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="form-group" *ngIf="availableSubcategories.length > 0">
-      <label>Subcategoria</label>
-      <div class="subcategory-chips">
-        <button type="button" 
-                *ngFor="let sub of availableSubcategories" 
-                class="sub-chip"
-                [class.active]="editProductForm.get('subcategoryIds')?.value?.includes(sub.id)"
-                (click)="toggleSubcategory(sub.id)">
-          {{ sub.name }}
-        </button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Condição do Produto</label>
-      <div class="condition-pills scrollable">
-        <button type="button" 
-                [class.active]="editProductForm.get('condition')?.value === 'novo'"
-                (click)="editProductForm.patchValue({condition: 'novo'})">
-          Novo
-        </button>
-        <button type="button"
-                [class.active]="editProductForm.get('condition')?.value === 'usado-como-novo'"
-                (click)="editProductForm.patchValue({condition: 'usado-como-novo'})">
-          Como Novo
-        </button>
-        <button type="button"
-                [class.active]="editProductForm.get('condition')?.value === 'usado-bom'"
-                (click)="editProductForm.patchValue({condition: 'usado-bom'})">
-          Bom estado
-        </button>
-        <button type="button"
-                [class.active]="editProductForm.get('condition')?.value === 'usado-aceitavel'"
-                (click)="editProductForm.patchValue({condition: 'usado-aceitavel'})">
-          Aceitável
-        </button>
-      </div>
-    </div>
-
-    <!-- SEÇÃO PREÇO E ESTOQUE -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Preço e Estoque</span>
-    </div>
-
-    <div class="row">
-      <div class="form-group col">
-        <label>Preço</label>
-        <div class="input-wrapper price-input">
-          <span class="prefix">R$</span>
-          <input type="number" formControlName="price" placeholder="0,00">
+    <!-- PREÇO -->
+    <section class="ef-card" id="ef-preco" aria-labelledby="ef-preco-t">
+      <header class="ef-head">
+        <span class="ef-step" aria-hidden="true">3</span>
+        <div>
+          <h2 id="ef-preco-t">Preço e estoque</h2>
+          <p>{{ hasVariants ? 'Com variações, o estoque fica em cada combinação.' : 'Quanto custa e quantas unidades você tem.' }}</p>
         </div>
+      </header>
+
+      <div class="ef-grid ef-grid--3">
+        <label class="field">
+          <span>Preço</span>
+          <span class="field-box" [class.is-bad]="invalid('price')">
+            <em>R$</em><input type="number" inputmode="decimal" min="0.01" step="0.01" formControlName="price" placeholder="0,00" />
+          </span>
+          @if (invalid('price')) { <small class="ef-error">Informe o preço.</small> }
+        </label>
+        <label class="field">
+          <span>Promoção <small>opcional</small></span>
+          <span class="field-box" [class.is-bad]="form.errors?.['promo']">
+            <em>R$</em><input type="number" inputmode="decimal" min="0.01" step="0.01" formControlName="priceDiscounted" placeholder="Nenhuma" />
+            @if (discountPercent) { <b class="ef-off">−{{ discountPercent }}%</b> }
+          </span>
+          @if (form.errors?.['promo']) { <small class="ef-error">Tem que ser menor que o preço. Deixe vazio para tirar.</small> }
+        </label>
+        @if (!hasVariants) {
+          <div class="field">
+            <span>Estoque</span>
+            <span class="ef-stepper" [class.is-bad]="invalid('stock')">
+              <button type="button" (click)="stepStock(-1)" [disabled]="!form.controls.stock.value" aria-label="Tirar 1 do estoque">−</button>
+              <input type="number" inputmode="numeric" min="0" step="1" formControlName="stock" aria-label="Estoque" />
+              <button type="button" (click)="stepStock(1)" aria-label="Pôr 1 no estoque">+</button>
+            </span>
+            @if (form.controls.stock.value === 0) { <small class="ef-warn">Com 0 o anúncio não aparece para compra.</small> }
+          </div>
+        }
       </div>
-      <div class="form-group col" *ngIf="!hasVariants">
-        <label>Estoque</label>
-        <div class="input-wrapper stock-input">
-          <input type="number" formControlName="stock" placeholder="1">
-          <span class="suffix">unidades</span>
+
+      <label class="ef-switch-row">
+        <span>
+          <strong>Aceitar ofertas</strong>
+          <small>O comprador pode propor um valor pelo chat.</small>
+        </span>
+        <span class="ef-switch"><input type="checkbox" formControlName="acceptOffers" /><i aria-hidden="true"></i></span>
+      </label>
+    </section>
+
+    <!-- VARIAÇÕES -->
+    <section class="ef-card" id="ef-variacoes" aria-labelledby="ef-variacoes-t">
+      <header class="ef-head">
+        <span class="ef-step" aria-hidden="true">4</span>
+        <div>
+          <h2 id="ef-variacoes-t">Variações <small>opcional</small></h2>
+          <p>Cor, tamanho… cada combinação com preço e estoque próprios.</p>
         </div>
-      </div>
-    </div>
-
-    <div class="toggle-group">
-      <div class="toggle-text">
-        <label>Aceitar Ofertas?</label>
-        <p>Permitir que compradores façam propostas</p>
-      </div>
-      <ion-toggle color="success" formControlName="acceptOffers"></ion-toggle>
-    </div>
-
-    <!-- SEÇÃO VARIAÇÕES -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Variações</span>
-    </div>
-
-    <div class="form-group">
+      </header>
       <app-product-variants-editor
         [hasVariants]="hasVariants"
         [attributes]="variantAttributes"
@@ -162,150 +183,162 @@
         [variantImages]="variantImages"
         [variantPhotos]="variantPhotos"
         [availablePhotos]="selectedPhotos"
-        [basePrice]="editProductForm.controls.price.value"
-        (hasVariantsChange)="hasVariants = $event"
-        (attributesChange)="variantAttributes = $event"
-        (skusChange)="variantSkus = $event"
-        (variantImagesChange)="variantImages = $event"
-        (variantPhotosChange)="variantPhotos = $event"
+        [basePrice]="form.controls.price.value"
+        (hasVariantsChange)="hasVariants = $event; markChanged()"
+        (attributesChange)="variantAttributes = $event; markChanged()"
+        (skusChange)="variantSkus = $event; markChanged()"
+        (variantImagesChange)="variantImages = $event; markChanged()"
+        (variantPhotosChange)="variantPhotos = $event; markChanged()"
         (optionFilesAdded)="onOptionFiles($event)">
       </app-product-variants-editor>
-    </div>
+    </section>
 
-    <!-- SEÇÃO LOGÍSTICA (MELHOR ENVIO) -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Logística e Dimensões (Frete)</span>
-    </div>
-
-    <div class="form-group" *ngIf="!localDelivery?.onlyLocal">
-      <label>{{ localDelivery ? 'Envio para outras cidades' : 'Forma de Entrega' }}</label>
-      <div class="input-wrapper">
-        <select formControlName="shipping" class="custom-select">
-          <option value="A combinar">Comprador paga o frete (calculado no checkout)</option>
-          <option value="Frete Grátis">Frete grátis para todo o Brasil (a etiqueta sai do seu repasse)</option>
-          <option value="Entrega Expressa">Expressa (envio prioritário)</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <app-local-delivery-editor [(value)]="localDelivery"></app-local-delivery-editor>
-    </div>
-
-    <div class="row">
-      <div class="form-group col">
-        <label>Peso (kg)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="weight" placeholder="Ex: 0.5">
+    <!-- ENTREGA -->
+    <section class="ef-card" id="ef-entrega" aria-labelledby="ef-entrega-t">
+      <header class="ef-head">
+        <span class="ef-step" aria-hidden="true">5</span>
+        <div>
+          <h2 id="ef-entrega-t">Entrega</h2>
+          <p>Como o produto chega e as medidas da embalagem para o frete.</p>
         </div>
-      </div>
-      <div class="form-group col">
-        <label>Comprimento (cm)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="length" placeholder="Ex: 16">
-        </div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="form-group col">
-        <label>Largura (cm)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="width" placeholder="Ex: 11">
-        </div>
-      </div>
-      <div class="form-group col">
-        <label>Altura (cm)</label>
-        <div class="input-wrapper">
-          <input type="number" formControlName="height" placeholder="Ex: 2">
-        </div>
-      </div>
-    </div>
+      </header>
 
-    <!-- SEÇÃO FICHA TÉCNICA -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Características</span>
-    </div>
-
-    <div class="form-group">
-      <app-product-specs-editor
-        [specs]="editProductForm.controls.specs.value"
-        (specsChange)="editProductForm.controls.specs.setValue($event)">
-      </app-product-specs-editor>
-    </div>
-
-    <!-- SEÇÃO DESCRIÇÃO -->
-    <div class="section-title">
-      <div class="dot"></div>
-      <span>Descrição do Produto</span>
-    </div>
-
-    <div class="form-group">
-      <textarea formControlName="description" rows="6" placeholder="Descreva seu produto em detalhes..."></textarea>
-    </div>
-
-    <div class="spacer-bottom"></div>
-  </form>
-
-  <div class="fixed-bottom-actions">
-    <p class="publish-hint" *ngIf="localDeliveryProblem">{{ localDeliveryProblem }}</p>
-    <button type="submit" class="btn-publish" (click)="submit()" [disabled]="!editProductForm.valid || !!localDeliveryProblem">
-      <ion-icon name="save-outline"></ion-icon>
-      SALVAR ALTERAÇÕES
-    </button>
-    <button type="button" class="btn-back" (click)="onCancel()">
-      <ion-icon name="arrow-back-outline"></ion-icon>
-      VOLTAR
-    </button>
-  </div>
-
-  <app-feedback-modal
-    [visible]="showFeedback"
-    [type]="feedbackType"
-    [title]="feedbackTitle"
-    [message]="feedbackMessage"
-    (closed)="onFeedbackClosed()">
-  </app-feedback-modal>
-  <!-- MODAL DE REORDENAÇÃO (INSTAGRAM STYLE) -->
-  <div class="reorder-modal-overlay" *ngIf="isReorderModalOpen">
-    <div class="reorder-modal-content">
-      <div class="reorder-header">
-        <h3>Definir Ordem das Fotos</h3>
-        <p>Toque nas fotos na ordem desejada para reorganizar</p>
-      </div>
-
-      <div class="reorder-grid">
-        <div class="reorder-item" 
-             *ngFor="let photo of selectedPhotos; let i = index" 
-             (click)="toggleReorder(i)"
-             [class.selected]="getReorderNumber(i)">
-          <img [src]="photo" alt="Preview">
-          <div class="reorder-badge" *ngIf="getReorderNumber(i)">
-            {{ getReorderNumber(i) }}
+      @if (!localDelivery?.onlyLocal) {
+        <div class="field">
+          <span>{{ localDelivery ? 'Envio para as outras cidades' : 'Frete' }}</span>
+          <div class="ef-ships" role="radiogroup" aria-label="Frete">
+            @for (opt of shippingOptions; track opt.value) {
+              <button type="button" role="radio" class="ef-ship" [class.is-on]="form.controls.shipping.value === opt.value"
+                      [attr.aria-checked]="form.controls.shipping.value === opt.value" (click)="setShipping(opt.value)">
+                <span class="ef-ship-mark"><ion-icon [name]="opt.icon" aria-hidden="true"></ion-icon></span>
+                <span><strong>{{ opt.label }}</strong><small>{{ opt.hint }}</small></span>
+              </button>
+            }
           </div>
         </div>
+      }
+
+      <div class="field">
+        <app-local-delivery-editor [value]="localDelivery" (valueChange)="onLocalDelivery($event)"></app-local-delivery-editor>
       </div>
 
-      <div class="reorder-footer">
-        <button type="button" class="btn-cancel-reorder" (click)="closeReorderModal()">CANCELAR</button>
-        <button type="button" 
-                class="btn-confirm-reorder" 
-                [disabled]="reorderIndices.length !== selectedPhotos.length"
-                (click)="confirmReorder()">
-          CONFIRMAR ({{ reorderIndices.length }}/{{ selectedPhotos.length }})
-        </button>
+      <div class="field">
+        <span>Embalagem <small>peso e medidas com a caixa, para calcular o frete</small></span>
+        <div class="ef-grid ef-grid--4">
+          <label class="ef-dim">
+            <small>Peso</small>
+            <span class="field-box" [class.is-bad]="invalid('weight')"><input type="number" inputmode="decimal" min="0.01" step="0.01" formControlName="weight" placeholder="0,5" /><em>kg</em></span>
+          </label>
+          <label class="ef-dim">
+            <small>Comprimento</small>
+            <span class="field-box" [class.is-bad]="invalid('length')"><input type="number" inputmode="numeric" min="1" max="100" formControlName="length" placeholder="16" /><em>cm</em></span>
+          </label>
+          <label class="ef-dim">
+            <small>Largura</small>
+            <span class="field-box" [class.is-bad]="invalid('width')"><input type="number" inputmode="numeric" min="1" max="100" formControlName="width" placeholder="11" /><em>cm</em></span>
+          </label>
+          <label class="ef-dim">
+            <small>Altura</small>
+            <span class="field-box" [class.is-bad]="invalid('height')"><input type="number" inputmode="numeric" min="1" max="100" formControlName="height" placeholder="2" /><em>cm</em></span>
+          </label>
+        </div>
+        @if (invalid('weight') || invalid('length') || invalid('width') || invalid('height')) {
+          <small class="ef-error">Peso acima de 0 e medidas de 1 a 100 cm (limite dos Correios e transportadoras).</small>
+        }
+      </div>
+    </section>
+
+    <!-- FICHA E DESCRIÇÃO -->
+    <section class="ef-card" id="ef-ficha" aria-labelledby="ef-ficha-t">
+      <header class="ef-head">
+        <span class="ef-step" aria-hidden="true">6</span>
+        <div>
+          <h2 id="ef-ficha-t">Ficha técnica e descrição</h2>
+          <p>Marca, modelo, cor… aparecem na ficha do anúncio e ajudam na busca.</p>
+        </div>
+      </header>
+
+      <app-product-specs-editor [specs]="form.controls.specs.value"
+                                (specsChange)="form.controls.specs.setValue($event)"></app-product-specs-editor>
+
+      <label class="field ef-desc">
+        <span>Descrição</span>
+        <textarea formControlName="description" rows="7" [class.is-bad]="invalid('description')"
+                  placeholder="Conte o estado, o material, as medidas e o que vem na caixa. Se for usado, diga as marcas de uso."></textarea>
+        <span class="ef-desc-foot">
+          @if (invalid('description')) {
+            <small class="ef-error">Escreva a descrição do produto.</small>
+          } @else {
+            <small class="ef-hint">{{ descriptionLength >= 120 ? 'Boa descrição.' : 'Recomendado: pelo menos 120 caracteres.' }}</small>
+          }
+          <small class="ef-chars" [class.is-ok]="descriptionLength >= 120">{{ descriptionLength }}</small>
+        </span>
+      </label>
+    </section>
+  </form>
+
+  <!-- LATERAL (computador) -->
+  <aside class="ef-side" aria-label="Resumo do anúncio">
+    <div class="ef-preview">
+      <div class="ef-preview-img">
+        @if (selectedPhotos[0]) { <img [src]="selectedPhotos[0]" alt="" /> } @else { <vn-icon name="image" /> }
+        <span class="ef-preview-cond">{{ conditionLabel }}</span>
+      </div>
+      <div class="ef-preview-body">
+        <small>Como aparece na vitrine</small>
+        <strong class="ef-preview-name">{{ form.controls.name.value || 'Título do anúncio' }}</strong>
+        <span class="ef-preview-price">
+          @if (hasVariants) { <small>a partir de</small> }
+          <b>{{ brl(previewPrice.price) }}</b>
+          @if (previewPrice.list) { <s>{{ brl(previewPrice.list) }}</s> }
+        </span>
+        @if (shippingLabel) { <span class="ef-preview-ship">{{ shippingLabel }}</span> }
       </div>
     </div>
-  </div>
 
-  <!-- VISUALIZADOR DE IMAGEM FULL SCREEN -->
-  <div class="image-viewer-overlay" *ngIf="previewImage" (click)="$event.stopPropagation()">
-    <div class="viewer-backdrop"></div>
-    <img [src]="previewImage" alt="Visualizar" class="viewer-image">
-    <button class="viewer-close-btn" (click)="closePreview()">
-      <ion-icon name="close-circle"></ion-icon>
-      Fechar
-    </button>
-  </div>
+    <div class="ef-quality">
+      <div class="ef-quality-head">
+        <span class="ef-ring" [style.--p]="qualityScore / quality.length"><span><b>{{ qualityScore }}</b>/{{ quality.length }}</span></span>
+        <span><strong>Qualidade do anúncio</strong><small>{{ qualityScore === quality.length ? 'Completo. Vende mais rápido.' : 'Complete para passar mais confiança.' }}</small></span>
+      </div>
+      <ul>
+        @for (q of quality; track q.label) {
+          <li [class.is-ok]="q.ok"><span class="ef-q-mark" aria-hidden="true"><vn-icon [name]="q.ok ? 'check' : 'plus'" /></span>{{ q.label }}</li>
+        }
+      </ul>
+    </div>
+
+    <div class="ef-actions">
+      @if (missing.length && triedSave) {
+        <p class="ef-missing" role="alert">Falta: {{ missing.join(', ') }}.</p>
+      } @else {
+        <p class="ef-state" [class.is-dirty]="changed">
+          <span class="dot" aria-hidden="true"></span>{{ changed ? 'Alterações não salvas' : 'Tudo salvo' }}
+        </p>
+      }
+      <button type="button" class="ef-save" (click)="submit()" [disabled]="saving || !changed">
+        @if (saving) { <span class="ef-spin" aria-hidden="true"></span> Salvando… } @else { <vn-icon name="check" /> Salvar alterações }
+      </button>
+      @if (changed && !saving) {
+        <button type="button" class="ef-undo" (click)="undo()">Desfazer alterações</button>
+      }
+    </div>
+  </aside>
 </div>
+
+<!-- Barra fixa (celular) -->
+<div class="ef-bar">
+  <p class="ef-bar-state" [class.is-dirty]="changed" [class.is-bad]="missing.length && triedSave">
+    @if (missing.length && triedSave) { Falta: {{ missing.join(', ') }} } @else { {{ changed ? 'Alterações não salvas' : 'Tudo salvo' }} }
+  </p>
+  <button type="button" class="ef-save" (click)="submit()" [disabled]="saving || !changed">
+    @if (saving) { <span class="ef-spin" aria-hidden="true"></span> Salvando… } @else { <vn-icon name="check" /> Salvar }
+  </button>
+</div>
+
+@if (previewImage) {
+  <div class="ef-viewer" role="dialog" aria-label="Foto ampliada" (click)="previewImage = null">
+    <img [src]="previewImage" alt="" />
+    <button type="button" class="ef-viewer-x" aria-label="Fechar"><vn-icon name="close" /></button>
+  </div>
+}
