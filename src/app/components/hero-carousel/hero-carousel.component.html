@@ -37,16 +37,8 @@
           }
         </div>
       } @empty {
-        <!-- Sem banner cadastrado: a vitrine abre com a assinatura da marca. -->
-        <div class="hero-slide">
-          <div class="hero-frame hero-brand">
-            <div class="hero-brand-copy">
-              <p class="hero-brand-tagline">Tudo conecta. <span>Você escolhe.</span></p>
-              <h2>Produtos novos e usados, com pagamento por Pix ou cartão.</h2>
-            </div>
-            <img class="hero-brand-mark" src="assets/imagens/vineon-icon.svg" alt="">
-          </div>
-        </div>
+        <!-- Enquanto os banners chegam: só o espaço da faixa, sem arte (o serviço sempre devolve pelo menos o da marca). -->
+        <div class="hero-slide" aria-hidden="true"><div class="hero-frame hero-frame--loading"></div></div>
       }
     </div>
 

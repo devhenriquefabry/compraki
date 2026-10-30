@@ -45,7 +45,7 @@
             <div class="banner-slide" aria-hidden="true">
               <div class="promo-banner promo-banner--skeleton vn-skel"></div>
             </div>
-          } @else if (activeBanners.length > 0) {
+          } @else {
             @for (banner of activeBanners; track banner.id) {
               <div class="banner-slide">
                 <div class="promo-banner" [class.promo-banner--image]="!!banner.imageURL" [style.background]="banner.imageURL ? '' : banner.backgroundColor">
@@ -65,17 +65,6 @@
                 </div>
               </div>
             }
-          } @else {
-            <!-- Sem banner cadastrado: a assinatura da marca (a mesma do desktop), nunca um banner lima -->
-            <div class="banner-slide">
-              <div class="promo-banner promo-banner--fallback">
-                <div class="promo-text">
-                  <p class="brand-tagline">Tudo conecta. <span>Você escolhe.</span></p>
-                  <h3>Produtos novos e usados, com pagamento por Pix ou cartão.</h3>
-                </div>
-                <img src="assets/imagens/vineon-icon.svg" alt="">
-              </div>
-            </div>
           }
         </div>
       </div>

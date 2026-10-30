@@ -19,6 +19,23 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { Banner } from '../interfaces/banner';
 import { environment } from '../../environments/environment';
 
+/**
+ * Banner da marca que a home mostra quando nenhum banner cadastrado está no
+ * ar (nem o marcado como padrão). É a mesma arte "Seu próximo favorito está
+ * na Vineon" da Gestão de Banners, empacotada no app para nunca depender do
+ * Storage. Não é um documento: não aparece nem pode ser editado no admin.
+ */
+export const BUILT_IN_BANNER: Banner = {
+  id: 'vineon-padrao',
+  title: 'Seu próximo favorito está na Vineon. Tecnologia, moda e muito mais.',
+  imageURL: 'assets/imagens/banners/vineon-padrao-celular.webp',
+  desktopImageURL: 'assets/imagens/banners/vineon-padrao-computador.webp',
+  backgroundColor: '#0B1623',
+  textColor: '#ffffff',
+  status: 'active',
+  order: 0,
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -55,43 +72,49 @@ export class BannerService {
    */
   getActiveBanners(): Observable<Banner[]> {
     return new Observable<Banner[]>(observer => {
-      this.getAll().subscribe(banners => {
-        const now = new Date();
-        const todayKey = this.getLocalDateKey(now);
-        const active = banners.filter(b => {
-          if (b.status === 'active') return true;
-          if (b.status === 'scheduled') {
-            const start = b.scheduledStart ? new Date(b.scheduledStart) : null;
-            const end = b.scheduledEnd ? new Date(b.scheduledEnd) : null;
-            if (start && now < start) return false;
-            if (end && now > end) return false;
+      const sub = this.getAll().subscribe({
+        next: banners => {
+          const now = new Date();
+          const todayKey = this.getLocalDateKey(now);
+          const active = banners.filter(b => {
+            if (b.status === 'active') return true;
+            if (b.status === 'scheduled') {
+              const start = b.scheduledStart ? new Date(b.scheduledStart) : null;
+              const end = b.scheduledEnd ? new Date(b.scheduledEnd) : null;
+              if (start && now < start) return false;
+              if (end && now > end) return false;
 
-            if (b.scheduledDates && b.scheduledDates.length > 0) {
-              if (!b.scheduledDates.includes(todayKey)) return false;
+              if (b.scheduledDates && b.scheduledDates.length > 0) {
+                if (!b.scheduledDates.includes(todayKey)) return false;
+                return this.isWithinDailySchedule(b, todayKey, now);
+              }
+
+              // Check specific days if defined
+              if (b.scheduledDays && b.scheduledDays.length > 0) {
+                const today = now.getDay(); // 0-6
+                if (!b.scheduledDays.includes(today)) return false;
+              }
+
               return this.isWithinDailySchedule(b, todayKey, now);
             }
+            return false;
+          }).sort((a, b) => this.getDailyOrder(a, todayKey) - this.getDailyOrder(b, todayKey));
 
-            // Check specific days if defined
-            if (b.scheduledDays && b.scheduledDays.length > 0) {
-              const today = now.getDay(); // 0-6
-              if (!b.scheduledDays.includes(today)) return false;
-            }
-
-            return this.isWithinDailySchedule(b, todayKey, now);
-          }
-          return false;
-        }).sort((a, b) => this.getDailyOrder(a, todayKey) - this.getDailyOrder(b, todayKey));
-
-        if (active.length === 0) {
-          const defaultBanner = banners.find(b => b.isDefault && b.status !== 'inactive');
-          if (defaultBanner) {
-            observer.next([defaultBanner]);
+          if (active.length === 0) {
+            const defaultBanner = banners.find(b => b.isDefault && b.status !== 'inactive');
+            observer.next([defaultBanner ?? BUILT_IN_BANNER]);
             return;
           }
-        }
 
-        observer.next(active);
+          observer.next(active);
+        },
+        // Banner é vitrine: se a leitura falhar, a home abre com o da marca em vez de ficar no esqueleto.
+        error: err => {
+          console.warn('[banners] leitura falhou, usando o banner da marca', err);
+          observer.next([BUILT_IN_BANNER]);
+        },
       });
+      return () => sub.unsubscribe();
     });
   }
 

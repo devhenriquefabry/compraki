@@ -33,6 +33,8 @@
   text-decoration: none;
 }
 
+.hero-frame--loading { background: var(--vn-navy-800); }
+
 a.hero-frame:focus-visible {
   outline: 3px solid var(--vn-neon);
   outline-offset: -3px;
@@ -109,54 +111,6 @@ a.hero-frame:focus-visible {
   color: var(--vn-navy-900);
   font-size: 14px;
   font-weight: 800;
-}
-
-/* Sem banners: assinatura da marca, com o brilho neon do logotipo. */
-.hero-brand {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 40px;
-  padding: 0 88px;
-  overflow: hidden;
-  background:
-    radial-gradient(55% 95% at 80% 50%, rgba(216, 245, 31, 0.14), transparent 70%),
-    linear-gradient(120deg, var(--vn-navy-900) 0%, var(--vn-navy-800) 100%);
-}
-
-.hero-brand-copy {
-  max-width: 640px;
-  color: #fff;
-
-  h2 {
-    margin: 0;
-    font-family: var(--vn-font-display);
-    font-size: clamp(26px, 2.6vw, 36px);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-  }
-}
-
-.hero-brand-tagline {
-  margin: 0 0 18px;
-  color: rgba(255, 255, 255, 0.86);
-  font-family: var(--vn-font-display);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-
-  span {
-    color: var(--vn-neon);
-  }
-}
-
-.hero-brand-mark {
-  flex-shrink: 0;
-  height: 70%;
-  width: auto;
-  filter: drop-shadow(0 0 26px rgba(216, 245, 31, 0.45));
 }
 
 .hero-arrow {
