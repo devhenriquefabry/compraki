@@ -161,6 +161,12 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Painel da loja: vendas, mais vendidos, anúncios, reputação e relatório.
+    path: 'seller-dashboard',
+    loadComponent: () => import('./pages/seller-dashboard/seller-dashboard.page').then(m => m.SellerDashboardPage),
+    canActivate: [authGuard]
+  },
+  {
     path: 'my-sales',
     loadChildren: () => import('./pages/my-sales/my-sales.module').then( m => m.MySalesPageModule),
     canActivate: [authGuard]

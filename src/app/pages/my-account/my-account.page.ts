@@ -316,7 +316,8 @@ export class MyAccountPage {
       icon: 'tag', label: 'Meus anúncios', link: '/my-products',
       hint: this.productCount() === null ? undefined : this.plural(this.productCount()!, 'anúncio', 'anúncios'),
     },
-    { icon: 'chart', label: 'Vendas', hint: 'Pedidos, etiquetas e envios', link: '/my-sales' },
+    { icon: 'chart', label: 'Painel da loja', hint: 'Gráficos, mais vendidos e relatórios', link: '/seller-dashboard' },
+    { icon: 'bag', label: 'Vendas', hint: 'Pedidos, etiquetas e envios', link: '/my-sales' },
     { icon: 'star', label: 'Avaliações da loja', hint: 'Veja e responda o que os clientes dizem', link: '/my-reviews', query: { aba: 'loja' } },
     {
       icon: 'question', label: 'Perguntas dos clientes', link: '/my-questions', query: { aba: 'loja' },

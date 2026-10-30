@@ -192,6 +192,9 @@
                 } @else if (monthSales(); as m) {
                   <small>{{ m.count === 1 ? '1 venda paga' : m.count + ' vendas pagas' }}</small>
                 }
+                <a class="acc-store-panel" routerLink="/seller-dashboard">
+                  <vn-icon name="chart" /> Ver painel da loja
+                </a>
               </div>
               <ng-container *ngTemplateOutlet="routeTpl; context: { $implicit: sellerStops(), link: '/my-sales' }"></ng-container>
             </div>

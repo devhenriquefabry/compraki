@@ -1,0 +1,396 @@
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <button type="button" class="pg-icon-btn pg-back" (click)="goBack()" aria-label="Voltar">
+      <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+    </button>
+    <h1 class="pg-title">Painel da loja</h1>
+    <button type="button" class="pg-icon-btn" (click)="downloadCsv()" [disabled]="loading() || salesError()"
+            aria-label="Baixar planilha das vendas do período" title="Baixar planilha (CSV)">
+      <vn-icon name="download" />
+    </button>
+  </div>
+  <nav class="pg-tabs" aria-label="Período">
+    @for (p of periods; track p.id) {
+      <button type="button" class="pg-tab" [class.is-active]="period() === p.id"
+              [attr.aria-pressed]="period() === p.id" (click)="setPeriod(p.id)">{{ p.label }}</button>
+    }
+  </nav>
+</ion-header>
+
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (loading()) {
+      <div class="sd-grid" aria-busy="true" aria-label="Carregando o painel">
+        <div class="sk sd-sk sd-sk--hero" style="grid-area: hero"></div>
+        <div class="sk sd-sk sd-sk--kpis" style="grid-area: kpis"></div>
+        <div class="sk sd-sk sd-sk--chart" style="grid-area: chart"></div>
+        <div class="sk sd-sk sd-sk--side" style="grid-area: now"></div>
+      </div>
+    } @else if (salesError()) {
+      <div class="panel panel--refund sd-error" role="alert">
+        <ion-icon class="panel-icon" name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+        <div class="panel-body">
+          <p class="panel-title">Não deu para carregar suas vendas</p>
+          <p>Confira a conexão e abra o painel de novo. Nada aqui é mostrado como zero sem ter sido lido.</p>
+        </div>
+      </div>
+    } @else if (!hasAnySale() && products()?.length === 0) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><vn-icon name="chart" /></span>
+        <h2>Seu painel começa na primeira venda</h2>
+        <p>Anuncie um produto. Quando os pedidos chegarem, você acompanha aqui quanto vendeu, o que mais sai e para onde.</p>
+        <a class="btn btn--primary" routerLink="/tabs/upload-product"><vn-icon name="plus" /> Anunciar produto</a>
+      </div>
+    } @else {
+      @let s = summary();
+      <div class="sd-grid">
+
+        <!-- Vendido no período -->
+        <section class="ledger sd-hero" aria-labelledby="sd-hero-label">
+          <span class="ledger-label" id="sd-hero-label">Vendido · {{ periodLabel() }}</span>
+          <strong class="ledger-value sd-hero__value">{{ brl(s.revenue.value) }}</strong>
+          @let d = deltaOf(s.revenue);
+          <p class="sd-hero__vs">
+            <span class="sd-delta" [attr.data-tone]="d.tone" [attr.aria-label]="d.aria">{{ d.text }}</span>
+            <span>vs. {{ range().previousLabel }} ({{ brlShort(s.revenue.previous) }})</span>
+          </p>
+          <dl class="ledger-split">
+            <div><dt>Você recebe</dt><dd>{{ brl(s.net.value) }}</dd></div>
+            <div><dt>Taxa Vineon</dt><dd>{{ brl(s.fee) }}</dd></div>
+            @if (s.shipping > 0) {
+              <div><dt>Frete grátis</dt><dd>{{ brl(s.shipping) }}</dd></div>
+            }
+          </dl>
+          <a class="ledger-cta" routerLink="/my-payouts">Ver recebimentos <vn-icon name="chevron" /></a>
+        </section>
+
+        <!-- Números do período -->
+        <section class="sd-kpis" aria-label="Números do período">
+          <ng-container *ngTemplateOutlet="kpiTpl; context: { label: 'Pedidos pagos', value: int(s.orders.value), kpi: s.orders,
+            note: s.refunds.value ? plural(s.refunds.value, 'devolução', 'devoluções') + ' (' + pct(s.refundRate) + ')' : 'nenhuma devolução' }"></ng-container>
+          <ng-container *ngTemplateOutlet="kpiTpl; context: { label: 'Itens vendidos', value: int(s.units.value), kpi: s.units,
+            note: s.orders.value ? (s.units.value / s.orders.value).toFixed(1).replace('.', ',') + ' por pedido' : 'nenhum no período' }"></ng-container>
+          <ng-container *ngTemplateOutlet="kpiTpl; context: { label: 'Ticket médio', value: brl(s.ticket.value), kpi: s.ticket,
+            note: 'sem frete, por pedido' }"></ng-container>
+          <ng-container *ngTemplateOutlet="kpiTpl; context: { label: 'Clientes', value: int(s.customers.value), kpi: s.customers,
+            note: s.returning ? plural(s.returning, 'voltou a comprar', 'voltaram a comprar') : 'compradores diferentes' }"></ng-container>
+        </section>
+
+        <!-- Agora na loja (não depende do período) -->
+        <section class="sheet sd-now" aria-labelledby="sd-now-title">
+          <h2 class="sheet-title" id="sd-now-title">Agora na loja <a class="sheet-link" routerLink="/my-sales">Vendas</a></h2>
+          @if (now(); as n) {
+            <ul class="sd-now__list">
+              <li>
+                <a class="sd-now__row" routerLink="/my-sales" [queryParams]="{ aba: 'preparing' }" [class.is-hot]="n.toShip > 0">
+                  <span class="sd-now__mark"><vn-icon name="box" /></span>
+                  <span class="sd-now__text">
+                    <strong>A enviar</strong>
+                    @if (n.late) {
+                      <small class="sd-chip sd-chip--rust">{{ plural(n.late, 'atrasada', 'atrasadas') }}</small>
+                    } @else {
+                      <small>{{ n.toShip ? 'Postar em até 2 dias úteis' : 'Nada para embalar' }}</small>
+                    }
+                  </span>
+                  <span class="sd-now__count">{{ int(n.toShip) }}</span>
+                  <vn-icon class="sd-now__go" name="chevron" />
+                </a>
+              </li>
+              <li>
+                <a class="sd-now__row" routerLink="/my-sales" [queryParams]="{ aba: 'shipping' }">
+                  <span class="sd-now__mark"><vn-icon name="truck" /></span>
+                  <span class="sd-now__text"><strong>A caminho</strong><small>Já postadas</small></span>
+                  <span class="sd-now__count">{{ int(n.shipping) }}</span>
+                  <vn-icon class="sd-now__go" name="chevron" />
+                </a>
+              </li>
+              <li>
+                <a class="sd-now__row" routerLink="/my-sales" [queryParams]="{ aba: 'pay' }">
+                  <span class="sd-now__mark"><vn-icon name="clock" /></span>
+                  <span class="sd-now__text"><strong>Aguardando pagamento</strong><small>Pix ou boleto em aberto</small></span>
+                  <span class="sd-now__count">{{ int(n.awaitingPayment) }}</span>
+                  <vn-icon class="sd-now__go" name="chevron" />
+                </a>
+              </li>
+              <li>
+                <a class="sd-now__row" routerLink="/my-sales" [queryParams]="{ aba: 'refund' }" [class.is-warn]="n.openRefunds > 0">
+                  <span class="sd-now__mark"><vn-icon name="returns" /></span>
+                  <span class="sd-now__text"><strong>Devoluções abertas</strong><small>{{ n.openRefunds ? 'Em análise ou aprovadas' : 'Nenhuma agora' }}</small></span>
+                  <span class="sd-now__count">{{ int(n.openRefunds) }}</span>
+                  <vn-icon class="sd-now__go" name="chevron" />
+                </a>
+              </li>
+            </ul>
+          }
+        </section>
+
+        <!-- Evolução das vendas -->
+        <section class="sheet sd-chart" aria-labelledby="sd-chart-title">
+          <div class="sd-head">
+            <div>
+              <h2 class="sheet-title" id="sd-chart-title">Evolução das vendas</h2>
+              <p class="sd-sub">
+                @if (bestBucket(); as b) {
+                  Melhor {{ range().bucket === 'month' ? 'mês' : range().bucket === 'week' ? 'semana' : 'dia' }}:
+                  <strong>{{ b.label }}</strong> · {{ chartMetric() === 'revenue' ? brl(b.value) : plural(b.value, 'pedido', 'pedidos') }}
+                } @else {
+                  {{ periodLabel() }}, por {{ range().bucket === 'month' ? 'mês' : range().bucket === 'week' ? 'semana' : 'dia' }}
+                }
+              </p>
+            </div>
+            <div class="sd-seg" role="group" aria-label="Mostrar no gráfico">
+              <button type="button" [class.is-on]="chartMetric() === 'revenue'" [attr.aria-pressed]="chartMetric() === 'revenue'"
+                      (click)="chartMetric.set('revenue')">Valor</button>
+              <button type="button" [class.is-on]="chartMetric() === 'orders'" [attr.aria-pressed]="chartMetric() === 'orders'"
+                      (click)="chartMetric.set('orders')">Pedidos</button>
+            </div>
+          </div>
+          <app-admin-chart [points]="chartPoints()"
+                           [kind]="chartMetric() === 'revenue' && range().bucket !== 'day' ? 'area' : 'columns'"
+                           [format]="chartMetric() === 'revenue' ? 'brl' : 'int'"
+                           [seriesName]="chartMetric() === 'revenue' ? 'Vendido' : 'Pedidos pagos'" />
+        </section>
+
+        <!-- Mais vendidos -->
+        <section class="sheet sd-top" aria-labelledby="sd-top-title">
+          <div class="sd-head">
+            <div>
+              <h2 class="sheet-title" id="sd-top-title">Mais vendidos</h2>
+              <p class="sd-sub">{{ periodLabel() }}</p>
+            </div>
+            <div class="sd-seg" role="group" aria-label="Ordenar por">
+              <button type="button" [class.is-on]="rankBy() === 'revenue'" [attr.aria-pressed]="rankBy() === 'revenue'"
+                      (click)="rankBy.set('revenue')">Receita</button>
+              <button type="button" [class.is-on]="rankBy() === 'units'" [attr.aria-pressed]="rankBy() === 'units'"
+                      (click)="rankBy.set('units')">Unidades</button>
+            </div>
+          </div>
+          @if (ranking().length) {
+            <ol class="sd-rank">
+              @for (p of ranking(); track p.productId; let i = $index) {
+                <li class="sd-rank__row">
+                  <span class="sd-rank__pos" [class.is-first]="i === 0">{{ i + 1 }}</span>
+                  @if (p.photo) {
+                    <img class="sd-rank__thumb" [src]="p.photo" alt="" loading="lazy" width="44" height="44" />
+                  } @else {
+                    <span class="sd-rank__thumb sd-rank__thumb--empty" aria-hidden="true"><vn-icon name="box" /></span>
+                  }
+                  <span class="sd-rank__body">
+                    <span class="sd-rank__line">
+                      <strong class="sd-rank__name">{{ p.name }}</strong>
+                      <span class="sd-rank__value">{{ rankBy() === 'revenue' ? brl(p.revenue) : plural(p.units, 'un.', 'un.') }}</span>
+                    </span>
+                    <span class="sd-bar" aria-hidden="true"><span [style.width.%]="p.bar"></span></span>
+                    <small class="sd-rank__meta">
+                      {{ rankBy() === 'revenue' ? plural(p.units, 'unidade', 'unidades') : brl(p.revenue) }}
+                      · {{ plural(p.orders, 'pedido', 'pedidos') }} · {{ p.share }}% do total
+                    </small>
+                  </span>
+                </li>
+              }
+            </ol>
+          } @else {
+            <p class="sd-empty">Nenhuma venda paga nos {{ periodLabel() }}.</p>
+          }
+        </section>
+
+        <!-- Saúde dos anúncios -->
+        <section class="sheet sd-list" aria-labelledby="sd-list-title">
+          <h2 class="sheet-title" id="sd-list-title">Seus anúncios <a class="sheet-link" routerLink="/my-products">Gerenciar</a></h2>
+          @if (productsError()) {
+            <p class="sd-empty is-alert">Não deu para carregar seus anúncios agora.</p>
+          } @else if (listings(); as l) {
+            <dl class="sd-stats">
+              <div><dt>No ar</dt><dd>{{ int(l.active) }}</dd></div>
+              <div [class.is-rust]="l.outOfStock > 0"><dt>Sem estoque</dt><dd>{{ int(l.outOfStock) }}</dd></div>
+              <div [class.is-amber]="l.lowStock > 0"><dt>Estoque baixo</dt><dd>{{ int(l.lowStock) }}</dd></div>
+              <div [class.is-rust]="l.hidden > 0"><dt>Fora do ar</dt><dd>{{ int(l.hidden) }}</dd></div>
+            </dl>
+            @if (l.attention.length) {
+              <ul class="sd-attn">
+                @for (a of l.attention.slice(0, 4); track a.product.id) {
+                  <li>
+                    <a class="sd-attn__row" [routerLink]="['/product-admin', a.product.id]">
+                      @if (a.product.photoURL?.[0]) {
+                        <img class="sd-attn__thumb" [src]="a.product.photoURL![0]" alt="" loading="lazy" width="36" height="36" />
+                      } @else {
+                        <span class="sd-attn__thumb sd-rank__thumb--empty" aria-hidden="true"><vn-icon name="box" /></span>
+                      }
+                      <span class="sd-attn__text">
+                        <strong>{{ a.product.name }}</strong>
+                        <small [attr.data-tone]="a.tone">{{ a.reason }}</small>
+                      </span>
+                      <vn-icon class="sd-now__go" name="chevron" />
+                    </a>
+                  </li>
+                }
+              </ul>
+              @if (l.attention.length > 4) {
+                <a class="sd-more" routerLink="/my-products">Mais {{ l.attention.length - 4 }} pedindo atenção</a>
+              }
+            } @else if (l.total) {
+              <p class="sd-ok"><vn-icon name="check" /> Tudo no ar e com estoque.</p>
+            }
+            @if (l.mostSaved.length) {
+              <p class="sd-saved">
+                <vn-icon name="heart" />
+                <span>Mais salvo: <strong>{{ l.mostSaved[0].name }}</strong> · {{ plural(l.mostSaved[0].savedCount || 0, 'pessoa', 'pessoas') }}</span>
+              </p>
+            }
+          } @else {
+            <div class="sk sd-sk--block"></div>
+          }
+        </section>
+
+        <!-- Reputação -->
+        <section class="sheet sd-rep" aria-labelledby="sd-rep-title">
+          <h2 class="sheet-title" id="sd-rep-title">Reputação <a class="sheet-link" routerLink="/my-reviews" [queryParams]="{ aba: 'loja' }">Avaliações</a></h2>
+          @if (reviewsError()) {
+            <p class="sd-empty is-alert">Não deu para carregar as avaliações agora.</p>
+          } @else if (reputation(); as r) {
+            @if (r.count) {
+              <div class="sd-rep__body">
+                <div class="sd-rep__score">
+                  <strong>{{ rating(r.avg) }}</strong>
+                  <span class="sd-stars" [attr.aria-label]="'Nota média ' + rating(r.avg) + ' de 5'">
+                    @for (i of [1, 2, 3, 4, 5]; track i) {
+                      <svg viewBox="0 0 20 20" aria-hidden="true" [class.is-on]="r.avg >= i - 0.25" [class.is-half]="r.avg < i - 0.25 && r.avg >= i - 0.75">
+                        <path d="M10 1.8l2.47 5.18 5.68.7-4.18 3.92 1.08 5.63L10 14.48l-5.05 2.75 1.08-5.63L1.85 7.68l5.68-.7z" />
+                      </svg>
+                    }
+                  </span>
+                  <small>{{ plural(r.count, 'avaliação', 'avaliações') }}</small>
+                </div>
+                <ul class="sd-rep__bars">
+                  @for (b of r.stars; track b.star) {
+                    <li>
+                      <span>{{ b.star }}</span>
+                      <span class="sd-bar"><span [style.width.%]="b.pct"></span></span>
+                      <span class="sd-rep__n">{{ b.n }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else {
+              <p class="sd-empty">Nenhuma avaliação ainda. Elas chegam depois que o comprador recebe o pedido.</p>
+            }
+            <div class="sd-rep__todo">
+              <a routerLink="/my-reviews" [queryParams]="{ aba: 'loja' }" [class.is-hot]="r.unanswered > 0">
+                <vn-icon name="star" />
+                <span>{{ r.unanswered ? plural(r.unanswered, 'avaliação sem resposta', 'avaliações sem resposta') : 'Avaliações respondidas' }}</span>
+              </a>
+              <a routerLink="/my-questions" [queryParams]="{ aba: 'loja' }" [class.is-hot]="openQuestions() > 0">
+                <vn-icon name="question" />
+                <span>{{ openQuestions() ? plural(openQuestions(), 'pergunta esperando', 'perguntas esperando') : 'Nenhuma pergunta esperando' }}</span>
+              </a>
+            </div>
+          } @else {
+            <div class="sk sd-sk--block"></div>
+          }
+        </section>
+
+        <!-- Quando vende -->
+        <section class="sheet sd-week" aria-labelledby="sd-week-title">
+          <h2 class="sheet-title" id="sd-week-title">Quando você vende</h2>
+          <p class="sd-sub">
+            @if (bestWeekday(); as w) {
+              Mais pedidos {{ w[0].long === 'sábado' || w[0].long === 'domingo' ? 'no' : 'na' }}
+              <strong>{{ w[0].long }}</strong>@if (w[1]) { e <strong>{{ w[1].long }}</strong>} · {{ periodLabel() }}
+            } @else {
+              Pedidos pagos por dia da semana
+            }
+          </p>
+          <app-admin-chart [points]="weekdayPoints()" kind="columns" format="int" seriesName="Pedidos pagos" />
+        </section>
+
+        <!-- Para onde vende -->
+        <section class="sheet sd-where" aria-labelledby="sd-where-title">
+          <h2 class="sheet-title" id="sd-where-title">Para onde você vende</h2>
+          @let pl = places();
+          @if (pl.total) {
+            <ul class="sd-places">
+              @for (st of pl.states; track st.label) {
+                <li>
+                  <span class="sd-places__uf">{{ st.label }}</span>
+                  <span class="sd-bar"><span [style.width.%]="st.pct"></span></span>
+                  <span class="sd-places__n">{{ st.pct }}%</span>
+                </li>
+              }
+            </ul>
+            @if (pl.cities.length) {
+              <p class="sd-sub sd-cities">
+                Cidades que mais compram:
+                @for (c of pl.cities; track c.label; let last = $last) {
+                  <strong>{{ c.label }}</strong> ({{ c.orders }}){{ last ? '' : ', ' }}
+                }
+              </p>
+            }
+          } @else {
+            <p class="sd-empty">Nenhuma entrega nos {{ periodLabel() }}.</p>
+          }
+        </section>
+
+        <!-- Fechamento mensal -->
+        <section class="sheet sd-report" aria-labelledby="sd-report-title">
+          <div class="sd-head">
+            <div>
+              <h2 class="sheet-title" id="sd-report-title">Fechamento mensal</h2>
+              <p class="sd-sub">Últimos 6 meses, pela data do pagamento. Taxa atual: {{ currentRate() }} sobre os produtos.</p>
+            </div>
+            <button type="button" class="btn btn--outline sd-csv" (click)="downloadCsv()">
+              <vn-icon name="download" /> Planilha · {{ periodLabel() }}
+            </button>
+          </div>
+          <div class="sd-table-wrap">
+            <table class="sd-table">
+              <thead>
+                <tr>
+                  <th scope="col">Mês</th>
+                  <th scope="col">Pedidos</th>
+                  <th scope="col">Vendido</th>
+                  <th scope="col" class="sd-col-opt">Taxa</th>
+                  <th scope="col" class="sd-col-opt">Frete grátis</th>
+                  <th scope="col">Você recebe</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of report(); track row.key; let first = $first) {
+                  <tr [class.is-empty]="!row.orders">
+                    <th scope="row">{{ row.label }}@if (first) {<small class="sd-today"> até hoje</small>}</th>
+                    <td>{{ int(row.orders) }}@if (row.refunds) {<small> +{{ row.refunds }} dev.</small>}</td>
+                    <td>{{ brl(row.revenue) }}</td>
+                    <td class="sd-col-opt">{{ row.fee ? '−' + brl(row.fee) : '–' }}</td>
+                    <td class="sd-col-opt">{{ row.shipping ? '−' + brl(row.shipping) : '–' }}</td>
+                    <td><strong>{{ brl(row.net) }}</strong></td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                @let t = reportTotals();
+                <tr>
+                  <th scope="row">Total</th>
+                  <td>{{ int(t.orders) }}</td>
+                  <td>{{ brl(t.revenue) }}</td>
+                  <td class="sd-col-opt">{{ t.fee ? '−' + brl(t.fee) : '–' }}</td>
+                  <td class="sd-col-opt">{{ t.shipping ? '−' + brl(t.shipping) : '–' }}</td>
+                  <td><strong>{{ brl(t.net) }}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p class="sd-foot">Valores sem frete e já com o cupom da sua loja. Vendas devolvidas ou canceladas não entram no vendido.</p>
+        </section>
+      </div>
+    }
+  </div>
+</ion-content>
+
+<ng-template #kpiTpl let-label="label" let-value="value" let-kpi="kpi" let-note="note">
+  @let d = deltaOf(kpi);
+  <div class="sd-kpi">
+    <span class="sd-kpi__label">{{ label }}</span>
+    <strong class="sd-kpi__value">{{ value }}</strong>
+    <span class="sd-delta" [attr.data-tone]="d.tone" [attr.aria-label]="d.aria">{{ d.text }}</span>
+    <small class="sd-kpi__note">{{ note }}</small>
+  </div>
+</ng-template>
