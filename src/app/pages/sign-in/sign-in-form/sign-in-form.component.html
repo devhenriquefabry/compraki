@@ -27,18 +27,36 @@
             @if (errors['name']) { <span class="vn-error">{{ errors['name'] }}</span> }
 
             <label class="vn-label" for="su-email">E-mail</label>
-            <input id="su-email" class="vn-input" [class.has-error]="errors['email']" type="email" formControlName="email"
-              placeholder="voce@email.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
+            <div class="vn-field">
+              <input id="su-email" class="vn-input" [class.has-error]="errors['email'] || emailStatus === 'taken'" type="email" formControlName="email"
+                placeholder="voce@email.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false"
+                (blur)="onEmailBlur()" [attr.aria-describedby]="emailStatus === 'taken' ? 'su-email-taken' : null">
+              @if (emailStatus === 'checking') { <span class="vn-spinner vn-spinner--light vn-field__spinner" aria-hidden="true"></span> }
+            </div>
             @if (errors['email']) { <span class="vn-error">{{ errors['email'] }}</span> }
+            @if (emailStatus === 'taken') {
+              <div id="su-email-taken" class="vn-taken" role="alert">
+                <b>Já existe uma conta com este e-mail.</b>
+                @if (emailTakenGoogleOnly) {
+                  <span>Ela foi criada com o Google. Use <b>Continuar com Google</b> logo abaixo para entrar.</span>
+                } @else {
+                  <span>Se esqueceu a senha, é só recuperar — leva um minuto.</span>
+                  <div class="vn-taken__actions">
+                    <a class="vn-link" [routerLink]="['/forgot-password']" [state]="{ email: signInForm.controls.email.value.trim() }">Recuperar senha</a>
+                    <a class="vn-link" [routerLink]="['/login']" queryParamsHandling="preserve">Entrar</a>
+                  </div>
+                }
+              </div>
+            }
 
             <label class="vn-label" for="su-cpf">CPF</label>
             <input id="su-cpf" class="vn-input" [class.has-error]="errors['cpf']" formControlName="cpf"
-              placeholder="000.000.000-00" inputmode="numeric" autocomplete="off">
+              placeholder="000.000.000-00" inputmode="numeric" autocomplete="off" maxlength="14">
             @if (errors['cpf']) { <span class="vn-error">{{ errors['cpf'] }}</span> }
 
             <label class="vn-label" for="su-phone">Celular</label>
             <input id="su-phone" class="vn-input" [class.has-error]="errors['phone']" type="tel" formControlName="phone"
-              placeholder="(33) 99999-9999" inputmode="tel" autocomplete="tel-national">
+              placeholder="(33) 99999-9999" inputmode="tel" autocomplete="tel-national" maxlength="15">
             @if (errors['phone']) { <span class="vn-error">{{ errors['phone'] }}</span> }
           }
 
@@ -60,12 +78,24 @@
 
           @case (3) {
             <label class="vn-label" for="su-cep">CEP</label>
-            <input id="su-cep" class="vn-input" [class.has-error]="errors['cep']" formControlName="cep"
-              placeholder="00000-000" inputmode="numeric" autocomplete="postal-code">
+            <div class="vn-field">
+              <input id="su-cep" class="vn-input" [class.has-error]="errors['cep']" formControlName="cep"
+                placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" maxlength="9"
+                aria-describedby="su-cep-status">
+              @if (cepStatus === 'loading') { <span class="vn-spinner vn-spinner--light vn-field__spinner" aria-hidden="true"></span> }
+            </div>
             @if (errors['cep']) { <span class="vn-error">{{ errors['cep'] }}</span> }
+            <span id="su-cep-status" class="vn-hint" aria-live="polite">
+              @switch (cepStatus) {
+                @case ('loading') { Buscando endereço do CEP… }
+                @case ('found') { Endereço encontrado. Confira e complete com o número. }
+                @case ('notFound') { Não achamos esse CEP. Preencha o endereço abaixo. }
+                @case ('failed') { Não deu para buscar o CEP agora. Preencha o endereço abaixo. }
+              }
+            </span>
 
             <label class="vn-label" for="su-street">Rua ou avenida</label>
-            <input id="su-street" class="vn-input" [class.has-error]="errors['street']" formControlName="street"
+            <input id="su-street" class="vn-input" [class.is-loading]="cepStatus === 'loading'" [readonly]="cepStatus === 'loading'" [class.has-error]="errors['street']" formControlName="street"
               placeholder="Ex.: Rua das Flores" autocomplete="address-line1">
             @if (errors['street']) { <span class="vn-error">{{ errors['street'] }}</span> }
 
@@ -83,20 +113,20 @@
             </div>
 
             <label class="vn-label" for="su-neighborhood">Bairro</label>
-            <input id="su-neighborhood" class="vn-input" [class.has-error]="errors['neighborhood']" formControlName="neighborhood"
+            <input id="su-neighborhood" class="vn-input" [class.is-loading]="cepStatus === 'loading'" [readonly]="cepStatus === 'loading'" [class.has-error]="errors['neighborhood']" formControlName="neighborhood"
               placeholder="Ex.: Centro">
             @if (errors['neighborhood']) { <span class="vn-error">{{ errors['neighborhood'] }}</span> }
 
             <div class="vn-row">
               <div style="flex: 2.4">
                 <label class="vn-label" for="su-city">Cidade</label>
-                <input id="su-city" class="vn-input" [class.has-error]="errors['city']" formControlName="city"
+                <input id="su-city" class="vn-input" [class.is-loading]="cepStatus === 'loading'" [readonly]="cepStatus === 'loading'" [class.has-error]="errors['city']" formControlName="city"
                   placeholder="Manhuaçu" autocomplete="address-level2">
                 @if (errors['city']) { <span class="vn-error">{{ errors['city'] }}</span> }
               </div>
               <div style="flex: 1">
                 <label class="vn-label" for="su-state">UF</label>
-                <input id="su-state" class="vn-input" [class.has-error]="errors['state']" formControlName="state"
+                <input id="su-state" class="vn-input" [class.is-loading]="cepStatus === 'loading'" [readonly]="cepStatus === 'loading'" [class.has-error]="errors['state']" formControlName="state"
                   placeholder="MG" maxlength="2" autocapitalize="characters" autocomplete="address-level1">
                 @if (errors['state']) { <span class="vn-error">{{ errors['state'] }}</span> }
               </div>
@@ -109,7 +139,9 @@
         }
 
         @if (currentStep === 1) {
-          <button type="submit" class="vn-btn vn-btn--primary">Continuar</button>
+          <button type="submit" class="vn-btn vn-btn--primary">
+            @if (emailStatus === 'checking') { <span class="vn-spinner" aria-hidden="true"></span>Verificando… } @else { Continuar }
+          </button>
         } @else {
           <div class="vn-btn-pair">
             <button type="button" class="vn-btn vn-btn--ghost" (click)="prevStep()" [disabled]="status !== 'idle'">Voltar</button>

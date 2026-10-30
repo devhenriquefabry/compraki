@@ -1,1 +1,67 @@
 /* Visual compartilhado em src/theme/auth.scss (ver styleUrls). */
+
+// Campo com indicador de carregando dentro, à direita (e-mail, CEP).
+.vn-field {
+  position: relative;
+
+  .vn-input { width: 100%; }
+
+  &__spinner {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    margin-top: -8px;
+  }
+}
+
+.vn-hint {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--vn-muted);
+
+  &:empty { display: none; }
+}
+
+// E-mail que já tem conta: aviso com o caminho para entrar.
+.vn-taken {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 122, 122, .08);
+  border: 1px solid rgba(255, 122, 122, .25);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--vn-label);
+
+  > b { color: var(--vn-error); font-weight: 700; }
+  span b { color: var(--vn-text); }
+
+  &__actions {
+    display: flex;
+    gap: 20px;
+    margin-top: 6px;
+  }
+}
+
+// Campos que o CEP vai preencher: brilho passando enquanto busca.
+.vn-input.is-loading {
+  color: transparent;
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .07) 50%, transparent 70%);
+  background-size: 220% 100%;
+  animation: vn-shimmer 1s ease-in-out infinite;
+
+  &::placeholder { color: transparent; }
+}
+
+@keyframes vn-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vn-input.is-loading { animation: none; }
+}

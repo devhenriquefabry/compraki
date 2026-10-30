@@ -562,6 +562,14 @@ private async signInWithGoogleWeb(): Promise<User> {
       .join(', ');
   }
 
+  /** Cadastro: o e-mail já tem conta? (`googleOnly`: só entra pelo Google.) */
+  async checkEmailAvailable(email: string): Promise<{ exists: boolean; googleOnly: boolean }> {
+    return this.callPublicFunction('checkEmailAvailable', {
+      method: 'POST',
+      body: { email: email.toLowerCase().trim() }
+    });
+  }
+
   async requestPasswordResetCode(email: string, method?: 'email' | 'whatsapp'): Promise<any> {
     return this.callPublicFunction('requestPasswordResetCode', {
       method: 'POST',

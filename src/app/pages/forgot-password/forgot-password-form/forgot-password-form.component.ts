@@ -60,6 +60,11 @@ export class ForgotPasswordFormComponent implements OnInit, OnDestroy {
   ngOnInit() {
     addIcons({ checkmark, chevronForwardOutline, logoWhatsapp, mailOutline, paperPlaneOutline });
 
+    // Veio do cadastro ("já existe uma conta com este e-mail"): chega com o e-mail
+    // no estado da navegação — fora da URL, para não ir parar em log nem histórico.
+    const email = history.state?.email;
+    if (typeof email === 'string' && email) this.emailControl.setValue(email);
+
     // Voltar a digitar limpa o erro da tela.
     this.subs.add(merge(this.emailControl.valueChanges, this.codeControl.valueChanges, this.passwordControl.valueChanges)
       .subscribe(() => { this.fieldError = ''; this.formError = ''; }));

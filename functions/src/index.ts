@@ -41,6 +41,10 @@ export { moderateProductName, onStorefrontConfigWritten, setAccountSuspension } 
 
 export { deleteMyAccount } from './account-deletion';
 
+export { checkEmailAvailable } from './sign-up';
+
+export { sendWelcomeEmail } from './welcome-email';
+
 export { aggregateDailyMetrics, refreshMetricsNow } from './metrics';
 
 export { onSellerInvoiceWritten } from './seller-invoices';

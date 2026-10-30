@@ -9,10 +9,13 @@ import { VineonLogoComponent } from 'src/app/components/vineon-logo/vineon-logo.
 import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { AddressService } from 'src/app/services/address.service';
 import { AppAddress } from 'src/app/interfaces/app-user';
-import { isValidCpf } from 'src/app/core/br-documents';
+import { isValidCpf, maskCep, maskCpf, maskPhone } from 'src/app/core/br-documents';
 import { environment } from 'src/environments/environment';
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
+/** Tempo mínimo do "Buscando endereço…": o ViaCEP às vezes responde tão rápido que o aviso só piscava. */
+const CEP_MIN_LOADING_MS = 600;
+const digitsOf = (value: string) => value.replace(/\D/g, '');
 
 /** CPF de teste com dígitos verificadores certos (só para o atalho de dev). */
 function validRandomCpf(base9: string): string {
@@ -48,6 +51,15 @@ export class SignInFormComponent implements OnInit, OnDestroy {
   public errors: Partial<Record<FieldName, string>> = {};
   /** Falha que não é de um campo só (e-mail já cadastrado, rede). */
   public formError = '';
+  /** Busca do CEP no ViaCEP: mostra o carregando e trava os campos de endereço. */
+  public cepStatus: 'idle' | 'loading' | 'found' | 'notFound' | 'failed' = 'idle';
+  /** Conferência do e-mail no servidor (passo 1). */
+  public emailStatus: 'idle' | 'checking' | 'available' | 'taken' = 'idle';
+  /** A conta existente só entra pelo Google: sugere o botão do Google, não recuperar senha. */
+  public emailTakenGoogleOnly = false;
+  private cepLookup = 0;
+  private lastCepLooked = '';
+  private emailCheck?: { email: string; result: Promise<boolean> };
   private redirectTimer?: ReturnType<typeof setTimeout>;
   private removeDevAutofillShortcutListener?: () => void;
 
@@ -112,11 +124,51 @@ export class SignInFormComponent implements OnInit, OnDestroy {
       };
     }
 
-    // Restaurando observador de CEP
-    this.signInForm.get('cep')?.valueChanges.subscribe(cep => {
-      const cleanCep = cep?.replace(/\D/g, '') || '';
-      if (cleanCep.length === 8) {
+    this.applyMask('cpf', maskCpf);
+    this.applyMask('phone', maskPhone);
+    this.applyMask('cep', maskCep);
+
+    // Mudou o e-mail: o resultado da conferência anterior não vale mais.
+    this.signInForm.controls.email.valueChanges.subscribe(() => {
+      this.emailStatus = 'idle';
+      this.emailTakenGoogleOnly = false;
+    });
+
+    this.signInForm.controls.cep.valueChanges.subscribe(cep => {
+      const cleanCep = digitsOf(cep || '').slice(0, 8);
+      if (cleanCep.length === 8 && cleanCep !== this.lastCepLooked) {
         this.fillAddressFromCEP(cleanCep);
+      } else if (cleanCep.length < 8) {
+        this.lastCepLooked = '';
+        this.cepLookup++;
+        this.cepStatus = 'idle';
+      }
+    });
+  }
+
+  /**
+   * Formata o campo enquanto a pessoa digita (CPF, celular, CEP) e devolve o
+   * cursor para depois do mesmo dígito — editar no meio não pula para o fim.
+   */
+  private applyMask(name: 'cpf' | 'phone' | 'cep', mask: (value: string) => string) {
+    const control = this.signInForm.controls[name];
+    control.valueChanges.subscribe(value => {
+      const masked = mask(value || '');
+      if (masked === value) return;
+
+      const input = document.getElementById(`su-${name}`) as HTMLInputElement | null;
+      const focused = !!input && document.activeElement === input;
+      const caret = focused ? (input!.selectionStart ?? value.length) : value.length;
+      const digitsBefore = digitsOf(value.slice(0, caret)).length;
+
+      control.setValue(masked, { emitEvent: false });
+
+      if (focused) {
+        let pos = 0;
+        for (let seen = 0; pos < masked.length && seen < digitsBefore; pos++) {
+          if (/\d/.test(masked[pos])) seen++;
+        }
+        input!.setSelectionRange(pos, pos);
       }
     });
   }
@@ -217,11 +269,15 @@ export class SignInFormComponent implements OnInit, OnDestroy {
   }
 
   /** Enter ou botão principal: avança de etapa ou, na última, cria a conta. */
-  onSubmit() {
+  async onSubmit() {
     if (this.status !== 'idle') return;
     this.errors = this.stepErrors(this.currentStep);
     this.formError = '';
     if (Object.keys(this.errors).length) return;
+
+    // O botão não trava durante a conferência: o blur do e-mail a dispara no mesmo
+    // clique do "Continuar", e botão desabilitado engoliria o clique. Aqui só espera.
+    if (this.currentStep === 1 && await this.isEmailTaken()) return;
 
     if (this.currentStep < this.totalSteps) {
       this.currentStep++;
@@ -238,19 +294,61 @@ export class SignInFormComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Ao sair do campo de e-mail já confere se tem conta, antes do "Continuar". */
+  onEmailBlur() {
+    if (EMAIL_RE.test(this.signInForm.controls.email.value.trim())) void this.isEmailTaken();
+  }
+
+  /**
+   * Pergunta ao servidor se o e-mail já tem conta. Se a conferência falhar
+   * (rede, function fora do ar), deixa seguir: o cadastro barra o duplicado no fim.
+   */
+  private isEmailTaken(): Promise<boolean> {
+    const email = this.signInForm.controls.email.value.trim().toLowerCase();
+    if (this.emailCheck?.email === email && this.emailStatus !== 'idle') return this.emailCheck.result;
+
+    this.emailStatus = 'checking';
+    const result = this.firebaseProducts.checkEmailAvailable(email)
+      .then(({ exists, googleOnly }) => {
+        if (this.emailCheck?.email !== email) return exists;
+        this.emailStatus = exists ? 'taken' : 'available';
+        this.emailTakenGoogleOnly = exists && googleOnly;
+        return exists;
+      })
+      .catch(error => {
+        console.warn('Não deu para conferir o e-mail agora:', error);
+        if (this.emailCheck?.email === email) this.emailStatus = 'idle';
+        return false;
+      })
+      .finally(() => this.changeDetectorRef.markForCheck());
+    this.emailCheck = { email, result };
+    return result;
+  }
+
   async fillAddressFromCEP(cep: string) {
+    const lookup = ++this.cepLookup;
+    this.lastCepLooked = cep;
+    this.cepStatus = 'loading';
+    const minDelay = new Promise(resolve => setTimeout(resolve, CEP_MIN_LOADING_MS));
+
     try {
-      const data = await this.addressService.getCEP(cep);
-      if (data) {
-        this.signInForm.patchValue({
-          street: data.logradouro,
-          neighborhood: data.bairro,
-          city: data.localidade,
-          state: data.uf
-        });
-      }
+      const [data] = await Promise.all([this.addressService.getCEP(cep), minDelay]);
+      if (lookup !== this.cepLookup) return;
+      // CEP de cidade pequena vem sem rua e bairro: não apaga o que a pessoa já digitou.
+      this.signInForm.patchValue({
+        street: data.logradouro || this.signInForm.controls.street.value,
+        neighborhood: data.bairro || this.signInForm.controls.neighborhood.value,
+        city: data.localidade,
+        state: data.uf
+      });
+      this.cepStatus = 'found';
     } catch (e) {
+      await minDelay;
+      if (lookup !== this.cepLookup) return;
       console.error('Erro ao buscar CEP no formulário:', e);
+      this.cepStatus = (e as Error)?.message === 'CEP não encontrado' ? 'notFound' : 'failed';
+    } finally {
+      if (lookup === this.cepLookup) this.changeDetectorRef.markForCheck();
     }
   }
 
@@ -267,7 +365,7 @@ export class SignInFormComponent implements OnInit, OnDestroy {
 
     const form = this.signInForm.getRawValue();
     const address: AppAddress = {
-      cep: form.cep,
+      cep: digitsOf(form.cep),
       street: form.street.trim(),
       number: form.number.trim(),
       complement: form.complement.trim(),
@@ -282,13 +380,20 @@ export class SignInFormComponent implements OnInit, OnDestroy {
         form.email.trim(),
         form.password,
         form.name.trim(),
-        form.cpf,
-        form.phone,
+        digitsOf(form.cpf),
+        digitsOf(form.phone),
         address
       );
       this.succeed();
     } catch (error) {
       this.formError = (error as Error).message;
+      // Passou pela conferência do passo 1 (ou ela falhou): volta lá com o aviso certo.
+      if (/já tem uma conta/.test(this.formError)) {
+        this.formError = '';
+        this.emailStatus = 'taken';
+        this.emailCheck = { email: form.email.trim().toLowerCase(), result: Promise.resolve(true) };
+        this.currentStep = 1;
+      }
     } finally {
       this.status = 'idle';
       this.changeDetectorRef.markForCheck();
