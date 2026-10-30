@@ -26,6 +26,15 @@ export function melhorEnvioBaseUrl(isSandbox: boolean): string {
 }
 
 /**
+ * Serviços cotados no checkout. Sem `services`, a conta da Vineon só devolve
+ * Correios. Ficam de fora os que a etiqueta de hoje não atende: Buslog (22)
+ * exige agência; Azul (15, 16) e LATAM (12) exigem nota fiscal/CNAE.
+ * Correios 1 PAC, 2 SEDEX, 17 Mini · Jadlog 3 .Package, 4 .Com, 27 Centralizado ·
+ * Loggi 31 Express, 32 Coleta, 34 Ponto · 33 J&T · 35 Total Express · 36 iMile.
+ */
+export const MELHOR_ENVIO_SERVICES = '1,2,3,4,17,27,31,32,33,34,35,36';
+
+/**
  * Medidas de um item como o Melhor Envio aceita (mínimo 11 x 2 x 16 cm e
  * 0,1 kg). A cotação do checkout e a recotação do `placeOrder` passam pela
  * mesma conta, com os dados do anúncio: se as duas cotassem pacotes

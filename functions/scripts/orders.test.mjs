@@ -211,6 +211,8 @@ r = await place(body([line('smartphone'), line('fone')]));
 check('carrinho misto: frete cobrado (nem todo item é grátis)', r.status === 200 && r.json.total === Math.round((1699.9 + 399.9 + 24.9) * 100) / 100, JSON.stringify(r.json));
 r = await place(body([line('fone')], { shippingServiceId: 2 }));
 check('SEDEX recotado no servidor: R$ 39,50', r.status === 200 && r.json.shipping === 39.5, JSON.stringify(r.json));
+r = await place(body([line('fone')], { shippingServiceId: 4 }));
+check('Jadlog .Com (fora dos Correios) recotado no servidor: R$ 19,47', r.status === 200 && r.json.shipping === 19.47, JSON.stringify(r.json));
 
 await db.doc('appConfig/storefront').set({ freeShipping: { enabled: true, minValue: 300 } }, { merge: true });
 r = await place(body([line('fone')]));

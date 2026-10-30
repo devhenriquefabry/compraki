@@ -85,6 +85,12 @@
             <ion-icon name="time-outline"></ion-icon>
             Chega em {{ quote.delivery_time }} {{ quote.delivery_time === 1 ? 'dia útil' : 'dias úteis' }}
           </span>
+          @if (quotes.length > 1 && (quote.id === cheapestId || quote.id === fastestId)) {
+            <span class="quote-tags">
+              @if (quote.id === cheapestId && !freeShipping) { <span class="quote-tag">Mais barato</span> }
+              @if (quote.id === fastestId) { <span class="quote-tag quote-tag--fast">Mais rápido</span> }
+            </span>
+          }
         </div>
 
         <div class="quote-price">

@@ -111,6 +111,29 @@
         font-size: 14px;
       }
     }
+
+    .quote-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .quote-tag {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      background: #0B1623;
+      color: #D8F51F;
+
+      &--fast {
+        background: #D8F51F;
+        color: #0B1623;
+      }
+    }
   }
 
   .quote-price {

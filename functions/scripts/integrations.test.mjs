@@ -103,6 +103,7 @@ let t0 = Date.now();
 r = await fn('calculateMelhorEnvioShipping', buyer, { body: { zipTo: '01310-100', products: [{ id: 'fone', width: 20, height: 10, length: 20, weight: 0.5, insurance_value: 399.9, quantity: 1 }] } });
 check('comprador cota o frete', r.status === 200 && Array.isArray(r.json) && r.json.some(q => q.name === 'PAC'), r.text);
 let calc = callsSince(t0, 'melhorenvio', '/shipment/calculate')[0];
+check('cotação pede as transportadoras além dos Correios', /(^|,)3(,|$)/.test(calc?.body?.services || '') && /(^|,)33(,|$)/.test(calc?.body?.services || '') && !/(^|,)22(,|$)/.test(calc?.body?.services || ''), JSON.stringify(calc?.body?.services));
 check('cotação sai do CEP de origem configurado e com o token salvo', calc?.body?.from?.postal_code === '01001000' && calc?.auth === `Bearer ${ME_TOKEN}`, JSON.stringify(calc));
 // O carrinho não guarda peso e medidas: a cotação tem que usar as do anúncio,
 // as mesmas do `placeOrder` — senão o serviço escolhido some na hora de fechar.

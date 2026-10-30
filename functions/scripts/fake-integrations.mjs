@@ -77,6 +77,9 @@ serve(2626, 'melhorenvio', (req, body, send) => {
       { id: 1, name: 'PAC', price: '24.90', delivery_time: 6, company: { name: 'Correios', picture: '' } },
       { id: 2, name: 'SEDEX', price: '39.50', delivery_time: 2, company: { name: 'Correios', picture: '' } },
       { id: 17, name: 'Mini Envios', error: 'Dimensões acima do limite' },
+      // Como a conta real: sem `services`, só Correios.
+      ...(String(body.services || '').split(',').includes('4') ? [{ id: 4, name: '.Com', price: '19.47', delivery_time: 4, company: { name: 'Jadlog', picture: '' } }] : []),
+      ...(String(body.services || '').split(',').includes('33') ? [{ id: 33, name: 'Standard', price: '21.65', delivery_time: 3, company: { name: 'JeT', picture: '' } }] : []),
     ]);
   }
   if (req.method === 'POST' && url === '/api/v2/me/cart') {

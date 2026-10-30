@@ -17,7 +17,7 @@ import {
   requireAdmin,
   requireAuthenticated
 } from './shared/http';
-import { getMelhorEnvioConfig, melhorEnvioBaseUrl, melhorEnvioPackage, melhorEnvioSignatureMatches, requestMelhorEnvio } from './shared/melhor-envio';
+import { MELHOR_ENVIO_SERVICES, getMelhorEnvioConfig, melhorEnvioBaseUrl, melhorEnvioPackage, melhorEnvioSignatureMatches, requestMelhorEnvio } from './shared/melhor-envio';
 import { applyOrderInventory } from './orders';
 
 initializeApp();
@@ -2687,6 +2687,7 @@ export const calculateMelhorEnvioShipping = onRequest({ region, cors: false, max
     const payload = {
       from: { postal_code: String(config.address.zipCode).replace(/\D/g, '') },
       to: { postal_code: String(zipTo).replace(/\D/g, '') },
+      services: MELHOR_ENVIO_SERVICES,
       products: sanitizedProducts
     };
 

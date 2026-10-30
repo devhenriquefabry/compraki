@@ -8,7 +8,7 @@ import { ensureAsaasCustomer, requestAsaas } from './payments/asaas';
 import { CORA_CHARGES, applyCoraInvoiceToOrder, presentInvoice } from './payments/cora';
 import { CoraInvoice, cancelCoraInvoice, getCoraInvoice, isCoraSandbox, requestCora } from './payments/cora-client';
 import { defaultRuntime, handleCors, isAdminUser, methodNotAllowed, region, requireAuthenticated } from './shared/http';
-import { getMelhorEnvioConfig, melhorEnvioPackage, requestMelhorEnvio } from './shared/melhor-envio';
+import { MELHOR_ENVIO_SERVICES, getMelhorEnvioConfig, melhorEnvioPackage, requestMelhorEnvio } from './shared/melhor-envio';
 import { LOCAL_DELIVERY_SERVICE, planDelivery, readLocalDelivery } from './local-delivery';
 
 /**
@@ -277,6 +277,7 @@ async function quoteShipping(lines: PricedLine[], zipTo: string, serviceId: numb
   const payload = {
     from: { postal_code: digitsOf(config.address.zipCode) },
     to: { postal_code: zipTo },
+    services: MELHOR_ENVIO_SERVICES,
     products: lines.map(l => ({
       id: l.productId.substring(0, 50),
       ...melhorEnvioPackage(l.product),

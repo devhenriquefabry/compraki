@@ -208,6 +208,17 @@ export class CheckoutShippingComponent implements OnInit, OnDestroy {
     return this.items.length > 0 && this.items.every(item => hasFreeShipping(item.productData, rule));
   }
 
+  /** A lista já vem do mais barato para o mais caro (MelhorEnvioService.getQuotes). */
+  get cheapestId(): number | null {
+    return this.quotes[0]?.id ?? null;
+  }
+
+  /** Menor prazo; no empate, o mais barato (o primeiro da lista). */
+  get fastestId(): number | null {
+    const fastest = this.quotes.reduce<ShippingQuote | null>((best, q) => !best || q.delivery_time < best.delivery_time ? q : best, null);
+    return fastest?.id ?? null;
+  }
+
   /** O que o comprador paga por esta cotação. */
   priceFor(quote: ShippingQuote): number {
     return this.freeShipping ? 0 : quote.price;

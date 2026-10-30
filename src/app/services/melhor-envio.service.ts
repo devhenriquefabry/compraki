@@ -76,7 +76,10 @@ export class MelhorEnvioService {
             name: q.company.name,
             picture: q.company.picture
           }
-        }));
+        }))
+          // Mais barato primeiro (o checkout pré-seleciona o primeiro); empate vai pelo prazo.
+          .filter(q => q.price > 0)
+          .sort((a, b) => a.price - b.price || a.delivery_time - b.delivery_time);
       })
     );
   }
