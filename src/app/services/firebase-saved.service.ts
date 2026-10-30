@@ -11,7 +11,8 @@ import {
   where,
   getDocs,
   Firestore,
-  serverTimestamp
+  serverTimestamp,
+  setDoc
 } from 'firebase/firestore';
 import { getAuth, Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { Observable, BehaviorSubject } from 'rxjs';
@@ -76,6 +77,14 @@ export class FirebaseSavedService {
     return deleteDoc(doc(this.db, `users/${user.uid}/savedProducts`, savedItemId));
   }
   
+  /** Desfazer de uma remoção: grava de volta o mesmo documento (mesmo id e data). */
+  async restore(item: SavedItem): Promise<void> {
+    const user = this.getCurrentUser();
+    if (!user || !item.id) throw new Error("Usuário não autenticado.");
+    const { id, ...data } = item;
+    await setDoc(doc(this.db, `users/${user.uid}/savedProducts`, id), data);
+  }
+
   // Alternative: Remove by ProductId (useful when toggling off in details page)
   async removeByProductId(productId: string): Promise<void> {
       const user = this.getCurrentUser();

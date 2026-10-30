@@ -1,53 +1,120 @@
-<ion-header class="ion-no-border">
-  <app-mini-header [showBackButton]="false" [showMenuButton]="true"></app-mini-header>
-  <ion-toolbar class="favorites-header-toolbar">
-    <div class="header-section">
-      <h1 class="main-title">Favoritos</h1>
-      
-      <div class="search-container">
-        <div class="search-box">
-          <ion-icon name="search-outline"></ion-icon>
-          <input type="text" placeholder="Pesquisar favoritos..." [(ngModel)]="searchTerm" (input)="applyFilter(activeFilter)">
-        </div>
-      </div>
-    </div>
-  </ion-toolbar>
+<ion-header class="ion-no-border pg-header">
+  <div class="pg-bar">
+    <h1 class="pg-title">Favoritos @if (counts().all) { <span class="sv-count">{{ counts().all }}</span> }</h1>
+    <label class="pg-search sv-search">
+      <vn-icon name="search" />
+      <input type="search" placeholder="Buscar nos favoritos" aria-label="Buscar nos favoritos"
+             [value]="search()" (input)="search.set($any($event.target).value)" />
+    </label>
+  </div>
+  @if (counts().all) {
+    <nav class="pg-tabs" aria-label="Filtrar favoritos">
+      @for (f of filters; track f.id) {
+        <button type="button" class="pg-tab" [class.is-active]="filter() === f.id"
+                [attr.aria-pressed]="filter() === f.id" (click)="setFilter(f.id)">
+          {{ f.label }}
+          @if (f.id !== 'all' && counts()[f.id]) { <span class="pg-tab-count">{{ counts()[f.id] }}</span> }
+        </button>
+      }
+    </nav>
+  }
 </ion-header>
 
-<ion-content class="favorites-content">
-  
+<ion-content class="pg-content">
+  <div class="pg-wrap">
+    @if (failed()) {
+      <div class="panel panel--refund" role="alert">
+        <ion-icon class="panel-icon" name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+        <div class="panel-body">
+          <p class="panel-title">Não deu para carregar seus favoritos</p>
+          <p>Confira a conexão e abra a tela de novo.</p>
+        </div>
+      </div>
+    } @else if (items() === null || resolving()) {
+      <div class="sv-grid" aria-busy="true" aria-label="Carregando favoritos">
+        @for (i of [1, 2, 3, 4]; track i) { <div class="sk sv-sk" aria-hidden="true"></div> }
+      </div>
+    } @else if (!counts().all) {
+      <div class="pg-empty">
+        <span class="pg-empty-mark"><vn-icon name="heart" /></span>
+        <h2>Nenhum favorito ainda</h2>
+        <p>Toque no coração de um produto para guardar aqui. Avisamos quando o preço baixar.</p>
+        <a class="btn btn--primary" routerLink="/tabs/tab2">Explorar produtos</a>
+      </div>
+    } @else {
+      @if (counts().unavailable && filter() !== 'deals') {
+        <div class="sv-alert" role="status">
+          <vn-icon name="flag" />
+          <p>
+            <strong>{{ counts().unavailable === 1 ? '1 favorito não pode' : counts().unavailable + ' favoritos não podem' }} ser comprado{{ counts().unavailable === 1 ? '' : 's' }} agora</strong>
+            <span>Saiu de venda, esgotou ou foi tirado do ar.</span>
+          </p>
+          <button type="button" (click)="removeUnavailable()">Remover indisponíveis</button>
+        </div>
+      }
 
+      @if (!visible().length) {
+        <p class="sv-none">
+          {{ search() ? 'Nenhum favorito com "' + search() + '".' : filter() === 'deals' ? 'Nenhum favorito baixou de preço desde que você salvou.' : 'Nada por aqui.' }}
+          <button type="button" (click)="search.set(''); setFilter('all')">Ver todos</button>
+        </p>
+      } @else {
+        <ul class="sv-grid">
+          @for (r of visible(); track r.id) {
+            <li class="sv-card" [class.is-off]="r.unavailable">
+              <button type="button" class="sv-photo" (click)="open(r)" [disabled]="r.unavailable === 'gone'"
+                      [attr.aria-label]="r.unavailable === 'gone' ? r.shown.name : 'Abrir ' + r.shown.name">
+                @if (r.shown.photoURL?.[0]) {
+                  <img [src]="r.shown.photoURL![0]" alt="" loading="lazy" />
+                } @else {
+                  <vn-icon name="image" />
+                }
+                @if (r.unavailable) {
+                  <span class="sv-flag sv-flag--off">{{ unavailableLabel(r) }}</span>
+                } @else if (r.drop > 0) {
+                  <span class="sv-flag">Baixou {{ pct(r.drop) }}</span>
+                }
+              </button>
+              <button type="button" class="sv-heart" (click)="remove([r])" [attr.aria-label]="'Remover ' + r.shown.name + ' dos favoritos'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3 4.6 13.2a4.7 4.7 0 0 1 6.7-6.7l.7.7.7-.7a4.7 4.7 0 0 1 6.7 6.7Z" /></svg>
+              </button>
 
-  <!-- Filter -->
-  <app-saved-filter (filterChanged)="onFilterChanged($event)"></app-saved-filter>
+              <div class="sv-body">
+                <small class="sv-shop">{{ shopName(r) }}</small>
+                <button type="button" class="sv-name" (click)="open(r)" [disabled]="r.unavailable === 'gone'">{{ r.shown.name }}</button>
+                @if (r.unavailable === 'gone') {
+                  <p class="sv-gone">Este anúncio foi encerrado pela loja.</p>
+                } @else {
+                  <p class="sv-price">
+                    @if (r.shown.hasVariants) { <small>a partir de</small> }
+                    <b>{{ brl(r.price) }}</b>
+                    @if (r.listPrice) { <s>{{ brl(r.listPrice) }}</s> }
+                  </p>
+                  <p class="sv-tags">
+                    @if (r.freeShipping) { <span class="sv-tag"><vn-icon name="truck" /> Frete grátis</span> }
+                    @else if (r.localDelivery) { <span class="sv-tag"><vn-icon name="truck" /> Entrega grátis da loja</span> }
+                    @if (r.shown.condition && r.shown.condition !== 'novo') { <span class="sv-tag sv-tag--muted">Usado</span> }
+                  </p>
+                }
 
-  <!-- Loading State -->
-  <div class="loading-container" *ngIf="isLoading">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Carregando favoritos...</p>
+                <div class="sv-actions">
+                  @if (r.unavailable) {
+                    <button type="button" class="sv-btn sv-btn--ghost" (click)="remove([r])"><vn-icon name="trash" /> Remover</button>
+                  } @else if (cartQty()[r.productId]) {
+                    <a class="sv-btn sv-btn--in" routerLink="/tabs/cart"><vn-icon name="check" /> No carrinho ({{ cartQty()[r.productId] }})</a>
+                  } @else if (r.shown.hasVariants) {
+                    <button type="button" class="sv-btn" (click)="open(r)">Escolher opção</button>
+                  } @else {
+                    <button type="button" class="sv-btn" (click)="addToCart(r)" [disabled]="adding() === r.id">
+                      <vn-icon name="cart" /> {{ adding() === r.id ? 'Adicionando…' : 'Adicionar' }}
+                    </button>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    }
   </div>
-
-  <!-- Empty State -->
-  <div class="empty-state" *ngIf="!isLoading && filteredItems.length === 0">
-    <div class="icon-circle">
-      <ion-icon name="heart-outline"></ion-icon>
-    </div>
-    <h2>Nenhum favorito</h2>
-    <p>Você ainda não salvou nenhum produto como favorito. Explore o app para encontrar itens de seu interesse!</p>
-  </div>
-
-  <!-- List -->
-  <div class="list-container" *ngIf="!isLoading && filteredItems.length > 0">
-    <app-saved-product-card 
-      *ngFor="let item of filteredItems; trackBy: trackById" 
-      [item]="item"
-      (remove)="onRemove($event)">
-    </app-saved-product-card>
-  </div>
-
-  <!-- Undo Toast -->
-  <app-saved-undo-toast 
-    *ngIf="showUndoToast"
-    (undo)="onUndo()">
-  </app-saved-undo-toast>
 </ion-content>
