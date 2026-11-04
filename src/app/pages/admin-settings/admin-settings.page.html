@@ -137,10 +137,13 @@
           <button type="submit" class="adm-btn adm-btn--primary" [disabled]="!newWord.trim() || savingWords()">Bloquear</button>
         </form>
         <p class="as-note">
-          Sem acento e sem diferença de maiúsculas. A palavra precisa aparecer inteira: “arma” bloqueia “Arma de pressão”, mas não “Armário”.
-          Use <code>*</code> no fim para pegar variações: <code>arma*</code> bloqueia “armas” e “armamento” — mas também “armário”, então use com cuidado
+          Sem acento e sem diferença de maiúsculas. A palavra precisa aparecer inteira, no singular ou no plural: “arma” bloqueia “Armas de pressão”, mas não “Armário”.
+          Termo com várias palavras exige todas, em qualquer ordem: “cartão clonado” não bloqueia “Cartão de visita”. Modelo com letras e números vale sozinho quando o termo diz o tipo do produto: “arma de fogo ak47” também bloqueia “AK-47”.
+          Use <code>*</code> no fim para pegar o que começa assim: <code>arma*</code> bloqueia “armamento” — mas também “armário”, então use com cuidado
           e confira no teste abaixo. Separe vários termos com vírgula.
         </p>
+
+        <button type="button" class="adm-btn" (click)="addRecommended()" [disabled]="savingWords()">Adicionar lista recomendada</button>
 
         @if (words().length) {
           <ul class="as-words" aria-label="Termos bloqueados">

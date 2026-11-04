@@ -194,6 +194,18 @@ export class AdminSettingsPage {
     this.newWord = '';
   }
 
+  /** Junta a lista recomendada à atual, sem tirar o que o admin já tem. */
+  async addRecommended() {
+    const { RECOMMENDED_BLOCKED_TERMS } = await import('../../core/recommended-blocked-terms');
+    const current = new Set(this.words());
+    const missing = RECOMMENDED_BLOCKED_TERMS.filter(term => !current.has(term));
+    if (!missing.length) {
+      this.toast('A lista recomendada já está toda aqui.', 'medium');
+      return;
+    }
+    await this.saveWords([...this.words(), ...missing], `${missing.length} termos adicionados.`);
+  }
+
   async removeWord(word: string) {
     await this.saveWords(this.words().filter(w => w !== word), `“${word}” liberado.`);
   }

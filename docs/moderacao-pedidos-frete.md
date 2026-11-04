@@ -46,3 +46,31 @@ suspensão. Admin não pode ser suspenso (tire o claim antes).
 - O preço do pedido continua vindo do navegador (dívida já registrada em
   `estado-atual.md`); a regra de frete grátis é aplicada no cliente.
 - `arma*` (prefixo) também pega "armário" — o painel tem um campo de teste.
+
+## Regra do bloqueio e lista recomendada (04/11/2026)
+
+`findBlockedWord` (app em `core/product-moderation.ts`, servidor em
+`functions/src/moderation.ts`; a bateria `functions/scripts/product-rules.test.mjs`
+roda as duas contra a mesma tabela):
+
+- singular e plural contam como a mesma palavra; número no lugar de letra não engana (`c0ca1na`);
+- junto ou separado é igual: `ak47`, `AK-47`, `ak 47`;
+- termo com várias palavras exige todas, em qualquer ordem, sem contar `de`, `para` etc.;
+- modelo com letras e números vale sozinho quando o termo diz o tipo do produto:
+  `arma de fogo ak47` bloqueia `ak47`. Só código, de propósito: palavra comum
+  (`arma branca` → `branca`) derrubaria o catálogo inteiro ao revarrer.
+  Nome de modelo sem número precisa de termo próprio (`glock`).
+
+Não existe lista pronta em formato de dados para o Brasil. A recomendada
+(`core/recommended-blocked-terms.ts`, botão em Ajustes) foi montada a partir das
+categorias publicadas pelos marketplaces e da legislação citada no arquivo.
+Antes de mudar, confira contra o catálogo real: mudar a lista tira do ar sozinho
+o que combinar.
+
+## Regras do Storage que leem o Firestore
+
+`storage.rules` usa `firestore.get` (mídia do chat e nota fiscal do pedido). Isso
+exige o papel `roles/firebaserules.firestoreServiceAgent` na conta
+`service-2028715763@gcp-sa-firebasestorage.iam.gserviceaccount.com`. O
+`firebase deploy` só oferece conceder em terminal interativo; fora dele pula sem
+avisar e as regras dão 403 em produção. O emulador não sente.
