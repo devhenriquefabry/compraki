@@ -36,7 +36,7 @@ import { ProductGalleryComponent } from 'src/app/components/product-gallery/prod
 import { ProductReviewsComponent } from 'src/app/components/product-reviews/product-reviews.component';
 import { ProductQuestionsComponent } from 'src/app/components/product-questions/product-questions.component';
 import { rememberViewedProduct } from 'src/app/core/recently-viewed';
-import { discountPercent, hasDiscount, hasStoreFreeShipping, priceMain } from 'src/app/core/product-pricing';
+import { discountPercent, hasDiscount, hasOwnDiscount, hasStoreFreeShipping, hasVariedPrices, priceMain, skuUnitPrice } from 'src/app/core/product-pricing';
 import { citiesLabel, daysLabel, readLocalDelivery } from 'src/app/core/local-delivery';
 import { AppConfigService } from 'src/app/services/app-config.service';
 import { isProductHidden } from 'src/app/core/product-moderation';
@@ -52,6 +52,15 @@ import { ReviewStarsComponent } from 'src/app/components/review-stars/review-sta
 import { ProductReviewsService } from 'src/app/services/product-reviews.service';
 
 /** Rótulos de condição como o comprador lê. */
+/** O que o bloco de preço mostra para a seleção atual. */
+interface ShownPrice {
+  value: number;
+  /** Preços variam e falta escolher: "a partir de". */
+  from: boolean;
+  /** Mostra o de/por do anúncio. */
+  discounted: boolean;
+}
+
 const CONDITION_LABELS: Record<Product['condition'], string> = {
   'novo': 'Novo',
   'usado-como-novo': 'Usado · como novo',
@@ -504,7 +513,20 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
   }
 
   public savings(product: Product): string {
-    return this.formatMoney(product.price - priceMain(product));
+    return this.formatMoney(product.price - this.shownPrice(product).value);
+  }
+
+  /**
+   * Preço que a página mostra. Com a combinação escolhida, o dela; se ela não
+   * tem preço próprio, o do anúncio, com o de/por. Falta escolher e os preços
+   * variam: "a partir de" o mais barato.
+   */
+  public shownPrice(product: Product): ShownPrice {
+    const sku = this.isOwnProduct(product) ? null : findSku(product, this.selectedVariant);
+    const own = !!sku && typeof sku.price === 'number' && sku.price > 0;
+    if (own) return { value: sku!.price as number, from: false, discounted: false };
+    if (sku) return { value: skuUnitPrice(product, sku), from: false, discounted: hasOwnDiscount(product) };
+    return { value: priceMain(product), from: hasVariedPrices(product), discounted: hasDiscount(product) };
   }
 
   public conditionLabel(product: Product): string {
@@ -642,7 +664,7 @@ export class ProductDetailsPage implements OnInit, OnDestroy {
       skuId: sku.id,
       label: variantLabel(variantAttributeNames(product), this.selectedVariant),
       selection: { ...this.selectedVariant },
-      price: sku.price ?? priceMain(product),
+      price: skuUnitPrice(product, sku),
       stock: sku.stock
     };
   }

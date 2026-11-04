@@ -13,6 +13,7 @@ import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
 import { resizeImage } from 'src/app/core/image-resize';
 import { readLocalDelivery } from 'src/app/core/local-delivery';
 import { formatBRL } from 'src/app/core/order-stage';
+import { hasDiscount, priceMain } from 'src/app/core/product-pricing';
 import {
   cleanVariantPhotos, cleanVariants, galleriesFromProduct, generalPhotos, mainOptionImages, optionGalleryPhotos, resolveGalleries,
   totalVariantStock,
@@ -309,7 +310,9 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
   get previewPrice(): { price: number; list: number | null } {
     const price = Number(this.form.controls.price.value) || 0;
     const promo = this.discountPercent ? Number(this.form.controls.priceDiscounted.value) : null;
-    return promo ? { price: promo, list: price } : { price, list: null };
+    // A vitrine mostra a combinação mais barata quando há preço por combinação.
+    const shown = { price, priceDiscounted: promo, hasVariants: this.hasVariants, skus: this.variantSkus } as Product;
+    return { price: priceMain(shown), list: hasDiscount(shown) ? price : null };
   }
 
   get descriptionLength(): number {

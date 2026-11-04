@@ -40,7 +40,8 @@
         @let rating = storeRating$ | async;
         @let inCart = (cartQuantity$ | async) || 0;
         @let crumbs = breadcrumb$ | async;
-        @let price = priceParts(priceMain(p));
+        @let shown = shownPrice(p);
+        @let price = priceParts(shown.value);
         @let shipping = shippingInfo(p);
         @let specs = specRows(p);
         @let reviewCount = p.reviewCount || 0;
@@ -113,18 +114,21 @@
 
               <!-- Preço -->
               <div class="pd-price">
-                @if (hasDiscount(p)) {
+                @if (shown.discounted) {
                   <s class="pd-price-old" aria-label="Preço anterior">{{ formatMoney(p.price) }}</s>
                 }
+                @if (shown.from) {
+                  <span class="pd-price-from">A partir de</span>
+                }
                 <div class="pd-price-main">
-                  <span class="pd-price-now" [attr.aria-label]="formatMoney(priceMain(p))">
+                  <span class="pd-price-now" [attr.aria-label]="formatMoney(shown.value)">
                     <span class="pd-cur">R$</span><span class="pd-reais">{{ price.reais }}</span><sup class="pd-cents">{{ price.cents }}</sup>
                   </span>
-                  @if (hasDiscount(p)) {
+                  @if (shown.discounted) {
                     <span class="pd-off">{{ discountPercent(p) }}% OFF</span>
                   }
                 </div>
-                @if (hasDiscount(p)) {
+                @if (shown.discounted) {
                   <span class="pd-savings">Você economiza {{ savings(p) }}</span>
                 }
               </div>
@@ -502,9 +506,11 @@
     <ion-footer class="ion-no-border pd-sticky" [class.is-visible]="showStickyBuy && !isChatOpen">
       <div class="pd-sticky-inner">
         <div class="pd-sticky-price">
-          @let sp = priceParts(priceMain(p));
+          @let stickyPrice = shownPrice(p);
+          @let sp = priceParts(stickyPrice.value);
+          @if (stickyPrice.from) { <small>A partir de</small> }
           <strong>R$ {{ sp.reais }}<sup>{{ sp.cents }}</sup></strong>
-          @if (hasDiscount(p)) { <span>{{ discountPercent(p) }}% OFF</span> }
+          @if (stickyPrice.discounted) { <span>{{ discountPercent(p) }}% OFF</span> }
         </div>
         @if (canBuy(p)) {
           <button type="button" class="pd-btn pd-btn--primary" [disabled]="isAddingToCart" (click)="buyNow(p)">

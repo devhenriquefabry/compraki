@@ -181,11 +181,12 @@
                 <div class="pve-matrix-input price">
                   <span class="prefix">R$</span>
                   <input
-                    type="number" min="0" step="0.01"
-                    [value]="row.price ?? ''"
+                    type="text" inputmode="decimal" autocomplete="off"
+                    [value]="priceText(row)"
                     [placeholder]="basePriceLabel()"
                     [attr.aria-label]="'Preço para ' + rowLabel(row)"
-                    (input)="updateSkuPrice(row, $event)">
+                    (input)="updateSkuPrice(row, $event)"
+                    (blur)="finishSkuPrice(row)">
                 </div>
               </span>
               <span class="pve-matrix-cell">
@@ -200,6 +201,7 @@
             </div>
           }
         </div>
+        <p class="pve-hint">Em branco, a combinação usa o preço do anúncio. Com preço próprio, a combinação não leva o preço promocional.</p>
       </div>
     } @else if (locked()) {
       <p class="pve-hint">Escolha ao menos uma opção de cada item acima para informar o estoque.</p>

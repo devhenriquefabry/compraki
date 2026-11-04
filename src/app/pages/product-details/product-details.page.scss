@@ -458,6 +458,11 @@ a {
   color: var(--pd-muted);
 }
 
+.pd-price-from {
+  font-size: 13px;
+  color: var(--pd-muted);
+}
+
 .pd-price-main {
   display: flex;
   align-items: center;
@@ -1323,6 +1328,11 @@ a {
 .pd-sticky-price {
   display: flex;
   flex-direction: column;
+
+  small {
+    font-size: 11px;
+    color: var(--pd-muted);
+  }
 
   strong {
     font-family: var(--pd-display);

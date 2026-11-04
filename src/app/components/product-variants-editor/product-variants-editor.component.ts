@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { ProductSku, ProductVariantAttribute } from '../../interfaces/product';
+import { formatPriceInput, parsePriceInput } from '../../core/product-pricing';
 import { MAX_OPTION_PHOTOS, MAX_VARIANT_ATTRIBUTES, cartesianCombinations, skuKey } from '../../core/product-variants';
 
 /** Nomes mais comuns, viram atalhos de um clique ao adicionar um atributo. */
@@ -189,10 +190,26 @@ export class ProductVariantsEditorComponent {
     this.patchSku(row, { stock });
   }
 
+  /**
+   * O que está sendo digitado em cada preço. Enquanto a pessoa digita, o campo
+   * mostra o texto dela: reescrever o campo a cada tecla apagava o "3." de
+   * "3.200" (o preço virava 200, e "3.000" virava 0 e sumia ao salvar).
+   */
+  private readonly priceDrafts = signal<Record<string, string>>({});
+
+  priceText(row: SkuRow): string {
+    return this.priceDrafts()[row.id] ?? formatPriceInput(row.price);
+  }
+
   updateSkuPrice(row: SkuRow, event: Event) {
     const raw = (event.target as HTMLInputElement).value;
-    const price = raw === '' ? null : Math.max(0, Number(raw));
-    this.patchSku(row, { price });
+    this.priceDrafts.update(drafts => ({ ...drafts, [row.id]: raw }));
+    this.patchSku(row, { price: parsePriceInput(raw) });
+  }
+
+  /** Saiu do campo: mostra o valor como foi entendido ("3.200,00"). */
+  finishSkuPrice(row: SkuRow) {
+    this.priceDrafts.update(({ [row.id]: _, ...rest }) => rest);
   }
 
   private patchSku(row: SkuRow, patch: Partial<ProductSku>) {
