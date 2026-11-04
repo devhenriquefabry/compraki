@@ -1,0 +1,50 @@
+<div class="tf-card">
+  <div class="tf-head">
+    <span class="tf-icon"><vn-icon name="shield" /></span>
+    <span class="tf-text">
+      <strong>Verificação em duas etapas</strong>
+      <small>Um código no seu e-mail a cada novo login</small>
+    </span>
+    @if (enabled() === true) {
+      <span class="tf-badge">Ativada</span>
+    } @else if (enabled() === false && !purpose()) {
+      <button type="button" class="tf-btn" (click)="start('enable')" [disabled]="busy()">Ativar</button>
+    }
+  </div>
+
+  @if (recoveryCodes().length) {
+    <div class="tf-panel">
+      <strong>Guarde seus códigos de recuperação</strong>
+      <p>Eles só aparecem agora. Se você perder o acesso ao e-mail, um deles recupera a sua conta.</p>
+      <ul class="tf-codes">
+        @for (item of recoveryCodes(); track item) { <li>{{ item }}</li> }
+      </ul>
+      <div class="tf-actions">
+        <button type="button" class="tf-btn tf-btn--ghost" (click)="copyCodes()">Copiar</button>
+        <button type="button" class="tf-btn tf-btn--ghost" (click)="downloadCodes()">Baixar</button>
+        <button type="button" class="tf-btn" (click)="closeCodes()">Já guardei</button>
+      </div>
+    </div>
+  } @else if (purpose()) {
+    <form class="tf-panel" (ngSubmit)="confirm()" novalidate>
+      <p>Enviamos um código de 6 números para <b>{{ sentTo() }}</b>.</p>
+      <label class="tf-field">
+        <span>Código de verificação</span>
+        <input name="code" [(ngModel)]="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+      </label>
+      <div class="tf-actions">
+        <button type="button" class="tf-btn tf-btn--ghost" (click)="cancel()" [disabled]="busy()">Cancelar</button>
+        <button type="submit" class="tf-btn" [disabled]="busy()">
+          @if (busy()) { <ion-spinner name="crescent"></ion-spinner> } @else { Confirmar }
+        </button>
+      </div>
+    </form>
+  } @else if (enabled() === true) {
+    <div class="tf-actions tf-actions--links">
+      <button type="button" class="tf-link" (click)="start('regenerate')" [disabled]="busy()">Gerar novos códigos de recuperação</button>
+      <button type="button" class="tf-link tf-link--danger" (click)="start('disable')" [disabled]="busy()">Desativar</button>
+    </div>
+  }
+
+  @if (error()) { <p class="tf-error" role="alert">{{ error() }}</p> }
+</div>

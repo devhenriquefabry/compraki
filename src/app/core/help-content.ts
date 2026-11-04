@@ -745,6 +745,34 @@ export const HELP_TOPICS: HelpTopic[] = [
         links: [{ label: 'Abrir Minha conta', route: '/tabs/my-account' }],
       },
       {
+        id: 'conta-duas-etapas',
+        q: 'O que é a verificação em duas etapas?',
+        keys: '2fa autenticacao dois fatores duas etapas codigo por email seguranca login recuperacao perdi acesso',
+        a: [
+          {
+            t: 'p',
+            text: 'É uma proteção opcional: a cada novo login, além da senha ou do Google, pedimos um código de 6 números enviado para o seu e-mail. Mesmo com a sua senha, ninguém entra sem esse código.',
+          },
+          {
+            t: 'ol',
+            items: [
+              'Vá em **Minha conta › Senha e segurança** e toque em **Ativar**.',
+              'Digite o código que chegou no seu e-mail.',
+              'Guarde os **códigos de recuperação**. Eles só aparecem nessa hora.',
+            ],
+          },
+          {
+            t: 'p',
+            text: 'Perdeu o acesso ao e-mail? Na tela do código, toque em **Perdi o acesso ao meu e-mail** e use um código de recuperação. Isso desativa a verificação, e você pode ativá-la de novo depois.',
+          },
+          {
+            t: 'note',
+            text: 'A Vineon nunca pede esse código por telefone, WhatsApp ou chat. Se alguém pedir, não informe.',
+          },
+        ],
+        links: [{ label: 'Abrir Minha conta', route: '/tabs/my-account' }],
+      },
+      {
         id: 'conta-dados',
         q: 'Como altero meu nome, telefone ou CPF?',
         keys: 'editar perfil cadastro dados pessoais foto',

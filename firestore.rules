@@ -20,8 +20,12 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------- helpers
 
+    // Sessao com verificacao em duas etapas pendente (senha certa, codigo ainda
+    // nao confirmado) nao conta como logada. Ver functions/src/two-factor.ts.
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && (request.auth.token.get('tfa', false) != true
+            || request.auth.token.auth_time in request.auth.token.get('tfaSessions', []));
     }
 
     function isUser(uid) {
@@ -481,11 +485,11 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       function isBuyer() {
-        return request.auth.uid == resource.data.userId;
+        return isSignedIn() && request.auth.uid == resource.data.userId;
       }
 
       function isOrderSeller() {
-        return resource.data.sellerIds is list && request.auth.uid in resource.data.sellerIds;
+        return isSignedIn() && resource.data.sellerIds is list && request.auth.uid in resource.data.sellerIds;
       }
 
       function changedKeys() {

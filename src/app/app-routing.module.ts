@@ -44,6 +44,11 @@ const routes: Routes = [
     loadComponent: () => import('./pages/privacy/privacy.page').then(m => m.PrivacyPage)
   },
   {
+    // Segunda etapa do login. Sem guard: a própria tela confere a sessão.
+    path: 'two-factor',
+    loadComponent: () => import('./pages/two-factor/two-factor.page').then(m => m.TwoFactorPage),
+  },
+  {
     // Excluir conta (LGPD). O servidor recusa conta de admin; a tela também.
     path: 'account/delete',
     loadComponent: () => import('./pages/delete-account/delete-account.page').then(m => m.DeleteAccountPage),

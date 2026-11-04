@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { safeRedirectTarget } from 'src/app/core/auth-redirect';
+import { isSecondFactorPending } from 'src/app/core/two-factor';
 import { IonicModule } from '@ionic/angular';
 import { VineonLogoComponent } from 'src/app/components/vineon-logo/vineon-logo.component';
 import { FirebaseProducts } from 'src/app/services/firebase-products';
@@ -124,7 +125,7 @@ export class LoginFormComponent implements OnInit, OnDestroy {
     this.status = 'loading';
     try {
       await this.firebaseProducts.login(email, password);
-      this.finish();
+      await this.finish();
     } catch (error) {
       this.status = 'idle';
       this.formError = (error as Error).message;
@@ -139,7 +140,7 @@ export class LoginFormComponent implements OnInit, OnDestroy {
     try {
       const entrou = await this.firebaseProducts.signInWithGoogle();
       this.googleLoading = false;
-      if (entrou) this.finish();
+      if (entrou) await this.finish();
     } catch (error) {
       this.googleLoading = false;
       this.formError = (error as Error).message;
@@ -148,10 +149,18 @@ export class LoginFormComponent implements OnInit, OnDestroy {
   }
 
   /** "Tudo certo ✓" no botão e segue para onde a pessoa ia (ou a vitrine). */
-  private finish() {
+  private async finish() {
+    const target = safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirectTo'));
+    const user = this.firebaseProducts.getUser();
+    if (user && await isSecondFactorPending(user)) {
+      this.status = 'idle';
+      await this.router.navigate(['/two-factor'], { queryParams: { redirectTo: target }, replaceUrl: true });
+      return;
+    }
+
     this.status = 'done';
     this.redirectTimer = setTimeout(() => {
-      this.router.navigateByUrl(safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirectTo')));
+      this.router.navigateByUrl(target);
     }, DONE_DELAY_MS);
   }
 

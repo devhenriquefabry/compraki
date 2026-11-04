@@ -10,6 +10,7 @@ import { FirebaseProducts } from 'src/app/services/firebase-products';
 import { AddressService } from 'src/app/services/address.service';
 import { AppAddress } from 'src/app/interfaces/app-user';
 import { isValidCpf, maskCep, maskCpf, maskPhone } from 'src/app/core/br-documents';
+import { isSecondFactorPending } from 'src/app/core/two-factor';
 import { environment } from 'src/environments/environment';
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
@@ -405,7 +406,15 @@ export class SignInFormComponent implements OnInit, OnDestroy {
     this.formError = '';
     this.googleLoading = true;
     try {
-      if (await this.firebaseProducts.signInWithGoogle()) this.succeed();
+      if (await this.firebaseProducts.signInWithGoogle()) {
+        // "Continuar com Google" aqui também serve a quem já tem conta.
+        const user = this.firebaseProducts.getUser();
+        if (user && await isSecondFactorPending(user)) {
+          await this.router.navigate(['/two-factor'], { replaceUrl: true });
+          return;
+        }
+        this.succeed();
+      }
     } catch (error) {
       this.formError = (error as Error).message;
     } finally {

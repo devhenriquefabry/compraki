@@ -9,7 +9,7 @@ import {
   peopleOutline, radioOutline, storefrontOutline, banOutline, 
   downloadOutline, checkmarkCircleOutline, lockOpenOutline, lockClosedOutline, 
   swapHorizontalOutline, personRemoveOutline, personAddOutline, trashOutline,
-  mapOutline, listOutline, locationOutline, businessOutline, refreshCircleOutline
+  mapOutline, listOutline, locationOutline, businessOutline, refreshCircleOutline, shieldOutline
 } from 'ionicons/icons';
 import { AppUser } from '../../interfaces/app-user';
 import { Order } from '../../interfaces/order';
@@ -17,6 +17,8 @@ import { AdminPanelHeroComponent } from '../../components/admin-panel-hero/admin
 import { FirebaseUsersService } from '../../services/firebase-users.service';
 import { ModerationService } from '../../services/moderation.service';
 import { loadLeaflet } from '../../core/load-leaflet';
+import { getCurrentUser } from '../../core/auth-state';
+import { adminResetTwoFactor } from '../../core/two-factor';
 
 type UserStatusFilter = 'all' | 'online' | 'offline' | 'unknown';
 type UserRoleFilter = 'all' | 'seller' | 'buyer';
@@ -105,7 +107,7 @@ export class ManageUsersPage implements OnInit, OnDestroy {
       peopleOutline, radioOutline, storefrontOutline, banOutline,
       downloadOutline, checkmarkCircleOutline, lockOpenOutline, lockClosedOutline,
       swapHorizontalOutline, personRemoveOutline, personAddOutline, trashOutline,
-      mapOutline, listOutline, locationOutline, businessOutline, refreshCircleOutline
+      mapOutline, listOutline, locationOutline, businessOutline, refreshCircleOutline, shieldOutline
     });
   }
 
@@ -347,6 +349,42 @@ export class ManageUsersPage implements OnInit, OnDestroy {
       this.successMessage = next
         ? `Usuário ${this.getUserName(user)} bloqueado no chat.`
         : `Usuário ${this.getUserName(user)} liberado no chat.`;
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.actionLoading = false;
+    }
+  }
+
+  /**
+   * Desliga a verificação em duas etapas de quem perdeu o e-mail e os códigos de
+   * recuperação. Só depois de confirmar quem é a pessoa: é por aqui que um golpe
+   * tentaria entrar. O motivo fica registrado em `twoFactorEvents`.
+   */
+  async resetTwoFactor(user: AppUser): Promise<void> {
+    const uid = this.getUserId(user);
+    const admin = getCurrentUser();
+    if (!uid || !admin) return;
+    const answer = window.prompt(
+      `Desativar a verificação em duas etapas de ${this.getUserName(user)}?
+
+Faça isso só depois de confirmar a identidade da pessoa. Ela recebe um aviso por e-mail.
+
+Motivo (obrigatório):`
+    );
+    if (answer === null) return;
+    const reason = answer.trim();
+    if (!reason) {
+      this.errorMessage = 'Informe o motivo do reset.';
+      return;
+    }
+
+    this.actionLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    try {
+      await adminResetTwoFactor(admin, uid, reason);
+      this.successMessage = `Verificação em duas etapas de ${this.getUserName(user)} desativada.`;
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error);
     } finally {

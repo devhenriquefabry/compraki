@@ -3,6 +3,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore, doc, setDoc, updateDoc, serverTimestamp, Firestore, collection, onSnapshot, deleteDoc, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { EmailAuthProvider, getAuth, reauthenticateWithCredential, updatePassword, updateProfile } from 'firebase/auth';
+import { keepSessionVerified } from '../core/two-factor';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { AppUser } from '../interfaces/app-user';
 import { PublicSellerProfile } from '../interfaces/seller';
@@ -197,8 +198,10 @@ export class FirebaseUsersService {
     }
 
     const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
-    await reauthenticateWithCredential(currentUser, credential);
-    await updatePassword(currentUser, newPassword);
+    await keepSessionVerified(currentUser, async () => {
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPassword);
+    });
   }
 
   /**

@@ -345,7 +345,7 @@ export class MyAccountPage {
       },
       { icon: 'pin', label: 'Endereços', hint: this.defaultAddress() ?? 'Cadastre onde receber seus pedidos', link: '/address' },
       { icon: 'card', label: 'Formas de pagamento', hint: 'Pix, boleto e cartões', link: '/payments' },
-      { icon: 'lock', label: 'Senha e segurança', hint: 'Troque sua senha de acesso', action: 'security' },
+      { icon: 'lock', label: 'Senha e segurança', hint: 'Senha e verificação em duas etapas', action: 'security' },
       { icon: 'bell', label: 'Notificações', hint: 'Avisos de pedidos e mensagens', link: '/tabs/notifications', badge: this.unreadNotifications() },
       { icon: 'privacy', label: 'Privacidade e dados', hint: 'O que a Vineon guarda sobre você', link: '/privacy' },
     ];

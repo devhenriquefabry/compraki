@@ -30,6 +30,7 @@ import { setupPwa } from './core/pwa';
 import { PresenceService } from './services/presence.service';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { isCurrentUserAdmin, onAuthUserChanged } from './core/auth-state';
+import { isSecondFactorPending, watchSecondFactor } from './core/two-factor';
 import { LayoutService } from './core/layout.service';
 
 @Component({
@@ -147,8 +148,20 @@ export class AppComponent implements OnInit, OnDestroy {
    * mesmo sem nada mudar. Agora são dois listeners: o Firebase avisa quando há
    * mudança, em vez de a gente perguntar.
    */
+  private goToSecondFactor() {
+    const path = window.location.pathname;
+    // Login e cadastro levam à segunda etapa eles mesmos, com o destino certo.
+    if (/^\/(two-factor|login|sign-in)(\/|$)/.test(path)) return;
+    this.router.navigate(['/two-factor'], {
+      queryParams: { redirectTo: path + window.location.search },
+      replaceUrl: true,
+    });
+  }
+
   private watchCurrentUser() {
-    this.stopAuthWatch = onAuthUserChanged((user) => {
+    watchSecondFactor(() => this.goToSecondFactor());
+
+    this.stopAuthWatch = onAuthUserChanged(async (user) => {
       this.usuario = user;
 
       // Troca de conta (ou logout): derruba o listener do documento anterior.
@@ -166,6 +179,11 @@ export class AppComponent implements OnInit, OnDestroy {
       isCurrentUserAdmin().then(isAdmin => {
         this.isAdmin = isAdmin;
       });
+
+      // Sessão à espera do código não lê o próprio documento: o erro de permissão
+      // chegaria aqui como "conta sem registro" e derrubaria o login.
+      if (await isSecondFactorPending(user).catch(() => false)) return;
+      if (this.usuario?.uid !== user.uid) return;
 
       this.stopUserDocWatch = this.usersService.watchUser(user.uid, (appUser) => {
         if (!appUser) {

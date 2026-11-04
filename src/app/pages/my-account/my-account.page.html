@@ -390,19 +390,14 @@
             <span class="acc-row-icon"><vn-icon name="shield" /></span>
             <span class="acc-row-text">
               <strong>Você entra com o Google</strong>
-              <small>A senha e a verificação em duas etapas ficam na sua conta Google.</small>
+              <small>A senha fica na sua conta Google.</small>
             </span>
           </div>
         }
 
-        <button type="button" class="acc-row ed-row is-soon" (click)="soon('Verificação em duas etapas')">
-          <span class="acc-row-icon"><vn-icon name="shield" /></span>
-          <span class="acc-row-text">
-            <strong>Verificação em duas etapas</strong>
-            <small>Um código extra ao entrar em outro aparelho</small>
-          </span>
-          <span class="acc-soon">Em breve</span>
-        </button>
+        @if (user(); as u) {
+          <app-two-factor-card class="ed-row" [user]="u" />
+        }
 
         <!-- Admin não exclui a conta pelo app: levaria junto o acesso à gestão. -->
         @if (!isAdmin()) {

@@ -5,8 +5,12 @@ service firebase.storage {
 
     // ---------------------------------------------------------------- helpers
 
+    // Sessao com verificacao em duas etapas pendente (senha certa, codigo ainda
+    // nao confirmado) nao conta como logada. Ver functions/src/two-factor.ts.
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && (request.auth.token.get('tfa', false) != true
+            || request.auth.token.auth_time in request.auth.token.get('tfaSessions', []));
     }
 
     function isUser(uid) {

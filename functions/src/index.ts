@@ -41,6 +41,8 @@ export { moderateProductName, onStorefrontConfigWritten, setAccountSuspension } 
 
 export { deleteMyAccount } from './account-deletion';
 
+export { twoFactor } from './two-factor';
+
 export { checkEmailAvailable } from './sign-up';
 
 export { sendWelcomeEmail } from './welcome-email';

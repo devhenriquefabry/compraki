@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
 import { waitForAuthUser } from '../core/auth-state';
 import { safeRedirectTarget } from '../core/auth-redirect';
+import { isSecondFactorPending } from '../core/two-factor';
 
 /**
  * Guard para rotas que exigem autenticação.
@@ -48,6 +49,12 @@ export const noAuthGuard: CanActivateFn = async (route) => {
   const user = await waitForAuthUser();
   if (!user) return true;
 
-  router.navigateByUrl(safeRedirectTarget(route.queryParamMap.get('redirectTo')));
+  const target = safeRedirectTarget(route.queryParamMap.get('redirectTo'));
+  if (await isSecondFactorPending(user).catch(() => false)) {
+    router.navigate(['/two-factor'], { queryParams: { redirectTo: target } });
+    return false;
+  }
+
+  router.navigateByUrl(target);
   return false;
 };

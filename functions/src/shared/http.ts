@@ -1,4 +1,4 @@
-import { getAuth } from 'firebase-admin/auth';
+import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
 import { logger } from 'firebase-functions';
 import { type Request } from 'firebase-functions/v2/https';
 
@@ -25,6 +25,10 @@ export interface AuthenticatedRequest {
   /** `email_verified` do ID token. Conta de e-mail/senha nasce sem verificar. */
   emailVerified?: boolean;
   isTokenAdmin?: boolean;
+  /** `auth_time` do ID token: identifica a sessão (ver `isTwoFactorPending`). */
+  authTime?: number;
+  /** Passou pela senha/Google, mas ainda falta o código da verificação em duas etapas. */
+  twoFactorPending?: boolean;
 }
 
 /** Região única de deploy. */
@@ -113,9 +117,23 @@ export function isBootstrapAdminEmail(email?: string): boolean {
   return adminEmails.includes(email.toLowerCase());
 }
 
+/**
+ * Sessão que ainda não confirmou o código da verificação em duas etapas.
+ *
+ * `tfaSessions` guarda os `auth_time` já confirmados: um login novo nasce com
+ * outro `auth_time` e fica de fora, mesmo com a senha certa. Mesma conta das
+ * regras do Firestore e do Storage (`isSignedIn()`). Ver functions/src/two-factor.ts.
+ */
+export function isTwoFactorPending(claims: Record<string, unknown>): boolean {
+  if (claims['tfa'] !== true) return false;
+  const sessions = claims['tfaSessions'];
+  return !(Array.isArray(sessions) && sessions.includes(claims['auth_time']));
+}
+
 export async function requireAuthenticated(
   req: Request,
-  res: HttpResponse
+  res: HttpResponse,
+  options: { allowPendingTwoFactor?: boolean } = {}
 ): Promise<AuthenticatedRequest | null> {
   const authorization = req.header('authorization') || '';
   const match = authorization.match(/^Bearer (.+)$/i);
@@ -125,19 +143,29 @@ export async function requireAuthenticated(
     return null;
   }
 
+  let decoded: DecodedIdToken;
   try {
-    const decoded = await getAuth().verifyIdToken(match[1]);
-    return {
-      uid: decoded.uid,
-      email: decoded.email,
-      emailVerified: decoded.email_verified === true,
-      isTokenAdmin: decoded['admin'] === true
-    };
+    decoded = await getAuth().verifyIdToken(match[1]);
   } catch (error) {
     logger.warn('Failed to verify Firebase ID token', error);
     res.status(401).json({ error: 'Invalid Firebase ID token' });
     return null;
   }
+
+  const twoFactorPending = isTwoFactorPending(decoded);
+  if (twoFactorPending && !options.allowPendingTwoFactor) {
+    res.status(403).json({ error: 'Confirme o código de verificação para continuar.', code: 'two-factor-required' });
+    return null;
+  }
+
+  return {
+    uid: decoded.uid,
+    email: decoded.email,
+    emailVerified: decoded.email_verified === true,
+    isTokenAdmin: decoded['admin'] === true,
+    authTime: decoded.auth_time,
+    twoFactorPending
+  };
 }
 
 /**

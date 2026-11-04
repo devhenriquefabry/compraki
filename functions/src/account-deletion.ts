@@ -5,7 +5,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { onRequest } from 'firebase-functions/v2/https';
 
-import { defaultRuntime, handleCors, isBootstrapAdminEmail, methodNotAllowed } from './shared/http';
+import { defaultRuntime, handleCors, isBootstrapAdminEmail, isTwoFactorPending, methodNotAllowed } from './shared/http';
 
 /**
  * Excluir conta (LGPD, art. 18, VI) — tela "Excluir conta" em Minha conta.
@@ -146,6 +146,10 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     decoded = await auth.verifyIdToken(match[1], true);
   } catch {
     res.status(401).json({ error: 'Sessão expirada. Entre de novo.' });
+    return;
+  }
+  if (isTwoFactorPending(decoded)) {
+    res.status(403).json({ error: 'Confirme o código de verificação para continuar.', code: 'two-factor-required' });
     return;
   }
   const uid = decoded.uid;
@@ -292,6 +296,7 @@ export const deleteMyAccount = onRequest({ ...defaultRuntime, maxInstances: 2, t
     await db.doc(`sellers/${uid}`).delete();
     // Chave Pix de repasse (Recebimentos): dado financeiro, sai junto.
     await db.doc(`sellerPayouts/${uid}`).delete().catch(() => undefined);
+    await db.doc(`twoFactor/${uid}`).delete().catch(() => undefined);
     if (decoded.email) await db.doc(`passwordResets/${decoded.email.trim().toLowerCase()}`).delete().catch(() => undefined);
 
     // Arquivos: foto de perfil, banner da loja e fotos de anúncio sem venda.

@@ -9,6 +9,7 @@ import { MyAccountPage } from './my-account.page';
 import { MiniHeaderComponent } from 'src/app/components/mini-header/mini-header.component';
 import { SocialLinksComponent } from 'src/app/components/social-links/social-links.component';
 import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
+import { TwoFactorCardComponent } from './two-factor-card/two-factor-card.component';
 
 @NgModule({
   imports: [
@@ -19,6 +20,7 @@ import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
     MiniHeaderComponent,
     SocialLinksComponent,
     VnIconComponent,
+    TwoFactorCardComponent,
     MyAccountPageRoutingModule
   ],
   declarations: [MyAccountPage]

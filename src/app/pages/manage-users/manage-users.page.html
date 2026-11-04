@@ -308,6 +308,10 @@
                     <ion-icon name="key-outline"></ion-icon>
                     {{ user.isAdmin ? 'Remover Admin' : 'Tornar Admin' }}
                   </button>
+                  <button class="act-btn secondary" (click)="resetTwoFactor(user)" [disabled]="actionLoading">
+                    <ion-icon name="shield-outline"></ion-icon>
+                    Resetar 2 etapas
+                  </button>
                   <button class="act-btn danger" (click)="toggleSuspension(user)" [disabled]="actionLoading">
                     <ion-icon [name]="user.suspended ? 'refresh-circle-outline' : 'ban-outline'"></ion-icon>
                     {{ user.suspended ? 'Reativar Conta' : 'Suspender Conta' }}

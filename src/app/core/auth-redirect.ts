@@ -9,7 +9,7 @@ const HOME = '/tabs/tab2';
  */
 export function safeRedirectTarget(raw: string | null | undefined): string {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\')) return HOME;
-  if (/^\/(login|sign-in|forgot-password|password-recovery)(\/|\?|$)/.test(raw)) return HOME;
+  if (/^\/(login|sign-in|forgot-password|password-recovery|two-factor)(\/|\?|$)/.test(raw)) return HOME;
   return raw;
 }
 

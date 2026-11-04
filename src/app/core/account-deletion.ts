@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 
 import { environment } from '../../environments/environment';
+import { keepSessionVerified } from './two-factor';
 
 export interface DeletionBlocker {
   kind: 'purchase' | 'sale';
@@ -86,19 +87,21 @@ export function signInMethods(user: User): { password: boolean; google: boolean 
  */
 export async function confirmIdentity(user: User, password?: string): Promise<void> {
   try {
-    if (password) {
-      if (!user.email) throw new AccountDeletionError('Esta conta não tem e-mail para confirmar com senha.');
-      await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
-      return;
-    }
-    if (Capacitor.isNativePlatform()) {
-      const googleUser = await GoogleAuth.signIn();
-      const idToken = googleUser.authentication?.idToken;
-      if (!idToken) throw new AccountDeletionError('O Google não confirmou a conta.');
-      await reauthenticateWithCredential(user, GoogleAuthProvider.credential(idToken));
-    } else {
-      await reauthenticateWithPopup(user, new GoogleAuthProvider());
-    }
+    await keepSessionVerified(user, async () => {
+      if (password) {
+        if (!user.email) throw new AccountDeletionError('Esta conta não tem e-mail para confirmar com senha.');
+        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+        return;
+      }
+      if (Capacitor.isNativePlatform()) {
+        const googleUser = await GoogleAuth.signIn();
+        const idToken = googleUser.authentication?.idToken;
+        if (!idToken) throw new AccountDeletionError('O Google não confirmou a conta.');
+        await reauthenticateWithCredential(user, GoogleAuthProvider.credential(idToken));
+      } else {
+        await reauthenticateWithPopup(user, new GoogleAuthProvider());
+      }
+    });
   } catch (error) {
     if (error instanceof AccountDeletionError) throw error;
     const code = (error as { code?: string })?.code || '';
