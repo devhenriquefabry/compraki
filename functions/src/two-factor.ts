@@ -97,6 +97,7 @@ function logEvent(uid: string, type: string, details: Record<string, unknown> = 
     .catch(error => logger.error('Falha ao registrar evento de 2FA', { uid, type, error }));
 }
 
+/** Mesmo visual do e-mail de recuperação de senha (`requestPasswordResetCode`). */
 function codeMail(code: string, purpose: Purpose): { subject: string; text: string; html: string } {
   const action: Record<Purpose, string> = {
     login: 'entrar na sua conta',
@@ -106,16 +107,20 @@ function codeMail(code: string, purpose: Purpose): { subject: string; text: stri
   const warning = purpose === 'login'
     ? 'Se não foi você, alguém sabe a sua senha: troque-a agora. Sem este código, essa pessoa não entra.'
     : 'Se não foi você, troque sua senha agora e não compartilhe este código.';
-  const body = [
-    mailParagraph(`Use este código para ${escapeHtml(action[purpose])}. Ele vale por 10 minutos.`),
-    `<div style="margin:6px 0 16px;padding:14px 18px;background:#0B1623;border-radius:12px;color:#D8F51F;font-size:30px;font-weight:800;letter-spacing:8px;text-align:center;">${code}</div>`,
-    mailParagraph('A Vineon nunca pede este código por telefone, WhatsApp ou chat.'),
-    mailParagraph(escapeHtml(warning)),
-  ].join('');
   return {
-    subject: 'Seu código de verificação da Vineon',
+    subject: 'Seu código de verificação - Vineon',
     text: `Código para ${action[purpose]}: ${code}\nVale por 10 minutos.\nA Vineon nunca pede este código por telefone, WhatsApp ou chat.\n${warning}`,
-    html: mailShell({ eyebrow: 'Verificação em duas etapas', body }),
+    html: `
+      <div style="font-family: sans-serif; padding: 20px; color: #0B1623;">
+        <h2 style="color: #0B1623;">Verificação em duas etapas</h2>
+        <p>Olá,</p>
+        <p>Recebemos um pedido para ${escapeHtml(action[purpose])} na <b>Vineon</b>.</p>
+        <p style="font-size: 1.2rem; margin: 20px 0;">Seu código de segurança é: <b style="display: inline-block; padding: 4px 10px; border-radius: 6px; background: #D8F51F; color: #0B1623; letter-spacing: 3px; font-size: 1.5rem;">${code}</b></p>
+        <p>Este código vale por 10 minutos. A Vineon nunca pede este código por telefone, WhatsApp ou chat.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 0.8rem; color: #5B6573;">${escapeHtml(warning)}</p>
+      </div>
+    `,
   };
 }
 
