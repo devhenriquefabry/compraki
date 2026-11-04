@@ -97,30 +97,41 @@ function logEvent(uid: string, type: string, details: Record<string, unknown> = 
     .catch(error => logger.error('Falha ao registrar evento de 2FA', { uid, type, error }));
 }
 
-/** Mesmo visual do e-mail de recuperação de senha (`requestPasswordResetCode`). */
+/** Mesmo visual do e-mail de boas-vindas (`renderWelcomeMail`): título, cartão e rodapé. */
 function codeMail(code: string, purpose: Purpose): { subject: string; text: string; html: string } {
   const action: Record<Purpose, string> = {
     login: 'entrar na sua conta',
     enable: 'ativar a verificação em duas etapas',
     disable: 'desativar a verificação em duas etapas',
   };
+  const title: Record<Purpose, string> = {
+    login: 'Confirme que é você',
+    enable: 'Confirme a ativação',
+    disable: 'Confirme a desativação',
+  };
   const warning = purpose === 'login'
     ? 'Se não foi você, alguém sabe a sua senha: troque-a agora. Sem este código, essa pessoa não entra.'
     : 'Se não foi você, troque sua senha agora e não compartilhe este código.';
+  const site = appUrl();
+  const body =
+    `<h1 style="margin:0 0 6px;color:#0B1623;font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-0.4px;">${escapeHtml(title[purpose])}</h1>`
+    + `<p style="margin:0 0 18px;color:#64748B;font-size:14px;line-height:1.5;">Falta só um passo.</p>`
+    + mailParagraph(`Recebemos um pedido para ${escapeHtml(action[purpose])} na Vineon. Digite o código abaixo na tela que pediu a confirmação.`)
+    + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 22px;background:#F6F8FA;border-radius:14px;border:1px solid #E2E8F0;">
+        <tr><td style="padding:14px 18px 4px;color:#64748B;font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">Código de verificação</td></tr>
+        <tr><td style="padding:4px 18px 2px;color:#0B1623;font-size:32px;font-weight:800;letter-spacing:6px;line-height:1.3;">${code}</td></tr>
+        <tr><td style="padding:0 18px 14px;color:#64748B;font-size:12px;line-height:1.4;">Vale por 10 minutos</td></tr>
+      </table>`
+    + mailParagraph(escapeHtml(warning));
   return {
-    subject: 'Seu código de verificação - Vineon',
-    text: `Código para ${action[purpose]}: ${code}\nVale por 10 minutos.\nA Vineon nunca pede este código por telefone, WhatsApp ou chat.\n${warning}`,
-    html: `
-      <div style="font-family: sans-serif; padding: 20px; color: #0B1623;">
-        <h2 style="color: #0B1623;">Verificação em duas etapas</h2>
-        <p>Olá,</p>
-        <p>Recebemos um pedido para ${escapeHtml(action[purpose])} na <b>Vineon</b>.</p>
-        <p style="font-size: 1.2rem; margin: 20px 0;">Seu código de segurança é: <b style="display: inline-block; padding: 4px 10px; border-radius: 6px; background: #D8F51F; color: #0B1623; letter-spacing: 3px; font-size: 1.5rem;">${code}</b></p>
-        <p>Este código vale por 10 minutos. A Vineon nunca pede este código por telefone, WhatsApp ou chat.</p>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-size: 0.8rem; color: #5B6573;">${escapeHtml(warning)}</p>
-      </div>
-    `,
+    subject: 'Seu código de verificação da Vineon',
+    text: `${title[purpose]}\n\nCódigo para ${action[purpose]}: ${code}\nVale por 10 minutos.\n\n${warning}\nA Vineon nunca pede este código por telefone, WhatsApp ou chat.`,
+    html: mailShell({
+      eyebrow: 'Segurança da conta · Verificação em duas etapas',
+      body,
+      footer: `A Vineon nunca pede este código por telefone, WhatsApp ou chat. Se alguém pedir, não informe.<br><br>`
+        + `<a href="${escapeHtml(`${site}/privacy`)}" style="color:#64748B;">Política de Privacidade</a> · <a href="${escapeHtml(`${site}/help`)}" style="color:#64748B;">Central de ajuda</a>`,
+    }),
   };
 }
 
