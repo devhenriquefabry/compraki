@@ -211,15 +211,15 @@
                     <label class="field">
                       <span>Preço</span>
                       <span class="field-box"><em>R$</em>
-                        <input type="number" inputmode="decimal" min="0.01" step="0.01" name="price" required
+                        <input type="text" inputmode="decimal" autocomplete="off" appPriceInput name="price" required
                           [ngModel]="draftPrice()" (ngModelChange)="draftPrice.set($event)" />
                       </span>
                     </label>
                     <label class="field">
                       <span>Promoção <small>opcional</small></span>
                       <span class="field-box"><em>R$</em>
-                        <input type="number" inputmode="decimal" min="0.01" step="0.01" name="promo" placeholder="Nenhuma"
-                          [ngModel]="draftPromo()" (ngModelChange)="draftPromo.set($event === '' ? null : $event)" />
+                        <input type="text" inputmode="decimal" autocomplete="off" appPriceInput name="promo" placeholder="Nenhuma"
+                          [ngModel]="draftPromo()" (ngModelChange)="draftPromo.set($event)" />
                       </span>
                     </label>
                   </div>

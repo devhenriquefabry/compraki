@@ -8,6 +8,7 @@ import { LocalDelivery, Product, ProductSku, ProductSpec, ProductVariantAttribut
 import { Category, Subcategory } from 'src/app/interfaces/category';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
+import { PriceInputDirective } from 'src/app/directives/price-input.directive';
 import { LocalDeliveryEditorComponent } from 'src/app/components/local-delivery-editor/local-delivery-editor.component';
 import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
 import { resizeImage } from 'src/app/core/image-resize';
@@ -57,7 +58,7 @@ function promoBelowPrice(group: AbstractControl): ValidationErrors | null {
   templateUrl: './edit-product-form.component.html',
   styleUrls: ['./edit-product-form.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule, ReactiveFormsModule, ProductSpecsEditorComponent, ProductVariantsEditorComponent, LocalDeliveryEditorComponent, VnIconComponent],
+  imports: [CommonModule, IonicModule, ReactiveFormsModule, ProductSpecsEditorComponent, ProductVariantsEditorComponent, LocalDeliveryEditorComponent, PriceInputDirective, VnIconComponent],
 })
 export class EditProductFormComponent implements OnInit, OnDestroy {
   private readonly nameGuard = inject(ProductNameGuardService);

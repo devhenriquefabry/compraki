@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { LocalDelivery, Product, ProductSku, ProductSpec, ProductVariantAttribute } from 'src/app/interfaces/product';
 import { ProductSpecsEditorComponent, cleanSpecs } from 'src/app/components/product-specs-editor/product-specs-editor.component';
 import { ProductVariantsEditorComponent } from 'src/app/components/product-variants-editor/product-variants-editor.component';
+import { PriceInputDirective } from 'src/app/directives/price-input.directive';
 import { LocalDeliveryEditorComponent } from 'src/app/components/local-delivery-editor/local-delivery-editor.component';
 import { readLocalDelivery } from 'src/app/core/local-delivery';
 import {
@@ -27,7 +28,7 @@ import { catalogCover, illustrationUrl, isIllustration } from 'src/app/core/cata
   selector: 'app-upload-product-form',
   templateUrl: './upload-product-form.component.html',
   styleUrls: ['./upload-product-form.component.scss'],
-  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent, LocalDeliveryEditorComponent ],
+  imports: [IonicModule, ReactiveFormsModule, FormsModule, NgFor, NgIf, AsyncPipe, CurrencyPipe, FeedbackModalComponent, LoadingSpinnerOverlayComponent, ProductSpecsEditorComponent, ProductVariantsEditorComponent, LocalDeliveryEditorComponent, PriceInputDirective ],
   standalone: true
 })
 export class UploadProductFormComponent  implements OnInit, OnDestroy {

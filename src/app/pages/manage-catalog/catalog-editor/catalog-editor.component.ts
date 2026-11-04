@@ -1,3 +1,5 @@
+import { PriceInputDirective } from 'src/app/directives/price-input.directive';
+import { FormsModule } from '@angular/forms';
 import { Component, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AlertController, IonicModule, ToastController } from '@ionic/angular';
@@ -14,7 +16,7 @@ import { ProductVariantAttribute } from '../../../interfaces/product';
 import { CatalogService } from '../../../services/catalog.service';
 
 type TextField = 'title' | 'brand' | 'model' | 'line' | 'description';
-type NumberField = 'weight' | 'width' | 'height' | 'length' | 'referencePrice';
+type NumberField = 'weight' | 'width' | 'height' | 'length';
 
 const MAX_ATTRIBUTES = 2;
 const MAX_VALUES = 30;
@@ -31,7 +33,7 @@ const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
   templateUrl: './catalog-editor.component.html',
   styleUrls: ['./catalog-editor.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PriceInputDirective],
 })
 export class CatalogEditorComponent implements OnInit {
   private readonly catalog = inject(CatalogService);
@@ -125,6 +127,10 @@ export class CatalogEditorComponent implements OnInit {
     const raw = (event.target as HTMLInputElement).value.replace(',', '.');
     const value = parseFloat(raw);
     this.patch({ [field]: Number.isFinite(value) && value > 0 ? value : null });
+  }
+
+  setReferencePrice(value: number | null) {
+    this.patch({ referencePrice: value });
   }
 
   invalid(key: string): boolean {

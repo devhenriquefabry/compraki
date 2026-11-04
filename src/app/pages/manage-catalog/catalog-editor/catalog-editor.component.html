@@ -369,7 +369,7 @@
         </div>
         <div class="ce-field ce-field--price">
           <label for="ce-price">Preço de referência <small>(opcional)</small></label>
-          <div class="ce-unit ce-unit--pre"><span>R$</span><input id="ce-price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00" [value]="d.referencePrice ?? ''" (input)="num('referencePrice', $event)"></div>
+          <div class="ce-unit ce-unit--pre"><span>R$</span><input id="ce-price" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" appPriceInput [ngModel]="d.referencePrice" [ngModelOptions]="{ standalone: true }" (ngModelChange)="setReferencePrice($event)"></div>
           <small class="ce-help">Mostrado ao vendedor como referência de mercado. Não define o preço do anúncio.</small>
         </div>
       </section>

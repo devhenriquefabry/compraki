@@ -217,14 +217,14 @@
             <label>Preço</label>
             <div class="input-wrapper price-input">
               <span class="prefix">R$</span>
-              <input type="number" formControlName="price" placeholder="0,00">
+              <input type="text" inputmode="decimal" autocomplete="off" appPriceInput formControlName="price" placeholder="0,00">
             </div>
           </div>
           <div class="form-group col">
             <label>Preço promocional <small>(opcional)</small></label>
             <div class="input-wrapper price-input promo">
               <span class="prefix">R$</span>
-              <input type="number" formControlName="priceDiscounted" placeholder="0,00">
+              <input type="text" inputmode="decimal" autocomplete="off" appPriceInput formControlName="priceDiscounted" placeholder="0,00">
             </div>
             <span class="field-hint discount-hint" *ngIf="discountPercent">-{{ discountPercent }}% de desconto</span>
           </div>

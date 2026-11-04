@@ -133,14 +133,14 @@
         <label class="field">
           <span>Preço</span>
           <span class="field-box" [class.is-bad]="invalid('price')">
-            <em>R$</em><input type="number" inputmode="decimal" min="0.01" step="0.01" formControlName="price" placeholder="0,00" />
+            <em>R$</em><input type="text" inputmode="decimal" autocomplete="off" appPriceInput formControlName="price" placeholder="0,00" />
           </span>
           @if (invalid('price')) { <small class="ef-error">Informe o preço.</small> }
         </label>
         <label class="field">
           <span>Promoção <small>opcional</small></span>
           <span class="field-box" [class.is-bad]="form.errors?.['promo']">
-            <em>R$</em><input type="number" inputmode="decimal" min="0.01" step="0.01" formControlName="priceDiscounted" placeholder="Nenhuma" />
+            <em>R$</em><input type="text" inputmode="decimal" autocomplete="off" appPriceInput formControlName="priceDiscounted" placeholder="Nenhuma" />
             @if (discountPercent) { <b class="ef-off">−{{ discountPercent }}%</b> }
           </span>
           @if (form.errors?.['promo']) { <small class="ef-error">Tem que ser menor que o preço. Deixe vazio para tirar.</small> }

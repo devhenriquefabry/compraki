@@ -6,6 +6,7 @@ import { AlertController, IonicModule, NavController, ToastController } from '@i
 
 import { AdminChartComponent, ChartPoint } from 'src/app/components/admin-chart/admin-chart.component';
 import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
+import { PriceInputDirective } from 'src/app/directives/price-input.directive';
 import { waitForAuthUser } from 'src/app/core/auth-state';
 import {
   MONTHS_SHORT, SALE_STAGE_LABEL, formatBRL, formatDay, isPaid, orderStage, paidUnitPrice, productIdOf, toDate,
@@ -34,7 +35,7 @@ const RECENT_SALES = 5;
   templateUrl: './product-admin.page.html',
   styleUrls: ['./product-admin.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, RouterModule, AdminChartComponent, VnIconComponent],
+  imports: [CommonModule, FormsModule, IonicModule, RouterModule, AdminChartComponent, PriceInputDirective, VnIconComponent],
 })
 export class ProductAdminPage {
   private readonly route = inject(ActivatedRoute);
