@@ -27,6 +27,9 @@ type Row =
 /** Mensagens do mesmo lado com menos de 3 min entre si formam um bloco. */
 const GROUP_GAP_MS = 3 * 60_000;
 
+/** Mesmo teto de storage.rules (`chats/{chatId}`). */
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+
 /**
  * A conversa em si: cabeçalho com quem está do outro lado e o anúncio, as
  * mensagens e o campo de escrever. Usada pela rota /chat-details, pelo painel
@@ -461,25 +464,44 @@ export class ChatBoxComponent implements OnInit, OnDestroy {
     if (msg.type === 'text') {
       this.newMessage = msg.text;
       await this.sendMessage();
+      return;
+    }
+    const file = msg.clientId ? this.failedFiles.get(msg.clientId) : undefined;
+    if (file) {
+      this.failedFiles.delete(msg.clientId!);
+      await this.sendFile(file);
     }
   }
 
-  // --- IMAGEM ---
+  // --- FOTO E ARQUIVO ---
+  /** Arquivo que falhou, guardado para o "tentar de novo". */
+  private readonly failedFiles = new Map<string, File>();
+
   async onFileSelected(event: any) {
     const file: File | undefined = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      void this.showToast('Escolha uma foto (JPG, PNG ou WebP).', 'danger');
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      void this.showToast('Escolha uma foto (JPG, PNG ou WebP) ou um PDF.', 'danger');
       return;
     }
+    if (file.size >= MAX_ATTACHMENT_BYTES) {
+      void this.showToast('O arquivo passa de 20 MB. Escolha um menor.', 'danger');
+      return;
+    }
+    await this.sendFile(file);
+  }
 
-    const clientId = `img_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  private async sendFile(file: File) {
+    const isImage = file.type.startsWith('image/');
+    const clientId = `${isImage ? 'img' : 'doc'}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     const tempMsg: ChatMessage = {
       senderId: this.currentUserId!,
       text: '',
-      type: 'image',
-      mediaUrl: URL.createObjectURL(file),
+      type: isImage ? 'image' : 'file',
+      mediaUrl: isImage ? URL.createObjectURL(file) : undefined,
+      fileName: isImage ? undefined : file.name,
       createdAt: { seconds: Date.now() / 1000 },
       status: 'sending',
       clientId
@@ -489,10 +511,17 @@ export class ChatBoxComponent implements OnInit, OnDestroy {
     try {
       const path = `chats/${this.chatId}/${Date.now()}_${file.name.replace(/[^\w.-]/g, '_')}`;
       const url = await this.chatService.uploadFile(file, path);
-      await this.chatService.sendMessage(this.chatId, { text: '', type: 'image', mediaUrl: url, clientId }, this.recipients());
+      await this.chatService.sendMessage(this.chatId, {
+        text: '',
+        type: tempMsg.type,
+        mediaUrl: url,
+        fileName: tempMsg.fileName,
+        clientId
+      }, this.recipients());
       this.dropOutgoing(tempMsg);
     } catch (e) {
       console.error("Upload error", e);
+      this.failedFiles.set(clientId, file);
       tempMsg.status = 'error';
       this.rebuildRows();
     }

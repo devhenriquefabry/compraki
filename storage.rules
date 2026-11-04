@@ -193,8 +193,14 @@ service firebase.storage {
 
     // ---------------------------------------------------------------- chat
 
-    // Fotos e audios trocados numa conversa (chat-box.component.ts -> upload).
+    // Fotos, audios e PDFs trocados numa conversa (chat-box.component.ts -> upload).
     // Privado: so quem participa do chat le ou envia midia nele.
+    //
+    // ATENCAO: `firestore.get` aqui exige o papel
+    // roles/firebaserules.firestoreServiceAgent no agente do Storage. O
+    // `firebase deploy` so oferece conceder em terminal interativo; sem o papel
+    // TODA leitura e envio destas regras da 403 em producao (o emulador nao
+    // sente). Ver docs/moderacao-pedidos-frete.md.
     // Enviado nao se troca nem se apaga (um participante apagava a midia do
     // outro); o historico da conversa e prova numa disputa.
     match /chats/{chatId}/{allPaths=**} {
@@ -202,7 +208,7 @@ service firebase.storage {
       allow create: if isChatParticipant(chatId)
         && resource == null
         && request.resource.size < 20 * 1024 * 1024
-        && request.resource.contentType.matches('(image|audio|video)/.*');
+        && request.resource.contentType.matches('(image|audio|video)/.*|application/pdf');
       allow update, delete: if isAdmin();
     }
   }

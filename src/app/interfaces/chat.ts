@@ -36,8 +36,10 @@ export interface ChatMessage {
   id?: string;
   senderId: string;
   text: string;
-  type: 'text' | 'image' | 'audio';
+  type: 'text' | 'image' | 'audio' | 'file';
   mediaUrl?: string;
+  /** Nome do arquivo anexado (`type: 'file'`). */
+  fileName?: string;
   createdAt: any; // Firestore Timestamp
   status?: 'sending' | 'error';
   clientId?: string; // ID único gerado pelo cliente para evitar duplicidade

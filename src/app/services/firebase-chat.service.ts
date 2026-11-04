@@ -227,7 +227,7 @@ export class FirebaseChatService {
    */
   async sendMessage(
     chatId: string,
-    content: { text: string, type: 'text' | 'image' | 'audio', mediaUrl?: string, clientId?: string },
+    content: { text: string, type: 'text' | 'image' | 'audio' | 'file', mediaUrl?: string, fileName?: string, clientId?: string },
     recipientIds?: string[]
   ): Promise<void> {
      const user = this.getCurrentUser();
@@ -257,6 +257,7 @@ export class FirebaseChatService {
         createdAt: serverTimestamp()
      };
      if (content.mediaUrl) messageData.mediaUrl = content.mediaUrl;
+     if (content.fileName) messageData.fileName = content.fileName;
      if (content.clientId) messageData.clientId = content.clientId;
 
      batch.set(newMsgRef, messageData);
@@ -265,6 +266,7 @@ export class FirebaseChatService {
      let lastText = content.text;
      if (content.type === 'image') lastText = '📷 Foto';
      if (content.type === 'audio') lastText = '🎤 Áudio';
+     if (content.type === 'file') lastText = '📎 Arquivo';
 
      const chatUpdate: Record<string, any> = {
         lastMessage: lastText,

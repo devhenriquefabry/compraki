@@ -126,6 +126,18 @@
                     @case ('audio') {
                       <audio class="cb-audio" controls preload="none" [src]="row.msg.mediaUrl"></audio>
                     }
+                    @case ('file') {
+                      <a class="cb-file" [attr.href]="row.msg.mediaUrl || null" target="_blank" rel="noopener"
+                         [attr.aria-label]="'Abrir ' + (row.msg.fileName || 'arquivo')">
+                        <span class="cb-file-icon">
+                          @if (row.msg.status === 'sending') { <ion-spinner name="crescent"></ion-spinner> } @else { <vn-icon name="doc" /> }
+                        </span>
+                        <span class="cb-file-text">
+                          <strong>{{ row.msg.fileName || 'Arquivo' }}</strong>
+                          <small>PDF</small>
+                        </span>
+                      </a>
+                    }
                     @default {
                       <span class="cb-text">{{ row.msg.text }}</span>
                     }
@@ -183,10 +195,10 @@
         <span class="cb-rec-hint">{{ isDraggingToCancel ? 'Solte para cancelar' : 'Arraste para a esquerda para cancelar' }}</span>
       </div>
     } @else {
-      <button type="button" class="cb-icon cb-attach" (click)="fileInput.click()" aria-label="Enviar foto">
-        <vn-icon name="image" />
+      <button type="button" class="cb-icon cb-attach" (click)="fileInput.click()" aria-label="Enviar foto ou PDF">
+        <vn-icon name="clip" />
       </button>
-      <input #fileInput type="file" hidden (change)="onFileSelected($event)" accept="image/*" />
+      <input #fileInput type="file" hidden (change)="onFileSelected($event)" accept="image/*,application/pdf" />
 
       <label class="cb-field">
         <span class="cb-sr">Mensagem</span>
