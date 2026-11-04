@@ -758,12 +758,15 @@ export const HELP_TOPICS: HelpTopic[] = [
             items: [
               'Vá em **Minha conta › Senha e segurança** e toque em **Ativar**.',
               'Digite o código que chegou no seu e-mail.',
-              'Guarde os **códigos de recuperação**. Eles só aparecem nessa hora.',
             ],
           },
           {
             t: 'p',
-            text: 'Perdeu o acesso ao e-mail? Na tela do código, toque em **Perdi o acesso ao meu e-mail** e use um código de recuperação. Isso desativa a verificação, e você pode ativá-la de novo depois.',
+            text: 'Trocou de celular? O código chega no mesmo e-mail, em qualquer aparelho.',
+          },
+          {
+            t: 'p',
+            text: 'Perdeu o acesso ao e-mail? Na tela do código, toque em **Fale com o atendimento**. Depois de confirmar que a conta é sua, desativamos a verificação para você entrar, e você pode ativá-la de novo depois.',
           },
           {
             t: 'note',

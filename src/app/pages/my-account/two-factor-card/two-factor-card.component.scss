@@ -90,26 +90,6 @@
   }
 }
 
-.tf-codes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    padding: 8px;
-    border-radius: 9px;
-    background: #fff;
-    color: #0B1623;
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-    font-size: 13px;
-    text-align: center;
-    user-select: all;
-  }
-}
-
 .tf-actions {
   display: flex;
   flex-wrap: wrap;

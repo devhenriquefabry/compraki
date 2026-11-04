@@ -2,69 +2,34 @@
   <div class="vn-auth__inner">
     <app-vineon-logo class="vn-auth__logo"></app-vineon-logo>
 
-    @switch (view()) {
-      @case ('code') {
-        <h1 class="vn-auth__title">Confirme que é você</h1>
-        <p class="vn-auth__subtitle">
-          @if (sentTo()) {
-            Enviamos um código de 6 números para <b>{{ sentTo() }}</b>. Ele vale por 10 minutos.
-          } @else {
-            Sua conta usa verificação em duas etapas. Enviamos um código para o seu e-mail.
-          }
-        </p>
-
-        <form class="vn-form" (ngSubmit)="verify()" novalidate>
-          <label class="vn-label" for="tf-code">Código de verificação</label>
-          <input id="tf-code" name="code" class="vn-input vn-input--code" [class.has-error]="!!error()" [(ngModel)]="code"
-            placeholder="000000" inputmode="numeric" autocomplete="one-time-code" maxlength="6" autofocus>
-          @if (error()) { <div class="vn-alert" role="alert">{{ error() }}</div> }
-
-          <button type="submit" class="vn-btn vn-btn--primary" [disabled]="busy()">
-            @if (busy()) { <span class="vn-spinner" aria-hidden="true"></span> } @else { Confirmar }
-          </button>
-        </form>
-
-        <p class="vn-foot">
-          <button type="button" (click)="send()" [disabled]="sending() || cooldown() > 0">
-            @if (cooldown() > 0) { Reenviar em {{ cooldown() }} s } @else { Reenviar código }
-          </button>
-        </p>
-        <p class="vn-foot"><button type="button" (click)="show('recovery')">Perdi o acesso ao meu e-mail</button></p>
-        <p class="vn-foot"><button type="button" (click)="logout()">Sair e usar outra conta</button></p>
+    <h1 class="vn-auth__title">Confirme que é você</h1>
+    <p class="vn-auth__subtitle">
+      @if (sentTo()) {
+        Enviamos um código de 6 números para <b>{{ sentTo() }}</b>. Ele vale por 10 minutos.
+      } @else {
+        Sua conta usa verificação em duas etapas. Enviamos um código para o seu e-mail.
       }
+    </p>
 
-      @case ('recovery') {
-        <h1 class="vn-auth__title">Usar código de recuperação</h1>
-        <p class="vn-auth__subtitle">
-          Digite um dos códigos que você guardou ao ativar a verificação. Isso desativa a verificação em duas etapas nesta conta.
-        </p>
+    <form class="vn-form" (ngSubmit)="verify()" novalidate>
+      <label class="vn-label" for="tf-code">Código de verificação</label>
+      <input id="tf-code" name="code" class="vn-input vn-input--code" [class.has-error]="!!error()" [(ngModel)]="code"
+        placeholder="000000" inputmode="numeric" autocomplete="one-time-code" maxlength="6" autofocus>
+      @if (error()) { <div class="vn-alert" role="alert">{{ error() }}</div> }
 
-        <form class="vn-form" (ngSubmit)="recover()" novalidate>
-          <label class="vn-label" for="tf-recovery">Código de recuperação</label>
-          <input id="tf-recovery" name="recovery" class="vn-input tf-recovery" [class.has-error]="!!error()" [(ngModel)]="recoveryCode"
-            placeholder="XXXXX-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14">
-          @if (error()) { <div class="vn-alert" role="alert">{{ error() }}</div> }
+      <button type="submit" class="vn-btn vn-btn--primary" [disabled]="busy()">
+        @if (busy()) { <span class="vn-spinner" aria-hidden="true"></span> } @else { Confirmar }
+      </button>
+    </form>
 
-          <button type="submit" class="vn-btn vn-btn--primary" [disabled]="busy()">
-            @if (busy()) { <span class="vn-spinner" aria-hidden="true"></span> } @else { Recuperar acesso }
-          </button>
-        </form>
-
-        <p class="vn-foot">Também perdeu os códigos?
-          @if (supportLink) { <a [href]="supportLink">Fale com o atendimento</a> } @else { Fale com o atendimento da Vineon. }
-        </p>
-        <p class="vn-foot"><button type="button" (click)="show('code')">Voltar ao código por e-mail</button></p>
-      }
-
-      @case ('recovered') {
-        <div class="vn-done" role="status">
-          <h1 class="vn-auth__title">Acesso recuperado</h1>
-          <p class="vn-auth__subtitle">
-            A verificação em duas etapas foi desativada. Quando recuperar seu e-mail, ative de novo em Minha conta.
-          </p>
-          <button type="button" class="vn-btn vn-btn--primary" (click)="leave()">Continuar</button>
-        </div>
-      }
-    }
+    <p class="vn-foot">
+      <button type="button" (click)="send()" [disabled]="sending() || cooldown() > 0">
+        @if (cooldown() > 0) { Reenviar em {{ cooldown() }} s } @else { Reenviar código }
+      </button>
+    </p>
+    <p class="vn-foot">Perdeu o acesso ao e-mail?
+      @if (supportLink) { <a [href]="supportLink">Fale com o atendimento</a> } @else { Fale com o atendimento da Vineon. }
+    </p>
+    <p class="vn-foot"><button type="button" (click)="logout()">Sair e usar outra conta</button></p>
   </div>
 </main>

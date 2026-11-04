@@ -11,7 +11,7 @@ import { getFirebaseAuth } from './auth-state';
  * ainda não foi confirmado.
  */
 
-export type TwoFactorPurpose = 'login' | 'enable' | 'disable' | 'regenerate';
+export type TwoFactorPurpose = 'login' | 'enable' | 'disable';
 
 export class TwoFactorError extends Error {
   constructor(message: string, readonly code?: string, readonly retryAfter?: number) {
@@ -59,15 +59,9 @@ export async function verifyLoginCode(user: User, code: string): Promise<void> {
   await user.getIdToken(true);
 }
 
-export async function useRecoveryCode(user: User, code: string): Promise<void> {
-  await call(user, 'useRecovery', { code });
+export async function enableTwoFactor(user: User, code: string): Promise<void> {
+  await call(user, 'enable', { code });
   await user.getIdToken(true);
-}
-
-export async function enableTwoFactor(user: User, code: string): Promise<string[]> {
-  const { recoveryCodes } = await call<{ recoveryCodes: string[] }>(user, 'enable', { code });
-  await user.getIdToken(true);
-  return recoveryCodes;
 }
 
 export async function disableTwoFactor(user: User, code: string): Promise<void> {
@@ -75,11 +69,7 @@ export async function disableTwoFactor(user: User, code: string): Promise<void> 
   await user.getIdToken(true);
 }
 
-export async function regenerateRecoveryCodes(user: User, code: string): Promise<string[]> {
-  return (await call<{ recoveryCodes: string[] }>(user, 'regenerateRecovery', { code })).recoveryCodes;
-}
-
-/** Admin, a pedido de quem perdeu e-mail e códigos. Ver Gerenciar usuários. */
+/** Admin, a pedido de quem perdeu o acesso ao e-mail. Ver Gerenciar usuários. */
 export async function adminResetTwoFactor(admin: User, uid: string, reason: string): Promise<void> {
   await call(admin, 'adminReset', { uid, reason });
 }

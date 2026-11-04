@@ -157,7 +157,8 @@ check('status: desligada', (await tf(session, 'status')).body.enabled === false)
 check('sem token: 401', (await tf(null, 'status')).status === 401);
 check('ação desconhecida: 400', (await tf(session, 'xyz')).status === 400);
 check('verifyLogin sem pendência: recusado', (await tf(session, 'verifyLogin', { code: '000000' })).status === 403);
-check('useRecovery sem pendência: recusado', (await tf(session, 'useRecovery', { code: 'AAAAA-AAAAA' })).status === 403);
+check('ação de recuperação não existe mais', (await tf(session, 'useRecovery', { code: 'AAAAA-AAAAA' })).status === 400);
+check('finalidade antiga recusada', (await tf(session, 'requestCode', { purpose: 'regenerate' })).status === 400);
 check('código de login sem pendência: recusado', (await tf(session, 'requestCode', { purpose: 'login' })).status === 403);
 check('disable com a conta desligada: recusado', (await tf(session, 'requestCode', { purpose: 'disable' })).status === 409);
 
@@ -173,11 +174,10 @@ check('reenvio na hora: 429 com espera', await (async () => {
 check('código errado: 400', (await tf(session, 'enable', { code: firstCode === '000000' ? '111111' : '000000' })).status === 400);
 const enabled = await tf(session, 'enable', { code: firstCode });
 check('ativa com o código certo', enabled.status === 200 && enabled.body.enabled === true, JSON.stringify(enabled));
-const recovery = enabled.body.recoveryCodes ?? [];
-check('devolve 10 códigos de recuperação', recovery.length === 10 && new Set(recovery).size === 10);
+check('não devolve códigos de recuperação', enabled.body.recoveryCodes === undefined, JSON.stringify(enabled.body));
 check('código de ativação não vale de novo', (await tf(session, 'enable', { code: firstCode })).status === 409 || (await tf(session, 'enable', { code: firstCode })).status === 400);
 const afterEnable = await db.doc(`twoFactor/${uid}`).get();
-check('hashes, nunca os códigos', !JSON.stringify(afterEnable.data()).includes(recovery[0]));
+check('não guarda códigos de recuperação', afterEnable.data().recoveryHashes === undefined);
 check('debugCode some depois de usar', afterEnable.data().debugCode === undefined);
 check('claim tfa ligado', (await claimsOf(uid)).tfa === true);
 check('evento registrado', await events(uid, 'enabled') === 1);
@@ -198,7 +198,6 @@ check('o público continua público', publicRead.status === 200, String(publicRe
 check('status informa pendência', (await tf(attacker, 'status')).body.pending === true);
 check('pendente não desativa', (await tf(attacker, 'disable', { code: '123456' })).status === 403);
 check('pendente não pede código de desativar', (await tf(attacker, 'requestCode', { purpose: 'disable' })).status === 403);
-check('pendente não pede códigos novos', (await tf(attacker, 'regenerateRecovery', { code: '123456' })).status === 403);
 
 console.log('\n4. Confirmar o login');
 let code = await askCode(attacker, 'login', uid);
@@ -256,40 +255,16 @@ check('claim admin preservado', (await claimsOf(uid)).admin === true);
 const { admin: _admin, ...withoutAdmin } = await claimsOf(uid);
 await auth.setCustomUserClaims(uid, withoutAdmin);
 
-console.log('\n8. Novos códigos de recuperação');
-session = await refresh(session);
-const regenCode = await askCode(session, 'regenerate', uid);
-const regen = await tf(session, 'regenerateRecovery', { code: regenCode });
-check('gera outra lista', regen.status === 200 && regen.body.recoveryCodes?.length === 10 && regen.body.recoveryCodes[0] !== recovery[0]);
-
-console.log('\n9. Código de recuperação');
-let pendingSession = await signIn();
-check('lista antiga não vale', (await tf(pendingSession, 'useRecovery', { code: recovery[0] })).status === 400);
-for (let i = 0; i < 3; i++) await tf(pendingSession, 'useRecovery', { code: 'ERRAD-OERRA' });
-check('5ª falha ainda responde 400', (await tf(pendingSession, 'useRecovery', { code: 'ERRAD-OERRA' })).status === 400);
-const locked = await tf(pendingSession, 'useRecovery', { code: regen.body.recoveryCodes[0] });
-check('6ª tentativa trava, mesmo com código certo', locked.status === 429, JSON.stringify(locked));
-await db.doc(`twoFactor/${uid}`).set({ recoveryFails: 0 }, { merge: true });
-const typed = regen.body.recoveryCodes[1].toLowerCase().replace('-', ' ');
-const used = await tf(pendingSession, 'useRecovery', { code: typed });
-check('aceita minúscula e espaço, e desliga', used.status === 200 && used.body.enabled === false, JSON.stringify(used));
-check('claim tfa removido', (await claimsOf(uid)).tfa === undefined);
-check('documento apagado', !(await db.doc(`twoFactor/${uid}`).get()).exists);
-check('evento registrado', await events(uid, 'recovery_used') === 1);
-pendingSession = await refresh(pendingSession);
-check('sessão volta a ler', await readUserDoc(pendingSession, uid) === 200);
-
-console.log('\n10. Desativar pelo próprio usuário');
-session = await signIn();
-const enable2 = await askCode(session, 'enable', uid);
-await tf(session, 'enable', { code: enable2 });
+console.log('\n8. Desativar pelo próprio usuário');
 session = await refresh(session);
 const disableCode = await askCode(session, 'disable', uid);
-check('código de outra finalidade não vale', (await tf(session, 'regenerateRecovery', { code: disableCode })).status === 400);
+check('código de outra finalidade não vale', (await tf(session, 'enable', { code: disableCode })).status === 400);
 check('desativa', (await tf(session, 'disable', { code: disableCode })).body.enabled === false);
+check('claim tfa removido', (await claimsOf(uid)).tfa === undefined);
+check('documento apagado', !(await db.doc(`twoFactor/${uid}`).get()).exists);
 check('login volta a ser direto', await readUserDoc(await signIn(), uid) === 200);
 
-console.log('\n11. Reset pelo admin');
+console.log('\n9. Reset pelo admin (quem perdeu o e-mail)');
 session = await signIn();
 const enable3 = await askCode(session, 'enable', uid);
 await tf(session, 'enable', { code: enable3 });
@@ -299,6 +274,7 @@ check('sem motivo: 400', (await tf(admin, 'adminReset', { uid })).status === 400
 const reset = await tf(admin, 'adminReset', { uid, reason: 'Identidade confirmada por documento' });
 check('admin reseta', reset.status === 200, JSON.stringify(reset));
 check('admin reset registrado', await events(uid, 'admin_reset') === 1);
+check('depois do reset o login volta a ser direto', await readUserDoc(await signIn(), uid) === 200);
 check('reset em conta sem 2FA: 409', (await tf(admin, 'adminReset', { uid, reason: 'de novo' })).status === 409);
 const adminUid = (await auth.getUserByEmail(ADMIN)).uid;
 const adminSession = await signIn(ADMIN);
@@ -310,7 +286,7 @@ await db.doc(`twoFactor/${adminUid}`).delete();
 const { tfa: _tfa, tfaSessions: _sessions, ...adminClaims } = await claimsOf(adminUid);
 await auth.setCustomUserClaims(adminUid, adminClaims);
 
-console.log('\n12. Limite de envios');
+console.log('\n10. Limite de envios');
 session = await signIn();
 const enable4 = await askCode(session, 'enable', uid);
 await tf(session, 'enable', { code: enable4 });

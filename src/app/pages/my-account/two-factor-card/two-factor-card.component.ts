@@ -4,10 +4,10 @@ import { IonicModule, ToastController } from '@ionic/angular';
 import { User } from 'firebase/auth';
 import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
 import {
-  TwoFactorError, TwoFactorPurpose, disableTwoFactor, enableTwoFactor, regenerateRecoveryCodes, requestTwoFactorCode, twoFactorEnabled,
+  TwoFactorError, TwoFactorPurpose, disableTwoFactor, enableTwoFactor, requestTwoFactorCode, twoFactorEnabled,
 } from 'src/app/core/two-factor';
 
-/** Linha "Verificação em duas etapas" de Senha e segurança: ligar, desligar e novos códigos. */
+/** Linha "Verificação em duas etapas" de Senha e segurança: ligar e desligar. */
 @Component({
   selector: 'app-two-factor-card',
   templateUrl: './two-factor-card.component.html',
@@ -26,7 +26,6 @@ export class TwoFactorCardComponent implements OnInit {
   readonly sentTo = signal('');
   readonly busy = signal(false);
   readonly error = signal('');
-  readonly recoveryCodes = signal<string[]>([]);
   code = '';
 
   async ngOnInit() {
@@ -78,10 +77,9 @@ export class TwoFactorCardComponent implements OnInit {
     this.error.set('');
     try {
       if (purpose === 'enable') {
-        this.recoveryCodes.set(await enableTwoFactor(this.user(), code));
+        await enableTwoFactor(this.user(), code);
         this.enabled.set(true);
-      } else if (purpose === 'regenerate') {
-        this.recoveryCodes.set(await regenerateRecoveryCodes(this.user(), code));
+        await this.toast('Verificação em duas etapas ativada.');
       } else {
         await disableTwoFactor(this.user(), code);
         this.enabled.set(false);
@@ -93,29 +91,6 @@ export class TwoFactorCardComponent implements OnInit {
     } finally {
       this.busy.set(false);
     }
-  }
-
-  async copyCodes() {
-    try {
-      await navigator.clipboard.writeText(this.recoveryCodes().join('\n'));
-      await this.toast('Códigos copiados.');
-    } catch {
-      await this.toast('Não foi possível copiar. Anote os códigos.');
-    }
-  }
-
-  downloadCodes() {
-    const text = `Códigos de recuperação da Vineon\nCada um desativa a verificação em duas etapas se você perder o acesso ao e-mail.\n\n${this.recoveryCodes().join('\n')}\n`;
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'vineon-codigos-de-recuperacao.txt';
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  closeCodes() {
-    this.recoveryCodes.set([]);
   }
 
   private async toast(message: string) {

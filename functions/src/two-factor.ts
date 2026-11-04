@@ -31,14 +31,8 @@ const MAX_SENDS_PER_WINDOW = 5;
 const SEND_WINDOW_MS = 60 * 60 * 1000;
 /** Aparelhos que continuam confirmados ao mesmo tempo. O teto do claim é 1000 bytes. */
 const SESSIONS_KEPT = 10;
-const RECOVERY_CODE_COUNT = 10;
-const RECOVERY_CODE_LENGTH = 10;
-/** Sem 0/O, 1/I/L: a pessoa pode ter anotado à mão. */
-const RECOVERY_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
-const RECOVERY_MAX_FAILS = 5;
-const RECOVERY_WINDOW_MS = 60 * 60 * 1000;
 
-type Purpose = 'login' | 'enable' | 'disable' | 'regenerate';
+type Purpose = 'login' | 'enable' | 'disable';
 
 interface StoredCode {
   hash: string;
@@ -53,13 +47,10 @@ interface TwoFactorDoc {
   enabled?: boolean;
   /** Para onde vão os códigos. Fixado na ativação, não segue o e-mail do Auth. */
   email?: string;
-  recoveryHashes?: string[];
   code?: StoredCode | null;
   sendCount?: number;
   windowStartedAt?: number;
   lastSentAt?: number;
-  recoveryFails?: number;
-  recoveryWindowStartedAt?: number;
 }
 
 const docRef = (uid: string) => getFirestore().doc(`twoFactor/${uid}`);
@@ -76,15 +67,6 @@ function hashCode(uid: string, purpose: Purpose, code: string): string {
   return sha256(`${uid}:${purpose}:${code}`);
 }
 
-function hashRecovery(uid: string, code: string): string {
-  return sha256(`${uid}:recovery:${normalizeRecovery(code)}`);
-}
-
-/** Aceita minúsculas, espaços e o traço do meio. */
-function normalizeRecovery(code: string): string {
-  return code.toUpperCase().replace(/[^0-9A-Z]/g, '');
-}
-
 function sameHash(a: string, b: string): boolean {
   const left = Buffer.from(a, 'utf8');
   const right = Buffer.from(b, 'utf8');
@@ -93,16 +75,6 @@ function sameHash(a: string, b: string): boolean {
 
 function generateCode(): string {
   return Array.from({ length: CODE_LENGTH }, () => randomInt(10)).join('');
-}
-
-function generateRecoveryCode(): string {
-  const raw = Array.from({ length: RECOVERY_CODE_LENGTH }, () => RECOVERY_ALPHABET[randomInt(RECOVERY_ALPHABET.length)]).join('');
-  return `${raw.slice(0, 5)}-${raw.slice(5)}`;
-}
-
-function newRecoveryCodes(uid: string): { codes: string[]; hashes: string[] } {
-  const codes = Array.from({ length: RECOVERY_CODE_COUNT }, generateRecoveryCode);
-  return { codes, hashes: codes.map(code => hashRecovery(uid, code)) };
 }
 
 async function setClaims(uid: string, change: { tfa: true; tfaSessions: number[] } | null): Promise<void> {
@@ -130,7 +102,6 @@ function codeMail(code: string, purpose: Purpose): { subject: string; text: stri
     login: 'entrar na sua conta',
     enable: 'ativar a verificação em duas etapas',
     disable: 'desativar a verificação em duas etapas',
-    regenerate: 'gerar novos códigos de recuperação',
   };
   const warning = purpose === 'login'
     ? 'Se não foi você, alguém sabe a sua senha: troque-a agora. Sem este código, essa pessoa não entra.'
@@ -261,17 +232,15 @@ async function enable(user: AuthenticatedRequest, code: unknown, res: HttpRespon
   if (problem) return fail(res, 400, 'invalid-code', problem);
 
   const email = await accountEmail(user.uid);
-  const { codes, hashes } = newRecoveryCodes(user.uid);
   await docRef(user.uid).set({
     enabled: true,
     email,
-    recoveryHashes: hashes,
     enabledAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   await setClaims(user.uid, { tfa: true, tfaSessions: [user.authTime ?? 0] });
   await logEvent(user.uid, 'enabled');
   await notify(email, 'Verificação em duas etapas ativada', 'A partir de agora, enviaremos um código para este e-mail a cada novo login.');
-  res.status(200).json({ enabled: true, recoveryCodes: codes });
+  res.status(200).json({ enabled: true });
 }
 
 /** Desliga de vez. Quem chama já confirmou que a pessoa pode fazer isso. */
@@ -293,53 +262,12 @@ async function disable(user: AuthenticatedRequest, code: unknown, res: HttpRespo
   res.status(200).json({ enabled: false });
 }
 
-async function regenerate(user: AuthenticatedRequest, code: unknown, res: HttpResponse): Promise<void> {
-  const problem = await consumeCode(user, 'regenerate', code);
-  if (problem) return fail(res, 400, 'invalid-code', problem);
-
-  const { codes, hashes } = newRecoveryCodes(user.uid);
-  await docRef(user.uid).set({ recoveryHashes: hashes }, { merge: true });
-  await logEvent(user.uid, 'recovery_regenerated');
-  res.status(200).json({ recoveryCodes: codes });
-}
-
 async function verifyLogin(user: AuthenticatedRequest, code: unknown, res: HttpResponse): Promise<void> {
   const problem = await consumeCode(user, 'login', code);
   if (problem) return fail(res, 400, 'invalid-code', problem);
 
   await addSession(user.uid, user.authTime ?? 0);
   res.status(200).json({ verified: true });
-}
-
-/**
- * Perdeu o acesso ao e-mail. Só chega aqui quem já passou pela senha ou pelo
- * Google. O código desliga a verificação: com o e-mail fora de alcance, mantê-la
- * ligada trancaria a pessoa de novo no próximo login.
- */
-async function useRecovery(user: AuthenticatedRequest, code: unknown, res: HttpResponse): Promise<void> {
-  const ref = docRef(user.uid);
-  const hash = hashRecovery(user.uid, String(code ?? ''));
-  const outcome = await getFirestore().runTransaction(async transaction => {
-    const data = ((await transaction.get(ref)).data() ?? {}) as TwoFactorDoc;
-    const now = Date.now();
-    const windowOpen = now - (data.recoveryWindowStartedAt ?? 0) < RECOVERY_WINDOW_MS;
-    const fails = windowOpen ? data.recoveryFails ?? 0 : 0;
-    if (fails >= RECOVERY_MAX_FAILS) return 'locked';
-    if ((data.recoveryHashes ?? []).some(stored => sameHash(stored, hash))) return 'ok';
-    transaction.set(ref, {
-      recoveryFails: fails + 1,
-      recoveryWindowStartedAt: windowOpen ? data.recoveryWindowStartedAt : now,
-    }, { merge: true });
-    return 'wrong';
-  });
-
-  if (outcome === 'locked') return fail(res, 429, 'too-many', 'Muitas tentativas. Tente de novo em uma hora.');
-  if (outcome === 'wrong') return fail(res, 400, 'invalid-code', 'Código de recuperação incorreto.');
-
-  const email = await turnOff(user.uid);
-  await logEvent(user.uid, 'recovery_used');
-  await notify(email, 'Código de recuperação usado', 'A verificação em duas etapas foi desativada. Ative de novo em Minha conta.');
-  res.status(200).json({ enabled: false });
 }
 
 /**
@@ -368,6 +296,7 @@ async function rebindSession(user: AuthenticatedRequest, previousToken: unknown,
   res.status(200).json({ verified: true });
 }
 
+/** Único caminho para quem perdeu o e-mail: o atendimento confirma quem é e desliga. */
 async function adminReset(req: Parameters<typeof requireAdmin>[0], res: HttpResponse): Promise<void> {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -413,17 +342,15 @@ export const twoFactor = onRequest({ ...defaultRuntime }, async (req, res) => {
       }
       case 'requestCode': {
         const purpose = String(body['purpose'] ?? '') as Purpose;
-        if (!['login', 'enable', 'disable', 'regenerate'].includes(purpose)) return fail(res, 400, 'invalid', 'Pedido inválido.');
+        if (!['login', 'enable', 'disable'].includes(purpose)) return fail(res, 400, 'invalid', 'Pedido inválido.');
         // Sessão pendente só pede o código de login, e só ela pede esse.
         if ((purpose === 'login') !== pending) return blocked();
         return await requestCode(user, purpose, res);
       }
       case 'verifyLogin': return pending ? await verifyLogin(user, body['code'], res) : blocked();
-      case 'useRecovery': return pending ? await useRecovery(user, body['code'], res) : blocked();
       case 'rebindSession': return await rebindSession(user, body['previousToken'], res);
       case 'enable': return pending ? blocked() : await enable(user, body['code'], res);
       case 'disable': return pending ? blocked() : await disable(user, body['code'], res);
-      case 'regenerateRecovery': return pending ? blocked() : await regenerate(user, body['code'], res);
       default: return fail(res, 400, 'invalid', 'Ação desconhecida.');
     }
   } catch (error) {

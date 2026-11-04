@@ -7,7 +7,7 @@ import { getFirebaseAuth, waitForAuthUser } from 'src/app/core/auth-state';
 import { safeRedirectTarget } from 'src/app/core/auth-redirect';
 import { COMPANY, mailtoLink } from 'src/app/core/legal-info';
 import {
-  TwoFactorError, isSecondFactorPending, requestTwoFactorCode, useRecoveryCode, verifyLoginCode,
+  TwoFactorError, isSecondFactorPending, requestTwoFactorCode, verifyLoginCode,
 } from 'src/app/core/two-factor';
 
 /**
@@ -25,14 +25,12 @@ export class TwoFactorPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  readonly view = signal<'code' | 'recovery' | 'recovered'>('code');
   readonly busy = signal(false);
   readonly sending = signal(false);
   readonly sentTo = signal('');
   readonly error = signal('');
   readonly cooldown = signal(0);
   code = '';
-  recoveryCode = '';
 
   readonly supportLink = mailtoLink(COMPANY.supportEmail, 'Perdi o acesso à verificação em duas etapas');
   private user: User | null = null;
@@ -92,47 +90,18 @@ export class TwoFactorPage implements OnInit, OnDestroy {
       this.error.set('Digite os 6 números do código.');
       return;
     }
-    await this.run(async user => {
-      await verifyLoginCode(user, this.code.trim());
-      this.leave();
-    });
-  }
-
-  async recover() {
-    if (!this.user || this.busy()) return;
-    if (!this.recoveryCode.trim()) {
-      this.error.set('Digite um dos seus códigos de recuperação.');
-      return;
-    }
-    await this.run(async user => {
-      await useRecoveryCode(user, this.recoveryCode);
-      this.view.set('recovered');
-    });
-  }
-
-  private async run(step: (user: User) => Promise<void>) {
     this.busy.set(true);
     this.error.set('');
     try {
-      await step(this.user!);
+      await verifyLoginCode(this.user, this.code.trim());
+      // Recarrega em vez de navegar: os listeners do Firestore abertos enquanto a
+      // sessão estava pendente morreram com permission-denied e não voltam sozinhos.
+      window.location.replace(this.target);
     } catch (error) {
       this.error.set((error as Error).message);
     } finally {
       this.busy.set(false);
     }
-  }
-
-  /**
-   * Recarrega em vez de navegar: os listeners do Firestore abertos enquanto a
-   * sessão estava pendente morreram com permission-denied e não voltam sozinhos.
-   */
-  leave() {
-    window.location.replace(this.target);
-  }
-
-  show(view: 'code' | 'recovery') {
-    this.view.set(view);
-    this.error.set('');
   }
 
   async logout() {
