@@ -162,7 +162,10 @@
             <span>Compras</span>
           </a>
           <a routerLink="/tabs/chats">
-            <span class="acc-pocket-icon"><vn-icon name="chat" /></span>
+            <span class="acc-pocket-icon">
+              <vn-icon name="chat" />
+              @if (chatUnread() > 0) { <b>{{ chatUnread() > 99 ? '99+' : chatUnread() }}</b> }
+            </span>
             <span>Mensagens</span>
           </a>
         </nav>

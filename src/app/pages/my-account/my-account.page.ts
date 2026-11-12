@@ -24,6 +24,7 @@ import { SalesService } from 'src/app/services/sales.service';
 import { SupportService } from 'src/app/services/support.service';
 import { StorefrontDataService } from 'src/app/services/storefront-data.service';
 import { NotificationCenterService } from 'src/app/services/notification-center.service';
+import { ChatUnreadService } from 'src/app/services/chat-unread.service';
 import { ProductReviewsService } from 'src/app/services/product-reviews.service';
 import { ProductQuestionsService } from 'src/app/services/product-questions.service';
 import { ProductReview } from 'src/app/interfaces/review';
@@ -113,6 +114,7 @@ export class MyAccountPage {
   readonly payoutMissing = computed(() =>
     this.hasPayoutKey() === false && (this.sales() ?? []).some(order => isPaid(order)));
   readonly unreadNotifications = inject(NotificationCenterService).unread;
+  readonly chatUnread = inject(ChatUnreadService).total;
   /** Leitura de pedidos/vendas falhou: a tela diz isso em vez de mostrar zeros. */
   readonly ordersFailed = signal(false);
   readonly salesFailed = signal(false);

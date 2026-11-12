@@ -1,6 +1,6 @@
 /*
- * Barra inferior do celular (Início · Conta · Carrinho · Menu) e o painel do
- * Menu. Paleta Noite: azul-noite no texto/ícone ativo, lima só como fundo.
+ * Barra inferior do celular (Início · Anunciar · Carrinho · Conta).
+ * Paleta Noite: azul-noite no texto/ícone ativo, lima só como fundo.
  */
 
 :host {
@@ -24,8 +24,7 @@ ion-tab-bar.vn-tabbar {
   z-index: 30;
 }
 
-ion-tab-button,
-.vn-tab-menu {
+ion-tab-button {
   --background-focused: transparent;
   --ripple-color: transparent;
   --padding-top: 0;
@@ -36,8 +35,7 @@ ion-tab-button,
 }
 
 /* Traço no topo marca a aba atual, como na Amazon. */
-ion-tab-button::before,
-.vn-tab-menu::before {
+ion-tab-button::before {
   content: '';
   position: absolute;
   top: -1px;
@@ -74,8 +72,7 @@ ion-tab-button::before,
   line-height: 1;
 }
 
-ion-tab-button.tab-selected,
-.vn-tab-menu.is-open {
+ion-tab-button.tab-selected {
   color: var(--vn-navy);
 
   &::before { transform: scaleX(1); }
@@ -83,31 +80,8 @@ ion-tab-button.tab-selected,
   .vn-tab-label { font-weight: 800; }
 }
 
-/* Enquanto o menu está aberto, só ele fica marcado. */
-:host(.menu-open) ion-tab-button.tab-selected {
-  color: var(--vn-tab-muted);
-  &::before { transform: scaleX(0); }
-  .vn-tab-icon { stroke-width: 1.75; }
-  .vn-tab-label { font-weight: 600; }
-}
-
-ion-tab-button:active .vn-tab-icon,
-.vn-tab-menu:active .vn-tab-icon {
+ion-tab-button:active .vn-tab-icon {
   transform: scale(0.92);
-}
-
-.vn-tab-menu {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .vn-tab-cart {
@@ -134,7 +108,7 @@ ion-tab-button:active .vn-tab-icon,
   text-align: center;
 }
 
-/* Aviso novo: ponto lima no botão Menu (o número fica no atalho "Avisos"). */
+/* Aviso novo: ponto lima no ícone Conta (o número fica na linha Notificações). */
 .vn-tab-dot {
   position: absolute;
   top: -3px;
@@ -148,341 +122,8 @@ ion-tab-button:active .vn-tab-icon,
   box-shadow: 0 0 0 1px var(--vn-navy);
 }
 
-/* ===== MENU EM TELA CHEIA ===== */
-
-.vn-menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--vn-tabbar-h) + var(--ion-safe-area-bottom, 0px));
-  z-index: 26;
-  display: flex;
-  flex-direction: column;
-  background: #F4F6F8;
-  font-family: 'Nunito', sans-serif;
-  color: var(--vn-navy);
-  opacity: 0;
-  transform: translateY(16px);
-  visibility: hidden;
-  transition: opacity 0.2s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.26s;
-
-  &.is-open {
-    opacity: 1;
-    transform: none;
-    visibility: visible;
-    transition: opacity 0.2s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
-  }
-
-  a,
-  button {
-    color: inherit;
-    text-decoration: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  svg {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.75;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    flex: none;
-  }
-}
-
-.vn-menu-chevron {
-  width: 18px;
-  height: 18px;
-  margin-left: auto;
-  opacity: 0.4;
-}
-
-/* Cabeçalho azul-noite: mesma faixa do header das páginas */
-.vn-menu-top {
-  flex: none;
-  padding: calc(var(--ion-safe-area-top, 0px) + 6px) 16px 20px;
-  background: var(--vn-navy);
-  color: #ffffff;
-}
-
-.vn-menu-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 48px;
-}
-
-.vn-menu-title {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.vn-menu-close {
-  width: 40px;
-  height: 40px;
-  margin-right: -8px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  color: #ffffff !important;
-  cursor: pointer;
-
-  svg {
-    width: 24px;
-    height: 24px;
-    stroke-width: 2;
-  }
-
-  &:active { background: var(--vn-navy-2); }
-}
-
-.vn-menu-profile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 10px;
-  padding: 14px;
-  border-radius: 14px;
-  background: var(--vn-navy-2);
-  color: #ffffff !important;
-
-  .vn-menu-chevron { opacity: 0.6; }
-}
-
-.vn-menu-avatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  flex: none;
-  background: var(--vn-lime);
-  color: var(--vn-navy);
-  font-size: 19px;
-  font-weight: 800;
-}
-
-.vn-menu-hello {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-
-  strong {
-    font-size: 17px;
-    font-weight: 800;
-  }
-
-  small {
-    font-size: 13px;
-    opacity: 0.7;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.vn-menu-guest {
-  margin-top: 10px;
-
-  strong {
-    display: block;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-}
-
-.vn-menu-guest-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-/* Conteúdo que rola */
-.vn-menu-body {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding: 4px 16px 24px;
-}
-
-.vn-btn {
-  flex: 1;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  font-size: 14.5px;
-  font-weight: 800;
-
-  &--lime {
-    background: var(--vn-lime);
-    color: var(--vn-navy) !important;
-  }
-
-  &--ghost {
-    border: 1.5px solid rgba(255, 255, 255, 0.35);
-    color: #ffffff !important;
-  }
-}
-
-/* Atalhos em grade */
-.vn-menu-tiles {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.vn-tile {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 4px 10px;
-  border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid var(--vn-line);
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-
-  svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  em {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
-    box-sizing: border-box;
-    background: var(--vn-lime);
-    color: var(--vn-navy);
-    font-size: 10px;
-    font-style: normal;
-    font-weight: 800;
-    line-height: 18px;
-  }
-
-  &:active { background: #EAEDF1; }
-}
-
-/* Chamada para vender */
-.vn-menu-sell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--vn-lime);
-  color: var(--vn-navy) !important;
-
-  .vn-menu-chevron { opacity: 0.7; }
-}
-
-.vn-menu-sell-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: var(--vn-navy);
-  color: var(--vn-lime);
-
-  svg {
-    width: 20px;
-    height: 20px;
-    stroke-width: 2.2;
-  }
-}
-
-.vn-menu-sell-text {
-  display: flex;
-  flex-direction: column;
-
-  strong {
-    font-size: 15px;
-    font-weight: 800;
-  }
-
-  small {
-    font-size: 12.5px;
-    font-weight: 600;
-    opacity: 0.75;
-  }
-}
-
-/* Listas */
-.vn-menu-heading {
-  margin: 18px 4px 6px;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--vn-tab-muted);
-}
-
-.vn-menu-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid var(--vn-line);
-  overflow: hidden;
-
-  li + li { border-top: 1px solid var(--vn-line); }
-
-  a,
-  button {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 50px;
-    padding: 0 14px;
-    border: 0;
-    background: none;
-    font: inherit;
-    font-size: 15px;
-    font-weight: 700;
-    text-align: left;
-
-    &:active { background: #F0F2F5; }
-  }
-
-  svg:first-child {
-    width: 22px;
-    height: 22px;
-  }
-}
-
-.vn-menu-logout {
-  color: #B42318 !important;
-}
-
-/* No desktop a navegação é o header do site. */
-:host-context(html.vn-desktop-shell) .vn-menu {
-  display: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .vn-menu,
-  .vn-menu.is-open,
-  ion-tab-button::before,
-  .vn-tab-menu::before {
+  ion-tab-button::before {
     transition: none;
   }
 }
