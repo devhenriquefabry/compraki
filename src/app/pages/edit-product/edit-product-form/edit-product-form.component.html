@@ -81,14 +81,31 @@
 
       <div class="field">
         <span>Categoria</span>
-        <div class="ef-chips" role="radiogroup" aria-label="Categoria">
-          @for (cat of (categories$ | async); track cat.id) {
-            <button type="button" role="radio" class="ef-chip" [class.is-on]="form.controls.categoryIds.value?.[0] === cat.id"
-                    [attr.aria-checked]="form.controls.categoryIds.value?.[0] === cat.id" (click)="selectCategory(cat.id)">
-              <ion-icon [name]="cat.icon || 'folder-outline'" aria-hidden="true"></ion-icon>{{ cat.name }}
-            </button>
+        @if (selectedCategory && !categoryPickerOpen) {
+          <div class="ef-catsel">
+            <span class="ef-catsel-ico"><ion-icon [name]="selectedCategory.icon || 'folder-outline'" aria-hidden="true"></ion-icon></span>
+            <strong>{{ selectedCategory.name }}</strong>
+            <button type="button" class="ef-link" (click)="categoryPickerOpen = true">Trocar</button>
+          </div>
+        } @else {
+          <span class="field-box ef-catsearch">
+            <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+            <input type="text" [value]="categoryQuery" (input)="categoryQuery = $any($event.target).value" placeholder="Buscar categoria" autocomplete="off" aria-label="Buscar categoria" />
+          </span>
+          <div class="ef-chips" role="radiogroup" aria-label="Categoria">
+            @for (cat of filteredCategories; track cat.id) {
+              <button type="button" role="radio" class="ef-chip" [class.is-on]="form.controls.categoryIds.value?.[0] === cat.id"
+                      [attr.aria-checked]="form.controls.categoryIds.value?.[0] === cat.id" (click)="selectCategory(cat.id)">
+                <ion-icon [name]="cat.icon || 'folder-outline'" aria-hidden="true"></ion-icon>{{ cat.name }}
+              </button>
+            } @empty {
+              <small class="ef-hint">Nenhuma categoria com esse nome.</small>
+            }
+          </div>
+          @if (selectedCategory) {
+            <button type="button" class="ef-link" (click)="categoryPickerOpen = false">Manter {{ selectedCategory.name }}</button>
           }
-        </div>
+        }
         @if (invalid('categoryIds')) { <small class="ef-error">Escolha uma categoria.</small> }
       </div>
 
@@ -205,7 +222,7 @@
 
       @if (!localDelivery?.onlyLocal) {
         <div class="field">
-          <span>{{ localDelivery ? 'Envio para as outras cidades' : 'Frete' }}</span>
+          <span>{{ localDelivery ? 'Envio para as outras cidades' : 'Quem paga o frete?' }}</span>
           <div class="ef-ships" role="radiogroup" aria-label="Frete">
             @for (opt of shippingOptions; track opt.value) {
               <button type="button" role="radio" class="ef-ship" [class.is-on]="form.controls.shipping.value === opt.value"
@@ -220,6 +237,19 @@
 
       <div class="field">
         <app-local-delivery-editor [value]="localDelivery" (valueChange)="onLocalDelivery($event)"></app-local-delivery-editor>
+      </div>
+
+      <div class="field">
+        <span>Formas de pagamento aceitas</span>
+        <div class="ef-ships" role="group" aria-label="Formas de pagamento">
+          @for (opt of paymentOptions; track opt.value) {
+            <button type="button" class="ef-ship" [class.is-on]="paymentMethods.includes(opt.value)"
+                    [attr.aria-pressed]="paymentMethods.includes(opt.value)" (click)="togglePayment(opt.value)">
+              <span class="ef-ship-mark"><ion-icon [name]="opt.icon" aria-hidden="true"></ion-icon></span>
+              <span><strong>{{ opt.label }}</strong><small>{{ opt.hint }}</small></span>
+            </button>
+          }
+        </div>
       </div>
 
       <div class="field">

@@ -863,3 +863,44 @@ textarea.is-bad { border-color: #E07A52 !important; }
   .ef-spin { animation-duration: 2s; }
   .ef-switch i, .ef-switch i::after, .ef-chip, .ef-cond { transition: none; }
 }
+
+/* Categoria escolhida (linha com "Trocar") e busca. */
+.ef-catsel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px var(--vc-navy);
+
+  strong { flex: 1; min-width: 0; font-size: 15px; font-weight: 800; color: var(--vc-ink); }
+}
+
+.ef-catsel-ico {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--vc-navy);
+  color: var(--vc-neon);
+  font-size: 19px;
+}
+
+.ef-catsearch {
+  margin-bottom: 10px;
+  ion-icon { flex-shrink: 0; margin-right: 8px; font-size: 18px; color: var(--vc-muted); }
+}
+
+.ef-link {
+  border: 0;
+  background: transparent;
+  padding: 6px 4px;
+  color: var(--vc-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

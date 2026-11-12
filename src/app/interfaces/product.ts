@@ -18,7 +18,7 @@ export interface Product {
     categoryIds: string[];
     subcategoryIds: string[];
     acceptOffers?: boolean;
-    paymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[];
+    paymentMethods: ('PIX' | 'CARTÃO' | 'BOLETO' | 'DINHEIRO')[]; // DINHEIRO só em anúncios antigos
     shipping: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa';
     /**
      * Entrega própria da loja, sem custo para o comprador, nas cidades

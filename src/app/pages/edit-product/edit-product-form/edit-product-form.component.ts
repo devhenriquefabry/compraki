@@ -12,6 +12,7 @@ import { PriceInputDirective } from 'src/app/directives/price-input.directive';
 import { LocalDeliveryEditorComponent } from 'src/app/components/local-delivery-editor/local-delivery-editor.component';
 import { VnIconComponent } from 'src/app/components/vn-icon/vn-icon.component';
 import { resizeImage } from 'src/app/core/image-resize';
+import { normalizeText } from 'src/app/core/catalog';
 import { readLocalDelivery } from 'src/app/core/local-delivery';
 import { formatBRL } from 'src/app/core/order-stage';
 import { hasDiscount, priceMain } from 'src/app/core/product-pricing';
@@ -38,6 +39,7 @@ export const EDIT_SECTIONS: { id: EditSection; label: string }[] = [
 type FormKey = 'name' | 'price' | 'priceDiscounted' | 'stock' | 'description' | 'categoryIds' | 'weight' | 'width' | 'height' | 'length';
 type Condition = 'novo' | 'usado-como-novo' | 'usado-bom' | 'usado-aceitavel';
 type Shipping = 'Frete Grátis' | 'A combinar' | 'Entrega Expressa';
+type PayMethod = 'PIX' | 'CARTÃO' | 'BOLETO';
 
 /** Fotos gerais do anúncio (as de cada cor ficam nas galerias das variações). */
 export const MAX_PHOTOS = 6;
@@ -86,10 +88,42 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
     { value: 'usado-aceitavel', label: 'Aceitável', hint: 'Funciona bem, com desgaste' },
   ];
   readonly shippingOptions: { value: Shipping; label: string; hint: string; icon: string }[] = [
-    { value: 'A combinar', label: 'Comprador paga', hint: 'Frete calculado no checkout', icon: 'cube-outline' },
-    { value: 'Frete Grátis', label: 'Frete grátis', hint: 'A etiqueta sai do seu repasse', icon: 'gift-outline' },
-    { value: 'Entrega Expressa', label: 'Expressa', hint: 'Envio prioritário', icon: 'flash-outline' },
+    { value: 'A combinar', label: 'Comprador paga o frete', hint: 'Calculado no checkout pelo CEP dele', icon: 'cube-outline' },
+    { value: 'Frete Grátis', label: 'Vendedor paga o frete', hint: 'Frete grátis para o comprador; a etiqueta sai do seu repasse', icon: 'gift-outline' },
+    { value: 'Entrega Expressa', label: 'Envio expresso', hint: 'Prioritário, com frete calculado no checkout', icon: 'flash-outline' },
   ];
+
+  readonly paymentOptions: { value: PayMethod; label: string; hint: string; icon: string }[] = [
+    { value: 'PIX', label: 'Pix', hint: 'Aprovação na hora', icon: 'qr-code-outline' },
+    { value: 'CARTÃO', label: 'Cartão', hint: 'Crédito, com parcelas', icon: 'card-outline' },
+    { value: 'BOLETO', label: 'Boleto', hint: 'Compensa em até 2 dias úteis', icon: 'barcode-outline' },
+  ];
+
+  /** Formas de pagamento aceitas (sempre ao menos uma). Anúncio antigo com "Dinheiro" perde essa opção ao salvar. */
+  paymentMethods: PayMethod[] = ['PIX'];
+
+  togglePayment(method: PayMethod) {
+    const has = this.paymentMethods.includes(method);
+    if (has && this.paymentMethods.length === 1) return;
+    this.paymentMethods = has ? this.paymentMethods.filter(m => m !== method) : [...this.paymentMethods, method];
+    this.markChanged();
+  }
+
+  // Categoria: escolhida vira uma linha com "Trocar"; senão busca + chips.
+  categoryQuery = '';
+  categoryPickerOpen = false;
+
+  get selectedCategory(): Category | null {
+    const id = this.form.controls.categoryIds.value?.[0];
+    return this.allCategories.find(c => c.id === id) ?? null;
+  }
+
+  get filteredCategories(): Category[] {
+    const q = normalizeText(this.categoryQuery.trim());
+    if (!q) return this.allCategories;
+    return this.allCategories.filter(c =>
+      normalizeText(c.name).includes(q) || (c.subcategories ?? []).some(s => normalizeText(s.name).includes(q)));
+  }
 
   /** Houve alteração desde que abriu (a página usa para perguntar antes de sair). */
   changed = false;
@@ -185,6 +219,9 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
     this.variantImages = product.variantImages ? { ...product.variantImages } : {};
     this.variantPhotos = galleriesFromProduct(product);
     this.localDelivery = readLocalDelivery(product.localDelivery);
+    const pay = (product.paymentMethods || []).filter((m): m is PayMethod => m === 'PIX' || m === 'CARTÃO' || m === 'BOLETO');
+    this.paymentMethods = pay.length ? pay : ['PIX'];
+    this.categoryPickerOpen = false;
     this.optionFiles.clear();
     this.refreshSubcategories();
     this.changed = false;
@@ -203,6 +240,8 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
   // ------------------------------------------------------------ detalhes
 
   selectCategory(id: string) {
+    this.categoryPickerOpen = false;
+    this.categoryQuery = '';
     if (this.form.controls.categoryIds.value?.[0] === id) return;
     this.form.patchValue({ categoryIds: [id], subcategoryIds: [] });
   }
@@ -437,6 +476,7 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
         categoryIds: v.categoryIds || [],
         subcategoryIds: v.subcategoryIds || [],
         shipping: v.shipping,
+        paymentMethods: this.paymentMethods,
         weight: Number(v.weight),
         width: Number(v.width),
         height: Number(v.height),

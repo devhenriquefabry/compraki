@@ -13,12 +13,9 @@
         <p>Preencha os dados abaixo. Anúncios completos vendem mais rápido.</p>
       }
     </div>
-    <div class="progress-pill" [class.is-complete]="completionPercent === 100">
-      <svg viewBox="0 0 36 36" class="progress-ring">
-        <path class="progress-ring-bg" d="M18 2 a16 16 0 0 1 0 32 a16 16 0 0 1 0 -32" />
-        <path class="progress-ring-fill" [attr.stroke-dasharray]="completionPercent + ', 100'" d="M18 2 a16 16 0 0 1 0 32 a16 16 0 0 1 0 -32" />
-      </svg>
-      <span>{{ completionPercent }}% completo</span>
+    <div class="progress-bar-wrap" [class.is-complete]="completionPercent === 100">
+      <span class="pb-label">{{ completionPercent }}% completo</span>
+      <span class="pb-track"><span class="pb-fill" [style.width.%]="completionPercent"></span></span>
     </div>
   </div>
 
@@ -157,21 +154,38 @@
         </div>
 
         <div class="form-group" *ngIf="!catalogProduct">
-          <label>Categoria principal</label>
-          <div class="category-chips">
-            <button type="button"
-                    *ngFor="let cat of (categories$ | async)"
-                    class="cat-chip"
-                    [class.active]="submitProductForm.get('categoryIds')?.value?.[0] === cat.id"
-                    (click)="selectCategory(cat.id)">
-              <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
-              <span>{{ cat.name }}</span>
-            </button>
-          </div>
+          <label>Categoria</label>
+
+          @if (selectedCategory && !categoryPickerOpen) {
+            <div class="category-selected">
+              <span class="cs-ico"><ion-icon [name]="selectedCategory.icon || 'folder-outline'"></ion-icon></span>
+              <span class="cs-name">{{ selectedCategory.name }}</span>
+              <button type="button" class="cs-swap" (click)="categoryPickerOpen = true">Trocar</button>
+            </div>
+          } @else {
+            <div class="category-picker">
+              <div class="input-wrapper cat-search">
+                <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+                <input type="text" [(ngModel)]="categoryQuery" [ngModelOptions]="{standalone: true}" placeholder="Buscar categoria" autocomplete="off">
+              </div>
+              <div class="category-grid">
+                <button type="button"
+                        *ngFor="let cat of filteredCategories"
+                        class="cat-tile"
+                        [class.active]="submitProductForm.get('categoryIds')?.value?.[0] === cat.id"
+                        (click)="selectCategory(cat.id)">
+                  <ion-icon [name]="cat.icon || 'folder-outline'"></ion-icon>
+                  <span>{{ cat.name }}</span>
+                </button>
+                <p class="category-empty" *ngIf="!filteredCategories.length">Nenhuma categoria com esse nome.</p>
+              </div>
+              <button type="button" class="cs-swap cs-cancel" *ngIf="selectedCategory" (click)="categoryPickerOpen = false">Manter {{ selectedCategory.name }}</button>
+            </div>
+          }
         </div>
 
-        <div class="form-group" *ngIf="!catalogProduct && availableSubcategories.length > 0">
-          <label>Subcategoria</label>
+        <div class="form-group" *ngIf="!catalogProduct && availableSubcategories.length > 0 && !categoryPickerOpen">
+          <label>Subcategoria <small>(opcional)</small></label>
           <div class="subcategory-chips">
             <button type="button"
                     *ngFor="let sub of availableSubcategories"
@@ -231,7 +245,9 @@
           <div class="form-group col-small" *ngIf="!hasVariants">
             <label>Estoque</label>
             <div class="input-wrapper stock-input">
-              <input type="number" formControlName="stock" placeholder="1">
+              <button type="button" class="step-btn" aria-label="Diminuir estoque" (click)="stepStock(-1)">−</button>
+              <input type="number" inputmode="numeric" min="0" formControlName="stock" placeholder="1">
+              <button type="button" class="step-btn" aria-label="Aumentar estoque" (click)="stepStock(1)">+</button>
             </div>
           </div>
         </div>
@@ -297,7 +313,7 @@
         </header>
 
         <div class="form-group" *ngIf="!localDelivery?.onlyLocal">
-          <label>{{ localDelivery ? 'Envio para outras cidades' : 'Opções de entrega' }}</label>
+          <label>{{ localDelivery ? 'Envio para outras cidades' : 'Quem paga o frete?' }}</label>
           <div class="shipping-options">
             <button type="button"
                     *ngFor="let opt of shippingOptions"
@@ -323,10 +339,10 @@
             <button type="button"
                     *ngFor="let method of availablePaymentMethods"
                     class="pay-pill"
-                    [class.active]="submitProductForm.get('paymentMethods')?.value?.includes(method)"
-                    (click)="togglePaymentMethod(method)">
-              <ion-icon [name]="method === 'PIX' ? 'qr-code-outline' : (method === 'CARTÃO' ? 'card-outline' : 'cash-outline')"></ion-icon>
-              <span>{{ method }}</span>
+                    [class.active]="submitProductForm.get('paymentMethods')?.value?.includes(method.value)"
+                    (click)="togglePaymentMethod(method.value)">
+              <ion-icon [name]="method.icon"></ion-icon>
+              <span class="pay-text"><strong>{{ method.label }}</strong><small>{{ method.hint }}</small></span>
             </button>
           </div>
         </div>
@@ -342,37 +358,39 @@
           </div>
         </header>
 
-        <div class="row">
-          <div class="form-group col">
-            <label>Peso (kg)</label>
-            <div class="input-wrapper">
-              <input type="number" formControlName="weight" placeholder="Ex: 0.5" min="0.1" max="30" step="0.01">
+        <div class="dims-grid">
+          <div class="form-group">
+            <label>Peso</label>
+            <div class="input-wrapper has-suffix">
+              <input type="number" inputmode="decimal" formControlName="weight" placeholder="0,5" min="0.1" max="30" step="0.01">
+              <span class="suffix">kg</span>
             </div>
-            <span class="field-hint weight-hint" [class.field-hint--bad]="submitProductForm.controls.weight.hasError('max')">
-              {{ submitProductForm.controls.weight.hasError('max') ? 'Peso em kg, até 30: 350 g = 0,35' : 'Em kg: 350 g = 0,35' }}
-            </span>
           </div>
-          <div class="form-group col">
-            <label>Comprimento (cm)</label>
-            <div class="input-wrapper">
-              <input type="number" formControlName="length" placeholder="Ex: 16">
+          <div class="form-group">
+            <label>Comprimento</label>
+            <div class="input-wrapper has-suffix">
+              <input type="number" inputmode="numeric" formControlName="length" placeholder="16">
+              <span class="suffix">cm</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Largura</label>
+            <div class="input-wrapper has-suffix">
+              <input type="number" inputmode="numeric" formControlName="width" placeholder="11">
+              <span class="suffix">cm</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Altura</label>
+            <div class="input-wrapper has-suffix">
+              <input type="number" inputmode="numeric" formControlName="height" placeholder="2">
+              <span class="suffix">cm</span>
             </div>
           </div>
         </div>
-        <div class="row">
-          <div class="form-group col">
-            <label>Largura (cm)</label>
-            <div class="input-wrapper">
-              <input type="number" formControlName="width" placeholder="Ex: 11">
-            </div>
-          </div>
-          <div class="form-group col">
-            <label>Altura (cm)</label>
-            <div class="input-wrapper">
-              <input type="number" formControlName="height" placeholder="Ex: 2">
-            </div>
-          </div>
-        </div>
+        <span class="field-hint weight-hint" [class.field-hint--bad]="submitProductForm.controls.weight.hasError('max')">
+          {{ submitProductForm.controls.weight.hasError('max') ? 'Peso em kg, até 30: 350 g = 0,35' : 'Peso em kg (350 g = 0,35). Medidas da embalagem fechada, em cm.' }}
+        </span>
       </section>
 
       <!-- FICHA TÉCNICA -->
@@ -440,12 +458,20 @@
               {{ submitProductForm.value.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
             </span>
           </div>
-          <span class="preview-shipping" *ngIf="localDelivery?.cities?.length; else previewShipping">Entrega grátis da loja</span>
-          <ng-template #previewShipping>
-            <span class="preview-shipping" *ngIf="submitProductForm.value.shipping">{{ submitProductForm.value.shipping }}</span>
-          </ng-template>
+          <span class="preview-shipping" *ngIf="shippingLabel">{{ shippingLabel }}</span>
+          <div class="preview-pay" *ngIf="submitProductForm.value.paymentMethods?.length">
+            <span *ngFor="let m of submitProductForm.value.paymentMethods">{{ paymentLabel(m) }}</span>
+          </div>
         </div>
       </div>
+
+      <ul class="checklist" *ngIf="pendingCount > 0">
+        <li class="checklist-title">Falta para publicar</li>
+        <li *ngFor="let item of checklist; trackBy: trackByLabel" [class.done]="item.done">
+          <ion-icon [name]="item.done ? 'checkmark-circle' : 'ellipse-outline'" aria-hidden="true"></ion-icon>
+          {{ item.label }}
+        </li>
+      </ul>
 
       <button type="button" class="btn-publish" (click)="submit()" [disabled]="!canPublish">
         <ion-icon name="checkmark-circle-outline"></ion-icon>
@@ -464,6 +490,9 @@
     <p class="publish-hint publish-hint--bar" *ngIf="missingCatalogPhoto">Adicione ao menos uma foto do produto</p>
     <p class="publish-hint publish-hint--bar" *ngIf="!missingCatalogPhoto && missingCatalogOption">Marque ao menos uma opção de {{ missingCatalogOption }}</p>
     <p class="publish-hint publish-hint--bar" *ngIf="!missingCatalogPhoto && !missingCatalogOption && localDeliveryProblem">{{ localDeliveryProblem }}</p>
+    <p class="publish-hint publish-hint--bar" *ngIf="!missingCatalogPhoto && !missingCatalogOption && !localDeliveryProblem && pendingCount > 0">
+      Falta: {{ pendingLabels }}
+    </p>
     <button type="button" class="btn-publish" (click)="submit()" [disabled]="!canPublish">
       <ion-icon name="pricetag-outline"></ion-icon>
       Publicar produto

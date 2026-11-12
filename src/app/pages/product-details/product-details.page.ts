@@ -71,6 +71,7 @@ const CONDITION_LABELS: Record<Product['condition'], string> = {
 const PAYMENT_META: Record<string, { label: string; icon: StoreIcon }> = {
   'PIX': { label: 'Pix', icon: 'qr' },
   'CARTÃO': { label: 'Cartão de crédito', icon: 'card' },
+  'BOLETO': { label: 'Boleto', icon: 'cash' },
   'DINHEIRO': { label: 'Dinheiro', icon: 'cash' },
 };
 

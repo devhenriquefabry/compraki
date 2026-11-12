@@ -133,7 +133,7 @@ export class SellerProfilePage {
   readonly inStockCount = computed(() => this.products().filter(p => p.stock > 0).length);
 
   readonly paymentLabel = computed(() => {
-    const labels: Record<string, string> = { PIX: 'Pix', 'CARTÃO': 'Cartão', DINHEIRO: 'Dinheiro' };
+    const labels: Record<string, string> = { PIX: 'Pix', 'CARTÃO': 'Cartão', BOLETO: 'Boleto', DINHEIRO: 'Dinheiro' };
     const set = new Set(this.products().flatMap(p => p.paymentMethods || []));
     return [...set].map(m => labels[m] || m).join(', ');
   });

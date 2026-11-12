@@ -77,6 +77,7 @@ export class ProductDetailModalComponent implements OnChanges {
     return {
       'PIX': 'grid-outline',
       'CARTÃO': 'card-outline',
+      'BOLETO': 'barcode-outline',
       'DINHEIRO': 'cash-outline'
     };
   }

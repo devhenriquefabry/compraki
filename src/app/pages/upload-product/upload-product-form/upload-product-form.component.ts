@@ -24,6 +24,8 @@ import { CatalogCompetition, CatalogProduct } from 'src/app/interfaces/catalog';
 import { catalogCode, catalogPhotos, cleanCatalogSpecs, normalizeText, packageSummary } from 'src/app/core/catalog';
 import { catalogCover, illustrationUrl, isIllustration } from 'src/app/core/catalog-illustrations';
 
+type PayMethod = 'PIX' | 'CARTÃO' | 'BOLETO';
+
 @Component({
   selector: 'app-upload-product-form',
   templateUrl: './upload-product-form.component.html',
@@ -78,11 +80,15 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
   ];
 
   public shippingOptions: { value: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa'; label: string; hint: string; icon: string }[] = [
-    { value: 'Frete Grátis', label: 'Frete grátis', hint: 'A etiqueta sai do seu repasse', icon: 'gift-outline' },
-    { value: 'A combinar', label: 'Comprador paga', hint: 'Frete calculado no checkout', icon: 'chatbubbles-outline' },
-    { value: 'Entrega Expressa', label: 'Expressa', hint: 'Envio prioritário', icon: 'flash-outline' },
+    { value: 'A combinar', label: 'Comprador paga o frete', hint: 'Calculado no checkout pelo CEP dele', icon: 'cube-outline' },
+    { value: 'Frete Grátis', label: 'Vendedor paga o frete', hint: 'Frete grátis para o comprador; a etiqueta sai do seu repasse', icon: 'gift-outline' },
+    { value: 'Entrega Expressa', label: 'Envio expresso', hint: 'Prioritário, com frete calculado no checkout', icon: 'flash-outline' },
   ];
-  public availablePaymentMethods: ('PIX' | 'CARTÃO' | 'DINHEIRO')[] = ['PIX', 'CARTÃO', 'DINHEIRO'];
+  public availablePaymentMethods: { value: PayMethod; label: string; hint: string; icon: string }[] = [
+    { value: 'PIX', label: 'Pix', hint: 'Aprovação na hora', icon: 'qr-code-outline' },
+    { value: 'CARTÃO', label: 'Cartão', hint: 'Crédito, com parcelas', icon: 'card-outline' },
+    { value: 'BOLETO', label: 'Boleto', hint: 'Compensa em até 2 dias úteis', icon: 'barcode-outline' },
+  ];
 
   /** Entrega grátis da própria loja (`null` = desligada). Ver core/local-delivery.ts. */
   public localDelivery: LocalDelivery | null = null;
@@ -118,7 +124,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     subcategoryIds: new FormControl<string[]>([]),
     priceDiscounted: new FormControl<number | null>(null),
     shipping: new FormControl<'Frete Grátis' | 'A combinar' | 'Entrega Expressa'>('A combinar', [Validators.required]),
-    paymentMethods: new FormControl<('PIX' | 'CARTÃO' | 'DINHEIRO')[]>(['PIX'], [Validators.required, Validators.minLength(1)]),
+    paymentMethods: new FormControl<PayMethod[]>(['PIX'], [Validators.required, Validators.minLength(1)]),
     
     // Novos campos de dimensões
     // Em kg. Teto de 30 kg (limite dos Correios): pega quem digita gramas
@@ -306,8 +312,76 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     return Math.round((1 - promo / price) * 100);
   }
 
+  // ===== CATEGORIA (busca + grade) =====
+  public categoryQuery = '';
+  public categoryPickerOpen = false;
+
+  get selectedCategory(): Category | null {
+    const id = this.submitProductForm.get('categoryIds')?.value?.[0];
+    return this.allCategories.find(c => c.id === id) ?? null;
+  }
+
+  get filteredCategories(): Category[] {
+    const q = normalizeText(this.categoryQuery.trim());
+    if (!q) return this.allCategories;
+    return this.allCategories.filter(c =>
+      normalizeText(c.name).includes(q) || (c.subcategories ?? []).some(s => normalizeText(s.name).includes(q)));
+  }
+
   selectCategory(catId: string) {
     this.submitProductForm.patchValue({ categoryIds: [catId] });
+    this.categoryPickerOpen = false;
+    this.categoryQuery = '';
+  }
+
+  // ===== ESTOQUE =====
+  stepStock(delta: number) {
+    const current = Number(this.submitProductForm.controls.stock.value) || 0;
+    this.submitProductForm.controls.stock.setValue(Math.max(0, current + delta));
+  }
+
+  // ===== CHECKLIST (lateral e barra mobile) =====
+  get checklist(): { label: string; done: boolean }[] {
+    const f = this.submitProductForm.controls;
+    const photos = this.selectedPhotos.length > 0 || this.chosenOptionGalleries.length > 0;
+    const measures = f.weight.valid && f.width.valid && f.height.valid && f.length.valid;
+    if (this.catalogProduct) {
+      return [
+        { label: 'Fotos', done: photos },
+        { label: 'Preço', done: f.price.valid },
+        ...(this.catalogProduct.variantAttributes.length ? [{ label: 'Opções', done: !this.missingCatalogOption }] : []),
+        { label: 'Peso e medidas', done: measures },
+      ];
+    }
+    return [
+      { label: 'Fotos', done: photos },
+      { label: 'Título', done: f.name.valid },
+      { label: 'Categoria', done: f.categoryIds.valid },
+      { label: 'Preço', done: f.price.valid },
+      { label: 'Descrição', done: f.description.valid },
+      { label: 'Peso e medidas', done: measures },
+    ];
+  }
+
+  trackByLabel(_: number, item: { label: string }): string {
+    return item.label;
+  }
+
+  get pendingCount(): number {
+    return this.checklist.filter(i => !i.done).length;
+  }
+
+  get pendingLabels(): string {
+    return this.checklist.filter(i => !i.done).map(i => i.label.toLowerCase()).join(', ');
+  }
+
+  get shippingLabel(): string {
+    if (this.localDelivery?.cities?.length) return 'Entrega grátis da loja';
+    return this.shippingOptions.find(o => o.value === this.submitProductForm.value.shipping)?.label ?? '';
+  }
+
+  paymentLabel(method: string): string {
+    return this.availablePaymentMethods.find(m => m.value === method)?.label ?? method;
   }
 
   toggleSubcategory(subId: string) {
@@ -321,7 +395,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     this.submitProductForm.patchValue({ subcategoryIds: [...current] });
   }
 
-  togglePaymentMethod(method: 'PIX' | 'CARTÃO' | 'DINHEIRO') {
+  togglePaymentMethod(method: PayMethod) {
     const current = this.submitProductForm.get('paymentMethods')?.value || [];
     const idx = current.indexOf(method);
     if (idx > -1) {
