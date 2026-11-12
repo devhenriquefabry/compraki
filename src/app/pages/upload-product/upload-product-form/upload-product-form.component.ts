@@ -117,7 +117,7 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
     condition: new FormControl('novo', [Validators.required]),
     price: new FormControl<number | null>(null, [Validators.required]),
     stock: new FormControl<number>(1, [Validators.required]),
-    acceptOffers: new FormControl(true),
+    acceptOffers: new FormControl(false),
     description: new FormControl('', [Validators.required]),
     specs: new FormControl<ProductSpec[]>([]),
     categoryIds: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
