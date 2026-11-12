@@ -24,14 +24,14 @@ export const COMPANY = {
    * Canal do encarregado. Sem ele a tela não mostra o botão de e-mail.
    * Provisório: trocar quando o e-mail próprio de privacidade for criado.
    */
-  dpoEmail: 'vineon60@gmail.com',
+  dpoEmail: 'contatovineon@gmail.com',
   /**
    * E-mail de atendimento. O canal principal é a tela "Fale com a Vineon"
    * (/support); este e-mail é para quem não consegue entrar na conta (conta
    * suspensa, senha perdida) e também recebe o aviso de cada atendimento novo
    * (SUPPORT_INBOX ou SMTP_USER nas functions). Provisório, igual ao do encarregado.
    */
-  supportEmail: 'vineon60@gmail.com',
+  supportEmail: 'contatovineon@gmail.com',
 };
 
 /**
