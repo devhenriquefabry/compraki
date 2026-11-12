@@ -83,9 +83,8 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
   readonly maxPhotos = MAX_PHOTOS;
   readonly conditionOptions: { value: Condition; label: string; hint: string }[] = [
     { value: 'novo', label: 'Novo', hint: 'Lacrado, nunca usado' },
-    { value: 'usado-como-novo', label: 'Como novo', hint: 'Usado poucas vezes, sem marcas' },
-    { value: 'usado-bom', label: 'Bom estado', hint: 'Uso normal, pequenos sinais' },
-    { value: 'usado-aceitavel', label: 'Aceitável', hint: 'Funciona bem, com desgaste' },
+    { value: 'usado-como-novo', label: 'Seminovo', hint: 'Usado pouco, sem marcas de uso' },
+    { value: 'usado-bom', label: 'Usado', hint: 'Uso normal, com sinais de desgaste' },
   ];
   readonly shippingOptions: { value: Shipping; label: string; hint: string; icon: string }[] = [
     { value: 'A combinar', label: 'Comprador paga o frete', hint: 'Calculado no checkout pelo CEP dele', icon: 'cube-outline' },
@@ -194,7 +193,7 @@ export class EditProductFormComponent implements OnInit, OnDestroy {
     this.form.patchValue({
       id: product.id ?? '',
       name: product.name ?? '',
-      condition: product.condition ?? 'novo',
+      condition: product.condition === 'usado-aceitavel' ? 'usado-bom' : (product.condition ?? 'novo'),
       price: product.price ?? null,
       priceDiscounted: product.priceDiscounted ?? null,
       stock: product.stock ?? 0,

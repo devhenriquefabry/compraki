@@ -34,9 +34,9 @@ export class ProductDetailModalComponent implements OnChanges {
   get conditionLabel(): string {
     const map: { [key: string]: string } = {
       'novo': 'Novo',
-      'usado-como-novo': 'Usado - Como Novo',
-      'usado-bom': 'Usado - Bom Estado',
-      'usado-aceitavel': 'Usado - Aceitável'
+      'usado-como-novo': 'Seminovo',
+      'usado-bom': 'Usado',
+      'usado-aceitavel': 'Usado'
     };
     return map[this.product?.condition] || 'Não informado';
   }

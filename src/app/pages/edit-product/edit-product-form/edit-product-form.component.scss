@@ -228,12 +228,12 @@ textarea.is-bad { border-color: #E07A52 !important; }
 /* Condição: quatro cartões com bolinha de rádio. */
 .ef-conds {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 @media (min-width: 860px) {
-  .ef-conds { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ef-conds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 .ef-cond {

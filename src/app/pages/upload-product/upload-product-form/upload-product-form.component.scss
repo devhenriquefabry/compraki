@@ -801,7 +801,7 @@
       }
     }
 
-    .condition-grid { grid-template-columns: repeat(4, 1fr); }
+    .condition-grid { grid-template-columns: repeat(3, 1fr); }
 
     .shipping-options { flex-direction: row; }
     .ship-pill { flex: 1; }
@@ -1326,4 +1326,11 @@
     .dims-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .category-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: 340px; }
   }
+}
+
+/* Condição: três opções (Novo, Seminovo, Usado) */
+.upload-container .condition-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 480px) {
+  .upload-container .condition-grid { gap: 8px; }
+  .upload-container .condition-card { padding: 10px; .cc-hint { font-size: 10.5px; } }
 }

@@ -74,9 +74,8 @@ export class UploadProductFormComponent  implements OnInit, OnDestroy {
 
   public conditionOptions: { value: 'novo' | 'usado-como-novo' | 'usado-bom' | 'usado-aceitavel'; label: string; hint: string }[] = [
     { value: 'novo', label: 'Novo', hint: 'Lacrado, nunca usado' },
-    { value: 'usado-como-novo', label: 'Como novo', hint: 'Usado poucas vezes, sem marcas' },
-    { value: 'usado-bom', label: 'Bom estado', hint: 'Uso normal, pequenos sinais' },
-    { value: 'usado-aceitavel', label: 'Aceitável', hint: 'Funciona bem, com desgaste' },
+    { value: 'usado-como-novo', label: 'Seminovo', hint: 'Usado pouco, sem marcas de uso' },
+    { value: 'usado-bom', label: 'Usado', hint: 'Uso normal, com sinais de desgaste' },
   ];
 
   public shippingOptions: { value: 'Frete Grátis' | 'A combinar' | 'Entrega Expressa'; label: string; hint: string; icon: string }[] = [

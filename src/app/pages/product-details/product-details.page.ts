@@ -63,9 +63,9 @@ interface ShownPrice {
 
 const CONDITION_LABELS: Record<Product['condition'], string> = {
   'novo': 'Novo',
-  'usado-como-novo': 'Usado · como novo',
-  'usado-bom': 'Usado · bom estado',
-  'usado-aceitavel': 'Usado · aceitável',
+  'usado-como-novo': 'Seminovo',
+  'usado-bom': 'Usado',
+  'usado-aceitavel': 'Usado',
 };
 
 const PAYMENT_META: Record<string, { label: string; icon: StoreIcon }> = {
