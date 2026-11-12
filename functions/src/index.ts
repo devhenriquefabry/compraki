@@ -19,6 +19,7 @@ import {
 } from './shared/http';
 import { MELHOR_ENVIO_SERVICES, getMelhorEnvioConfig, melhorEnvioBaseUrl, melhorEnvioPackage, melhorEnvioSignatureMatches, requestMelhorEnvio } from './shared/melhor-envio';
 import { applyOrderInventory } from './orders';
+import { appUrl, escapeHtml, mailParagraph, mailShell } from './shared/mail';
 
 initializeApp();
 
@@ -3249,6 +3250,27 @@ interface CompleteResetRequest {
   newPassword?: string;
 }
 
+/** E-mail do código de recuperação de senha, no mesmo visual do 2FA e das boas-vindas. */
+function resetPasswordMailHtml(code: string): string {
+  const site = appUrl();
+  const body =
+    `<h1 style="margin:0 0 6px;color:#0B1623;font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-0.4px;">Recuperação de senha</h1>`
+    + `<p style="margin:0 0 18px;color:#64748B;font-size:14px;line-height:1.5;">Falta só um passo.</p>`
+    + mailParagraph('Recebemos um pedido para trocar a senha da sua conta na Vineon. Digite o código abaixo na tela de recuperação.')
+    + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 22px;background:#F6F8FA;border-radius:14px;border:1px solid #E2E8F0;">
+        <tr><td style="padding:14px 18px 4px;color:#64748B;font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">Código de verificação</td></tr>
+        <tr><td style="padding:4px 18px 2px;color:#0B1623;font-size:32px;font-weight:800;letter-spacing:6px;line-height:1.3;">${escapeHtml(code)}</td></tr>
+        <tr><td style="padding:0 18px 14px;color:#64748B;font-size:12px;line-height:1.4;">Vale por 15 minutos</td></tr>
+      </table>`
+    + mailParagraph('Se você não pediu, ignore este e-mail: sua senha continua a mesma.');
+  return mailShell({
+    eyebrow: 'Segurança da conta · Recuperação de senha',
+    body,
+    footer: `A Vineon nunca pede este código por telefone, WhatsApp ou chat. Se alguém pedir, não informe.<br><br>`
+      + `<a href="${escapeHtml(`${site}/privacy`)}" style="color:#64748B;">Política de Privacidade</a> · <a href="${escapeHtml(`${site}/help`)}" style="color:#64748B;">Central de ajuda</a>`,
+  });
+}
+
 export const requestPasswordResetCode = onRequest({ region, cors: false, maxInstances: MAX_INSTANCES }, async (req, res) => {
   if (handleCors(req, res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -3371,17 +3393,7 @@ export const requestPasswordResetCode = onRequest({ region, cors: false, maxInst
             text: `Seu código para recuperar a senha da Vineon é: ${code}
 
 Ele vale por 15 minutos. Se você não pediu, ignore este e-mail: sua senha continua a mesma.`,
-            html: `
-              <div style="font-family: sans-serif; padding: 20px; color: #0B1623;">
-                <h2 style="color: #0B1623;">Recuperação de senha</h2>
-                <p>Olá,</p>
-                <p>Recebemos um pedido para trocar a senha da sua conta na <b>Vineon</b>.</p>
-                <p style="font-size: 1.2rem; margin: 20px 0;">Seu código de segurança é: <b style="display: inline-block; padding: 4px 10px; border-radius: 6px; background: #D8F51F; color: #0B1623; letter-spacing: 3px; font-size: 1.5rem;">${code}</b></p>
-                <p>Este código vale por 15 minutos.</p>
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 0.8rem; color: #5B6573;">Se você não pediu, ignore este e-mail: sua senha continua a mesma.</p>
-              </div>
-            `
+            html: resetPasswordMailHtml(code)
           });
           emailSent = true;
           logger.info('Reset code sent via Email', { email });
