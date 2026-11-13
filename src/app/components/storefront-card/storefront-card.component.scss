@@ -32,16 +32,21 @@
   }
 }
 
+/* Caixa sempre quadrada: a foto fica absoluta, fora do fluxo. Com a foto no
+   fluxo, imagem em pé (vestido, celular) esticava a caixa além do quadrado
+   (min-height:auto) e empurrava nome e preço para alturas diferentes. */
 .sc-media {
-  display: grid;
-  place-items: center;
+  position: relative;
+  flex: none;
   aspect-ratio: 1;
-  padding: 12px;
+  overflow: hidden;
   border-bottom: 1px solid #F0F2F5;
 
   img {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    inset: 12px;
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
     object-fit: contain;
   }
 }
@@ -70,11 +75,18 @@
   line-clamp: 2;
 }
 
+/* Linha do preço antigo e do parcelamento têm altura reservada, mesmo vazias:
+   assim o preço e o frete caem na mesma linha em todos os cards do trilho. */
 .sc-old-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
+  min-height: 20px;
+}
+
+.sc-installment-slot {
+  min-height: 18px;
 }
 
 .sc-old {

@@ -11,6 +11,8 @@
         <s class="sc-old"><span class="vn-sr-only">De </span>{{ oldPrice }}</s>
         <span class="sc-off">{{ view().off }}% OFF</span>
       </span>
+    } @else {
+      <span class="sc-old-row" aria-hidden="true"></span>
     }
 
     <span class="vn-sr-only">{{ view().oldPrice ? 'por ' : '' }}{{ view().fullPrice }}</span>
@@ -20,6 +22,8 @@
 
     @if (view().installment; as installment) {
       <span class="sc-installment">em {{ installment }}</span>
+    } @else {
+      <span class="sc-installment-slot" aria-hidden="true"></span>
     }
 
     @if (view().freeShipping) {
